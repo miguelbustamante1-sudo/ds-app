@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["ds", "sec"]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Country {
+  countryId         Int               @id @default(autoincrement()) @map("cou_id") @db.Integer
+  countryName       String            @map("cou_name") @db.VarChar(100)
+  regionId          Int?              @map("reg_id")
+  countryIso        String?           @map("cou_iso") @db.VarChar(2)
+  region            Region?           @relation(fields: [regionId], references: [regionId], onDelete: Restrict, map: "fk_tbl_countries_reg")
+  teamMembers       TeamMember[]
+  categoryCountries CategoryCountry[]
+  holidays          Holiday[]
+
+  @@index([regionId], map: "idx_tbl_countries_reg_id")
+  @@map("tbl_countries")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Project {
+  projectId          Int                 @id @default(autoincrement()) @map("pro_id") @db.Integer
+  projectName        String?             @map("pro_name") @db.VarChar(200)
+  projectExternalId  String?             @map("pro_external_id") @db.VarChar(200)
+  projectSow         String?             @map("pro_sow") @db.VarChar(100)
+  projectAssignments ProjectAssignment[]
+
+  @@map("tbl_projects")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Region {
+  regionId   Int       @id @default(autoincrement()) @map("reg_id") @db.Integer
+  regionName String    @map("reg_name") @db.VarChar(100)
+  countries  Country[]
+
+  @@map("tbl_regions")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Role {
+  roleId             Int                 @id @default(autoincrement()) @map("rol_id") @db.Integer
+  roleName           String              @map("rol_name") @db.VarChar(100)
+  roleDescription    String?             @map("rol_description") @db.VarChar(2000)
+  teamMembers        TeamMember[]
+  projectAssignments ProjectAssignment[]
+
+  @@map("tbl_roles")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TeamMember {
+  teamMemberId                      Int                    @id @default(autoincrement()) @map("tms_id") @db.Integer
+  teamMemberNames                   String                 @map("tms_names") @db.VarChar(100)
+  teamMemberSurnames                String                 @map("tms_surnames") @db.VarChar(100)
+  teamMemberKnownAs                 String?                @map("tms_known_as") @db.VarChar(100)
+  teamMemberStartDate               DateTime               @map("tms_stadat") @db.Date
+  teamMemberEndDate                 DateTime?              @map("tms_enddat") @db.Date
+  countryId                         Int?                   @map("cou_id")
+  workdayId                         String?                @map("wdid") @db.VarChar(100)
+  teamMemberSeniority               String                 @map("tms_seniority") @db.VarChar(100)
+  teamMemberPrimaryRole             Int?                   @map("tms_primary_role")
+  teamMemberCreatedBy               Int?                   @map("tms_created_by")
+  teamMemberCreatedDate             DateTime?              @map("tms_credat") @db.Date
+  teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
+  teamMemberLastUpdatedDate         DateTime?              @map("tms_last_upddat") @db.Date
+  createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
+  country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
+  primaryRole                       Role?                  @relation(fields: [teamMemberPrimaryRole], references: [roleId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
+  lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
+  timeOffs                          TimeOff[]
+  projectAssignments                ProjectAssignment[]
+  supervisorAssignmentsAsSupervisor SupervisorAssignment[] @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
+  supervisorAssignments             SupervisorAssignment[] @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
+
+  @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
+  @@index([countryId], map: "idx_tbl_team_members_cou_id")
+  @@index([teamMemberPrimaryRole], map: "idx_tbl_team_members_rol_id")
+  @@index([teamMemberLastUpdatedBy], map: "idx_tbl_team_members_uby")
+  @@map("tbl_team_members")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TimeOffChangeLog {
+  changeLogId          Int       @id @default(autoincrement()) @map("toc_id") @db.Integer
+  timeOffId            Int?      @map("tto_id")
+  changeLogComment     String    @map("toc_comment") @db.VarChar(2000)
+  changeLogOldValues   Json?     @map("toc_old_values")
+  changeLogNewValues   Json?     @map("toc_new_values")
+  changeLogCreatedBy   Int?      @map("toc_created_by")
+  changeLogCreatedDate DateTime? @map("toc_credat") @db.Date
+  timeOff              TimeOff?  @relation(fields: [timeOffId], references: [timeOffId], onDelete: Cascade, map: "fk_tbl_timeoff_changelog_tto")
+  createdByUser        User?     @relation(fields: [changeLogCreatedBy], references: [userId], map: "fk_tbl_timeoff_changelog_usr")
+
+  @@index([changeLogCreatedDate], map: "idx_tbl_timeoff_changelog_credat")
+  @@index([timeOffId], map: "idx_tbl_timeoff_changelog_tto_id")
+  @@index([changeLogCreatedBy], map: "idx_tbl_timeoff_changelog_usr_id")
+  @@map("tbl_timeoff_changelog")
+  @@schema("ds")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TimeOff {
+  timeOffId              Int                @id @default(autoincrement()) @map("tto_id") @db.Integer
+  teamMemberId           Int?               @map("tms_id")
+  timeOffStartDate       DateTime           @map("tto_stadat") @db.Date
+  timeOffEndDate         DateTime           @map("tto_enddat") @db.Date
+  timeOffDays            Decimal            @default(0) @map("tto_days") @db.Decimal
+  timeOffOriginalId      Int?               @map("tto_original_id")
+  timeOffCreatedBy       Int?               @map("tto_created_by")
+  timeOffCreatedDate     DateTime?          @map("tto_credat") @db.Date
+  timeOffLastUpdatedBy   Int?               @map("tto_last_updated_ny")
+  timeOffLastUpdatedDate DateTime?          @map("tto_last_upddat") @db.Date
+  categoryId             Int?               @map("cat_id")
+  timeOffActive          Int                @default(1) @map("tto_active")
+  statusId               Int?               @map("sta_id")
+  changeLogs             TimeOffChangeLog[]
+  category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tbl_tms_time_off_cat")
+  createdByUser          User?              @relation("tbl_tms_time_off_tto_created_byTotbl_users", fields: [timeOffCreatedBy], references: [userId], map: "fk_tbl_tms_time_off_cby")
+  status                 TimeOffStatus?     @relation(fields: [statusId], references: [statusId], onDelete: Restrict, map: "fk_tbl_tms_time_off_sta")
+  teamMember             TeamMember?        @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_time_off_tms")
+  lastUpdatedByUser      User?              @relation("tbl_tms_time_off_tto_last_updated_nyTotbl_users", fields: [timeOffLastUpdatedBy], references: [userId], map: "fk_tbl_tms_time_off_uby")
+  originalTimeOff        TimeOff?           @relation("TimeOffOriginal", fields: [timeOffOriginalId], references: [timeOffId], onDelete: Restrict, map: "fk_tbl_tms_time_off_original")
+  splitTimeOffs          TimeOff[]          @relation("TimeOffOriginal")
+
+  @@index([categoryId], map: "idx_tbl_tms_time_off_cat_id")
+  @@index([timeOffCreatedBy], map: "idx_tbl_tms_time_off_cby")
+  @@index([statusId], map: "idx_tbl_tms_time_off_sta_id")
+  @@index([teamMemberId], map: "idx_tbl_tms_time_off_tms_id")
+  @@index([timeOffLastUpdatedBy], map: "idx_tbl_tms_time_off_uby")
+  @@index([timeOffOriginalId], map: "idx_tbl_tms_time_off_original_id")
+  @@map("tbl_tms_time_off")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model ProjectAssignment {
+  projectAssignmentId               Int         @id @default(autoincrement()) @map("txp_id") @db.Integer
+  teamMemberId                      Int?        @map("tms_id")
+  projectId                         Int?        @map("pro_id")
+  projectAssignmentStartDate        DateTime    @map("txp_stadat") @db.Date
+  projectAssignmentEndDate          DateTime?   @map("txp_enddat") @db.Date
+  roleId                            Int?        @map("rol_id")
+  projectAssignmentBillRate         Decimal?    @map("txp_bill_rate") @db.Decimal(15, 2)
+  projectAssignmentBillRateCurrency String?     @map("txp_br_curcod") @db.VarChar(3)
+  projectAssignmentCreatedBy        Int?        @map("txp_created_by")
+  projectAssignmentCreatedDate      DateTime?   @map("txp_credat") @db.Date
+  projectAssignmentLastUpdatedBy    Int?        @map("txp_last_updated_by")
+  projectAssignmentLastUpdatedDate  DateTime?   @map("txp_last_upddat") @db.Date
+  createdByUser                     User?       @relation("tbl_tms_x_projects_txp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tbl_tms_x_projects_cby")
+  project                           Project?    @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_pro")
+  role                              Role?       @relation(fields: [roleId], references: [roleId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_rol")
+  teamMember                        TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_tms")
+  lastUpdatedByUser                 User?       @relation("tbl_tms_x_projects_txp_last_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tbl_tms_x_projects_uby")
+
+  @@index([projectAssignmentCreatedBy], map: "idx_tbl_tms_x_projects_cby")
+  @@index([projectId], map: "idx_tbl_tms_x_projects_pro_id")
+  @@index([roleId], map: "idx_tbl_tms_x_projects_rol_id")
+  @@index([teamMemberId], map: "idx_tbl_tms_x_projects_tms_id")
+  @@index([projectAssignmentLastUpdatedBy], map: "idx_tbl_tms_x_projects_uby")
+  @@map("tbl_tms_x_projects")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model SupervisorAssignment {
+  supervisorAssignmentId              Int         @id @default(autoincrement()) @map("txs_id") @db.Integer
+  teamMemberId                        Int?        @map("tms_id")
+  supervisorId                        Int?        @map("sup_id")
+  supervisorAssignmentStartDate       DateTime    @map("txs_stadat") @db.Date
+  supervisorAssignmentEndDate         DateTime?   @map("txs_enddat") @db.Date
+  supervisorAssignmentCreatedBy       Int?        @map("txs_created_by")
+  supervisorAssignmentCreatedDate     DateTime?   @map("txs_credat") @db.Date
+  supervisorAssignmentLastUpdatedBy   Int?        @map("txs_last_updated_by")
+  supervisorAssignmentLastUpdatedDate DateTime?   @map("txs_last_upddat") @db.Date
+  createdByUser                       User?       @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users", fields: [supervisorAssignmentCreatedBy], references: [userId], map: "fk_tbl_tms_x_supervisor_cby")
+  supervisor                          TeamMember? @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members", fields: [supervisorId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_x_supervisor_sup")
+  teamMember                          TeamMember? @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members", fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_x_supervisor_tms")
+  lastUpdatedByUser                   User?       @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users", fields: [supervisorAssignmentLastUpdatedBy], references: [userId], map: "fk_tbl_tms_x_supervisor_uby")
+
+  @@index([supervisorAssignmentCreatedBy], map: "idx_tbl_tms_x_supervisor_cby")
+  @@index([supervisorId], map: "idx_tbl_tms_x_supervisor_sup_id")
+  @@index([teamMemberId], map: "idx_tbl_tms_x_supervisor_tms_id")
+  @@index([supervisorAssignmentLastUpdatedBy], map: "idx_tbl_tms_x_supervisor_uby")
+  @@map("tbl_tms_x_supervisor")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TimeOffCategory {
+  categoryId        Int               @id @default(autoincrement()) @map("cat_id") @db.Integer
+  categoryName      String            @map("cat_name") @db.VarChar(100)
+  timeOffs          TimeOff[]
+  categoryCountries CategoryCountry[]
+
+  @@map("tbl_to_categories")
+  @@schema("ds")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model CategoryCountry {
+  categoryCountryId            Int             @id @default(autoincrement()) @map("cxc_id") @db.Integer
+  categoryId                   Int             @map("cat_id")
+  countryId                    Int             @map("cou_id")
+  categoryCountryStatus        Int             @default(1) @map("cxc_status")
+  categoryCountryAllowHalfDay  Boolean         @default(false) @map("cxc_allow_half_day")
+  categoryCountryIsFixedDuration Boolean       @default(false) @map("cxc_is_fixed_duration")
+  categoryCountryFixedDays     Decimal?        @map("cxc_fixed_days") @db.Decimal
+  category                     TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cat")
+  country                      Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cou")
+
+  @@unique([categoryId, countryId], map: "uk_tbl_to_categories_x_country")
+  @@index([categoryId], map: "idx_tbl_to_categories_x_country_cat_id")
+  @@index([countryId], map: "idx_tbl_to_categories_x_country_cou_id")
+  @@map("tbl_to_categories_x_country")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model TimeOffStatus {
+  statusId   Int       @id @default(autoincrement()) @map("sta_id") @db.Integer
+  statusName String    @map("sta_name") @db.VarChar(100)
+  timeOffs   TimeOff[]
+
+  @@map("tbl_to_statuses")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Holiday {
+  holidayId          Int       @id @default(autoincrement()) @map("hol_id") @db.Integer
+  countryId          Int       @map("cou_id")
+  holidayName        String    @map("hol_name") @db.VarChar(100)
+  holidayDate        DateTime  @map("hol_date") @db.Date
+  holidayIsRecurring Boolean?  @default(true) @map("hol_is_recurring")
+  holidayIsHalfDay   Boolean   @default(false) @map("hol_is_half_day")
+  holidayCreatedAt   DateTime? @default(now()) @map("hol_created_at") @db.Timestamptz(6)
+  holidayCreatedBy   String    @map("hol_created_by") @db.VarChar(50)
+  holidayUpdatedAt   DateTime? @default(now()) @map("hol_updated_at") @db.Timestamptz(6)
+  holidayUpdatedBy   String?   @map("hol_updated_by") @db.VarChar(50)
+  holidayDeletedAt   DateTime? @map("hol_deleted_at") @db.Timestamptz(6)
+  holidayIsActive    Boolean?  @default(true) @map("hol_is_active")
+  country            Country   @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_hol_country")
+
+  @@index([countryId], map: "idx_hol_cou_id")
+  @@index([holidayDate], map: "idx_hol_date")
+  @@map("hol_holiday")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model User {
+  userId                       Int                    @id @default(autoincrement()) @map("usr_id") @db.Integer
+  userName                     String                 @map("usr_name") @db.VarChar(200)
+  userEmail                    String                 @unique(map: "idx_tbl_users_email") @map("usr_email") @db.VarChar(200)
+  userRole                     String                 @map("usr_role") @db.VarChar(50)
+  userStartDate                DateTime               @map("usr_stadat") @db.Date
+  userEndDate                  DateTime?              @map("usr_enddat") @db.Date
+  teamMemberId                 Int?                   @map("tms_id")
+  teamMembersCreated           TeamMember[]           @relation("tbl_team_members_tms_created_byTotbl_users")
+  teamMembersUpdated           TeamMember[]           @relation("tbl_team_members_tms_last_updated_byTotbl_users")
+  timeOffChangeLogs            TimeOffChangeLog[]
+  timeOffsCreated              TimeOff[]              @relation("tbl_tms_time_off_tto_created_byTotbl_users")
+  timeOffsUpdated              TimeOff[]              @relation("tbl_tms_time_off_tto_last_updated_nyTotbl_users")
+  projectAssignmentsCreated    ProjectAssignment[]    @relation("tbl_tms_x_projects_txp_created_byTotbl_users")
+  projectAssignmentsUpdated    ProjectAssignment[]    @relation("tbl_tms_x_projects_txp_last_updated_byTotbl_users")
+  supervisorAssignmentsCreated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
+  supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
+
+  @@index([teamMemberId], map: "idx_tbl_users_tms_id")
+  @@map("tbl_users")
+  @@schema("ds")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model AuthUser {
+  id            Int            @id @default(autoincrement())
+  oneloginId    String         @unique @map("onelogin_id") @db.VarChar(255)
+  email         String         @unique @db.VarChar(255)
+  firstName     String?        @map("first_name") @db.VarChar(255)
+  lastName      String?        @map("last_name") @db.VarChar(255)
+  avatarUrl     String?        @map("avatar_url") @db.VarChar(500)
+  roles         String[]       @default(["user"])
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
+  lastLogin     DateTime?      @map("last_login") @db.Timestamp(6)
+  revokedTokens RevokedToken[]
+
+  @@index([email], map: "idx_auth_users_email")
+  @@index([oneloginId], map: "idx_auth_users_onelogin_id")
+  @@map("auth_users")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Permission {
+  permissionId          Int              @id @default(autoincrement()) @map("per_id")
+  permissionResource    String           @unique @map("per_resource")
+  permissionRead        Boolean          @default(false) @map("per_read")
+  permissionWrite       Boolean          @default(false) @map("per_write")
+  permissionDelete      Boolean          @default(false) @map("per_delete")
+  permissionDescription String?          @map("per_description")
+  updatedAt             DateTime?        @default(now()) @map("updated_at") @db.Timestamptz(6)
+  rolePermissions       RolePermission[]
+
+  @@map("per_permissions")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model RevokedToken {
+  id        Int       @id @default(autoincrement())
+  tokenJti  String    @unique @map("token_jti") @db.VarChar(255)
+  userId    Int?      @map("user_id")
+  revokedAt DateTime  @default(now()) @map("revoked_at") @db.Timestamp(6)
+  expiresAt DateTime  @map("expires_at") @db.Timestamp(6)
+  authUser  AuthUser? @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expiresAt], map: "idx_revoked_tokens_expires_at")
+  @@index([userId], map: "idx_revoked_tokens_user_id")
+  @@map("revoked_tokens")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model SecurityRole {
+  roleId          Int              @id @default(autoincrement()) @map("rol_id")
+  roleName        String           @unique @map("rol_name")
+  roleDescription String?          @map("rol_description")
+  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("rol_roles")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model RolePermission {
+  roleId       Int          @map("rol_id")
+  permissionId Int          @map("per_id")
+  permission   Permission   @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade, onUpdate: NoAction)
+  role         SecurityRole @relation(fields: [roleId], references: [roleId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "idx_rop_role_permissions_per_id")
+  @@index([roleId], map: "idx_rop_role_permissions_rol_id")
+  @@map("rop_role_permissions")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model UserRole {
+  userId Int          @map("usr_id")
+  roleId Int          @map("rol_id")
+  role   SecurityRole @relation(fields: [roleId], references: [roleId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, roleId])
+  @@index([roleId], map: "idx_uro_user_roles_rol_id")
+  @@index([userId], map: "idx_uro_user_roles_usr_id")
+  @@map("uro_user_roles")
+  @@schema("sec")
+}

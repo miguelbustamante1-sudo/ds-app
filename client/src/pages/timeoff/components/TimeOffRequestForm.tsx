@@ -1,0 +1,399 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { format } from 'date-fns';
+import { CalendarIcon, AlertTriangle } from 'lucide-react';
+import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
+import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn, formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+import { apiGet, apiPost, ApiError } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
+import { detectOverlap } from '../utils/overlapDetection';
+import {
+  isElSalvadorVacation,
+  calculateCalendarDays,
+  getExistingVacationDaysThisYear,
+  validateSVVacation,
+} from '../utils/elSalvadorVacationValidation';
+
+interface TimeOffStatus {
+  statusId: number;
+  statusName: string;
+}
+
+interface MyTeamMemberProfile {
+  teamMemberId: number;
+  teamMemberEndDate: string | null;
+  countryId: number | null;
+  countryIso: string | null;
+}
+
+interface FormData {
+  categoryId: string;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
+}
+
+interface TimeOffRequestFormProps {
+  existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
+  onSuccess: () => void;
+}
+
+export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffRequestFormProps) {
+  const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
+  const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
+  const [userEndDate, setUserEndDate] = useState<Date | null>(null);
+  const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<FormData>({
+    defaultValues: {
+      categoryId: '',
+      startDate: undefined,
+      endDate: undefined,
+    },
+  });
+
+  const startDate = watch('startDate');
+  const endDate = watch('endDate');
+  const categoryId = watch('categoryId');
+
+  // Get the selected category's configuration
+  const selectedCategory = categories.find(
+    (cat) => cat.categoryId.toString() === categoryId
+  );
+  const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
+  const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
+
+  // Load categories (filtered by user's country), statuses, and user profile on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Load categories filtered by current user's country
+        const categoriesData = await apiGet<CategoryByCountryDTO[]>('/api/time-off-category/my-categories');
+        setCategories(categoriesData);
+
+        // Load statuses and find the "cancelled" status ID
+        const statusesData = await apiGet<TimeOffStatus[]>('/api/time-off-statuses');
+        const cancelledStatus = statusesData.find(
+          (s) => s.statusName.toLowerCase().trim() === 'cancelled'
+        );
+        if (cancelledStatus) {
+          setCancelledStatusId(cancelledStatus.statusId);
+        }
+
+        // Load user's team member profile for attrition date and country validation
+        const profile = await apiGet<MyTeamMemberProfile>('/api/team-members/me');
+        if (profile.teamMemberEndDate) {
+          setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
+        }
+        setUserCountryIso(profile.countryIso);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load form data',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingCategories(false);
+      }
+    }
+    loadData();
+  }, [toast]);
+
+  // Auto-calculate end date for fixed-duration categories
+  useEffect(() => {
+    if (isFixedDuration && fixedDays && startDate) {
+      const calculatedEndDate = new Date(startDate);
+      calculatedEndDate.setDate(calculatedEndDate.getDate() + fixedDays - 1);
+      // Only update if different to avoid infinite loop
+      if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
+        setValue('endDate', calculatedEndDate);
+      }
+    }
+  }, [isFixedDuration, fixedDays, startDate, endDate, setValue]);
+
+  // Validation: Date range
+  const isDateRangeValid = startDate && endDate && startDate <= endDate;
+
+  // Validation: Attrition date - check if dates exceed user's end date
+  const exceedsAttritionDate = userEndDate && (
+    (startDate && startDate > userEndDate) ||
+    (endDate && endDate > userEndDate)
+  );
+
+  // Overlap detection (use cancelledStatusId from API, fallback to -1 if not loaded yet)
+  const overlappingTimeOffs = existingTimeOffs && startDate && endDate
+    ? detectOverlap(startDate, endDate, existingTimeOffs, cancelledStatusId ?? -1)
+    : [];
+  const hasOverlap = overlappingTimeOffs.length > 0;
+
+  // El Salvador Vacation validation
+  const isSVVacation = isElSalvadorVacation(
+    userCountryIso,
+    selectedCategory?.categoryName
+  );
+
+  const requestedDays = startDate && endDate
+    ? calculateCalendarDays(startDate, endDate)
+    : 0;
+
+  const existingVacationDays = isSVVacation
+    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId)
+    : 0;
+
+  const svValidation = isSVVacation && requestedDays > 0
+    ? validateSVVacation(requestedDays, existingVacationDays)
+    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+
+  // Save button enabled state - block when overlap exists, exceeds attrition date, or SV validation fails
+  const canSave =
+    categoryId !== '' &&
+    startDate !== undefined &&
+    endDate !== undefined &&
+    isDateRangeValid &&
+    !hasOverlap &&
+    !exceedsAttritionDate &&
+    svValidation.valid &&
+    !submitting;
+
+  const onSubmit = useCallback(async (data: FormData) => {
+    if (!data.startDate || !data.endDate) return;
+
+    setSubmitting(true);
+    try {
+      const payload: CreateMyTimeOffDTO = {
+        categoryId: Number(data.categoryId),
+        timeOffStartDate: data.startDate.toISOString(),
+        timeOffEndDate: data.endDate.toISOString(),
+      };
+
+      await apiPost('/api/time-offs/my-requests', payload);
+
+      toast({
+        title: 'Success',
+        description: 'Time off request created successfully',
+      });
+
+      // Reset form after success
+      reset();
+      onSuccess();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to create time off request';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [reset, onSuccess, toast]);
+
+  return (
+    <div className="bg-card rounded-lg border p-6">
+      <h3 className="text-lg font-semibold mb-4">New Time Off Request</h3>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Category Select */}
+        <div className="space-y-2">
+          <Label htmlFor="category">
+            Category <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="categoryId"
+            control={control}
+            rules={{ required: 'Category is required' }}
+            render={({ field }) => (
+              <ComboBox
+                options={categories.map((cat): ComboBoxOption => ({
+                  value: cat.categoryId.toString(),
+                  label: cat.categoryName,
+                }))}
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder={loadingCategories ? 'Loading...' : 'Select category'}
+                searchPlaceholder="Search categories..."
+                emptyMessage="No categories found."
+                disabled={loadingCategories}
+              />
+            )}
+          />
+          {errors.categoryId && (
+            <p className="text-sm text-destructive">{errors.categoryId.message}</p>
+          )}
+        </div>
+
+        {/* Start Date */}
+        <div className="space-y-2">
+          <Label>
+            Start Date <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="startDate"
+            control={control}
+            rules={{ required: 'Start date is required' }}
+            render={({ field }) => (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !field.value && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    defaultMonth={field.value ?? new Date()}
+                    disabled={(date) => userEndDate ? date > userEndDate : false}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          />
+          {errors.startDate && (
+            <p className="text-sm text-destructive">{errors.startDate.message}</p>
+          )}
+        </div>
+
+        {/* End Date */}
+        <div className="space-y-2">
+          <Label>
+            End Date <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="endDate"
+            control={control}
+            rules={{ required: 'End date is required' }}
+            render={({ field }) => (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !field.value && 'text-muted-foreground'
+                    )}
+                    disabled={isFixedDuration}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    defaultMonth={field.value ?? startDate ?? new Date()}
+                    disabled={(date) => {
+                      if (startDate && date < startDate) return true;
+                      if (userEndDate && date > userEndDate) return true;
+                      return false;
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+          />
+          {isFixedDuration && fixedDays && (
+            <p className="text-sm text-muted-foreground">
+              This category has a fixed duration of {fixedDays} day{fixedDays !== 1 ? 's' : ''}.
+            </p>
+          )}
+          {errors.endDate && (
+            <p className="text-sm text-destructive">{errors.endDate.message}</p>
+          )}
+          {startDate && endDate && !isDateRangeValid && (
+            <p className="text-sm text-destructive">End date must be on or after start date</p>
+          )}
+        </div>
+
+        {/* Overlap Warning */}
+        {hasOverlap && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-2">
+                This request overlaps with {overlappingTimeOffs.length} existing time off{overlappingTimeOffs.length > 1 ? 's' : ''}:
+              </p>
+              <ul className="list-disc list-inside text-sm mb-3">
+                {overlappingTimeOffs.map((to) => (
+                  <li key={to.timeOffId}>
+                    {to.categoryName}: {formatUTCDate(to.timeOffStartDate, 'MMM dd')} - {formatUTCDate(to.timeOffEndDate, 'MMM dd, yyyy')}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm">
+                You need to first edit or cancel the existing time off before you can request one in the same date range.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Attrition Date Warning */}
+        {exceedsAttritionDate && userEndDate && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Time off cannot extend beyond your end date ({format(userEndDate, 'PPP')}).
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* El Salvador Vacation Info/Warning */}
+        {isSVVacation && (
+          <Alert variant={svValidation.valid ? 'info' : 'destructive'}>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-2">El Salvador Vacation Policy (7/8/15 Day Rule)</p>
+              <p className="text-sm mb-2">
+                Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of 15 days
+              </p>
+              {svValidation.allowedDayOptions.length > 0 && (
+                <p className="text-sm mb-2">
+                  Allowed request options: <span className="font-medium">{svValidation.allowedDayOptions.join(', ')} days</span>
+                </p>
+              )}
+              {requestedDays > 0 && (
+                <p className="text-sm mb-2">
+                  Current request: <span className="font-medium">{requestedDays} days</span>
+                </p>
+              )}
+              {svValidation.errorMessage && (
+                <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Submit Button */}
+        <Button type="submit" className="w-full" disabled={!canSave}>
+          {submitting ? 'Saving...' : 'Submit Request'}
+        </Button>
+      </form>
+    </div>
+  );
+}

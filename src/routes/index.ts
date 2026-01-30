@@ -1,0 +1,42 @@
+import { Router } from 'express';
+import timeOffCategories from './timeOffCategories';
+import timeOffStatusesRouter from './timeOffStatuses';
+import timeOffsRouter from './timeOffs';
+import countriesRouter from './countries';
+import regionsRouter from './regions';
+import timeOffCategoriesXCountryRouter from './timeOffCategoriesXCountry';
+import teamMembersRouter from './teamMembers';
+import teamMemberProjectsRouter from './teamMemberProjects';
+import projectsRouter from './projects';
+import rolesRouter from './roles';
+import usersRouter from './users';
+import rbacPermissionsRouter from './rbacPermissions';
+import rbacRolesRouter from './rbacRoles';
+import rbacRolePermissionsRouter from './rbacRolePermissions';
+import rbacUserRolesRouter from './rbacUserRoles';
+import supervisorAssignmentsRouter from './supervisorAssignments';
+import holidaysRouter from './holidays';
+
+export default function registerRoutes() {
+  const router = Router();
+
+  router.use('/time-off-category', timeOffCategories);
+  router.use('/time-off-statuses', timeOffStatusesRouter);
+  router.use('/time-offs', timeOffsRouter);
+  router.use('/countries', countriesRouter);
+  router.use('/regions', regionsRouter);
+  router.use('/time-off-categories-by-country', timeOffCategoriesXCountryRouter);
+  router.use('/team-members', teamMembersRouter);
+  router.use('/team-member-projects', teamMemberProjectsRouter);
+  router.use('/projects', projectsRouter);
+  router.use('/roles', rolesRouter);
+  router.use('/users', usersRouter);
+  router.use('/rbac/permissions', rbacPermissionsRouter);
+  router.use('/rbac/roles', rbacRolesRouter);
+  router.use('/rbac/role-permissions', rbacRolePermissionsRouter);
+  router.use('/rbac/user-roles', rbacUserRolesRouter);
+  router.use('/supervisor-assignments', supervisorAssignmentsRouter);
+  router.use('/holidays', holidaysRouter);
+
+  return router;
+}
