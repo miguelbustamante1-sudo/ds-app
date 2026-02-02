@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
@@ -304,6 +304,8 @@ export function SupervisorTimeOffForm({
                       onSelect={field.onChange}
                       defaultMonth={field.value ?? new Date()}
                       disabled={(date) => {
+                        const today = startOfDay(new Date());
+                        if (date < today) return true;
                         if (isWeekend(date)) return true;
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
                         return false;
@@ -346,6 +348,8 @@ export function SupervisorTimeOffForm({
                       onSelect={field.onChange}
                       defaultMonth={field.value ?? startDate ?? new Date()}
                       disabled={(date) => {
+                        const today = startOfDay(new Date());
+                        if (date < today) return true;
                         if (startDate && date < startDate) return true;
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
                         return false;

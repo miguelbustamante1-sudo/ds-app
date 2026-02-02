@@ -62,12 +62,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: UserCircle,
     disabled: true,
   },
-  { heading: 'Actions' },
+  { heading: 'Self Service' },
   {
-    title: 'Time Off',
+    title: 'My Time Off',
     icon: CalendarCheck,
     path: '/my-time-off',
   },
+  { heading: 'Actions' },
   {
     title: 'Supervisor Time Off',
     icon: Users,

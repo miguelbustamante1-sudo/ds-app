@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
@@ -267,7 +267,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                     selected={field.value}
                     onSelect={field.onChange}
                     defaultMonth={field.value ?? new Date()}
-                    disabled={(date) => userEndDate ? date > userEndDate : false}
+                    disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      if (date < today) return true;
+                      if (userEndDate && date > userEndDate) return true;
+                      return false;
+                    }}
                   />
                 </PopoverContent>
               </Popover>
@@ -309,6 +314,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                     onSelect={field.onChange}
                     defaultMonth={field.value ?? startDate ?? new Date()}
                     disabled={(date) => {
+                      const today = startOfDay(new Date());
+                      if (date < today) return true;
                       if (startDate && date < startDate) return true;
                       if (userEndDate && date > userEndDate) return true;
                       return false;

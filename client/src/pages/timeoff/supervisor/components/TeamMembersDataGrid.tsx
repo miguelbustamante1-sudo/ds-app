@@ -1,18 +1,18 @@
 import { useMemo } from 'react';
-import { format } from 'date-fns';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import {
   ColumnDef,
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
-import { Badge } from '@/components/ui/badge';
+import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -46,46 +46,18 @@ export function TeamMembersDataGrid({
         cell: ({ row }) => (
           <span className="font-medium">{row.original.workdayId || '-'}</span>
         ),
-        size: 100,
+        size: 80,
         meta: { headerTitle: 'WDID', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
-        accessorKey: 'teamMemberFullName',
+        id: 'fullName',
+        accessorFn: (row) => `${row.teamMemberNames} ${row.teamMemberSurnames}`,
         header: ({ column }) => <DataGridColumnHeader column={column} title="Full Name" />,
-        size: 200,
-        meta: { headerTitle: 'Full Name', skeleton: <Skeleton className="h-4 w-32" /> },
-      },
-      {
-        accessorKey: 'reportType',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Report Type" />,
         cell: ({ row }) => (
-          <Badge variant={row.original.reportType === 'Direct' ? 'info' : 'secondary'}>
-            {row.original.reportType}
-          </Badge>
+          <span>{row.original.teamMemberNames} {row.original.teamMemberSurnames}</span>
         ),
-        size: 100,
-        meta: { headerTitle: 'Report Type', skeleton: <Skeleton className="h-4 w-16" /> },
-      },
-      {
-        accessorKey: 'primaryRoleName',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Role" />,
-        cell: ({ row }) => row.original.primaryRoleName || '-',
-        size: 150,
-        meta: { headerTitle: 'Role', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-      {
-        accessorKey: 'countryName',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Country" />,
-        cell: ({ row }) => row.original.countryName || '-',
-        size: 120,
-        meta: { headerTitle: 'Country', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
-        accessorKey: 'supervisorAssignmentStartDate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
-        cell: ({ row }) => format(new Date(row.original.supervisorAssignmentStartDate), 'MMM dd, yyyy'),
-        size: 120,
-        meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-20" /> },
+        size: 180,
+        meta: { headerTitle: 'Full Name', skeleton: <Skeleton className="h-4 w-32" /> },
       },
     ],
     []
@@ -98,6 +70,9 @@ export function TeamMembersDataGrid({
       sorting,
       globalFilter,
     },
+    initialState: {
+      pagination: { pageSize: 10 },
+    },
     onSortingChange: (updater) => {
       const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
       onSortingChange(newSorting);
@@ -106,6 +81,7 @@ export function TeamMembersDataGrid({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
   if (loading) {
@@ -147,7 +123,7 @@ export function TeamMembersDataGrid({
       <DataGridContainer>
         <DataGrid
           table={table}
-          recordCount={teamMembers.length}
+          recordCount={table.getFilteredRowModel().rows.length}
           onRowClick={onSelectTeamMember}
           tableLayout={{
             headerBackground: true,
@@ -164,6 +140,7 @@ export function TeamMembersDataGrid({
           }
         >
           <DataGridTable />
+          <DataGridPagination sizes={[10, 25, 50]} />
         </DataGrid>
       </DataGridContainer>
     </div>

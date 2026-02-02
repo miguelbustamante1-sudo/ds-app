@@ -7,12 +7,14 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
+import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,8 +61,16 @@ function canEdit(timeOff: TimeOffWithDetailsDTO): boolean {
 }
 
 export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick }: SupervisorTimeOffListProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'timeOffStartDate', desc: false }
+  ]);
   const [globalFilter, setGlobalFilter] = useState('');
+
+  // Filter out cancelled time-offs
+  const filteredTimeOffs = useMemo(() =>
+    timeOffs.filter(t => !t.statusName.toLowerCase().includes('cancelled')),
+    [timeOffs]
+  );
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -144,17 +154,21 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
   );
 
   const table = useReactTable({
-    data: timeOffs,
+    data: filteredTimeOffs,
     columns,
     state: {
       sorting,
       globalFilter,
+    },
+    initialState: {
+      pagination: { pageSize: 5 },
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
   if (loading) {
@@ -176,7 +190,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
         <h3 className="text-lg font-semibold">Time Off Requests</h3>
       </div>
 
-      {timeOffs.length === 0 ? (
+      {filteredTimeOffs.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No time off requests found for this team member.
         </div>
@@ -197,7 +211,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
           <DataGridContainer border={false}>
             <DataGrid
               table={table}
-              recordCount={timeOffs.length}
+              recordCount={table.getFilteredRowModel().rows.length}
               tableLayout={{
                 headerBackground: true,
                 headerBorder: true,
@@ -205,6 +219,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
               }}
             >
               <DataGridTable />
+              <DataGridPagination sizes={[5, 10, 25]} />
             </DataGrid>
           </DataGridContainer>
         </div>
