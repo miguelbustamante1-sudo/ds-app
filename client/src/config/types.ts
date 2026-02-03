@@ -16,6 +16,12 @@ export interface MenuItem {
   expandTitle?: string;
   badge?: string;
   separator?: boolean;
+  /**
+   * Permission resource required to view this menu item.
+   * If set, the item will only be visible if the user has 'read' permission for this resource.
+   * Example: 'Holidays', 'TeamMembers', 'Countries'
+   */
+  permission?: string;
 }
 
 export type MenuConfig = MenuItem[];

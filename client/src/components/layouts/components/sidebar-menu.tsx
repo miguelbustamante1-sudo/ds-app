@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, useCallback } from 'react';
+import { JSX, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MENU_SIDEBAR } from '@/config/layout-1.config';
 import { MenuConfig, MenuItem } from '@/config/types';
@@ -17,9 +17,49 @@ import {
 } from '@/components/ui/accordion-menu';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function SidebarMenu() {
   const { pathname } = useLocation();
+  const { canRead } = usePermissions();
+
+  /**
+   * Filter menu items based on user permissions.
+   * Items without a permission field are always visible.
+   * Items with a permission field require the user to have 'read' permission.
+   */
+  const filterByPermissions = useCallback(
+    (items: MenuConfig): MenuConfig => {
+      return items
+        .filter((item) => {
+          // If no permission specified, always show
+          if (!item.permission) return true;
+          // Otherwise, check if user has read permission
+          return canRead(item.permission);
+        })
+        .map((item) => {
+          // Recursively filter children
+          if (item.children) {
+            const filteredChildren = filterByPermissions(item.children);
+            // If all children are filtered out, don't show the parent either
+            // (unless it has its own path)
+            if (filteredChildren.length === 0 && !item.path) {
+              return null;
+            }
+            return { ...item, children: filteredChildren };
+          }
+          return item;
+        })
+        .filter((item): item is MenuItem => item !== null);
+    },
+    [canRead],
+  );
+
+  // Memoize filtered menu to avoid recalculating on every render
+  const filteredMenu = useMemo(
+    () => filterByPermissions(MENU_SIDEBAR),
+    [filterByPermissions],
+  );
 
   // Memoize matchPath to prevent unnecessary re-renders
   const matchPath = useCallback(
@@ -219,7 +259,7 @@ export function SidebarMenu() {
         collapsible
         classNames={classNames}
       >
-        {buildMenu(MENU_SIDEBAR)}
+        {buildMenu(filteredMenu)}
       </AccordionMenu>
     </ScrollArea>
   );
