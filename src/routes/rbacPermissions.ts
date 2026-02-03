@@ -43,24 +43,24 @@ router.get('/:id', requirePermission('RBACPermissions', 'read'), async (req: Req
 // POST /rbac/permissions
 router.post('/', requirePermission('RBACPermissions', 'create'), async (req: Request, res: Response) => {
   try {
-    const { per_resource, per_read, per_write, per_delete, per_description } = req.body as {
-      per_resource?: string;
+    const { per_resource, per_read, per_write, per_delete, per_description, opt_id, rol_id } = req.body as {
+      per_resource?: string | null;
       per_read?: boolean;
       per_write?: boolean;
       per_delete?: boolean;
       per_description?: string | null;
+      opt_id?: number | null;
+      rol_id?: number | null;
     };
 
-    if (!per_resource || typeof per_resource !== 'string') {
-      return res.status(400).json({ error: 'per_resource is required' });
-    }
-
     const created = await createRbacPermission(
-      per_resource,
+      per_resource ?? null,
       typeof per_read === 'boolean' ? per_read : false,
       typeof per_write === 'boolean' ? per_write : false,
       typeof per_delete === 'boolean' ? per_delete : false,
-      typeof per_description === 'string' ? per_description : null
+      typeof per_description === 'string' ? per_description : null,
+      typeof opt_id === 'number' ? opt_id : null,
+      typeof rol_id === 'number' ? rol_id : null
     );
 
     res.status(201).json(created);
@@ -76,25 +76,25 @@ router.put('/:id', requirePermission('RBACPermissions', 'create'), async (req: R
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { per_resource, per_read, per_write, per_delete, per_description } = req.body as {
-      per_resource?: string;
+    const { per_resource, per_read, per_write, per_delete, per_description, opt_id, rol_id } = req.body as {
+      per_resource?: string | null;
       per_read?: boolean;
       per_write?: boolean;
       per_delete?: boolean;
       per_description?: string | null;
+      opt_id?: number | null;
+      rol_id?: number | null;
     };
-
-    if (!per_resource || typeof per_resource !== 'string') {
-      return res.status(400).json({ error: 'per_resource is required' });
-    }
 
     const updated = await updateRbacPermission(
       id,
-      per_resource,
+      per_resource ?? null,
       typeof per_read === 'boolean' ? per_read : false,
       typeof per_write === 'boolean' ? per_write : false,
       typeof per_delete === 'boolean' ? per_delete : false,
-      typeof per_description === 'string' ? per_description : null
+      typeof per_description === 'string' ? per_description : null,
+      typeof opt_id === 'number' ? opt_id : null,
+      typeof rol_id === 'number' ? rol_id : null
     );
 
     if (!updated) return res.status(404).json({ error: 'Permission not found' });

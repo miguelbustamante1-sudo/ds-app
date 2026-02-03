@@ -7,3 +7,7 @@ documents
 client/node_modules
 client/dist
 .claude/
+node_modules/
+.env
+dist/
+documents/

@@ -4,6 +4,7 @@ import { toAbsoluteUrl } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/auth/auth-provider';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 
 const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
 
@@ -58,22 +59,43 @@ export function SignInPage() {
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
               <p className="text-sm text-muted-foreground">
-                Sign in with Google to continue to Cloud OK.
+                Sign in to continue to Cloud OK.
               </p>
             </div>
           </div>
 
           <div className="mt-8 space-y-4">
             <Button
-              className="w-full"
+              className="w-full gap-3 bg-[#0073e6] hover:bg-[#005bb5] text-white"
+              size="lg"
+              onClick={() => window.location.href = '/api/auth/login'}
+              disabled={loading}
+            >
+              <KeyRound className="h-5 w-5" />
+              Sign in with OneLogin
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full gap-3"
               size="lg"
               onClick={handleSignIn}
               disabled={loading}
             >
-              Continue with Google
+              <ShieldCheck className="h-5 w-5" />
+              Continue with Google IAP
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              You will be redirected to Google Identity-Aware Proxy.
+              Use Google IAP if OneLogin is unavailable.
             </p>
 
             {enableDevLogin && (

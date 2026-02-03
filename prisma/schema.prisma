@@ -211,15 +211,15 @@ model TimeOffCategory {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model CategoryCountry {
-  categoryCountryId            Int             @id @default(autoincrement()) @map("cxc_id") @db.Integer
-  categoryId                   Int             @map("cat_id")
-  countryId                    Int             @map("cou_id")
-  categoryCountryStatus        Int             @default(1) @map("cxc_status")
-  categoryCountryAllowHalfDay  Boolean         @default(false) @map("cxc_allow_half_day")
-  categoryCountryIsFixedDuration Boolean       @default(false) @map("cxc_is_fixed_duration")
-  categoryCountryFixedDays     Decimal?        @map("cxc_fixed_days") @db.Decimal
-  category                     TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cat")
-  country                      Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cou")
+  categoryCountryId              Int             @id @default(autoincrement()) @map("cxc_id") @db.Integer
+  categoryId                     Int             @map("cat_id")
+  countryId                      Int             @map("cou_id")
+  categoryCountryStatus          Int             @default(1) @map("cxc_status")
+  categoryCountryAllowHalfDay    Boolean         @default(false) @map("cxc_allow_half_day")
+  categoryCountryIsFixedDuration Boolean         @default(false) @map("cxc_is_fixed_duration")
+  categoryCountryFixedDays       Decimal?        @map("cxc_fixed_days") @db.Decimal
+  category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cat")
+  country                        Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cou")
 
   @@unique([categoryId, countryId], map: "uk_tbl_to_categories_x_country")
   @@index([categoryId], map: "idx_tbl_to_categories_x_country_cat_id")
@@ -305,16 +305,33 @@ model AuthUser {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model Permission {
-  permissionId          Int              @id @default(autoincrement()) @map("per_id")
-  permissionResource    String           @unique @map("per_resource")
-  permissionRead        Boolean          @default(false) @map("per_read")
-  permissionWrite       Boolean          @default(false) @map("per_write")
-  permissionDelete      Boolean          @default(false) @map("per_delete")
-  permissionDescription String?          @map("per_description")
-  updatedAt             DateTime?        @default(now()) @map("updated_at") @db.Timestamptz(6)
-  rolePermissions       RolePermission[]
+model Option {
+  optionId          Int          @id @default(autoincrement()) @map("opt_id")
+  optionDescription String?      @map("opt_description") @db.Text
+  optionCreatedBy   String?      @map("opt_created_by") @db.VarChar(255)
+  optionCreatedAt   DateTime?    @default(now()) @map("opt_created_at") @db.Timestamptz(6)
+  permissions       Permission[]
 
+  @@map("opt_options")
+  @@schema("sec")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Permission {
+  permissionId          Int           @id @default(autoincrement()) @map("per_id")
+  permissionResource    String?       @map("per_resource")
+  permissionRead        Boolean       @default(false) @map("per_read")
+  permissionWrite       Boolean       @default(false) @map("per_write")
+  permissionDelete      Boolean       @default(false) @map("per_delete")
+  permissionDescription String?       @map("per_description")
+  updatedAt             DateTime?     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  optionId              Int?          @map("opt_id")
+  roleId                Int?          @map("rol_id")
+  option                Option?       @relation(fields: [optionId], references: [optionId], onDelete: Cascade, map: "fk_per_options")
+  role                  SecurityRole? @relation(fields: [roleId], references: [roleId], onDelete: Cascade, map: "fk_per_roles")
+
+  @@index([optionId], map: "idx_per_permissions_opt_id")
+  @@index([roleId], map: "idx_per_permissions_rol_id")
   @@map("per_permissions")
   @@schema("sec")
 }
@@ -336,28 +353,14 @@ model RevokedToken {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model SecurityRole {
-  roleId          Int              @id @default(autoincrement()) @map("rol_id")
-  roleName        String           @unique @map("rol_name")
-  roleDescription String?          @map("rol_description")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
-  rolePermissions RolePermission[]
+  roleId          Int          @id @default(autoincrement()) @map("rol_id")
+  roleName        String       @unique @map("rol_name")
+  roleDescription String?      @map("rol_description")
+  createdAt       DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  permissions     Permission[]
   userRoles       UserRole[]
 
   @@map("rol_roles")
-  @@schema("sec")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model RolePermission {
-  roleId       Int          @map("rol_id")
-  permissionId Int          @map("per_id")
-  permission   Permission   @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade, onUpdate: NoAction)
-  role         SecurityRole @relation(fields: [roleId], references: [roleId], onDelete: Cascade, onUpdate: NoAction)
-
-  @@id([roleId, permissionId])
-  @@index([permissionId], map: "idx_rop_role_permissions_per_id")
-  @@index([roleId], map: "idx_rop_role_permissions_rol_id")
-  @@map("rop_role_permissions")
   @@schema("sec")
 }
 

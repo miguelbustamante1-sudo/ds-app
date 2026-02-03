@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { AuthUserDTO } from '@shared/dto';
 import type { PermissionMap } from '@shared/types/permissions';
 
 const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
@@ -102,10 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: getAuthHeaders(),
     }).catch(() => undefined);
 
-    const returnUrl = new URL('/auth/signin', window.location.origin).toString();
-    window.location.href = `https://accounts.google.com/Logout?continue=${encodeURIComponent(
-      returnUrl,
-    )}`;
+    window.location.href = '/auth/signin';
   };
 
   const devLogin = async (email: string, password: string) => {

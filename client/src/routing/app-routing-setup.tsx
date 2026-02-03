@@ -2,6 +2,7 @@ import { Route, Routes, Navigate } from 'react-router';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { Layout1Page } from '@/pages/page';
 import { SignInPage } from '@/pages/auth/signin';
+import { AuthCallbackPage } from '@/pages/auth/callback';
 import { RequireAuth } from '@/auth/require-auth';
 import { CountriesPage } from '@/pages/maintenance/countries';
 import { ProjectsPage } from '@/pages/maintenance/projects';
@@ -16,6 +17,7 @@ export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/auth/signin" element={<SignInPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route
         element={
           <RequireAuth>

@@ -40,6 +40,18 @@ class UserService {
         return user;
       }
 
+      // Check if user exists by email (might have been created via Google IAP)
+      if (payload.email) {
+        user = await authUserDb.getUserByEmail(payload.email);
+        if (user) {
+          // Link the OneLogin ID to existing user
+          await authUserDb.linkOneLoginId(user.id, payload.sub);
+          await authUserDb.updateLastLogin(user.id);
+          console.log(`Linked OneLogin ID to existing user: ${user.email}`);
+          return user;
+        }
+      }
+
       // Create new user with default role
       const newUser = await authUserDb.createUser({
         oneloginId: payload.sub,
@@ -73,6 +85,17 @@ class UserService {
       if (user) {
         await authUserDb.updateLastLogin(user.id);
         return user;
+      }
+
+      // Check if user exists by email (might have been created via OneLogin)
+      if (payload.email) {
+        user = await authUserDb.getUserByEmail(payload.email);
+        if (user) {
+          // User exists by email, update last login (don't overwrite oneloginId)
+          await authUserDb.updateLastLogin(user.id);
+          console.log(`Found existing user by email for Google login: ${user.email}`);
+          return user;
+        }
       }
 
       const firstName = payload.given_name || payload.name?.split(' ')[0] || '';

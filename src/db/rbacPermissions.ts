@@ -1,26 +1,40 @@
 import { prisma } from './prisma';
-import type { Permission } from '@prisma/client';
+import type { Permission, Option } from '@prisma/client';
 
 export const TABLE = 'sec.per_permissions';
 
-export async function getAllRbacPermissions(): Promise<Permission[]> {
+export type PermissionWithOption = Permission & { option: Option | null };
+
+export async function getAllRbacPermissions(): Promise<PermissionWithOption[]> {
   return await prisma.permission.findMany({
     orderBy: { permissionId: 'asc' },
+    include: { option: true },
   });
 }
 
-export async function getRbacPermissionById(id: number): Promise<Permission | null> {
+export async function getRbacPermissionById(id: number): Promise<PermissionWithOption | null> {
   return await prisma.permission.findUnique({
     where: { permissionId: id },
+    include: { option: true },
+  });
+}
+
+export async function getRbacPermissionsByRole(roleId: number): Promise<PermissionWithOption[]> {
+  return await prisma.permission.findMany({
+    where: { roleId },
+    orderBy: { permissionId: 'asc' },
+    include: { option: true },
   });
 }
 
 export async function createRbacPermission(
-  permissionResource: string,
+  permissionResource: string | null,
   permissionRead: boolean,
   permissionWrite: boolean,
   permissionDelete: boolean,
-  permissionDescription: string | null
+  permissionDescription: string | null,
+  optionId: number | null,
+  roleId: number | null
 ): Promise<Permission> {
   return await prisma.permission.create({
     data: {
@@ -29,17 +43,21 @@ export async function createRbacPermission(
       permissionWrite,
       permissionDelete,
       permissionDescription,
+      optionId,
+      roleId,
     },
   });
 }
 
 export async function updateRbacPermission(
   id: number,
-  permissionResource: string,
+  permissionResource: string | null,
   permissionRead: boolean,
   permissionWrite: boolean,
   permissionDelete: boolean,
-  permissionDescription: string | null
+  permissionDescription: string | null,
+  optionId: number | null,
+  roleId: number | null
 ): Promise<Permission | null> {
   return await prisma.permission.update({
     where: { permissionId: id },
@@ -49,6 +67,8 @@ export async function updateRbacPermission(
       permissionWrite,
       permissionDelete,
       permissionDescription,
+      optionId,
+      roleId,
       updatedAt: new Date(),
     },
   });

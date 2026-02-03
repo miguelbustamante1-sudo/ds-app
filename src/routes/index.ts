@@ -12,8 +12,8 @@ import rolesRouter from './roles';
 import usersRouter from './users';
 import rbacPermissionsRouter from './rbacPermissions';
 import rbacRolesRouter from './rbacRoles';
-import rbacRolePermissionsRouter from './rbacRolePermissions';
 import rbacUserRolesRouter from './rbacUserRoles';
+import rbacOptionsRouter from './rbacOptions';
 import supervisorAssignmentsRouter from './supervisorAssignments';
 import holidaysRouter from './holidays';
 
@@ -33,8 +33,8 @@ export default function registerRoutes() {
   router.use('/users', usersRouter);
   router.use('/rbac/permissions', rbacPermissionsRouter);
   router.use('/rbac/roles', rbacRolesRouter);
-  router.use('/rbac/role-permissions', rbacRolePermissionsRouter);
   router.use('/rbac/user-roles', rbacUserRolesRouter);
+  router.use('/rbac/options', rbacOptionsRouter);
   router.use('/supervisor-assignments', supervisorAssignmentsRouter);
   router.use('/holidays', holidaysRouter);
 

@@ -8,33 +8,25 @@ export interface RbacPermissionRow {
 }
 
 export async function getRbacPermissionsByUserId(userId: number): Promise<RbacPermissionRow[]> {
-  const results = await prisma.userRole.findMany({
+  // Get all role IDs for the user
+  const userRoles = await prisma.userRole.findMany({
     where: { userId },
-    include: {
-      role: {
-        include: {
-          rolePermissions: {
-            include: {
-              permission: true,
-            },
-          },
-        },
-      },
-    },
+    select: { roleId: true },
   });
 
-  // Flatten and transform the results
-  const permissions: RbacPermissionRow[] = [];
-  for (const userRole of results) {
-    for (const rolePermission of userRole.role.rolePermissions) {
-      permissions.push({
-        permissionResource: rolePermission.permission.permissionResource,
-        permissionRead: rolePermission.permission.permissionRead,
-        permissionWrite: rolePermission.permission.permissionWrite,
-        permissionDelete: rolePermission.permission.permissionDelete,
-      });
-    }
-  }
+  const roleIds = userRoles.map((ur) => ur.roleId);
 
-  return permissions;
+  // Get all permissions directly linked to those roles
+  const permissions = await prisma.permission.findMany({
+    where: { roleId: { in: roleIds } },
+    include: { option: true },
+  });
+
+  // Transform results - use option.optionDescription or fall back to permissionResource
+  return permissions.map((p) => ({
+    permissionResource: p.option?.optionDescription ?? p.permissionResource ?? '',
+    permissionRead: p.permissionRead,
+    permissionWrite: p.permissionWrite,
+    permissionDelete: p.permissionDelete,
+  }));
 }

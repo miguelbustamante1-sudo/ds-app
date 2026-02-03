@@ -27,8 +27,8 @@ export const openapiSpec = {
     { name: 'Users', description: 'User CRUD endpoints' },
     { name: 'RBACPermissions', description: 'RBAC permission endpoints' },
     { name: 'RBACRoles', description: 'RBAC role endpoints' },
-    { name: 'RBACRolePermissions', description: 'RBAC role-permission endpoints' },
     { name: 'RBACUserRoles', description: 'RBAC user-role endpoints' },
+    { name: 'RBACOptions', description: 'RBAC options (resources) endpoints' },
   ],
   paths: {
     '/api/ping': {
@@ -809,80 +809,6 @@ export const openapiSpec = {
         responses: { '204': { description: 'Deleted' } },
       },
     },
-    '/api/rbac/role-permissions': {
-      get: {
-        tags: ['RBACRolePermissions'],
-        summary: 'List role permissions',
-        responses: {
-          '200': {
-            description: 'An array of role permissions',
-            content: {
-              'application/json': {
-                schema: { type: 'array', items: { $ref: '#/components/schemas/RbacRolePermission' } },
-              },
-            },
-          },
-        },
-      },
-      post: {
-        tags: ['RBACRolePermissions'],
-        summary: 'Create role permission',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/RbacRolePermission' },
-            },
-          },
-        },
-        responses: { '201': { description: 'Role permission created' } },
-      },
-    },
-    '/api/rbac/role-permissions/role/{rol_id}': {
-      parameters: [{ name: 'rol_id', in: 'path', required: true, schema: { type: 'integer' } }],
-      get: {
-        tags: ['RBACRolePermissions'],
-        summary: 'List role permissions by role',
-        responses: {
-          '200': {
-            description: 'An array of role permissions',
-            content: {
-              'application/json': {
-                schema: { type: 'array', items: { $ref: '#/components/schemas/RbacRolePermission' } },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/rbac/role-permissions/permission/{per_id}': {
-      parameters: [{ name: 'per_id', in: 'path', required: true, schema: { type: 'integer' } }],
-      get: {
-        tags: ['RBACRolePermissions'],
-        summary: 'List role permissions by permission',
-        responses: {
-          '200': {
-            description: 'An array of role permissions',
-            content: {
-              'application/json': {
-                schema: { type: 'array', items: { $ref: '#/components/schemas/RbacRolePermission' } },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/rbac/role-permissions/role/{rol_id}/permission/{per_id}': {
-      parameters: [
-        { name: 'rol_id', in: 'path', required: true, schema: { type: 'integer' } },
-        { name: 'per_id', in: 'path', required: true, schema: { type: 'integer' } },
-      ],
-      delete: {
-        tags: ['RBACRolePermissions'],
-        summary: 'Delete role permission',
-        responses: { '204': { description: 'Deleted' } },
-      },
-    },
     '/api/rbac/user-roles': {
       get: {
         tags: ['RBACUserRoles'],
@@ -954,6 +880,60 @@ export const openapiSpec = {
       delete: {
         tags: ['RBACUserRoles'],
         summary: 'Delete user role',
+        responses: { '204': { description: 'Deleted' } },
+      },
+    },
+    '/api/rbac/options': {
+      get: {
+        tags: ['RBACOptions'],
+        summary: 'List options (resources)',
+        responses: {
+          '200': {
+            description: 'An array of options',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/RbacOption' } },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['RBACOptions'],
+        summary: 'Create option',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/RbacOption' },
+            },
+          },
+        },
+        responses: { '201': { description: 'Option created' } },
+      },
+    },
+    '/api/rbac/options/{id}': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      get: {
+        tags: ['RBACOptions'],
+        summary: 'Get option by id',
+        responses: {
+          '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/RbacOption' } } } },
+          '404': { description: 'Not found' },
+        },
+      },
+      put: {
+        tags: ['RBACOptions'],
+        summary: 'Update option',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RbacOption' } } },
+        },
+        responses: { '200': { description: 'Updated' }, '404': { description: 'Not found' } },
+      },
+      delete: {
+        tags: ['RBACOptions'],
+        summary: 'Delete option',
         responses: { '204': { description: 'Deleted' } },
       },
     },
@@ -1239,14 +1219,25 @@ export const openapiSpec = {
         type: 'object',
         properties: {
           per_id: { type: 'integer' },
-          per_resource: { type: 'string' },
+          per_resource: { type: 'string', nullable: true },
           per_read: { type: 'boolean' },
           per_write: { type: 'boolean' },
           per_delete: { type: 'boolean' },
-          per_description: { type: 'string' },
+          per_description: { type: 'string', nullable: true },
           updated_at: { type: 'string', format: 'date-time' },
+          opt_id: { type: 'integer', nullable: true, description: 'Reference to opt_options' },
+          rol_id: { type: 'integer', nullable: true, description: 'Reference to rol_roles' },
         },
-        required: ['per_resource', 'per_read', 'per_write', 'per_delete'],
+        required: ['per_read', 'per_write', 'per_delete'],
+      },
+      RbacOption: {
+        type: 'object',
+        properties: {
+          opt_id: { type: 'integer' },
+          opt_description: { type: 'string', nullable: true },
+          opt_created_by: { type: 'string', nullable: true },
+          opt_created_at: { type: 'string', format: 'date-time' },
+        },
       },
       RbacRole: {
         type: 'object',
@@ -1257,14 +1248,6 @@ export const openapiSpec = {
           created_at: { type: 'string', format: 'date-time' },
         },
         required: ['rol_name'],
-      },
-      RbacRolePermission: {
-        type: 'object',
-        properties: {
-          rol_id: { type: 'integer' },
-          per_id: { type: 'integer' },
-        },
-        required: ['rol_id', 'per_id'],
       },
       RbacUserRole: {
         type: 'object',

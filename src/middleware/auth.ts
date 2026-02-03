@@ -73,6 +73,8 @@ export const authMiddleware = async (
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
 
+    console.log('Auth Middleware: Authorization Header:', authHeader ? 'present' : 'missing');
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({ error: 'Missing or invalid authorization header' });
       return;
@@ -80,11 +82,17 @@ export const authMiddleware = async (
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
+    console.log('Auth Middleware: Starting token validation');
+    console.log('Token (first 50 chars):', token?.substring(0, 50));
+    console.log('NODE_ENV:', process.env.NODE_ENV);
     // Try dev JWT token first (development only)
     if (process.env.NODE_ENV !== 'production') {
       try {
         const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+        console.log('Attempting dev JWT validation, NODE_ENV:', process.env.NODE_ENV);
+        console.log('JWT_SECRET configured:', JWT_SECRET ? 'yes' : 'no');
         const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as any;
+        console.log('Dev JWT decoded successfully:', decoded.email);
 
         if (decoded.email) {
           const user = await userService.syncUserFromGoogleToken(decoded);
@@ -102,15 +110,49 @@ export const authMiddleware = async (
             permissions,
           };
 
+          console.log('Dev JWT auth successful for user:', user.email);
           next();
           return;
         }
-      } catch (devError) {
+      } catch (devError: any) {
         // Dev token validation failed, continue to production auth methods
+        console.log('Dev JWT validation failed:', devError?.name, devError?.message);
+        console.log('Token (first 50 chars):', token?.substring(0, 50));
       }
     }
 
-    // Try Google ID token first (Apps Script MVP)
+    // Try OneLogin first (primary SSO provider)
+    const oneLoginConfigured =
+      process.env.ONELOGIN_DOMAIN &&
+      process.env.ONELOGIN_CLIENT_ID &&
+      process.env.ONELOGIN_JWKS_URI;
+
+    if (oneLoginConfigured) {
+      const validation = await oneloginService.validateToken(token);
+
+      if (validation.valid) {
+        const user = await userService.syncUserFromToken(validation.payload);
+        const permissions = await resolvePermissions(permissionsSource, {
+          userId: user.id,
+          tokenPayload: validation.payload,
+        });
+
+        req.user = {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? undefined,
+          lastName: user.lastName ?? undefined,
+          roles: user.roles,
+          avatarUrl: user.avatarUrl ?? undefined,
+          permissions,
+        };
+
+        next();
+        return;
+      }
+    }
+
+    // Fallback to Google ID token (Apps Script MVP)
     const googleValidation = await googleOidcService.validateIdToken(token);
     const googlePayload = googleValidation.valid
       ? googleValidation.payload
@@ -136,43 +178,8 @@ export const authMiddleware = async (
       return;
     }
 
-    const missingOneLoginConfig =
-      !process.env.ONELOGIN_DOMAIN ||
-      !process.env.ONELOGIN_CLIENT_ID ||
-      !process.env.ONELOGIN_JWKS_URI;
-
-    if (missingOneLoginConfig) {
-      res.status(401).json({ error: 'Invalid or expired token' });
-      return;
-    }
-
-    // Fallback to OneLogin
-    const validation = await oneloginService.validateToken(token);
-
-    if (!validation.valid) {
-      res.status(401).json({ error: 'Invalid or expired token' });
-      return;
-    }
-
-    // Sync user from token (create if new)
-    const user = await userService.syncUserFromToken(validation.payload);
-    const permissions = await resolvePermissions(permissionsSource, {
-      userId: user.id,
-      tokenPayload: validation.payload,
-    });
-
-    // Attach user to request
-    req.user = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName ?? undefined,
-      lastName: user.lastName ?? undefined,
-      roles: user.roles,
-      avatarUrl: user.avatarUrl ?? undefined,
-      permissions,
-    };
-
-    next();
+    res.status(401).json({ error: 'Invalid or expired token' });
+    return;
   } catch (error) {
     console.error('Auth middleware error:', error);
     res.status(500).json({ error: 'Authentication failed' });

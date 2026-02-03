@@ -83,6 +83,19 @@ class AuthUserQueries {
   }
 
   /**
+   * Link existing user to OneLogin ID (when user exists by email but not by oneloginId)
+   */
+  async linkOneLoginId(id: number, oneloginId: string): Promise<AuthUser> {
+    return await prisma.authUser.update({
+      where: { id },
+      data: {
+        oneloginId,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
    * Get all users (admin operation)
    */
   async getAllUsers(): Promise<AuthUser[]> {

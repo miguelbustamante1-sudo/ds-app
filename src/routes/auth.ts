@@ -83,16 +83,25 @@ router.post('/exchange-code', async (req: AuthenticatedRequest, res: Response) =
     // Exchange code for tokens with OneLogin
     const tokens = await oneloginService.exchangeCodeForTokens(code);
 
-    // Validate the access token
-    const validation = await oneloginService.validateToken(tokens.access_token);
+    // Validate the id_token (contains user claims like email)
+    // Fall back to access_token if id_token is not available
+    const tokenToValidate = tokens.id_token || tokens.access_token;
+    const validation = await oneloginService.validateToken(tokenToValidate);
 
     if (!validation.valid) {
       res.status(401).json({ error: 'Token validation failed' });
       return;
     }
 
+    // If email is missing from token, fetch from userinfo endpoint
+    let payload = validation.payload;
+    if (!payload.email && tokens.access_token) {
+      const userInfo = await oneloginService.getUserInfo(tokens.access_token);
+      payload = { ...payload, ...userInfo };
+    }
+
     // Sync user from token
-    const user = await userService.syncUserFromToken(validation.payload);
+    const user = await userService.syncUserFromToken(payload);
 
     // Return token and user info
     res.json({
@@ -171,14 +180,24 @@ router.get('/callback', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const tokens = await oneloginService.exchangeCodeForTokens(code);
-    const validation = await oneloginService.validateToken(tokens.access_token);
+
+    // Validate the id_token (contains user claims like email)
+    const tokenToValidate = tokens.id_token || tokens.access_token;
+    const validation = await oneloginService.validateToken(tokenToValidate);
 
     if (!validation.valid) {
       res.status(401).json({ error: 'Token validation failed' });
       return;
     }
 
-    const user = await userService.syncUserFromToken(validation.payload);
+    // If email is missing from token, fetch from userinfo endpoint
+    let payload = validation.payload;
+    if (!payload.email && tokens.access_token) {
+      const userInfo = await oneloginService.getUserInfo(tokens.access_token);
+      payload = { ...payload, ...userInfo };
+    }
+
+    const user = await userService.syncUserFromToken(payload);
     const redirectTarget = process.env.ONELOGIN_POST_LOGIN_REDIRECT;
 
     if (redirectTarget) {
