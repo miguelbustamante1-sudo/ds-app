@@ -92,6 +92,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Check for tokens in URL hash (OAuth callback redirect)
+  useEffect(() => {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+
+      if (accessToken) {
+        localStorage.setItem('auth_token', accessToken);
+        // Clear hash from URL
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        refresh();
+      }
+    }
+  }, []);
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('auth_token');
@@ -136,6 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Skip initial refresh on callback page - it will handle auth itself
+    if (window.location.pathname === '/auth/callback') {
+      setLoading(false);
+      return;
+    }
     refresh().catch(() => setLoading(false));
   }, []);
 

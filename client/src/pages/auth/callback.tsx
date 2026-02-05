@@ -14,6 +14,25 @@ export function AuthCallbackPage() {
     // Prevent double execution (React strict mode, etc.)
     if (exchangeAttempted.current) return;
 
+    // Check for tokens in URL hash (server-side callback flow)
+    // Hash format: #access_token=...&refresh_token=...&expires_in=...
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+
+      if (accessToken) {
+        exchangeAttempted.current = true;
+        localStorage.setItem('auth_token', accessToken);
+        // Clear hash from URL
+        window.history.replaceState(null, '', window.location.pathname);
+        refresh()
+          .then(() => navigate('/', { replace: true }))
+          .catch((err) => setError(err.message));
+        return;
+      }
+    }
+
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
@@ -31,7 +50,7 @@ export function AuthCallbackPage() {
     // Mark as attempted before async call
     exchangeAttempted.current = true;
 
-    // Exchange code for tokens
+    // Exchange code for tokens (frontend callback flow)
     fetch('/api/auth/exchange-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

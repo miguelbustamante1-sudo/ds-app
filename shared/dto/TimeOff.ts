@@ -127,3 +127,70 @@ export interface TimeOffByMonthDTO {
   month: string;
   days: number;
 }
+
+/**
+ * TeamMemberOnTimeOffDTO - Team member info for current month time-off card
+ */
+export interface TeamMemberOnTimeOffDTO {
+  teamMemberId: number;
+  teamMemberFullName: string;
+  timeOffStartDate: Date;
+  timeOffEndDate: Date;
+  timeOffDays: number;
+  categoryName: string;
+}
+
+/**
+ * TeamTimeOffCurrentMonthDTO - Dashboard card data for current month team time-off
+ */
+export interface TeamTimeOffCurrentMonthDTO {
+  totalDays: number;
+  teamMembersCount: number;
+  teamMembersOnTimeOff: TeamMemberOnTimeOffDTO[];
+}
+
+/**
+ * TeamMemberYearlySummaryDTO - Team member with yearly time-off total for MyTeam table
+ */
+export interface TeamMemberYearlySummaryDTO {
+  teamMemberId: number;
+  totalDays: number;
+}
+
+/**
+ * CategoryBreakdownDTO - Time-off breakdown by category
+ */
+export interface CategoryBreakdownDTO {
+  categoryId: number;
+  categoryName: string;
+  totalDays: number;
+}
+
+/**
+ * TeamMemberTimeOffBreakdownDTO - Detailed time-off breakdown by category for a team member
+ */
+export interface TeamMemberTimeOffBreakdownDTO {
+  teamMemberId: number;
+  year: number;
+  totalDays: number;
+  breakdown: CategoryBreakdownDTO[];
+}
+
+/**
+ * TimeOffWithTeamMemberDTO - Time off with team member details for management grid
+ */
+export interface TimeOffWithTeamMemberDTO {
+  timeOffId: number;
+  teamMemberId: number;
+  teamMemberFullName: string;
+  workdayId: string;
+  teamMemberEndDate: Date | null;
+  countryIso: string | null;
+  timeOffStartDate: Date;
+  timeOffEndDate: Date;
+  timeOffDays: number;
+  categoryId: number | null;
+  categoryName: string;
+  statusId: number | null;
+  statusName: string;
+}

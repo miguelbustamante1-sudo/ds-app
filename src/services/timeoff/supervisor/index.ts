@@ -7,4 +7,8 @@ export {
   getTeamMembersBySupervisor,
   verifySupervisorRelationship,
   getTeamTimeOffByMonth,
+  getTeamTimeOffCurrentMonth,
+  getTeamYearlySummary,
+  getTeamMemberTimeOffBreakdown,
+  getAllTeamTimeOffs,
 } from './queries';

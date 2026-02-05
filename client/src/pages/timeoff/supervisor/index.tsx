@@ -142,20 +142,20 @@ export function SupervisorTimeOffPage() {
                 <span className="text-muted-foreground">WDID: {selectedTeamMember.workdayId}</span>
               </div>
 
-              {/* Time Off List */}
-              <SupervisorTimeOffList
-                timeOffs={timeOffsHook.timeOffs}
-                loading={timeOffsHook.loading}
-                onEditClick={handleEditClick}
-                onCancelClick={handleCancelClick}
-              />
-
               {/* New Time Off Request Form */}
               <SupervisorTimeOffForm
                 teamMember={selectedTeamMember}
                 existingTimeOffs={timeOffsHook.timeOffs}
                 onSubmit={handleCreateTimeOff}
                 loading={operationsHook.loading}
+              />
+
+              {/* Time Off List */}
+              <SupervisorTimeOffList
+                timeOffs={timeOffsHook.timeOffs}
+                loading={timeOffsHook.loading}
+                onEditClick={handleEditClick}
+                onCancelClick={handleCancelClick}
               />
             </div>
           ) : (

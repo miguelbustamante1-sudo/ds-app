@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/popover';
 import { TeamMembersByCountryChart } from '@/components/charts/team-members-by-country-chart';
 import { TeamTimeOffByMonthChart } from '@/components/charts/team-timeoff-by-month-chart';
+import { TeamTimeOffCurrentMonthCard } from '@/components/charts/team-timeoff-current-month-card';
 
 export function Layout1Page() {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +87,12 @@ export function Layout1Page() {
         </ToolbarActions>
       </Toolbar>
     
+      {/* Cards row */}
+      <div className="grid gap-5 lg:grid-cols-3 mb-5">
+        <TeamTimeOffCurrentMonthCard />
+      </div>
+
+      {/* Charts row */}
       <div className="grid gap-5 lg:grid-cols-2">
         <TeamMembersByCountryChart />
         <TeamTimeOffByMonthChart />

@@ -13,7 +13,7 @@ import {
 import { getTeamMemberIdByAuthEmail, getUserIdByAuthEmail } from '../db/users';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 import { validateTimeOff, DEFAULTS } from '../services/timeoff/validation';
-import { getTeamMembersBySupervisor, verifySupervisorRelationship, getTeamTimeOffByMonth } from '../services/timeoff/supervisor';
+import { getTeamMembersBySupervisor, verifySupervisorRelationship, getTeamTimeOffByMonth, getTeamTimeOffCurrentMonth, getTeamYearlySummary, getTeamMemberTimeOffBreakdown, getAllTeamTimeOffs } from '../services/timeoff/supervisor';
 import { createTimeOffChangeLog } from '../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../services/timeoff/dayCalculation';
 import { getStatusByName } from '../db/timeOffStatuses';
@@ -365,6 +365,103 @@ router.get('/supervisor/team-timeoff-by-month', requirePermission('TimeOffs', 'r
   } catch (err) {
     console.error('[TimeOff] Error fetching team time-off by month:', err);
     res.status(500).json({ error: 'Failed to fetch team time-off data' });
+  }
+});
+
+// GET /time-offs/supervisor/team-timeoff-current-month - Get team time-off for current month (dashboard card)
+router.get('/supervisor/team-timeoff-current-month', requirePermission('TimeOffs', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authUserEmail = req.user?.email;
+    if (!authUserEmail) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    if (!supervisorTeamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const data = await getTeamTimeOffCurrentMonth(supervisorTeamMemberId);
+    res.json(data);
+  } catch (err) {
+    console.error('[TimeOff] Error fetching team time-off for current month:', err);
+    res.status(500).json({ error: 'Failed to fetch team time-off data for current month' });
+  }
+});
+
+// GET /time-offs/supervisor/team-yearly-summary - Get yearly time-off summary for all team members
+router.get('/supervisor/team-yearly-summary', requirePermission('TimeOffs', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authUserEmail = req.user?.email;
+    if (!authUserEmail) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    if (!supervisorTeamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const data = await getTeamYearlySummary(supervisorTeamMemberId, year);
+    res.json(data);
+  } catch (err) {
+    console.error('[TimeOff] Error fetching team yearly summary:', err);
+    res.status(500).json({ error: 'Failed to fetch team yearly summary' });
+  }
+});
+
+// GET /time-offs/supervisor/all-team-timeoffs - Get all time-offs for all supervised team members
+router.get('/supervisor/all-team-timeoffs', requirePermission('SupervisorTimeOff', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authUserEmail = req.user?.email;
+    if (!authUserEmail) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    if (!supervisorTeamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const data = await getAllTeamTimeOffs(supervisorTeamMemberId);
+    res.json(data);
+  } catch (err) {
+    console.error('[TimeOff] Error fetching all team time-offs:', err);
+    res.status(500).json({ error: 'Failed to fetch all team time-offs' });
+  }
+});
+
+// GET /time-offs/supervisor/team-member/:teamMemberId/yearly-breakdown - Get time-off breakdown by category
+router.get('/supervisor/team-member/:teamMemberId/yearly-breakdown', requirePermission('TimeOffs', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authUserEmail = req.user?.email;
+    if (!authUserEmail) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    if (!supervisorTeamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const teamMemberId = Number(req.params.teamMemberId);
+    if (Number.isNaN(teamMemberId)) {
+      return res.status(400).json({ error: 'Invalid team member id' });
+    }
+
+    // Verify supervisor relationship
+    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    if (!hasAuthority) {
+      return res.status(403).json({ error: 'Not authorized to view time-off breakdown for this team member' });
+    }
+
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const data = await getTeamMemberTimeOffBreakdown(teamMemberId, year);
+    res.json(data);
+  } catch (err) {
+    console.error('[TimeOff] Error fetching team member yearly breakdown:', err);
+    res.status(500).json({ error: 'Failed to fetch time-off breakdown' });
   }
 });
 

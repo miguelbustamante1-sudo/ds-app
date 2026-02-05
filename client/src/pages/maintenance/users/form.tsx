@@ -12,13 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
 
@@ -75,8 +69,16 @@ export function UserFormDialog({
       try {
         const data = await apiGet<TeamMemberDTO[]>('/api/team-members');
         setTeamMembers(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load team members', error);
+        const message = error?.status === 403
+          ? 'You do not have permission to view team members'
+          : 'Failed to load team members';
+        toast({
+          title: 'Warning',
+          description: message,
+          variant: 'destructive',
+        });
       } finally {
         setLoadingTeamMembers(false);
       }
@@ -85,7 +87,7 @@ export function UserFormDialog({
     if (open) {
       loadTeamMembers();
     }
-  }, [open]);
+  }, [open, toast]);
 
   useEffect(() => {
     if (open) {
@@ -161,6 +163,11 @@ export function UserFormDialog({
     const fullName = `${tm.teamMemberNames} ${tm.teamMemberSurnames}`;
     return tm.teamMemberKnownAs ? `${fullName} (${tm.teamMemberKnownAs})` : fullName;
   };
+
+  const teamMemberOptions: ComboBoxOption[] = teamMembers.map((tm) => ({
+    value: tm.teamMemberId.toString(),
+    label: getTeamMemberDisplayName(tm),
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -263,23 +270,15 @@ export function UserFormDialog({
 
             <div className="space-y-2">
               <Label htmlFor="teamMemberId">Team Member</Label>
-              <Select
+              <ComboBox
+                options={teamMemberOptions}
                 value={teamMemberIdValue}
                 onValueChange={(value) => setValue('teamMemberId', value)}
+                placeholder={loadingTeamMembers ? 'Loading...' : 'Select a team member (optional)'}
+                searchPlaceholder="Search team members..."
+                emptyMessage="No team members found."
                 disabled={loadingTeamMembers}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingTeamMembers ? 'Loading...' : 'Select a team member (optional)'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {teamMembers.map((tm) => (
-                    <SelectItem key={tm.teamMemberId} value={tm.teamMemberId.toString()}>
-                      {getTeamMemberDisplayName(tm)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-sm text-muted-foreground">
                 Link this user to a team member for tracking purposes
               </p>

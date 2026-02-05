@@ -18,21 +18,26 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/auth/auth-provider';
 
 export function SidebarMenu() {
   const { pathname } = useLocation();
   const { canRead } = usePermissions();
+  const { user } = useAuth();
 
   /**
-   * Filter menu items based on user permissions.
-   * Items without a permission field are always visible.
-   * Items with a permission field require the user to have 'read' permission.
+   * Filter menu items based on user permissions and roles.
+   * Items without a permission or role field are always visible.
+   * Items with a permission field require the user to have 'read' permission for that resource.
+   * Items with a role field require the user to have that role.
    */
   const filterByPermissions = useCallback(
     (items: MenuConfig): MenuConfig => {
       return items
         .filter((item) => {
-          // If no permission specified, always show
+          // Check role requirement first
+          if (item.role && !user?.roles.includes(item.role)) return false;
+          // If no permission specified, show (role already passed)
           if (!item.permission) return true;
           // Otherwise, check if user has read permission
           return canRead(item.permission);
@@ -52,7 +57,7 @@ export function SidebarMenu() {
         })
         .filter((item): item is MenuItem => item !== null);
     },
-    [canRead],
+    [canRead, user?.roles],
   );
 
   // Memoize filtered menu to avoid recalculating on every render

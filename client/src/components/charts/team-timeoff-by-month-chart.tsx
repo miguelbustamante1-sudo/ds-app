@@ -27,7 +27,7 @@ interface ChartData {
 const chartConfig = {
   days: {
     label: 'Days Off',
-    color: 'hsl(var(--chart-2))',
+    color: '#66CC00',
   },
 } satisfies ChartConfig;
 

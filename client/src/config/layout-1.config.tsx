@@ -58,6 +58,11 @@ export const MENU_SIDEBAR: MenuConfig = [
   },
   { heading: 'User' },
   {
+    title: 'My Team',
+    icon: Users,
+    path: '/my-team',
+  },
+  {
     title: 'Profile',
     icon: UserCircle,
     disabled: true,
@@ -75,10 +80,17 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/supervisor-time-off',
     permission: 'SupervisorTimeOff',
   },
-  { heading: 'Maintenance' },
+  {
+    title: 'Time Off Management',
+    icon: CalendarCheck,
+    path: '/time-off-management',
+    permission: 'SupervisorTimeOff',
+  },
+  { heading: 'Maintenance', role: 'admin' },
   {
     title: 'Master Data',
     icon: Database,
+    role: 'admin',
     children: [
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },

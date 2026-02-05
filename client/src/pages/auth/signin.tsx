@@ -1,51 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/auth/auth-provider';
-import { KeyRound, ShieldCheck } from 'lucide-react';
-
-const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
+import { KeyRound } from 'lucide-react';
 
 export function SignInPage() {
-  const { user, loading, devLogin } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: Location })?.from?.pathname || '/';
-
-  const [showDevLogin, setShowDevLogin] = useState(false);
-  const [email, setEmail] = useState('miguel.bustamante01@telusinternational.com');
-  const [password, setPassword] = useState('');
-  const [devError, setDevError] = useState('');
-  const [devLoading, setDevLoading] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       navigate(from, { replace: true });
     }
   }, [from, loading, navigate, user]);
-
-  const handleSignIn = () => {
-    window.location.href = from;
-  };
-
-  const handleDevLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!devLogin) return;
-
-    setDevError('');
-    setDevLoading(true);
-
-    try {
-      const result = await devLogin(email, password);
-      if (!result.success) {
-        setDevError(result.error || 'Login failed');
-      }
-    } finally {
-      setDevLoading(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-muted/40 via-background to-background px-4">
@@ -59,7 +29,7 @@ export function SignInPage() {
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
               <p className="text-sm text-muted-foreground">
-                Sign in to continue to Cloud OK.
+                Sign in to continue.
               </p>
             </div>
           </div>
@@ -74,90 +44,6 @@ export function SignInPage() {
               <KeyRound className="h-5 w-5" />
               Sign in with OneLogin
             </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or</span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              className="w-full gap-3"
-              size="lg"
-              onClick={handleSignIn}
-              disabled={loading}
-            >
-              <ShieldCheck className="h-5 w-5" />
-              Continue with Google IAP
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Use Google IAP if OneLogin is unavailable.
-            </p>
-
-            {enableDevLogin && (
-              <>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Development Only</span>
-                  </div>
-                </div>
-
-                {!showDevLogin ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setShowDevLogin(true)}
-                  >
-                    Dev Login
-                  </Button>
-                ) : (
-                  <form onSubmit={handleDevLogin} className="space-y-3">
-                    <div className="space-y-2">
-                      <Input
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        disabled={devLoading}
-                        required
-                      />
-                      <Input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={devLoading}
-                        required
-                      />
-                    </div>
-                    {devError && (
-                      <p className="text-xs text-destructive text-center">{devError}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setShowDevLogin(false)}
-                        disabled={devLoading}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="flex-1" disabled={devLoading}>
-                        {devLoading ? 'Signing in...' : 'Sign In'}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-              </>
-            )}
           </div>
         </div>
       </div>

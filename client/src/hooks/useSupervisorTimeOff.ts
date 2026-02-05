@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { apiGet, apiPost, apiPatch, ApiError } from '../lib/api';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
-import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO, TeamTimeOffCurrentMonthDTO, TeamMemberYearlySummaryDTO, TeamMemberTimeOffBreakdownDTO, TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
 import type { TimeOff } from '@prisma/client';
 
 const API_BASE = '/api/time-offs/supervisor';
@@ -146,5 +146,144 @@ export function useSupervisorTimeOffOperations(options?: UseSupervisorTimeOffOpt
     createTimeOff,
     cancelTimeOff,
     updateTimeOff,
+  };
+}
+
+/**
+ * Hook for fetching team time-off for current month (dashboard card)
+ */
+export function useTeamTimeOffCurrentMonth(options?: UseSupervisorTimeOffOptions) {
+  const [data, setData] = useState<TeamTimeOffCurrentMonthDTO | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await apiGet<TeamTimeOffCurrentMonthDTO>(`${API_BASE}/team-timeoff-current-month`);
+      setData(result);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load current month time-off data';
+      setError(message);
+      options?.onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  return {
+    data,
+    loading,
+    error,
+    loadData,
+  };
+}
+
+/**
+ * Hook for fetching yearly time-off summary for all team members
+ */
+export function useTeamYearlySummary(options?: UseSupervisorTimeOffOptions) {
+  const [summaries, setSummaries] = useState<TeamMemberYearlySummaryDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadSummaries = useCallback(async (year?: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const url = year ? `${API_BASE}/team-yearly-summary?year=${year}` : `${API_BASE}/team-yearly-summary`;
+      const data = await apiGet<TeamMemberYearlySummaryDTO[]>(url);
+      setSummaries(data);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load yearly summary';
+      setError(message);
+      options?.onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  return {
+    summaries,
+    loading,
+    error,
+    loadSummaries,
+  };
+}
+
+/**
+ * Hook for fetching time-off breakdown by category for a team member
+ */
+export function useTeamMemberTimeOffBreakdown(options?: UseSupervisorTimeOffOptions) {
+  const [breakdown, setBreakdown] = useState<TeamMemberTimeOffBreakdownDTO | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadBreakdown = useCallback(async (teamMemberId: number, year?: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const url = year
+        ? `${API_BASE}/team-member/${teamMemberId}/yearly-breakdown?year=${year}`
+        : `${API_BASE}/team-member/${teamMemberId}/yearly-breakdown`;
+      const data = await apiGet<TeamMemberTimeOffBreakdownDTO>(url);
+      setBreakdown(data);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load time-off breakdown';
+      setError(message);
+      options?.onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  const clearBreakdown = useCallback(() => {
+    setBreakdown(null);
+    setError(null);
+  }, []);
+
+  return {
+    breakdown,
+    loading,
+    error,
+    loadBreakdown,
+    clearBreakdown,
+  };
+}
+
+/**
+ * Hook for fetching all time-offs for all supervised team members
+ */
+export function useAllTeamTimeOffs(options?: UseSupervisorTimeOffOptions) {
+  const [timeOffs, setTimeOffs] = useState<TimeOffWithTeamMemberDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTimeOffs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiGet<TimeOffWithTeamMemberDTO[]>(`${API_BASE}/all-team-timeoffs`);
+      setTimeOffs(data);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load team time-offs';
+      setError(message);
+      options?.onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  const refreshTimeOffs = useCallback(() => {
+    loadTimeOffs();
+  }, [loadTimeOffs]);
+
+  return {
+    timeOffs,
+    loading,
+    error,
+    loadTimeOffs,
+    refreshTimeOffs,
   };
 }

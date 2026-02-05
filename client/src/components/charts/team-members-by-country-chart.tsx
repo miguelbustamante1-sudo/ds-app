@@ -17,8 +17,7 @@ import {
 } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiGet } from '@/lib/api';
-import { TeamMemberDTO } from '@shared/dto/TeamMember';
-import { CountryDTO } from '@shared/dto/Country';
+import { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 
 interface ChartData {
   country: string;
@@ -28,7 +27,7 @@ interface ChartData {
 const chartConfig = {
   count: {
     label: 'Team Members',
-    color: 'hsl(142, 76%, 36%)',
+    color: '#007F4A',
   },
 } satisfies ChartConfig;
 
@@ -40,21 +39,13 @@ export function TeamMembersByCountryChart() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [teamMembers, countries] = await Promise.all([
-          apiGet<TeamMemberDTO[]>('/api/team-members'),
-          apiGet<CountryDTO[]>('/api/countries'),
-        ]);
-
-        const countryMap = new Map<number, string>();
-        countries.forEach((country) => {
-          countryMap.set(country.countryId, country.countryName);
-        });
+        const teamMembers = await apiGet<SupervisedTeamMemberDTO[]>(
+          '/api/time-offs/supervisor/my-team-members'
+        );
 
         const countByCountry = new Map<string, number>();
         teamMembers.forEach((member) => {
-          const countryName = member.countryId
-            ? countryMap.get(member.countryId) || 'Unknown'
-            : 'Unknown';
+          const countryName = member.countryName || 'Unknown';
           countByCountry.set(
             countryName,
             (countByCountry.get(countryName) || 0) + 1
@@ -80,8 +71,8 @@ export function TeamMembersByCountryChart() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Team Members by Country</CardTitle>
-          <CardDescription>Distribution across countries</CardDescription>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription>My team distribution across countries</CardDescription>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[300px] w-full" />
@@ -94,8 +85,8 @@ export function TeamMembersByCountryChart() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Team Members by Country</CardTitle>
-          <CardDescription>Distribution across countries</CardDescription>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription>My team distribution across countries</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
@@ -110,8 +101,8 @@ export function TeamMembersByCountryChart() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Team Members by Country</CardTitle>
-          <CardDescription>Distribution across countries</CardDescription>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription>My team distribution across countries</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
@@ -125,8 +116,8 @@ export function TeamMembersByCountryChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Team Members by Country</CardTitle>
-        <CardDescription>Distribution across countries</CardDescription>
+        <CardTitle>My Team by Country</CardTitle>
+        <CardDescription>My team distribution across countries</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">

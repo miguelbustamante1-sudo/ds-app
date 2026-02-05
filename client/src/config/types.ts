@@ -22,6 +22,12 @@ export interface MenuItem {
    * Example: 'Holidays', 'TeamMembers', 'Countries'
    */
   permission?: string;
+  /**
+   * Role required to view this menu item.
+   * If set, the item will only be visible if the user has this role.
+   * Example: 'admin'
+   */
+  role?: string;
 }
 
 export type MenuConfig = MenuItem[];
