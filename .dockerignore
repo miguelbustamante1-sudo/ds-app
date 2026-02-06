@@ -6,8 +6,5 @@ npm-debug.log
 documents
 client/node_modules
 client/dist
-.claude/
-node_modules/
+.claude
 .env
-dist/
-documents/
