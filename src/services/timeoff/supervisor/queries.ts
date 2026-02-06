@@ -5,7 +5,7 @@
 
 import { prisma } from '../../../db/prisma';
 import type { SupervisedTeamMemberDTO, ReportType } from '@shared/dto/SupervisedTeamMember';
-import type { TimeOffByMonthDTO, TeamTimeOffCurrentMonthDTO, TeamMemberYearlySummaryDTO, TeamMemberTimeOffBreakdownDTO, TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
+import type { TimeOffByMonthDTO, TimeOffByCountryDTO, TeamTimeOffCurrentMonthDTO, TeamMemberYearlySummaryDTO, TeamMemberTimeOffBreakdownDTO, TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
 
 /**
  * Raw query result type from the recursive CTE
@@ -478,5 +478,69 @@ export async function getAllTeamTimeOffs(
     categoryName: row.category_name,
     statusId: row.status_id,
     statusName: row.status_name,
+  }));
+}
+
+/**
+ * Raw query result for time-off by country aggregation
+ */
+interface RawTimeOffByCountry {
+  country_name: string;
+  country_iso: string | null;
+  total_days: number;
+}
+
+/**
+ * Get aggregated time-off days by country for all team members under a supervisor
+ * Uses a single SQL query with recursive CTE for efficiency
+ * Filters by date range (startDate to endDate inclusive)
+ */
+export async function getTeamTimeOffByCountry(
+  supervisorTeamMemberId: number,
+  startDate?: Date,
+  endDate?: Date
+): Promise<TimeOffByCountryDTO[]> {
+  const today = new Date();
+  // Default to current year if no dates provided
+  const effectiveStartDate = startDate ?? new Date(today.getFullYear(), 0, 1);
+  const effectiveEndDate = endDate ?? new Date(today.getFullYear(), 11, 31);
+
+  const results = await prisma.$queryRaw<RawTimeOffByCountry[]>`
+    WITH RECURSIVE team_hierarchy AS (
+      -- Base case: Direct reports
+      SELECT sa.tms_id AS team_member_id
+      FROM ds.tbl_tms_x_supervisor sa
+      WHERE sa.sup_id = ${supervisorTeamMemberId}
+        AND sa.txs_stadat <= ${today}
+        AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${today})
+
+      UNION ALL
+
+      -- Recursive case: Indirect reports
+      SELECT sa.tms_id AS team_member_id
+      FROM ds.tbl_tms_x_supervisor sa
+      INNER JOIN team_hierarchy th ON sa.sup_id = th.team_member_id
+      WHERE sa.txs_stadat <= ${today}
+        AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${today})
+    )
+    SELECT
+      COALESCE(c.cou_name, 'Unknown') AS country_name,
+      c.cou_iso AS country_iso,
+      COALESCE(SUM(tof.tto_days), 0)::int AS total_days
+    FROM ds.tbl_tms_time_off tof
+    INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
+    INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
+    LEFT JOIN ds.tbl_countries c ON c.cou_id = tm.cou_id
+    WHERE tof.sta_id <> 4
+      AND tof.tto_stadat >= ${effectiveStartDate}
+      AND tof.tto_stadat <= ${effectiveEndDate}
+    GROUP BY c.cou_name, c.cou_iso
+    ORDER BY total_days DESC
+  `;
+
+  return results.map((row) => ({
+    country: row.country_name,
+    countryIso: row.country_iso,
+    days: Number(row.total_days),
   }));
 }

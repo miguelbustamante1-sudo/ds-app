@@ -7,6 +7,7 @@ export {
   getTeamMembersBySupervisor,
   verifySupervisorRelationship,
   getTeamTimeOffByMonth,
+  getTeamTimeOffByCountry,
   getTeamTimeOffCurrentMonth,
   getTeamYearlySummary,
   getTeamMemberTimeOffBreakdown,

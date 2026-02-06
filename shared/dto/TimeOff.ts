@@ -129,6 +129,15 @@ export interface TimeOffByMonthDTO {
 }
 
 /**
+ * TimeOffByCountryDTO - Aggregated time-off days by country for charts
+ */
+export interface TimeOffByCountryDTO {
+  country: string;
+  countryIso: string | null;
+  days: number;
+}
+
+/**
  * TeamMemberOnTimeOffDTO - Team member info for current month time-off card
  */
 export interface TeamMemberOnTimeOffDTO {

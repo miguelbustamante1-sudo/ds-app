@@ -19,6 +19,7 @@ import {
 import { TeamMembersByCountryChart } from '@/components/charts/team-members-by-country-chart';
 import { TeamTimeOffByMonthChart } from '@/components/charts/team-timeoff-by-month-chart';
 import { TeamTimeOffCurrentMonthCard } from '@/components/charts/team-timeoff-current-month-card';
+import { TeamTimeOffByCountryChart } from '@/components/charts/team-timeoff-by-country-chart';
 
 export function Layout1Page() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,7 +47,7 @@ export function Layout1Page() {
       <Toolbar>
         <ToolbarHeading>
           <ToolbarPageTitle>Dashboard</ToolbarPageTitle>
-          <ToolbarDescription>Central Hub for Personal Customization</ToolbarDescription>
+          <ToolbarDescription>Central Hub for Information</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
           <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -93,9 +94,14 @@ export function Layout1Page() {
       </div>
 
       {/* Charts row */}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2 mb-5">
         <TeamMembersByCountryChart />
         <TeamTimeOffByMonthChart />
+      </div>
+
+      {/* Time Off by Country row */}
+      <div className="grid gap-5 lg:grid-cols-1">
+        <TeamTimeOffByCountryChart startDate={date?.from} endDate={date?.to} />
       </div>
     </div>
   );

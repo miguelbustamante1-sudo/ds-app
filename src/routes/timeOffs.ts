@@ -13,7 +13,7 @@ import {
 import { getTeamMemberIdByAuthEmail, getUserIdByAuthEmail } from '../db/users';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 import { validateTimeOff, DEFAULTS } from '../services/timeoff/validation';
-import { getTeamMembersBySupervisor, verifySupervisorRelationship, getTeamTimeOffByMonth, getTeamTimeOffCurrentMonth, getTeamYearlySummary, getTeamMemberTimeOffBreakdown, getAllTeamTimeOffs } from '../services/timeoff/supervisor';
+import { getTeamMembersBySupervisor, verifySupervisorRelationship, getTeamTimeOffByMonth, getTeamTimeOffByCountry, getTeamTimeOffCurrentMonth, getTeamYearlySummary, getTeamMemberTimeOffBreakdown, getAllTeamTimeOffs } from '../services/timeoff/supervisor';
 import { createTimeOffChangeLog } from '../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../services/timeoff/dayCalculation';
 import { getStatusByName } from '../db/timeOffStatuses';
@@ -365,6 +365,29 @@ router.get('/supervisor/team-timeoff-by-month', requirePermission('TimeOffs', 'r
   } catch (err) {
     console.error('[TimeOff] Error fetching team time-off by month:', err);
     res.status(500).json({ error: 'Failed to fetch team time-off data' });
+  }
+});
+
+// GET /time-offs/supervisor/team-timeoff-by-country - Get aggregated time-off days by country for supervised team
+router.get('/supervisor/team-timeoff-by-country', requirePermission('TimeOffs', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authUserEmail = req.user?.email;
+    if (!authUserEmail) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    if (!supervisorTeamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    const data = await getTeamTimeOffByCountry(supervisorTeamMemberId, startDate, endDate);
+    res.json(data);
+  } catch (err) {
+    console.error('[TimeOff] Error fetching team time-off by country:', err);
+    res.status(500).json({ error: 'Failed to fetch team time-off by country data' });
   }
 });
 
