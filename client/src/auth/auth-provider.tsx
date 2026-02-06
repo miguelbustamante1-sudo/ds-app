@@ -1,7 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
 import type { PermissionMap } from '@shared/types/permissions';
+import { useSessionMonitor } from '@/hooks/use-session-monitor';
+import { SessionExpirationModal } from '@/components/layouts/shared/dialogs/session-expiration-modal';
 
 const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
+const SESSION_EXPIRES_KEY = 'session_expires_at';
 
 /**
  * Frontend-specific auth user with computed display name
@@ -48,25 +51,14 @@ const mapUser = (data: any): AuthUser | null => {
   };
 };
 
-const getAuthHeaders = (): HeadersInit => {
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  }
-  return {};
-};
-
 const loadUser = async (): Promise<AuthUser | null> => {
   const response = await fetch('/api/auth/me', {
     credentials: 'include',
-    headers: getAuthHeaders(),
   });
 
   if (response.status === 401) {
-    // Clear invalid token
-    localStorage.removeItem('auth_token');
+    // Clear session expiration on auth failure
+    localStorage.removeItem(SESSION_EXPIRES_KEY);
     return null;
   }
 
@@ -92,38 +84,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Check for tokens in URL hash (OAuth callback redirect)
-  useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-      const hashParams = new URLSearchParams(hash);
-      const accessToken = hashParams.get('access_token');
-
-      if (accessToken) {
-        localStorage.setItem('auth_token', accessToken);
-        // Clear hash from URL
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        refresh();
-      }
-    }
-  }, []);
-
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem(SESSION_EXPIRES_KEY);
     fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
-      headers: getAuthHeaders(),
     }).catch(() => undefined);
 
     window.location.href = '/auth/signin';
-  };
+  }, []);
+
+  // Session monitoring
+  const {
+    timeRemaining,
+    isWarningVisible,
+    isExpired,
+    refreshSession,
+  } = useSessionMonitor({
+    onExpired: logout,
+    onRefreshSuccess: (newExpiresAt) => {
+      console.log('Session refreshed, new expiration:', new Date(newExpiresAt));
+    },
+    onRefreshError: (error) => {
+      console.error('Session refresh error:', error);
+    },
+  });
+
+  // Handle session expiration
+  useEffect(() => {
+    if (isExpired && user) {
+      logout();
+    }
+  }, [isExpired, user, logout]);
 
   const devLogin = async (email: string, password: string) => {
     try {
       const response = await fetch('/api/auth/dev-login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -137,9 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
 
-      // Store the token
-      if (data.accessToken) {
-        localStorage.setItem('auth_token', data.accessToken);
+      // Store expiration time (NOT the token)
+      if (data.expiresAt) {
+        localStorage.setItem(SESSION_EXPIRES_KEY, String(data.expiresAt));
       }
 
       // Load user data
@@ -169,10 +168,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Only expose devLogin when enabled
       ...(enableDevLogin && { devLogin }),
     }),
-    [user, loading],
+    [user, loading, logout],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {/* Session expiration modal - only show when user is logged in */}
+      {user && (
+        <SessionExpirationModal
+          open={isWarningVisible}
+          timeRemaining={timeRemaining}
+          onRefresh={refreshSession}
+          onLogout={logout}
+        />
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

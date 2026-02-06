@@ -1,5 +1,6 @@
 /**
  * API utility functions for making authenticated requests
+ * Authentication is handled via httpOnly cookies (credentials: 'include')
  */
 
 /**
@@ -17,26 +18,25 @@ export class ApiError extends Error {
 }
 
 /**
- * Get authentication headers for API requests
+ * Get headers for API requests
+ * Note: Authentication is handled via httpOnly cookies, not headers
  */
-export const getAuthHeaders = (): HeadersInit => {
-  const token = localStorage.getItem('auth_token');
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  return headers;
-};
+const getHeaders = (): HeadersInit => ({
+  'Content-Type': 'application/json',
+});
 
 /**
  * Handle API response and extract error message if needed
+ * Dispatches a custom event on 401 for session expiration handling
  */
 async function handleResponse<T>(response: Response, endpoint: string): Promise<T> {
   if (!response.ok) {
+    // Handle 401 Unauthorized - session may have expired
+    if (response.status === 401) {
+      // Dispatch event for auth provider to handle
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint } }));
+    }
+
     const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
     throw new ApiError(
       errorData.error || `HTTP ${response.status}`,
@@ -59,7 +59,7 @@ async function handleResponse<T>(response: Response, endpoint: string): Promise<
 export async function apiGet<TResponse>(endpoint: string): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers: getHeaders(),
     credentials: 'include',
   });
 
@@ -75,7 +75,7 @@ export async function apiPost<TResponse, TBody = unknown>(
 ): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: getHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -92,7 +92,7 @@ export async function apiPut<TResponse, TBody = unknown>(
 ): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    headers: getHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -109,7 +109,7 @@ export async function apiPatch<TResponse, TBody = unknown>(
 ): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: getHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -123,7 +123,7 @@ export async function apiPatch<TResponse, TBody = unknown>(
 export async function apiDelete(endpoint: string): Promise<void> {
   const response = await fetch(endpoint, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers: getHeaders(),
     credentials: 'include',
   });
 

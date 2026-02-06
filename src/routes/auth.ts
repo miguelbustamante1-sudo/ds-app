@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, CookieOptions } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
@@ -8,6 +8,28 @@ import googleOidcService from '../services/googleOidcService';
 
 const router = express.Router();
 const oauthStateTtlMs = 5 * 60 * 1000;
+
+// Cookie configuration for httpOnly tokens
+const getAccessTokenCookieOptions = (maxAgeSeconds: number): CookieOptions => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  path: '/',
+  maxAge: maxAgeSeconds * 1000,
+});
+
+const getRefreshTokenCookieOptions = (): CookieOptions => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  path: '/api/auth',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
+
+const clearAuthCookies = (res: Response): void => {
+  res.clearCookie('access_token', { path: '/' });
+  res.clearCookie('refresh_token', { path: '/api/auth' });
+};
 
 const base64Url = (input: Buffer): string =>
   input
@@ -70,6 +92,7 @@ const verifyOauthState = (state: string | undefined): boolean => {
  * POST /api/auth/exchange-code
  * Exchange authorization code for access token
  * Called by frontend after user logs in with OneLogin
+ * Sets tokens as httpOnly cookies for XSS protection
  */
 router.post('/exchange-code', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -103,11 +126,19 @@ router.post('/exchange-code', async (req: AuthenticatedRequest, res: Response) =
     // Sync user from token
     const user = await userService.syncUserFromToken(payload);
 
-    // Return token and user info
+    // Calculate expiration timestamp
+    const expiresIn = tokens.expires_in || 3600; // Default to 1 hour
+    const expiresAt = Date.now() + expiresIn * 1000;
+
+    // Set tokens as httpOnly cookies
+    res.cookie('access_token', tokens.access_token, getAccessTokenCookieOptions(expiresIn));
+    if (tokens.refresh_token) {
+      res.cookie('refresh_token', tokens.refresh_token, getRefreshTokenCookieOptions());
+    }
+
+    // Return expiration time and user info (NOT the tokens)
     res.json({
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresIn: tokens.expires_in,
+      expiresAt,
       user: {
         id: user.id,
         email: user.email,
@@ -253,35 +284,51 @@ router.get('/me', authMiddleware, (req: AuthenticatedRequest, res: Response) => 
 
 /**
  * POST /api/auth/logout
- * Clear authentication (frontend should clear tokens)
+ * Clear authentication cookies
  */
-router.post('/logout', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
+router.post('/logout', (req: AuthenticatedRequest, res: Response) => {
+  clearAuthCookies(res);
   res.json({ message: 'Logged out successfully' });
 });
 
 /**
  * POST /api/auth/refresh
- * Refresh access token using refresh token
+ * Refresh access token using refresh token from httpOnly cookie
+ * Returns new expiration timestamp
  */
 router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    // Read refresh token from cookie (primary) or body (fallback for backward compatibility)
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
     if (!refreshToken) {
-      res.status(400).json({ error: 'Refresh token is required' });
+      res.status(401).json({ error: 'No refresh token available' });
       return;
     }
 
     // Call OneLogin to refresh token
     const tokens = await oneloginService.exchangeRefreshToken(refreshToken);
 
+    // Calculate new expiration timestamp
+    const expiresIn = tokens.expires_in || 3600;
+    const expiresAt = Date.now() + expiresIn * 1000;
+
+    // Set new access token cookie
+    res.cookie('access_token', tokens.access_token, getAccessTokenCookieOptions(expiresIn));
+
+    // Update refresh token if a new one was provided
+    if (tokens.refresh_token) {
+      res.cookie('refresh_token', tokens.refresh_token, getRefreshTokenCookieOptions());
+    }
+
     res.json({
-      accessToken: tokens.access_token,
-      expiresIn: tokens.expires_in,
+      expiresAt,
     });
   } catch (error: any) {
     console.error('Token refresh error:', error);
-    res.status(500).json({ error: 'Failed to refresh token' });
+    // Clear cookies on refresh failure - user needs to re-login
+    clearAuthCookies(res);
+    res.status(401).json({ error: 'Session expired. Please log in again.' });
   }
 });
 
@@ -378,10 +425,16 @@ router.post('/dev-login', async (req: AuthenticatedRequest, res: Response) => {
     // Update last login
     await userService.getUserById(user.id); // This triggers the last login update
 
+    // Calculate expiration timestamp
+    const expiresIn = 86400; // 24 hours
+    const expiresAt = Date.now() + expiresIn * 1000;
+
+    // Set tokens as httpOnly cookies
+    res.cookie('access_token', token, getAccessTokenCookieOptions(expiresIn));
+    res.cookie('refresh_token', token, getRefreshTokenCookieOptions()); // Same token for dev
+
     res.json({
-      accessToken: token,
-      refreshToken: token, // Same token for dev
-      expiresIn: 86400, // 24 hours
+      expiresAt,
       user: {
         id: user.id,
         email: user.email,

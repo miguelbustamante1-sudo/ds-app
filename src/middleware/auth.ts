@@ -70,17 +70,19 @@ export const authMiddleware = async (
       return;
     }
 
-    // Extract token from Authorization header
+    // Extract token from cookie (primary) or Authorization header (fallback)
+    const cookieToken = req.cookies?.access_token;
     const authHeader = req.headers.authorization;
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+    const token = cookieToken || headerToken;
 
+    console.log('Auth Middleware: Cookie token:', cookieToken ? 'present' : 'missing');
     console.log('Auth Middleware: Authorization Header:', authHeader ? 'present' : 'missing');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Missing or invalid authorization header' });
+    if (!token) {
+      res.status(401).json({ error: 'Missing authentication token' });
       return;
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     console.log('Auth Middleware: Starting token validation');
     console.log('Token (first 50 chars):', token?.substring(0, 50));

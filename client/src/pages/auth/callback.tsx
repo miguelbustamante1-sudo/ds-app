@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/auth/auth-provider';
 import { Loader2 } from 'lucide-react';
 
+const SESSION_EXPIRES_KEY = 'session_expires_at';
+
 export function AuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -14,16 +16,18 @@ export function AuthCallbackPage() {
     // Prevent double execution (React strict mode, etc.)
     if (exchangeAttempted.current) return;
 
-    // Check for tokens in URL hash (server-side callback flow)
+    // Check for tokens in URL hash (server-side callback flow - legacy fallback)
     // Hash format: #access_token=...&refresh_token=...&expires_in=...
     const hash = window.location.hash.substring(1);
     if (hash) {
       const hashParams = new URLSearchParams(hash);
-      const accessToken = hashParams.get('access_token');
+      const expiresIn = hashParams.get('expires_in');
 
-      if (accessToken) {
+      if (expiresIn) {
         exchangeAttempted.current = true;
-        localStorage.setItem('auth_token', accessToken);
+        // Store expiration time (NOT the token - tokens are now in httpOnly cookies)
+        const expiresAt = Date.now() + parseInt(expiresIn, 10) * 1000;
+        localStorage.setItem(SESSION_EXPIRES_KEY, String(expiresAt));
         // Clear hash from URL
         window.history.replaceState(null, '', window.location.pathname);
         refresh()
@@ -51,8 +55,10 @@ export function AuthCallbackPage() {
     exchangeAttempted.current = true;
 
     // Exchange code for tokens (frontend callback flow)
+    // Tokens are set as httpOnly cookies by the backend
     fetch('/api/auth/exchange-code', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     })
@@ -64,8 +70,9 @@ export function AuthCallbackPage() {
         return res.json();
       })
       .then((data) => {
-        if (data.accessToken) {
-          localStorage.setItem('auth_token', data.accessToken);
+        // Store expiration time (NOT the token)
+        if (data.expiresAt) {
+          localStorage.setItem(SESSION_EXPIRES_KEY, String(data.expiresAt));
         }
         return refresh();
       })

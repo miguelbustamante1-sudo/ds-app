@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 import { ensureCategoriesTableExists } from './db/timeOffCategories';
 import { ensureCountriesTableExists } from './db/countries';
 import { ensureRegionsTableExists } from './db/regions';
@@ -39,10 +40,12 @@ const corsOptions: CorsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 };
 
 app.use(express.json());
+app.use(cookieParser());
 
 const publicDir = path.join(__dirname, '..', '..', 'public');
 const spaIndexPath = path.join(publicDir, 'index.html');
