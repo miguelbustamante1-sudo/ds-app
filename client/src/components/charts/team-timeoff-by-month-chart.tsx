@@ -19,6 +19,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { apiGet } from '@/lib/api';
 import { TimeOffByMonthDTO } from '@shared/dto/TimeOff';
 
+interface TeamTimeOffByMonthChartProps {
+  startDate?: Date;
+  endDate?: Date;
+}
+
 interface ChartData {
   month: string;
   days: number;
@@ -31,7 +36,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function TeamTimeOffByMonthChart() {
+export function TeamTimeOffByMonthChart({ startDate, endDate }: TeamTimeOffByMonthChartProps) {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +44,18 @@ export function TeamTimeOffByMonthChart() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await apiGet<TimeOffByMonthDTO[]>('/api/time-offs/supervisor/team-timeoff-by-month');
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (startDate) {
+          params.append('startDate', startDate.toISOString());
+        }
+        if (endDate) {
+          params.append('endDate', endDate.toISOString());
+        }
+        const queryString = params.toString();
+        const url = `/api/charts/team-timeoff-by-month${queryString ? `?${queryString}` : ''}`;
+
+        const data = await apiGet<TimeOffByMonthDTO[]>(url);
         setChartData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -49,7 +65,7 @@ export function TeamTimeOffByMonthChart() {
     }
 
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   if (loading) {
     return (

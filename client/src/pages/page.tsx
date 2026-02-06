@@ -6,8 +6,8 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { addDays, format } from 'date-fns';
-import { CalendarDays} from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarDays, ChevronDown } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -16,31 +16,60 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TeamMembersByCountryChart } from '@/components/charts/team-members-by-country-chart';
 import { TeamTimeOffByMonthChart } from '@/components/charts/team-timeoff-by-month-chart';
 import { TeamTimeOffCurrentMonthCard } from '@/components/charts/team-timeoff-current-month-card';
 import { TeamTimeOffByCountryChart } from '@/components/charts/team-timeoff-by-country-chart';
+import {
+  DATE_RANGE_PRESETS,
+  loadDateRangeFromStorage,
+  saveDateRangeToStorage,
+  clearDateRangeStorage,
+  getCurrentQuarterRange,
+} from '@/lib/dateRange';
+
+function getInitialDateRange(): DateRange {
+  const stored = loadDateRangeFromStorage();
+  return stored ?? getCurrentQuarterRange();
+}
 
 export function Layout1Page() {
   const [isOpen, setIsOpen] = useState(false);
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(2025, 0, 20),
-    to: addDays(new Date(2025, 0, 20), 20),
-  });
+  const [date, setDate] = useState<DateRange | undefined>(getInitialDateRange);
   const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(
     date,
   );
 
+  const handlePresetSelect = (getValue: () => DateRange) => {
+    const newRange = getValue();
+    setDate(newRange);
+    setTempDateRange(newRange);
+    saveDateRangeToStorage(newRange);
+  };
+
   const handleDateRangeApply = () => {
-    setDate(tempDateRange); // Save the temporary date range to the main state
-    setIsOpen(false); // Close the popover
+    setDate(tempDateRange);
+    if (tempDateRange) {
+      saveDateRangeToStorage(tempDateRange);
+    }
+    setIsOpen(false);
   };
 
   const handleDateRangeReset = () => {
-    setTempDateRange(undefined); // Reset the temporary date range
+    clearDateRangeStorage();
+    const defaultRange = getCurrentQuarterRange();
+    setDate(defaultRange);
+    setTempDateRange(defaultRange);
+    setIsOpen(false);
   };
 
-  const defaultStartDate = new Date(); // Default start date fallback
+  const defaultStartDate = new Date();
 
   return (
     <div className="container">
@@ -50,6 +79,40 @@ export function Layout1Page() {
           <ToolbarDescription>Central Hub for Information</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          {/* Preset dropdown for small screens */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex md:hidden">
+                Quick Select
+                <ChevronDown size={16} className="ms-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {DATE_RANGE_PRESETS.map((preset) => (
+                <DropdownMenuItem
+                  key={preset.label}
+                  onClick={() => handlePresetSelect(preset.getValue)}
+                >
+                  {preset.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Preset buttons for normal screens */}
+          <div className="hidden md:flex gap-1.5">
+            {DATE_RANGE_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                variant="outline"
+                onClick={() => handlePresetSelect(preset.getValue)}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Date range picker popover */}
           <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
               <Button id="date" variant="outline">
@@ -87,7 +150,7 @@ export function Layout1Page() {
           </Popover>
         </ToolbarActions>
       </Toolbar>
-    
+
       {/* Cards row */}
       <div className="grid gap-5 lg:grid-cols-3 mb-5">
         <TeamTimeOffCurrentMonthCard />
@@ -96,12 +159,20 @@ export function Layout1Page() {
       {/* Charts row */}
       <div className="grid gap-5 lg:grid-cols-2 mb-5">
         <TeamMembersByCountryChart />
-        <TeamTimeOffByMonthChart />
+        <TeamTimeOffByMonthChart
+          key={`month-${date?.from?.getTime() ?? 'no-start'}-${date?.to?.getTime() ?? 'no-end'}`}
+          startDate={date?.from}
+          endDate={date?.to}
+        />
       </div>
 
       {/* Time Off by Country row */}
       <div className="grid gap-5 lg:grid-cols-1">
-        <TeamTimeOffByCountryChart startDate={date?.from} endDate={date?.to} />
+        <TeamTimeOffByCountryChart
+          key={`${date?.from?.getTime() ?? 'no-start'}-${date?.to?.getTime() ?? 'no-end'}`}
+          startDate={date?.from}
+          endDate={date?.to}
+        />
       </div>
     </div>
   );

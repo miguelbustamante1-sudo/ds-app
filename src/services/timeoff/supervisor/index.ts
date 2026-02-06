@@ -13,3 +13,5 @@ export {
   getTeamMemberTimeOffBreakdown,
   getAllTeamTimeOffs,
 } from './queries';
+
+export { getTeamTimeOffByMonthRange } from './chartQueries';
