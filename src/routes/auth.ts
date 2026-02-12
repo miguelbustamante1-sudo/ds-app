@@ -383,7 +383,7 @@ router.post('/dev-login', async (req: AuthenticatedRequest, res: Response) => {
     const { email, password } = req.body;
 
     // Hardcoded test credentials
-    const DEV_USER_EMAIL = 'miguel.bustamante01@telusinternational.com';
+    const DEV_USER_EMAIL = process.env.DEV_USERNAME || '';
     const DEV_USER_PASSWORD = process.env.DEV_USER_PASSWORD || 'dev-password-123';
 
     if (email !== DEV_USER_EMAIL || password !== DEV_USER_PASSWORD) {

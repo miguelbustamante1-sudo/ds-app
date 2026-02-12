@@ -5,6 +5,7 @@ import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
+import { calculateFixedDurationEndDate } from '../../utils/fixedDurationEndDate';
 import {
   Dialog,
   DialogContent,
@@ -105,6 +106,7 @@ export function EditSupervisorTimeOffDialog({
   );
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
+  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
 
   // Load categories for the team member's country
   useEffect(() => {
@@ -156,14 +158,13 @@ export function EditSupervisorTimeOffDialog({
   // Auto-calculate end date for fixed-duration categories
   useEffect(() => {
     if (isFixedDuration && fixedDays && startDate) {
-      const calculatedEndDate = new Date(startDate);
-      calculatedEndDate.setDate(calculatedEndDate.getDate() + fixedDays - 1);
+      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
       // Only update if different to avoid infinite loop
       if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
         setValue('endDate', calculatedEndDate);
       }
     }
-  }, [isFixedDuration, fixedDays, startDate, endDate, setValue]);
+  }, [isFixedDuration, fixedDays, isCalendar, startDate, endDate, setValue]);
 
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;

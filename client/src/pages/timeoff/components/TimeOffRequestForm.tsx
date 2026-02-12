@@ -4,6 +4,7 @@ import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
+import { calculateFixedDurationEndDate } from '../utils/fixedDurationEndDate';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -78,6 +79,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
   );
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
+  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
 
   // Load categories (filtered by user's country), statuses, and user profile on mount
   useEffect(() => {
@@ -118,14 +120,13 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
   // Auto-calculate end date for fixed-duration categories
   useEffect(() => {
     if (isFixedDuration && fixedDays && startDate) {
-      const calculatedEndDate = new Date(startDate);
-      calculatedEndDate.setDate(calculatedEndDate.getDate() + fixedDays - 1);
+      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
       // Only update if different to avoid infinite loop
       if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
         setValue('endDate', calculatedEndDate);
       }
     }
-  }, [isFixedDuration, fixedDays, startDate, endDate, setValue]);
+  }, [isFixedDuration, fixedDays, isCalendar, startDate, endDate, setValue]);
 
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;

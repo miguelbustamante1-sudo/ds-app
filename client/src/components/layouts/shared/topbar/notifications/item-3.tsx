@@ -15,8 +15,11 @@ interface Item3Props {
   description: string;
   link: string;
   day: string;
-  date: string;
+  timeDisplay?: string;
   info: string;
+  actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
 }
 
 export default function Item3({
@@ -26,8 +29,11 @@ export default function Item3({
   description,
   link,
   day,
-  date,
+  timeDisplay,
   info,
+  actionType,
+  onAccept,
+  onDecline,
 }: Item3Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
@@ -52,20 +58,22 @@ export default function Item3({
             <span className="text-secondary-foreground"> {day}</span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            {date}
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
             {info}
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
-          <Button size="sm" variant="outline">
-            Decline
-          </Button>
-          <Button size="sm" variant="mono">
-            Accept
-          </Button>
-        </div>
+        {actionType !== 'readonly' && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              Decline
+            </Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>
+              Accept
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

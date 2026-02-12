@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["ds", "sec"]
+  schemas  = ["ds", "sec", "com"]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -218,6 +218,7 @@ model CategoryCountry {
   categoryCountryAllowHalfDay    Boolean         @default(false) @map("cxc_allow_half_day")
   categoryCountryIsFixedDuration Boolean         @default(false) @map("cxc_is_fixed_duration")
   categoryCountryFixedDays       Decimal?        @map("cxc_fixed_days") @db.Decimal
+  categoryCountryIsCalendar      Boolean         @default(false) @map("cxc_is_calendar")
   category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cat")
   country                        Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cou")
 
@@ -278,6 +279,7 @@ model User {
   projectAssignmentsUpdated    ProjectAssignment[]    @relation("tbl_tms_x_projects_txp_last_updated_byTotbl_users")
   supervisorAssignmentsCreated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
   supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
+  recipients                   Recipient[]
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -375,4 +377,51 @@ model UserRole {
   @@index([userId], map: "idx_uro_user_roles_usr_id")
   @@map("uro_user_roles")
   @@schema("sec")
+}
+
+/// Notification category/tab (com schema)
+model Category {
+  id            Int            @id @default(autoincrement()) @map("cat_id")
+  name          String         @map("cat_name") @db.VarChar(100)
+  color         String?        @map("cat_color") @db.VarChar(50)
+  notifications Notification[]
+
+  @@map("cat_categories")
+  @@schema("com")
+}
+
+/// Notification record (com schema)
+model Notification {
+  id         Int         @id @default(autoincrement()) @map("ntf_id")
+  categoryId Int?        @map("cat_id")
+  itemType   String      @map("ntf_item_type") @db.VarChar(50)
+  payload    Json        @map("ntf_payload")
+  createdAt  DateTime    @default(now()) @map("ntf_created_at") @db.Timestamptz(6)
+  createdBy  String?     @map("ntf_created_by") @db.VarChar(255)
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: Restrict, map: "fk_ntf_cat")
+  recipients Recipient[]
+
+  @@index([categoryId], map: "idx_ntf_cat_id")
+  @@index([createdAt], map: "idx_ntf_created_at")
+  @@map("ntf_notifications")
+  @@schema("com")
+}
+
+/// Recipient record linking a notification to a user (com schema)
+model Recipient {
+  id             Int          @id @default(autoincrement()) @map("rec_id")
+  notificationId Int          @map("ntf_id")
+  userId         Int          @map("usr_id")
+  actionType     String       @default("readonly") @map("rec_action_type") @db.VarChar(50)
+  isRead         Boolean      @default(false) @map("rec_is_read")
+  isArchived     Boolean      @default(false) @map("rec_is_archived")
+  readAt         DateTime?    @map("rec_read_at") @db.Timestamptz(6)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade, map: "fk_rec_ntf")
+  user           User         @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "fk_rec_usr")
+
+  @@unique([notificationId, userId], map: "unq_user_notification")
+  @@index([userId], map: "idx_rec_usr_id")
+  @@index([notificationId], map: "idx_rec_ntf_id")
+  @@map("rec_recipients")
+  @@schema("com")
 }

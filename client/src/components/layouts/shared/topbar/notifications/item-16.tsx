@@ -9,14 +9,33 @@ import {
 } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
-export default function Item16() {
+interface Item16Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  link?: string;
+  timeDisplay?: string;
+  info?: string;
+  actionType?: string;
+}
+
+export default function Item16({
+  userName = 'Ethan Parker',
+  avatar = '300-29.png',
+  badgeColor = 'online',
+  description = 'created a new tasks to',
+  link = 'Site Sculpt',
+  timeDisplay = '3 days ago',
+  info = 'Web Designer',
+}: Item16Props) {
   return (
     <div className="flex grow gap-2 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-29.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -24,21 +43,21 @@ export default function Item16() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Ethan Parker
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              created a new tasks to{' '}
+              {description}{' '}
             </span>
             <Link to="#" className="hover:text-primary text-primary">
-              Site Sculpt
+              {link}
             </Link>
             <span className="text-secondary-foreground"> project</span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            3 days ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Web Designer
+            {info}
           </span>
         </div>
 

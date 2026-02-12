@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "target": "bsa-monolith",
+    "public": "public",
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "ds-app-mvp",
+          "region": "us-central1"
+        }
+      }
+    ]
+  }
+}

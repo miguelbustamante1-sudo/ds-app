@@ -9,14 +9,37 @@ import {
 } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 
-export default function Item6() {
+interface Item6Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  info?: string;
+  fileIcon?: string;
+  fileName?: string;
+  fileEditedTime?: string;
+  actionType?: string;
+}
+
+export default function Item6({
+  userName = 'Tyler Hero',
+  avatar = '300-14.png',
+  badgeColor = 'offline',
+  description = 'wants to view your design project',
+  timeDisplay = '3 day ago',
+  info = 'Metronic Launcher mockups',
+  fileIcon = '/media/file-types/figma.svg',
+  fileName = 'Launcher-UIkit.fig',
+  fileEditedTime = 'Edited 2 mins ago',
+}: Item6Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-14.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="offline" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -24,24 +47,24 @@ export default function Item6() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Tyler Hero{' '}
+              {userName}{' '}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              wants to view your design project{' '}
+              {description}{' '}
             </span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            3 day ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Metronic Launcher mockups
+            {info}
           </span>
         </div>
 
         <Card className="shadow-none flex items-center flex-row gap-1.5 p-2.5 rounded-lg bg-muted/70">
           <div className="flex items-center justify-center w-[26px] h-[30px] shrink-0 bg-background rounded-sm border border-border">
             <img
-              src={toAbsoluteUrl('/media/file-types/figma.svg')}
+              src={toAbsoluteUrl(fileIcon)}
               className="h-5"
               alt="image"
             />
@@ -51,10 +74,10 @@ export default function Item6() {
             to="#"
             className="hover:text-primary font-medium text-secondary-foreground text-xs me-1"
           >
-            Launcher-UIkit.fig
+            {fileName}
           </Link>
           <span className="font-medium text-muted-foreground text-xs">
-            Edited 2 mins ago
+            {fileEditedTime}
           </span>
         </Card>
       </div>

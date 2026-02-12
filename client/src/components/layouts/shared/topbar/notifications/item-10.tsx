@@ -10,14 +10,51 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export default function Item10() {
+interface Item10Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  info?: string;
+  meetingMonth?: string;
+  meetingDay?: string;
+  meetingTitle?: string;
+  meetingTime?: string;
+  attendees?: Array<{ path?: string; fallback?: string; variant?: string }>;
+  actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
+}
+
+export default function Item10({
+  userName = 'Nova Hawthorne',
+  avatar = '300-15.png',
+  badgeColor = 'online',
+  description = 'sent you an meeting invation',
+  timeDisplay = '2 days ago',
+  info = 'Dev Team',
+  meetingMonth = 'Apr',
+  meetingDay = '12',
+  meetingTitle = 'Peparation For Release',
+  meetingTime = '9:00 PM - 10:00 PM',
+  attendees = [
+    { path: '/media/avatars/300-1.png' },
+    { path: '/media/avatars/300-2.png' },
+    { path: '/media/avatars/300-3.png' },
+    { fallback: '+3', variant: 'text-white size-6 ring-background bg-green-500' },
+  ],
+  actionType,
+  onAccept,
+  onDecline,
+}: Item10Props) {
   return (
     <div className="flex grow gap-2 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-15.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -25,17 +62,17 @@ export default function Item10() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Nova Hawthorne
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              sent you an meeting invation{' '}
+              {description}{' '}
             </span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            2 days ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Dev Team
+            {info}
           </span>
         </div>
 
@@ -45,12 +82,12 @@ export default function Item10() {
               <div className="border border-warning-transparent rounded-lg">
                 <div className="flex items-center justify-center border-b border-b-warning-transparent bg-yellow-400/10 rounded-t-lg">
                   <span className="text-xs text-yellow-400 fw-medium p-1.5">
-                    Apr
+                    {meetingMonth}
                   </span>
                 </div>
                 <div className="flex items-center justify-center size-9">
                   <span className="fw-semibold text-mono text-md tracking-tight">
-                    12
+                    {meetingDay}
                   </span>
                 </div>
               </div>
@@ -60,37 +97,31 @@ export default function Item10() {
                   to="#"
                   className="hover:text-primary font-medium text-secondary-foreground text-xs"
                 >
-                  Peparation For Release
+                  {meetingTitle}
                 </Link>
                 <span className="font-medium text-secondary-foreground text-xs">
-                  9:00 PM - 10:00 PM
+                  {meetingTime}
                 </span>
               </div>
             </div>
 
             <AvatarGroup
               size="size-6"
-              group={[
-                { path: '/media/avatars/300-1.png' },
-                { path: '/media/avatars/300-2.png' },
-                { path: '/media/avatars/300-3.png' },
-                {
-                  fallback: '+3',
-                  variant: 'text-white size-6 ring-background bg-green-500',
-                },
-              ]}
+              group={attendees}
             />
           </div>
         </Card>
 
-        <div className="flex flex-wrap gap-2.5">
-          <Button size="sm" variant="outline">
-            Decline
-          </Button>
-          <Button size="sm" variant="mono">
-            Accept
-          </Button>
-        </div>
+        {actionType !== 'readonly' && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              Decline
+            </Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>
+              Accept
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

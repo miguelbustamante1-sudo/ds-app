@@ -15,6 +15,7 @@ import { SupervisorTimeOffPage } from '@/pages/timeoff/supervisor';
 import { TimeOffManagementPage } from '@/pages/timeoff/management';
 import { MyTeamPage } from '@/pages/my-team';
 import { TeamMemberProfilePage } from '@/pages/my-team/profile';
+import { AnnouncementsPage } from '@/pages/announcements';
 
 export function AppRoutingSetup() {
   return (
@@ -34,6 +35,7 @@ export function AppRoutingSetup() {
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
         <Route path="/time-off-management" element={<TimeOffManagementPage />} />
+        <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/maintenance/countries" element={<CountriesPage />} />
         <Route path="/maintenance/projects" element={<ProjectsPage />} />
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />

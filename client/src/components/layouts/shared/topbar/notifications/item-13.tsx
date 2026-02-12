@@ -9,14 +9,42 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export default function Item13() {
+interface Item13Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  link?: string;
+  timeDisplay?: string;
+  info?: string;
+  targetUserName?: string;
+  targetUserEmail?: string;
+  actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
+}
+
+export default function Item13({
+  userName = 'Samuel Lee',
+  avatar = '300-25.png',
+  badgeColor = 'online',
+  description = 'requested to add user to',
+  link = 'TechSynergy',
+  timeDisplay = '22 hours ago',
+  info = 'Dev Team',
+  targetUserName = 'Ronald Richards',
+  targetUserEmail = 'ronald.richards@gmail.com',
+  actionType,
+  onAccept,
+  onDecline,
+}: Item13Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-25.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -24,24 +52,24 @@ export default function Item13() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Samuel Lee
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              requested to add user to{' '}
+              {description}{' '}
             </span>
             <Link
               to="#"
               className="hover:text-primary text-primary font-semibold"
             >
-              TechSynergy
+              {link}
             </Link>
           </div>
 
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            22 hours ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Dev Team
+            {info}
           </span>
         </div>
 
@@ -51,13 +79,13 @@ export default function Item13() {
               to="#"
               className="hover:text-primary font-medium text-mono text-xs"
             >
-              Ronald Richards
+              {targetUserName}
             </Link>
             <Link
               to="#"
               className="hover:text-primary text-muted-foreground font-medium text-xs"
             >
-              ronald.richards@gmail.com
+              {targetUserEmail}
             </Link>
           </div>
 
@@ -69,14 +97,16 @@ export default function Item13() {
           </Link>
         </Card>
 
-        <div className="flex flex-wrap gap-2.5">
-          <Button size="sm" variant="outline">
-            Decline
-          </Button>
-          <Button size="sm" variant="mono">
-            Accept
-          </Button>
-        </div>
+        {actionType !== 'readonly' && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              Decline
+            </Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>
+              Accept
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

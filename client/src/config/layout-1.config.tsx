@@ -86,6 +86,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/time-off-management',
     permission: 'SupervisorTimeOff',
   },
+  { heading: 'Communications' },
+  {
+    title: 'Announcements',
+    icon: Bell,
+    path: '/announcements',
+    permission: 'Notifications',
+  },
   { heading: 'Maintenance', role: 'admin' },
   {
     title: 'Master Data',

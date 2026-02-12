@@ -24,21 +24,22 @@ router.get('/country/:cou_id', requirePermission('TimeOffCategoriesByCountry', '
 });
 
 router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
-  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days } = req.body;
+  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days, cxc_is_calendar } = req.body;
   const item = await db.create(
     Number(cat_id),
     Number(cou_id),
     cxc_status ?? null,
     cxc_allow_half_day ?? false,
     cxc_is_fixed_duration ?? false,
-    cxc_fixed_days ?? null
+    cxc_fixed_days ?? null,
+    cxc_is_calendar ?? false
   );
   res.status(201).json(item);
 });
 
 router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days } = req.body;
+  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days, cxc_is_calendar } = req.body;
   const item = await db.update(
     id,
     Number(cat_id),
@@ -46,7 +47,8 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
     cxc_status ?? null,
     cxc_allow_half_day,
     cxc_is_fixed_duration,
-    cxc_fixed_days
+    cxc_fixed_days,
+    cxc_is_calendar
   );
   if (!item) return res.status(404).json({ error: 'Not found' });
   res.json(item);

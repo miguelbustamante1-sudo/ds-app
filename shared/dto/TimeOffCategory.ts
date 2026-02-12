@@ -37,4 +37,5 @@ export interface CategoryByCountryDTO {
   categoryCountryAllowHalfDay: boolean;
   categoryCountryIsFixedDuration: boolean;
   categoryCountryFixedDays: number | null;
+  categoryCountryIsCalendar: boolean;
 }

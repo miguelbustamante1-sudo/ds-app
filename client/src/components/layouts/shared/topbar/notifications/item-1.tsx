@@ -17,9 +17,10 @@ interface ItemProps {
   description: string;
   link: string;
   label: string;
-  time: string;
+  timeDisplay?: string;
   specialist: string;
   text: string;
+  actionType?: string;
 }
 
 export default function Item1({
@@ -28,7 +29,7 @@ export default function Item1({
   description,
   link,
   label,
-  time,
+  timeDisplay,
   specialist,
   text,
 }: ItemProps) {
@@ -57,7 +58,7 @@ export default function Item1({
           </div>
 
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            {time}
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
             {specialist}
           </span>

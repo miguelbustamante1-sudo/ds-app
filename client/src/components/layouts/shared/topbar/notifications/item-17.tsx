@@ -9,14 +9,36 @@ import {
 } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
-export default function Item17() {
+interface Item17Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  info?: string;
+  actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
+}
+
+export default function Item17({
+  userName = 'Natalie Wood',
+  avatar = '300-19.png',
+  badgeColor = 'online',
+  description = 'wants to edit marketing project',
+  timeDisplay = '1 day ago',
+  info = 'Designer',
+  actionType,
+  onAccept,
+  onDecline,
+}: Item17Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-19.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -24,17 +46,17 @@ export default function Item17() {
         <div className="flex flex-col gap-1 mb-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Natalie Wood
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              wants to edit marketing project{' '}
+              {description}{' '}
             </span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            1 day ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Designer
+            {info}
           </span>
         </div>
 
@@ -58,14 +80,16 @@ export default function Item17() {
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
-          <Button size="sm" variant="outline">
-            Decline
-          </Button>
-          <Button size="sm" variant="mono">
-            Accept
-          </Button>
-        </div>
+        {actionType !== 'readonly' && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              Decline
+            </Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>
+              Accept
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

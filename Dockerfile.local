@@ -1,0 +1,55 @@
+FROM node:20-slim AS base
+WORKDIR /app
+
+# ---- Server dependencies (including devDependencies for prisma CLI) ----
+FROM base AS server-deps
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ---- Client dependencies ----
+FROM base AS client-deps
+WORKDIR /app/client
+COPY client/package.json client/package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+# ---- Server build ----
+FROM base AS server-build
+COPY --from=server-deps /app/node_modules /app/node_modules
+COPY package.json package-lock.json ./
+COPY tsconfig.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY shared ./shared
+RUN npx prisma generate
+COPY src ./src
+RUN npm run build:server
+
+# ---- Client build ----
+FROM base AS client-build
+WORKDIR /app/client
+ARG VITE_ENABLE_DEV_LOGIN=true
+ARG VITE_DEV_USERNAME
+ENV VITE_ENABLE_DEV_LOGIN=$VITE_ENABLE_DEV_LOGIN
+ENV VITE_DEV_USERNAME=$VITE_DEV_USERNAME
+COPY --from=client-deps /app/client/node_modules ./node_modules
+COPY client ./
+COPY shared ../shared
+RUN npm run build
+
+# ---- Runtime (development — keeps devDeps for prisma CLI) ----
+FROM node:20-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=development
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN npx prisma generate
+
+COPY --from=server-build /app/dist ./dist
+COPY --from=client-build /app/client/dist ./public
+
+EXPOSE 8080
+CMD ["npm", "start"]

@@ -1,4 +1,4 @@
-import { AvatarGroup } from '@/components/common/avatar-group';
+import { AvatarGroup } from '@/components/layouts/shared/common/avatar-group';
 import {
   CalendarDays,
   Lock,
@@ -19,14 +19,57 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export default function Item7() {
+interface Item7Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  info?: string;
+  meetingTitle?: string;
+  meetingDate?: string;
+  meetingTime?: string;
+  meetingLocation?: string;
+  meetingLink?: string;
+  projectName?: string;
+  teamName?: string;
+  attendees?: Array<{ path?: string; fallback?: string; variant?: string }>;
+  actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
+}
+
+export default function Item7({
+  userName = 'Nova Hawthorne',
+  avatar = '300-15.png',
+  badgeColor = 'offline',
+  description = 'sent you an meeting invation',
+  timeDisplay = '2 days ago',
+  info = 'Dev Team',
+  meetingTitle = 'Peparation for Release',
+  meetingDate = '22 April 2024',
+  meetingTime = '12:00 PM - 14:00 PM',
+  meetingLocation = 'Online',
+  meetingLink = 'Zoom Meeting',
+  projectName = 'Project',
+  teamName = 'DigitalDream',
+  attendees = [
+    { path: '/media/avatars/300-4.png' },
+    { path: '/media/avatars/300-1.png' },
+    { path: '/media/avatars/300-2.png' },
+    { fallback: '+3', variant: 'text-white size-6 ring-background bg-green-500' },
+  ],
+  actionType,
+  onAccept,
+  onDecline,
+}: Item7Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-15.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="offline" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -34,24 +77,24 @@ export default function Item7() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Nova Hawthorne
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              sent you an meeting invation{' '}
+              {description}{' '}
             </span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            2 days ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Dev Team
+            {info}
           </span>
         </div>
 
         <Card className="shadow-none gap-1.5 py-2.5 rounded-lg bg-muted/70">
           <div className="flex flex-col gap-2.5 px-2.5 mb-0.5">
             <span className="font-medium text-secondary-foreground text-xs">
-              Peparation for Release
+              {meetingTitle}
               <Lock size={16} />
             </span>
 
@@ -62,7 +105,7 @@ export default function Item7() {
                 appearance="light"
                 className="text-yellow-400 me-1"
               >
-                <NotepadText /> Project
+                <NotepadText /> {projectName}
               </Badge>
               <Badge
                 size="sm"
@@ -70,7 +113,7 @@ export default function Item7() {
                 appearance="light"
                 className="text-secondary-foreground me-1"
               >
-                <Users /> DigitalDream
+                <Users /> {teamName}
               </Badge>
             </div>
           </div>
@@ -86,14 +129,14 @@ export default function Item7() {
                     className="text-muted-foreground me-0.5 text-xs"
                   />
                   <span className="font-medium text-muted-foreground text-xs">
-                    22 April 2024
+                    {meetingDate}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-0.5">
                   <Timer size={16} className="text-muted-foreground text-xs" />
                   <span className="font-medium text-muted-foreground text-xs">
-                    12:00 PM - 14:00 PM
+                    {meetingTime}
                   </span>
                 </div>
               </div>
@@ -101,12 +144,12 @@ export default function Item7() {
               <div className="flex items-center gap-0.5">
                 <MapPin size={16} className="text-muted-foreground text-xs" />
                 <div className="font-medium text-muted-foreground text-xs">
-                  Online
+                  {meetingLocation}
                   <Link
                     to="#"
                     className="hover:text-primary text-primary font-medium"
                   >
-                    Zoom Meeting
+                    {meetingLink}
                   </Link>
                 </div>
               </div>
@@ -114,27 +157,21 @@ export default function Item7() {
 
             <AvatarGroup
               size="size-6"
-              group={[
-                { path: '/media/avatars/300-4.png' },
-                { path: '/media/avatars/300-1.png' },
-                { path: '/media/avatars/300-2.png' },
-                {
-                  fallback: '+3',
-                  variant: 'text-white size-6 ring-background bg-green-500',
-                },
-              ]}
+              group={attendees}
             />
           </div>
         </Card>
 
-        <div className="flex flex-wrap gap-2.5">
-          <Button size="sm" variant="outline">
-            Decline
-          </Button>
-          <Button size="sm" variant="mono">
-            Accept
-          </Button>
-        </div>
+        {actionType !== 'readonly' && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              Decline
+            </Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>
+              Accept
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

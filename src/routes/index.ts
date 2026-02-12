@@ -17,6 +17,7 @@ import rbacOptionsRouter from './rbacOptions';
 import supervisorAssignmentsRouter from './supervisorAssignments';
 import holidaysRouter from './holidays';
 import chartsRouter from './charts';
+import notificationsRouter from './notifications';
 
 export default function registerRoutes() {
   const router = Router();
@@ -39,6 +40,7 @@ export default function registerRoutes() {
   router.use('/supervisor-assignments', supervisorAssignmentsRouter);
   router.use('/holidays', holidaysRouter);
   router.use('/charts', chartsRouter);
+  router.use('/notifications', notificationsRouter);
 
   return router;
 }

@@ -197,9 +197,10 @@ router.patch('/my-requests/:timeOffId', requirePermission('TimeOffs', 'create'),
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
@@ -298,9 +299,10 @@ router.post('/my-requests', requirePermission('TimeOffs', 'create'), async (req:
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
@@ -582,9 +584,10 @@ router.post('/supervisor/request', requirePermission('TimeOffs', 'create'), asyn
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
@@ -698,9 +701,10 @@ router.patch('/supervisor/:timeOffId', requirePermission('TimeOffs', 'create'), 
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       timeOff.teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
@@ -904,9 +908,10 @@ router.post('/', requirePermission('TimeOffs', 'create'), async (req: Authentica
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
@@ -975,9 +980,10 @@ router.put('/:id', requirePermission('TimeOffs', 'create'), async (req: Authenti
       });
     }
 
-    // Calculate time off days based on team member's country
+    // Calculate time off days based on category's calendar/workday setting
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
+      categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );

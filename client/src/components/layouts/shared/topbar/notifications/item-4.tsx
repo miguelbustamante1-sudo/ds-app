@@ -9,14 +9,37 @@ import {
 } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 
-export default function Item4() {
+interface Item4Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  fileSize?: string;
+  fileIcon?: string;
+  fileName?: string;
+  fileEditedTime?: string;
+  actionType?: string;
+}
+
+export default function Item4({
+  userName = 'Jane Perez',
+  avatar = '300-10.png',
+  badgeColor = 'offline',
+  description = 'invites you to review a file.',
+  timeDisplay = '3 hours ago',
+  fileSize = '742kb',
+  fileIcon = '/media/file-types/pdf.svg',
+  fileName = 'Launch_nov24.pptx',
+  fileEditedTime = 'Edited 39 mins ago',
+}: Item4Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-10.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="offline" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -24,24 +47,24 @@ export default function Item4() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Jane Perez
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              invites you to review a file.{' '}
+              {description}{' '}
             </span>
           </div>
 
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            3 hours ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            742kb
+            {fileSize}
           </span>
         </div>
 
         <Card className="shadow-none flex items-center flex-row gap-1.5 p-2.5 rounded-lg bg-muted/70">
           <img
-            src={toAbsoluteUrl('/media/file-types/pdf.svg')}
+            src={toAbsoluteUrl(fileIcon)}
             className="h-5"
             alt="image"
           />
@@ -49,10 +72,10 @@ export default function Item4() {
             to="#"
             className="hover:text-primary font-medium text-secondary-foreground text-xs me-1"
           >
-            Launch_nov24.pptx
+            {fileName}
           </Link>
           <span className="font-medium text-muted-foreground text-xs">
-            Edited 39 mins ago
+            {fileEditedTime}
           </span>
         </Card>
       </div>

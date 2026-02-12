@@ -10,14 +10,31 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export default function Item11() {
+interface Item11Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  timeDisplay?: string;
+  info?: string;
+  actionType?: string;
+}
+
+export default function Item11({
+  userName = 'Skylar Frost',
+  avatar = '300-12.png',
+  badgeColor = 'online',
+  description = 'uploaded 2 attachments',
+  timeDisplay = '3 days ago',
+  info = 'Web Design',
+}: Item11Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-12.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -25,17 +42,17 @@ export default function Item11() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Skylar Frost
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              uploaded 2 attachments{' '}
+              {description}{' '}
             </span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            3 days ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            Web Design
+            {info}
           </span>
         </div>
 

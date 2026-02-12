@@ -14,8 +14,9 @@ interface Item5Props {
   description: string;
   day: string;
   link: string;
-  date: string;
+  timeDisplay?: string;
   info: string;
+  actionType?: string;
 }
 
 export default function Item5({
@@ -25,7 +26,7 @@ export default function Item5({
   description,
   day,
   link,
-  date,
+  timeDisplay,
   info,
 }: Item5Props) {
   return (
@@ -51,7 +52,7 @@ export default function Item5({
         </div>
 
         <span className="flex items-center text-xs font-medium text-muted-foreground">
-          {date}
+          {timeDisplay}
           <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
           {info}
         </span>

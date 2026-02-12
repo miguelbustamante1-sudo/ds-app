@@ -30,6 +30,7 @@ const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
       process.env.APP_ORIGIN,
+      "https://previewnot---ds-app-mvp-dazxcvmu7q-uc.a.run.app"
      ];
 
     // !origin allows server-to-server requests like UrlFetchApp

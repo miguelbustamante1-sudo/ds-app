@@ -21,6 +21,9 @@ export * from './TimeOffCategory';
 export * from './TimeOffStatus';
 export * from './User';
 
+// Communication DTOs
+export * from './Notification';
+
 // Security DTOs
 export * from './Permission';
 export * from './SecurityRole';

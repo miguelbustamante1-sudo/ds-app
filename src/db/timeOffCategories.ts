@@ -115,6 +115,7 @@ export async function getCategoriesByCountry(countryIso: string): Promise<Catego
         categoryCountryAllowHalfDay: cc.categoryCountryAllowHalfDay,
         categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
         categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
+        categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
       }))
   );
 }
@@ -167,5 +168,6 @@ export async function getCategoriesByTeamMemberId(
     categoryCountryAllowHalfDay: cc.categoryCountryAllowHalfDay,
     categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
     categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
+    categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
   }));
 }

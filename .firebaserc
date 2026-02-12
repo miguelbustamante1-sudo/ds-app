@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "ti-ds-devenv-01"
+  },
+  "targets": {
+    "ti-ds-devenv-01": {
+      "hosting": {
+        "bsa-monolith": ["dev-bsa-app"]
+      }
+    }
+  }
+}

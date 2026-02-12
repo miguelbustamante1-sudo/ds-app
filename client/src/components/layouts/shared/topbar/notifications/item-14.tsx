@@ -1,6 +1,15 @@
 import { Check } from 'lucide-react';
 
-export default function Item14() {
+interface Item14Props {
+  message?: string;
+  timeDisplay?: string;
+  actionType?: string;
+}
+
+export default function Item14({
+  message = 'You have succesfully verified your account',
+  timeDisplay = '2 days ago',
+}: Item14Props) {
   return (
     <div className="flex items-center grow gap-2.5 px-5">
       <div className="flex items-center justify-center size-8 bg-green-500-soft rounded-full border border-success-transparent">
@@ -9,10 +18,10 @@ export default function Item14() {
 
       <div className="flex flex-col gap-1">
         <span className="text-sm font-medium text-secondary-foreground">
-          You have succesfully verified your account
+          {message}
         </span>
         <span className="font-medium text-muted-foreground text-xs">
-          2 days ago
+          {timeDisplay}
         </span>
       </div>
     </div>

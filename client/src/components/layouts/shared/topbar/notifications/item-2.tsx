@@ -8,14 +8,44 @@ import {
 } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
-export default function Item2() {
+interface TagItem {
+  label: string;
+  variant: 'info' | 'warning' | 'secondary' | 'success' | 'destructive' | 'primary' | 'outline';
+}
+
+interface Item2Props {
+  userName?: string;
+  avatar?: string;
+  badgeColor?: 'online' | 'offline' | 'busy' | 'away' | null;
+  description?: string;
+  link?: string;
+  timeDisplay?: string;
+  info?: string;
+  tags?: TagItem[];
+  actionType?: string;
+}
+
+export default function Item2({
+  userName = 'Leslie Alexander',
+  avatar = '300-5.png',
+  badgeColor = 'online',
+  description = 'added new tags to',
+  link = 'Web Redesign 2024',
+  timeDisplay = '53 mins ago',
+  info = 'ACME',
+  tags = [
+    { label: 'Client-Request', variant: 'info' },
+    { label: 'Figma', variant: 'warning' },
+    { label: 'Redesign', variant: 'secondary' },
+  ],
+}: Item2Props) {
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src="/media/avatars/300-5.png" alt="avatar" />
+        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
-          <AvatarStatus variant="online" className="size-2.5" />
+          <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
       </Avatar>
 
@@ -23,34 +53,30 @@ export default function Item2() {
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
             <Link to="#" className="hover:text-primary text-mono font-semibold">
-              Leslie Alexander
+              {userName}
             </Link>
             <span className="text-secondary-foreground">
               {' '}
-              added new tags to{' '}
+              {description}{' '}
             </span>
             <Link to="#" className="hover:text-primary text-primary">
-              Web Redesign 2024
+              {link}
             </Link>
           </div>
 
           <span className="flex items-center text-xs font-medium text-muted-foreground">
-            53 mins ago
+            {timeDisplay}
             <span className="rounded-full size-1 bg-mono/30 mx-1.5"></span>
-            ACME
+            {info}
           </span>
         </div>
 
         <div className="flex flex-wrap gap-2.5">
-          <Badge size="sm" variant="info" appearance="light">
-            Client-Request
-          </Badge>
-          <Badge size="sm" variant="warning" appearance="light">
-            Figma
-          </Badge>
-          <Badge size="sm" variant="secondary" appearance="light">
-            Redesign
-          </Badge>
+          {tags.map((tag, index) => (
+            <Badge key={index} size="sm" variant={tag.variant} appearance="light">
+              {tag.label}
+            </Badge>
+          ))}
         </div>
       </div>
     </div>
