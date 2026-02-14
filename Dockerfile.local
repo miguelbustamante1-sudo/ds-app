@@ -12,6 +12,15 @@ WORKDIR /app/client
 COPY client/package.json client/package-lock.json ./
 RUN npm ci --legacy-peer-deps
 
+# ---- Prisma-only stage (used by db-setup to push schema without building the app) ----
+FROM base AS prisma-setup
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+COPY --from=server-deps /app/node_modules /app/node_modules
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+CMD ["npx", "prisma", "db", "push", "--accept-data-loss"]
+
 # ---- Server build ----
 FROM base AS server-build
 COPY --from=server-deps /app/node_modules /app/node_modules

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pencil, XCircle, Search } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
 import type { TimeOffWithDetailsDTO } from '../../../../../shared/dto/TimeOff';
@@ -23,6 +23,7 @@ interface MyTimeOffListProps {
   loading: boolean;
   onEditClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   onCancelClick?: (timeOff: TimeOffWithDetailsDTO) => void;
+  highlightedId?: number | null;
 }
 
 /**
@@ -43,9 +44,20 @@ function canModify(timeOff: TimeOffWithDetailsDTO): boolean {
   return !timeOff.statusName.toLowerCase().includes('cancelled');
 }
 
-export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick }: MyTimeOffListProps) {
+export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, highlightedId }: MyTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to highlighted row when it appears
+  useEffect(() => {
+    if (!highlightedId || loading) return;
+    const timer = setTimeout(() => {
+      const row = containerRef.current?.querySelector('.highlighted-row');
+      row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightedId, loading]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -182,19 +194,26 @@ export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick }:
       </div>
 
       {/* Data Grid */}
-      <DataGridContainer>
-        <DataGrid
-          table={table}
-          recordCount={data.length}
-          tableLayout={{
-            headerBackground: true,
-            headerBorder: true,
-            rowBorder: true,
-          }}
-        >
-          <DataGridTable />
-        </DataGrid>
-      </DataGridContainer>
+      <div ref={containerRef}>
+        <DataGridContainer>
+          <DataGrid
+            table={table}
+            recordCount={data.length}
+            tableLayout={{
+              headerBackground: true,
+              headerBorder: true,
+              rowBorder: true,
+            }}
+            getRowClassName={(row: TimeOffWithDetailsDTO) =>
+              row.timeOffId === highlightedId
+                ? 'highlighted-row bg-primary/10 ring-1 ring-primary/30'
+                : ''
+            }
+          >
+            <DataGridTable />
+          </DataGrid>
+        </DataGridContainer>
+      </div>
     </div>
   );
 }

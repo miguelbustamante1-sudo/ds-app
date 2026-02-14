@@ -1169,20 +1169,19 @@ export const openapiSpec = {
       TeamMemberProject: {
         type: 'object',
         properties: {
-          txp_id: { type: 'integer' },
+          tmp_id: { type: 'integer' },
           tms_id: { type: 'integer' },
           pro_id: { type: 'integer' },
-          txp_stadat: { type: 'string', format: 'date' },
-          txp_enddat: { type: 'string', format: 'date' },
-          rol_id: { type: 'integer' },
-          txp_bill_rate: { type: 'string' },
-          txp_br_curcod: { type: 'string' },
-          txp_created_by: { type: 'integer' },
-          txp_credat: { type: 'string', format: 'date' },
-          txp_last_updated_by: { type: 'integer' },
-          txp_last_upddat: { type: 'string', format: 'date' },
+          tmp_start_date: { type: 'string', format: 'date' },
+          tmp_end_date: { type: 'string', format: 'date' },
+          tmp_bill_rate: { type: 'string' },
+          tmp_bill_rate_currency: { type: 'string' },
+          tmp_created_by: { type: 'integer' },
+          tmp_created_at: { type: 'string', format: 'date' },
+          tmp_updated_by: { type: 'integer' },
+          tmp_updated_at: { type: 'string', format: 'date' },
         },
-        required: ['txp_stadat']
+        required: ['tmp_start_date']
       },
       Project: {
         type: 'object',

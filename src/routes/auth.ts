@@ -368,6 +368,22 @@ router.post('/script-user', async (req: AuthenticatedRequest, res: Response) => 
 });
 
 /**
+ * GET /api/auth/dev-config
+ * Returns client-side configuration for dev login (no auth required).
+ * Replaces VITE_* env vars that aren't available in cloud builds.
+ */
+router.get('/dev-config', (_req: AuthenticatedRequest, res: Response) => {
+  const enableDevLogin =
+    process.env.NODE_ENV !== 'production' &&
+    (process.env.ENABLE_DEV_LOGIN === 'true' || process.env.VITE_ENABLE_DEV_LOGIN === 'true');
+
+  res.json({
+    enableDevLogin,
+    devUsername: enableDevLogin ? (process.env.DEV_USERNAME || process.env.VITE_DEV_USERNAME || '') : '',
+  });
+});
+
+/**
  * POST /api/auth/dev-login
  * DEVELOPMENT ONLY: Bypass authentication for local testing
  * Creates a local JWT token for the hardcoded test user

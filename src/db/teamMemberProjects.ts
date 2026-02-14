@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import type { ProjectAssignment, Prisma } from '@prisma/client';
 
-export const TABLE = 'ds.tbl_tms_x_projects';
+export const TABLE = 'ds.tmp_team_member_project';
 
 export async function ensureTeamMemberProjectsTableExists(): Promise<boolean> {
   try {
@@ -12,8 +12,12 @@ export async function ensureTeamMemberProjectsTableExists(): Promise<boolean> {
   }
 }
 
-export async function getAllTeamMemberProjects(): Promise<ProjectAssignment[]> {
+export async function getAllTeamMemberProjects() {
   return await prisma.projectAssignment.findMany({
+    include: {
+      teamMember: true,
+      project: true,
+    },
     orderBy: { projectAssignmentId: 'asc' },
   });
 }

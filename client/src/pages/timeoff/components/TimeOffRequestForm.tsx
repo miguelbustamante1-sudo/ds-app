@@ -12,6 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn, formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+
+// Helper function to check if a date is a weekend (Saturday or Sunday)
+const isWeekend = (date: Date): boolean => {
+  const day = date.getDay();
+  return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+};
 import { apiGet, apiPost, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../utils/overlapDetection';
@@ -60,6 +66,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     watch,
     reset,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -117,6 +124,15 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     loadData();
   }, [toast]);
 
+  // Reset dates and clear errors when category changes so the form starts clean
+  useEffect(() => {
+    if (categoryId) {
+      setValue('startDate', undefined);
+      setValue('endDate', undefined);
+      clearErrors(['startDate', 'endDate']);
+    }
+  }, [categoryId, setValue, clearErrors]);
+
   // Auto-calculate end date for fixed-duration categories
   useEffect(() => {
     if (isFixedDuration && fixedDays && startDate) {
@@ -130,6 +146,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
 
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
+
+  // Validation: Start date cannot be on weekend
+  const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
   // Validation: Attrition date - check if dates exceed user's end date
   const exceedsAttritionDate = userEndDate && (
@@ -169,6 +188,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     isDateRangeValid &&
     !hasOverlap &&
     !exceedsAttritionDate &&
+    !isStartDateWeekend &&
     svValidation.valid &&
     !submitting;
 
@@ -271,6 +291,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                     disabled={(date) => {
                       const today = startOfDay(new Date());
                       if (date < today) return true;
+                      if (isWeekend(date)) return true;
                       if (userEndDate && date > userEndDate) return true;
                       return false;
                     }}
@@ -281,6 +302,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
           />
           {errors.startDate && (
             <p className="text-sm text-destructive">{errors.startDate.message}</p>
+          )}
+          {isStartDateWeekend && (
+            <p className="text-sm text-destructive">Start date cannot be on a weekend</p>
           )}
         </div>
 

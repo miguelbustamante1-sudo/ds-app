@@ -6,19 +6,28 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/auth/auth-provider';
 import { KeyRound } from 'lucide-react';
 
-const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
-
 export function SignInPage() {
   const { user, loading, devLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: Location })?.from?.pathname || '/';
 
+  const [enableDevLogin, setEnableDevLogin] = useState(false);
   const [showDevLogin, setShowDevLogin] = useState(false);
-  const [email, setEmail] = useState(import.meta.env.VITE_DEV_USERNAME || '');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [devError, setDevError] = useState('');
   const [devLoading, setDevLoading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/dev-config')
+      .then((r) => (r.ok ? r.json() : { enableDevLogin: false, devUsername: '' }))
+      .then((cfg) => {
+        setEnableDevLogin(cfg.enableDevLogin);
+        if (cfg.devUsername) setEmail(cfg.devUsername);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {

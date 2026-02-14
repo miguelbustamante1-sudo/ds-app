@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { TimeOffWithDetailsDTO, UpdateMyTimeOffDTO } from '../../../../shared/dto/TimeOff';
 import {
   Toolbar,
@@ -15,6 +16,11 @@ import { CancelMyTimeOffDialog } from './components/CancelMyTimeOffDialog';
 import { EditTimeOffDialog } from './components/EditTimeOffDialog';
 
 export function MyTimeOffPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightTimeOffId = searchParams.get('timeOffId')
+    ? Number(searchParams.get('timeOffId'))
+    : null;
+
   const [timeOffs, setTimeOffs] = useState<TimeOffWithDetailsDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -54,6 +60,18 @@ export function MyTimeOffPage() {
   const handleSuccess = useCallback(() => {
     loadTimeOffs();
   }, [loadTimeOffs]);
+
+  // Auto-open edit dialog when navigating from a notification with ?timeOffId=
+  useEffect(() => {
+    if (!highlightTimeOffId || loading || timeOffs.length === 0) return;
+
+    const match = timeOffs.find((to) => to.timeOffId === highlightTimeOffId);
+    if (match) {
+      setSelectedTimeOff(match);
+      setEditDialogOpen(true);
+    }
+    setSearchParams({});
+  }, [highlightTimeOffId, loading, timeOffs, setSearchParams]);
 
   // Action handlers
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
@@ -99,6 +117,7 @@ export function MyTimeOffPage() {
             loading={loading}
             onEditClick={handleEditClick}
             onCancelClick={handleCancelClick}
+            highlightedId={highlightTimeOffId}
           />
         </div>
 

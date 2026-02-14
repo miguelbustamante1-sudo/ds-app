@@ -5,53 +5,80 @@ import { requirePermission } from '../middleware/auth';
 
 const router = express.Router();
 
+/** Flatten nested category/country relations into top-level fields */
+function flattenItem(item: any) {
+  const { category, country, ...rest } = item;
+  return {
+    ...rest,
+    categoryName: category?.categoryName ?? '',
+    countryName: country?.countryName ?? '',
+    countryIso: country?.countryIso ?? '',
+  };
+}
+
 router.get('/', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
   const items = await db.getAll();
-  res.json(items);
+  res.json(items.map(flattenItem));
 });
 
 router.get('/:id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const item = await db.getById(id);
   if (!item) return res.status(404).json({ error: 'Not found' });
-  res.json(item);
+  res.json(flattenItem(item));
 });
 
 router.get('/country/:cou_id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
   const cou_id = Number(req.params.cou_id);
   const items = await db.getByCountry(cou_id);
-  res.json(items);
+  res.json(items.map(flattenItem));
 });
 
 router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
-  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days, cxc_is_calendar } = req.body;
+  const {
+    categoryId,
+    countryId,
+    categoryCountryStatus,
+    categoryCountryAllowHalfDay,
+    categoryCountryIsFixedDuration,
+    categoryCountryFixedDays,
+    categoryCountryIsCalendar,
+  } = req.body;
   const item = await db.create(
-    Number(cat_id),
-    Number(cou_id),
-    cxc_status ?? null,
-    cxc_allow_half_day ?? false,
-    cxc_is_fixed_duration ?? false,
-    cxc_fixed_days ?? null,
-    cxc_is_calendar ?? false
+    Number(categoryId),
+    Number(countryId),
+    categoryCountryStatus ?? null,
+    categoryCountryAllowHalfDay ?? false,
+    categoryCountryIsFixedDuration ?? false,
+    categoryCountryFixedDays ?? null,
+    categoryCountryIsCalendar ?? false
   );
-  res.status(201).json(item);
+  res.status(201).json(flattenItem(item));
 });
 
 router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
   const id = Number(req.params.id);
-  const { cat_id, cou_id, cxc_status, cxc_allow_half_day, cxc_is_fixed_duration, cxc_fixed_days, cxc_is_calendar } = req.body;
+  const {
+    categoryId,
+    countryId,
+    categoryCountryStatus,
+    categoryCountryAllowHalfDay,
+    categoryCountryIsFixedDuration,
+    categoryCountryFixedDays,
+    categoryCountryIsCalendar,
+  } = req.body;
   const item = await db.update(
     id,
-    Number(cat_id),
-    Number(cou_id),
-    cxc_status ?? null,
-    cxc_allow_half_day,
-    cxc_is_fixed_duration,
-    cxc_fixed_days,
-    cxc_is_calendar
+    Number(categoryId),
+    Number(countryId),
+    categoryCountryStatus ?? null,
+    categoryCountryAllowHalfDay,
+    categoryCountryIsFixedDuration,
+    categoryCountryFixedDays,
+    categoryCountryIsCalendar
   );
   if (!item) return res.status(404).json({ error: 'Not found' });
-  res.json(item);
+  res.json(flattenItem(item));
 });
 
 router.delete('/:id', requirePermission('TimeOffCategoriesByCountry', 'delete'), async (req: Request, res: Response) => {

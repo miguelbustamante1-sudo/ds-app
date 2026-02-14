@@ -66,6 +66,7 @@ export function SupervisorTimeOffForm({
     watch,
     reset,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -137,6 +138,16 @@ export function SupervisorTimeOffForm({
     }
     loadData();
   }, [teamMember?.teamMemberId, toast]);
+
+  // Reset dates, comment, and clear errors when category changes so the form starts clean
+  useEffect(() => {
+    if (categoryId) {
+      setValue('startDate', undefined);
+      setValue('endDate', undefined);
+      setValue('comment', '');
+      clearErrors(['startDate', 'endDate']);
+    }
+  }, [categoryId, setValue, clearErrors]);
 
   // Auto-calculate end date for fixed-duration categories
   useEffect(() => {

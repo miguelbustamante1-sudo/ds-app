@@ -20,6 +20,8 @@ interface Item3Props {
   actionType?: string;
   onAccept?: () => void;
   onDecline?: () => void;
+  sourceId?: number;
+  sourceEntity?: string;
 }
 
 export default function Item3({
@@ -34,7 +36,13 @@ export default function Item3({
   actionType,
   onAccept,
   onDecline,
+  sourceId,
+  sourceEntity,
 }: Item3Props) {
+  const resolvedLink = sourceEntity === 'TimeOff' && sourceId
+    ? `${link}?timeOffId=${sourceId}`
+    : link;
+
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
@@ -52,7 +60,7 @@ export default function Item3({
               {userName}
             </Link>
             <span className="text-secondary-foreground"> {description} </span>
-            <Link to="#" className="hover:text-primary text-primary">
+            <Link to={resolvedLink} className="hover:text-primary text-primary">
               {link}
             </Link>
             <span className="text-secondary-foreground"> {day}</span>

@@ -37,15 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { UserFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const formatDate = (date: Date | string | null) => {
-  if (!date) return '-';
-  try {
-    return new Date(date).toLocaleDateString();
-  } catch {
-    return String(date);
-  }
-};
+import { formatUTCDate } from '@/lib/utils';
 
 export function UsersPage() {
   const [formOpen, setFormOpen] = useState(false);
@@ -95,22 +87,16 @@ export function UsersPage() {
         meta: { headerTitle: 'Email', skeleton: <Skeleton className="h-4 w-32" /> },
       },
       {
-        accessorKey: 'userRole',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Role" />,
-        size: 120,
-        meta: { headerTitle: 'Role', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
         accessorKey: 'userStartDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
-        cell: ({ row }) => formatDate(row.original.userStartDate),
+        cell: ({ row }) => formatUTCDate(row.original.userStartDate),
         size: 120,
         meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         accessorKey: 'userEndDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
-        cell: ({ row }) => formatDate(row.original.userEndDate),
+        cell: ({ row }) => row.original.userEndDate ? formatUTCDate(row.original.userEndDate) : '-',
         size: 120,
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
@@ -214,6 +200,8 @@ export function UsersPage() {
           isLoading={users.loading}
           emptyMessage="No users found. Create your first user to get started."
           tableLayout={{
+            width: 'fixed',
+            columnsResizable: true,
             columnsMovable: true,
             columnsVisibility: true,
           }}

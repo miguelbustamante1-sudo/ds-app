@@ -11,13 +11,14 @@ export interface ProjectAssignmentDTO {
   projectId: number | null;
   projectAssignmentStartDate: Date;
   projectAssignmentEndDate: Date | null;
-  roleId: number | null;
   projectAssignmentBillRate: number | null;
   projectAssignmentBillRateCurrency: string | null;
   projectAssignmentCreatedBy: number | null;
   projectAssignmentCreatedDate: Date | null;
   projectAssignmentLastUpdatedBy: number | null;
   projectAssignmentLastUpdatedDate: Date | null;
+  projectAssignmentAllocation: number | null;
+  projectAssignmentDeleted: boolean;
 }
 
 /**
@@ -28,9 +29,9 @@ export interface CreateProjectAssignmentDTO {
   projectId: number | null;
   projectAssignmentStartDate: Date | string;
   projectAssignmentEndDate?: Date | string | null;
-  roleId: number | null;
   projectAssignmentBillRate?: number | null;
   projectAssignmentBillRateCurrency?: string | null;
+  projectAssignmentAllocation?: number | null;
 }
 
 /**
@@ -39,7 +40,15 @@ export interface CreateProjectAssignmentDTO {
 export interface UpdateProjectAssignmentDTO {
   projectAssignmentStartDate?: Date | string;
   projectAssignmentEndDate?: Date | string | null;
-  roleId?: number | null;
   projectAssignmentBillRate?: number | null;
   projectAssignmentBillRateCurrency?: string | null;
+  projectAssignmentAllocation?: number | null;
+}
+
+/**
+ * ProjectAssignmentWithDetailsDTO - Enriched DTO with team member and project names
+ */
+export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
+  teamMemberName: string | null;
+  projectName: string | null;
 }

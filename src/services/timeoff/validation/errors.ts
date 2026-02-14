@@ -42,6 +42,12 @@ export const TimeOffValidationErrors = {
     metadata: { requestDate, attritionDate },
   }),
 
+  START_DATE_ON_WEEKEND: (startDate: Date): ValidationError => ({
+    code: 'START_DATE_ON_WEEKEND',
+    message: `Start date (${startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}) falls on a weekend. Time off must start on a weekday.`,
+    metadata: { startDate },
+  }),
+
   // El Salvador Vacation (7/8/15 day rule) errors
   SV_VACATION_INVALID_DAYS: (requestedDays: number): ValidationError => ({
     code: 'SV_VACATION_INVALID_DAYS',

@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '../../shared/dto';
 import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor, createTeamMember, updateTeamMember, deleteTeamMember } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
+import { getTeamMembersBySupervisor as getSupervisorReports } from '../services/timeoff/supervisor/queries';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -66,15 +67,31 @@ router.get('/supervisor/:supervisor_id', requirePermission('TeamMembers', 'read'
   }
 });
 
+// GET /team-members/my-reports - Get team members that report to the current user
+router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const reports = await getSupervisorReports(teamMemberId);
+    res.json(reports);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
 // GET /team-members/me - Get current user's team member profile
 router.get('/me', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const authUserEmail = req.user?.email;
-    if (!authUserEmail) {
-      return res.status(401).json({ error: 'User not authenticated' });
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
     }
 
-    const profile = await getMyTeamMemberProfile(authUserEmail);
+    const profile = await getMyTeamMemberProfile(teamMemberId);
     if (!profile) {
       return res.status(404).json({ error: 'Team member not found for current user' });
     }

@@ -74,6 +74,8 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
     markAsRead,
     markAllAsRead,
     archiveAll,
+    acknowledgeTimeOff,
+    declineTimeOff,
   } = useNotifications();
 
   useEffect(() => {
@@ -94,6 +96,16 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
     await markAllAsRead();
     await refetchUnreadCount?.();
     setMutating(false);
+  };
+
+  const handleAcknowledge = async (timeOffId: number, recipientId: number) => {
+    await acknowledgeTimeOff(timeOffId, recipientId);
+    await refetchUnreadCount?.();
+  };
+
+  const handleDecline = async (timeOffId: number, recipientId: number) => {
+    await declineTimeOff(timeOffId, recipientId);
+    await refetchUnreadCount?.();
   };
 
   const handleArchiveAll = async () => {
@@ -119,6 +131,8 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
             <NotificationItem
               notification={notification}
               onMarkAsRead={handleMarkAsRead}
+              onAcknowledge={handleAcknowledge}
+              onDecline={handleDecline}
             />
             {index < notifications.length - 1 && <Separator />}
           </Fragment>

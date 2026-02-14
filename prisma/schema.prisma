@@ -31,7 +31,7 @@ model Project {
   projectSow         String?             @map("pro_sow") @db.VarChar(100)
   projectAssignments ProjectAssignment[]
 
-  @@map("tbl_projects")
+  @@map("pro_projects")
   @@schema("ds")
 }
 
@@ -47,11 +47,10 @@ model Region {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Role {
-  roleId             Int                 @id @default(autoincrement()) @map("rol_id") @db.Integer
-  roleName           String              @map("rol_name") @db.VarChar(100)
-  roleDescription    String?             @map("rol_description") @db.VarChar(2000)
-  teamMembers        TeamMember[]
-  projectAssignments ProjectAssignment[]
+  roleId          Int          @id @default(autoincrement()) @map("rol_id") @db.Integer
+  roleName        String       @map("rol_name") @db.VarChar(100)
+  roleDescription String?      @map("rol_description") @db.VarChar(2000)
+  teamMembers     TeamMember[]
 
   @@map("tbl_roles")
   @@schema("ds")
@@ -146,30 +145,29 @@ model TimeOff {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model ProjectAssignment {
-  projectAssignmentId               Int         @id @default(autoincrement()) @map("txp_id") @db.Integer
+  projectAssignmentId               Int         @id @default(autoincrement()) @map("tmp_id") @db.Integer
   teamMemberId                      Int?        @map("tms_id")
   projectId                         Int?        @map("pro_id")
-  projectAssignmentStartDate        DateTime    @map("txp_stadat") @db.Date
-  projectAssignmentEndDate          DateTime?   @map("txp_enddat") @db.Date
-  roleId                            Int?        @map("rol_id")
-  projectAssignmentBillRate         Decimal?    @map("txp_bill_rate") @db.Decimal(15, 2)
-  projectAssignmentBillRateCurrency String?     @map("txp_br_curcod") @db.VarChar(3)
-  projectAssignmentCreatedBy        Int?        @map("txp_created_by")
-  projectAssignmentCreatedDate      DateTime?   @map("txp_credat") @db.Date
-  projectAssignmentLastUpdatedBy    Int?        @map("txp_last_updated_by")
-  projectAssignmentLastUpdatedDate  DateTime?   @map("txp_last_upddat") @db.Date
-  createdByUser                     User?       @relation("tbl_tms_x_projects_txp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tbl_tms_x_projects_cby")
-  project                           Project?    @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_pro")
-  role                              Role?       @relation(fields: [roleId], references: [roleId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_rol")
-  teamMember                        TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_x_projects_tms")
-  lastUpdatedByUser                 User?       @relation("tbl_tms_x_projects_txp_last_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tbl_tms_x_projects_uby")
+  projectAssignmentStartDate        DateTime    @map("tmp_start_date") @db.Date
+  projectAssignmentEndDate          DateTime?   @map("tmp_end_date") @db.Date
+  projectAssignmentBillRate         Decimal?    @map("tmp_bill_rate") @db.Decimal(15, 2)
+  projectAssignmentBillRateCurrency String?     @map("tmp_bill_rate_currency") @db.VarChar(3)
+  projectAssignmentCreatedBy        Int?        @map("tmp_created_by")
+  projectAssignmentCreatedDate      DateTime?   @map("tmp_created_at") @db.Date
+  projectAssignmentLastUpdatedBy    Int?        @map("tmp_updated_by")
+  projectAssignmentLastUpdatedDate  DateTime?   @map("tmp_updated_at") @db.Date
+  projectAssignmentAllocation       Decimal?    @map("tmp_allocation") @db.Decimal(5, 2)
+  projectAssignmentDeleted          Boolean     @default(false) @map("tmp_deleted")
+  createdByUser                     User?       @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
+  project                           Project?    @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
+  teamMember                        TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
+  lastUpdatedByUser                 User?       @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
 
-  @@index([projectAssignmentCreatedBy], map: "idx_tbl_tms_x_projects_cby")
-  @@index([projectId], map: "idx_tbl_tms_x_projects_pro_id")
-  @@index([roleId], map: "idx_tbl_tms_x_projects_rol_id")
-  @@index([teamMemberId], map: "idx_tbl_tms_x_projects_tms_id")
-  @@index([projectAssignmentLastUpdatedBy], map: "idx_tbl_tms_x_projects_uby")
-  @@map("tbl_tms_x_projects")
+  @@index([projectAssignmentCreatedBy], map: "idx_tmp_team_member_project_cby")
+  @@index([projectId], map: "idx_tmp_team_member_project_pro_id")
+  @@index([teamMemberId], map: "idx_tmp_team_member_project_tms_id")
+  @@index([projectAssignmentLastUpdatedBy], map: "idx_tmp_team_member_project_uby")
+  @@map("tmp_team_member_project")
   @@schema("ds")
 }
 
@@ -275,8 +273,8 @@ model User {
   timeOffChangeLogs            TimeOffChangeLog[]
   timeOffsCreated              TimeOff[]              @relation("tbl_tms_time_off_tto_created_byTotbl_users")
   timeOffsUpdated              TimeOff[]              @relation("tbl_tms_time_off_tto_last_updated_nyTotbl_users")
-  projectAssignmentsCreated    ProjectAssignment[]    @relation("tbl_tms_x_projects_txp_created_byTotbl_users")
-  projectAssignmentsUpdated    ProjectAssignment[]    @relation("tbl_tms_x_projects_txp_last_updated_byTotbl_users")
+  projectAssignmentsCreated    ProjectAssignment[]    @relation("tmp_team_member_project_tmp_created_byTotbl_users")
+  projectAssignmentsUpdated    ProjectAssignment[]    @relation("tmp_team_member_project_tmp_updated_byTotbl_users")
   supervisorAssignmentsCreated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
   supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
   recipients                   Recipient[]

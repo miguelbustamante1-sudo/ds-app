@@ -22,12 +22,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
+      target: prisma-setup
     depends_on:
       postgres-local:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres-local:5432/ds_app_local
-    command: npx prisma db push --skip-generate --accept-data-loss
     profiles: ["setup"]
 
   # The application (server + client)

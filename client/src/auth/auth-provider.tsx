@@ -3,8 +3,18 @@ import type { PermissionMap } from '@shared/types/permissions';
 import { useSessionMonitor } from '@/hooks/use-session-monitor';
 import { SessionExpirationModal } from '@/components/layouts/shared/dialogs/session-expiration-modal';
 
-const enableDevLogin = import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' || import.meta.env.DEV;
 const SESSION_EXPIRES_KEY = 'session_expires_at';
+
+/** Cached promise so we only fetch once per page load */
+let devConfigPromise: Promise<{ enableDevLogin: boolean; devUsername: string }> | null = null;
+function fetchDevConfig() {
+  if (!devConfigPromise) {
+    devConfigPromise = fetch('/api/auth/dev-config')
+      .then((r) => (r.ok ? r.json() : { enableDevLogin: false, devUsername: '' }))
+      .catch(() => ({ enableDevLogin: false, devUsername: '' }));
+  }
+  return devConfigPromise;
+}
 
 /**
  * Frontend-specific auth user with computed display name
@@ -73,6 +83,7 @@ const loadUser = async (): Promise<AuthUser | null> => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enableDevLogin, setEnableDevLogin] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -151,6 +162,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Fetch dev config from server (replaces VITE_* env vars)
+    fetchDevConfig().then((cfg) => setEnableDevLogin(cfg.enableDevLogin));
+
     // Skip initial refresh on callback page - it will handle auth itself
     if (window.location.pathname === '/auth/callback') {
       setLoading(false);
@@ -168,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Only expose devLogin when enabled
       ...(enableDevLogin && { devLogin }),
     }),
-    [user, loading, logout],
+    [user, loading, logout, enableDevLogin],
   );
 
   return (

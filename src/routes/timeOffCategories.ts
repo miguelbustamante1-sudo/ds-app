@@ -11,7 +11,6 @@ import {
   getCategoriesByCountry,
   getCategoriesByTeamMemberId,
 } from '../db/timeOffCategories';
-import { getTeamMemberIdByAuthEmail } from '../db/users';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -31,12 +30,7 @@ router.get('/', requirePermission('TimeOffCategories', 'read'), async (req: Auth
 // Response includes category-country configuration (half-day, fixed duration settings)
 router.get('/my-categories', requirePermission('TimeOffCategories', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const authUserEmail = req.user?.email;
-    if (!authUserEmail) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const teamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    const teamMemberId = req.user?.teamMemberId;
     if (!teamMemberId) {
       return res.status(404).json({ error: 'Team member not found for current user' });
     }

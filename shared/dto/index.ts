@@ -18,6 +18,7 @@ export * from './SupervisedTeamMember';
 export * from './TeamMember';
 export * from './TimeOff';
 export * from './TimeOffCategory';
+export * from './CategoryCountry';
 export * from './TimeOffStatus';
 export * from './User';
 

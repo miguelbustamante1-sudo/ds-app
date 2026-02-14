@@ -15,21 +15,29 @@ export async function ensureTableExists(): Promise<boolean> {
   }
 }
 
-export async function getAll(): Promise<CategoryCountry[]> {
+const includeRelations = {
+  category: { select: { categoryName: true } },
+  country: { select: { countryName: true, countryIso: true } },
+};
+
+export async function getAll() {
   return await prisma.categoryCountry.findMany({
+    include: includeRelations,
     orderBy: { categoryCountryId: 'asc' },
   });
 }
 
-export async function getById(id: number): Promise<CategoryCountry | null> {
+export async function getById(id: number) {
   return await prisma.categoryCountry.findUnique({
     where: { categoryCountryId: id },
+    include: includeRelations,
   });
 }
 
-export async function getByCountry(countryId: number): Promise<CategoryCountry[]> {
+export async function getByCountry(countryId: number) {
   return await prisma.categoryCountry.findMany({
     where: { countryId },
+    include: includeRelations,
     orderBy: { categoryCountryId: 'asc' },
   });
 }
@@ -42,7 +50,7 @@ export async function create(
   categoryCountryIsFixedDuration: boolean = false,
   categoryCountryFixedDays: number | null = null,
   categoryCountryIsCalendar: boolean = false
-): Promise<CategoryCountry> {
+) {
   return await prisma.categoryCountry.create({
     data: {
       categoryId,
@@ -53,6 +61,7 @@ export async function create(
       categoryCountryFixedDays,
       categoryCountryIsCalendar,
     },
+    include: includeRelations,
   });
 }
 
@@ -65,7 +74,7 @@ export async function update(
   categoryCountryIsFixedDuration?: boolean,
   categoryCountryFixedDays?: number | null,
   categoryCountryIsCalendar?: boolean
-): Promise<CategoryCountry | null> {
+) {
   return await prisma.categoryCountry.update({
     where: { categoryCountryId: id },
     data: {
@@ -77,6 +86,7 @@ export async function update(
       ...(categoryCountryFixedDays !== undefined && { categoryCountryFixedDays }),
       ...(categoryCountryIsCalendar !== undefined && { categoryCountryIsCalendar }),
     },
+    include: includeRelations,
   });
 }
 

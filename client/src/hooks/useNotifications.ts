@@ -16,6 +16,8 @@ interface UseNotificationsReturn {
   archiveSingle: (recipientId: number) => Promise<void>;
   archiveAll: () => Promise<void>;
   refetch: () => Promise<void>;
+  acknowledgeTimeOff: (timeOffId: number, recipientId: number) => Promise<void>;
+  declineTimeOff: (timeOffId: number, recipientId: number) => Promise<void>;
 }
 
 export function useNotifications(options?: UseNotificationsOptions): UseNotificationsReturn {
@@ -91,6 +93,26 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     }
   }, [refetch, options]);
 
+  const acknowledgeTimeOff = useCallback(async (timeOffId: number, recipientId: number) => {
+    try {
+      await apiPatch<void, { recipientId: number }>(`/api/time-offs/my-requests/${timeOffId}/acknowledge`, { recipientId });
+      await refetch();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to acknowledge time-off';
+      options?.onError?.(message);
+    }
+  }, [refetch, options]);
+
+  const declineTimeOff = useCallback(async (timeOffId: number, recipientId: number) => {
+    try {
+      await apiPatch<void, { recipientId: number }>(`/api/time-offs/my-requests/${timeOffId}/decline`, { recipientId });
+      await refetch();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to decline time-off';
+      options?.onError?.(message);
+    }
+  }, [refetch, options]);
+
   return {
     notifications,
     loading,
@@ -101,5 +123,7 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     archiveSingle,
     archiveAll,
     refetch,
+    acknowledgeTimeOff,
+    declineTimeOff,
   };
 }

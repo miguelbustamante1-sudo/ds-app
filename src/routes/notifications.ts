@@ -2,15 +2,14 @@ import express from 'express';
 import type { Response } from 'express';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 import { notificationOrchestrator, PayloadValidationError } from '../services/notifications';
-import { getTeamMemberIdByAuthEmail } from '../db/users';
 
 const router = express.Router();
 
 // GET /notifications — Get notifications for current user
 router.get('/', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     const category = req.query.category as string | undefined;
     const unreadOnly = req.query.unreadOnly === 'true';
@@ -25,8 +24,8 @@ router.get('/', requirePermission('Notifications', 'read'), async (req: Authenti
 // GET /notifications/unread-count — Lightweight badge polling
 router.get('/unread-count', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     const result = await notificationOrchestrator.getUnreadCount(userId);
     res.json(result);
@@ -38,8 +37,8 @@ router.get('/unread-count', requirePermission('Notifications', 'read'), async (r
 // PATCH /notifications/:recipientId/read — Mark single as read
 router.patch('/:recipientId/read', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
@@ -54,8 +53,8 @@ router.patch('/:recipientId/read', requirePermission('Notifications', 'read'), a
 // PATCH /notifications/read-all — Mark all as read
 router.patch('/read-all', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     await notificationOrchestrator.markAllAsRead(userId);
     res.status(204).send();
@@ -67,8 +66,8 @@ router.patch('/read-all', requirePermission('Notifications', 'read'), async (req
 // PATCH /notifications/:recipientId/archive — Archive single
 router.patch('/:recipientId/archive', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
@@ -83,8 +82,8 @@ router.patch('/:recipientId/archive', requirePermission('Notifications', 'read')
 // PATCH /notifications/archive-all — Archive all
 router.patch('/archive-all', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' });
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
 
     await notificationOrchestrator.archiveAll(userId);
     res.status(204).send();
@@ -102,7 +101,7 @@ router.post('/broadcast', requirePermission('Notifications', 'create'), async (r
     const { title, text, icon } = req.body;
     if (!title || !text) return res.status(400).json({ error: 'Title and text are required' });
 
-    const supervisorTeamMemberId = await getTeamMemberIdByAuthEmail(authUserEmail);
+    const supervisorTeamMemberId = req.user?.teamMemberId;
     if (!supervisorTeamMemberId) return res.status(404).json({ error: 'Team member not found for current user' });
 
     const payload = {

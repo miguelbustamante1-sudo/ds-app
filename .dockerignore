@@ -8,7 +8,6 @@ client/node_modules
 client/dist
 .claude
 .env
-client/.env
 .firebaserc
 firebase.json
 public

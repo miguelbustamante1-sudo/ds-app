@@ -11,6 +11,7 @@ import {
   can,
   PermissionAction,
 } from '../services/permissionResolver';
+import { getDsUserByEmail } from '../db/users';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -21,7 +22,25 @@ export interface AuthenticatedRequest extends Request {
     roles: string[];
     avatarUrl?: string | undefined;
     permissions?: PermissionMap;
+    dsUserId?: number;
+    teamMemberId?: number;
   };
+}
+
+/**
+ * After auth succeeds, resolve dsUserId and teamMemberId from ds.tbl_users
+ * and attach them to req.user. Non-blocking: if the user doesn't exist in
+ * ds.tbl_users the fields are simply undefined.
+ */
+async function enrichWithDsFields(req: AuthenticatedRequest): Promise<void> {
+  if (!req.user?.email) return;
+  const dsUser = await getDsUserByEmail(req.user.email);
+  if (dsUser) {
+    req.user.dsUserId = dsUser.userId;
+    if (dsUser.teamMemberId !== null) {
+      req.user.teamMemberId = dsUser.teamMemberId;
+    }
+  }
 }
 
 /**
@@ -66,6 +85,7 @@ export const authMiddleware = async (
         permissions,
       };
 
+      await enrichWithDsFields(req);
       next();
       return;
     }
@@ -112,6 +132,7 @@ export const authMiddleware = async (
             permissions,
           };
 
+          await enrichWithDsFields(req);
           console.log('Dev JWT auth successful for user:', user.email);
           next();
           return;
@@ -149,6 +170,7 @@ export const authMiddleware = async (
           permissions,
         };
 
+        await enrichWithDsFields(req);
         next();
         return;
       }
@@ -176,6 +198,7 @@ export const authMiddleware = async (
         permissions,
       };
 
+      await enrichWithDsFields(req);
       next();
       return;
     }

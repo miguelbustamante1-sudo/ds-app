@@ -86,6 +86,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/time-off-management',
     permission: 'SupervisorTimeOff',
   },
+  {
+    title: 'Project Assignments',
+    icon: FolderKanban,
+    path: '/project-assignments',
+    permission: 'ProjectAssignments',
+  },
   { heading: 'Communications' },
   {
     title: 'Announcements',
@@ -99,6 +105,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Database,
     role: 'admin',
     children: [
+      { title: 'Categories by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },
       { title: 'Projects', path: '/maintenance/projects', icon: FolderKanban, permission: 'Projects' },

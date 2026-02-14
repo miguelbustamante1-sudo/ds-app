@@ -10,6 +10,7 @@ import { validateDateRange } from './rules/dateRange.rule';
 import { validateCategoryCountry } from './rules/categoryCountry.rule';
 import { validateAttritionDate } from './rules/attritionDate.rule';
 import { validateNoOverlap } from './rules/overlapPrevention.rule';
+import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
 import { TimeOffValidationErrors } from './errors';
 
@@ -41,6 +42,12 @@ export async function validateTimeOff(
   const dateResult = validateDateRange(input);
   if (!dateResult.valid && dateResult.error) {
     errors.push(dateResult.error);
+  }
+
+  // Rule 2b: No weekend start date (no context needed)
+  const weekendResult = validateNoWeekendStart(input);
+  if (!weekendResult.valid && weekendResult.error) {
+    errors.push(weekendResult.error);
   }
 
   // Load context for remaining rules (NFR-2)

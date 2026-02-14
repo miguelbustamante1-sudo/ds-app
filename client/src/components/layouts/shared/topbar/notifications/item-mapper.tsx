@@ -57,9 +57,11 @@ function FallbackItem({ itemType }: { itemType: string }) {
 interface NotificationItemProps {
   notification: NotificationDTO;
   onMarkAsRead: (recipientId: number) => void;
+  onAcknowledge?: (timeOffId: number, recipientId: number) => void;
+  onDecline?: (timeOffId: number, recipientId: number) => void;
 }
 
-export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
+export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, onDecline }: NotificationItemProps) {
   const { itemType, payload, createdAt, isRead, actionType, id } = notification;
   const ItemComponent = ITEM_COMPONENTS[itemType];
   const timeDisplay = timeAgo(createdAt);
@@ -74,6 +76,16 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     return <FallbackItem itemType={itemType} />;
   }
 
+  const typedPayload = payload as Record<string, unknown>;
+  const isTimeOffAction = typedPayload.sourceEntity === 'TimeOff' && actionType === 'actionable';
+
+  const extraProps: Record<string, unknown> = {};
+  if (isTimeOffAction && onAcknowledge && onDecline) {
+    const sourceId = typedPayload.sourceId as number;
+    extraProps.onAccept = () => onAcknowledge(sourceId, id);
+    extraProps.onDecline = () => onDecline(sourceId, id);
+  }
+
   return (
     <div
       className={cn(
@@ -83,9 +95,10 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
       onClick={handleClick}
     >
       <ItemComponent
-        {...(payload as Record<string, unknown>)}
+        {...typedPayload}
         timeDisplay={timeDisplay}
         actionType={actionType}
+        {...extraProps}
       />
     </div>
   );

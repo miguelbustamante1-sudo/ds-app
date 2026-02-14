@@ -22,16 +22,27 @@ fi
 
 # ---- Check Docker is available ----
 if ! command -v docker &> /dev/null; then
-  echo "Error: Docker is not installed or not in PATH."
+  echo "Error: docker command not found."
+  echo "Make sure Rancher Desktop is installed and configured:"
+  echo "  1. Open Rancher Desktop"
+  echo "  2. Go to Preferences > Container Engine and select 'dockerd (moby)'"
+  echo "  3. Go to Preferences > Application > Path Management and enable it"
+  echo "  4. Restart your terminal"
   exit 1
 fi
 
 if ! docker info &> /dev/null; then
-  echo "Error: Docker daemon is not running. Please start Docker and try again."
+  echo "Error: Docker daemon is not running. Please start Rancher Desktop and try again."
   exit 1
 fi
 
 cd "$PROJECT_ROOT"
+
+# ---- Clean up: stop previous containers, remove volumes and cached images ----
+echo ""
+echo "Cleaning up previous containers and images..."
+docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
+docker image rm ds-app-db-setup ds-app-app 2>/dev/null || true
 
 # ---- Step 1: Start the database ----
 echo ""

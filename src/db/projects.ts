@@ -1,8 +1,6 @@
 import { prisma } from './prisma';
 import type { Project } from '@prisma/client';
 
-export const TABLE = 'ds.tbl_projects';
-
 /**
  * Check that the projects table exists (non-destructive)
  */
