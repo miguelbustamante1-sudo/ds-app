@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import type { Project } from '@prisma/client';
+import type { CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
 import { getAllProjects, getProjectById, createProject, updateProject, deleteProject } from '../db/projects';
 import { error } from '../logger';
 import { requirePermission } from '../middleware/auth';
@@ -37,13 +38,9 @@ router.get('/:id', requirePermission('Projects', 'read'), async (req: Request, r
 // POST /projects
 router.post('/', requirePermission('Projects', 'create'), async (req: Request, res: Response) => {
   try {
-    const { pro_name, pro_external_id, pro_sow } = req.body as {
-      pro_name?: string | null;
-      pro_external_id?: string | null;
-      pro_sow?: string | null;
-    };
+    const { projectName, projectExternalId, projectSow } = req.body as CreateProjectDTO;
 
-    const project = await createProject(pro_name ?? null, pro_external_id ?? null, pro_sow ?? null);
+    const project = await createProject(projectName ?? null, projectExternalId ?? null, projectSow ?? null);
     res.status(201).json(project);
   } catch (err) {
     error(err);
@@ -57,13 +54,9 @@ router.put('/:id', requirePermission('Projects', 'create'), async (req: Request,
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { pro_name, pro_external_id, pro_sow } = req.body as {
-      pro_name?: string | null;
-      pro_external_id?: string | null;
-      pro_sow?: string | null;
-    };
+    const { projectName, projectExternalId, projectSow } = req.body as UpdateProjectDTO;
 
-    const project = await updateProject(id, pro_name ?? null, pro_external_id ?? null, pro_sow ?? null);
+    const project = await updateProject(id, projectName ?? null, projectExternalId ?? null, projectSow ?? null);
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
     res.json(project);

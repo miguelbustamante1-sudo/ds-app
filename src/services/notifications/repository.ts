@@ -77,17 +77,30 @@ export async function getBroadcastRecipients(notificationId: number) {
 
 // --- Read Operations ---
 
-/** Get all non-archived notifications for a user, with optional category and unread filters */
+/** Get notifications for a user, with optional category, unread, and status filters */
 export async function getNotificationsForUser(
   userId: number,
   categoryName?: string,
-  unreadOnly?: boolean
+  unreadOnly?: boolean,
+  status?: 'unread' | 'read' | 'archived'
 ) {
+  // Build where clause based on status (takes precedence) or legacy filters
+  let statusFilter: Record<string, boolean> = {};
+  if (status === 'unread') {
+    statusFilter = { isArchived: false, isRead: false };
+  } else if (status === 'read') {
+    statusFilter = { isArchived: false, isRead: true };
+  } else if (status === 'archived') {
+    statusFilter = { isArchived: true };
+  } else {
+    // Default: existing behavior (non-archived, optionally unread only)
+    statusFilter = { isArchived: false, ...(unreadOnly ? { isRead: false } : {}) };
+  }
+
   return prisma.recipient.findMany({
     where: {
       userId,
-      isArchived: false,
-      ...(unreadOnly ? { isRead: false } : {}),
+      ...statusFilter,
       ...(categoryName
         ? {
             notification: {
@@ -210,4 +223,75 @@ export async function archiveAll(userId: number) {
       isArchived: true,
     },
   });
+}
+
+/** Mark a single recipient record as unread */
+export async function markAsUnread(recipientId: number, userId: number) {
+  return prisma.recipient.updateMany({
+    where: {
+      id: recipientId,
+      userId, // ownership check
+    },
+    data: {
+      isRead: false,
+      readAt: null,
+    },
+  });
+}
+
+/** Mark all read non-archived notifications as unread for a user */
+export async function markAllAsUnread(userId: number) {
+  return prisma.recipient.updateMany({
+    where: {
+      userId,
+      isRead: true,
+      isArchived: false,
+    },
+    data: {
+      isRead: false,
+      readAt: null,
+    },
+  });
+}
+
+/** Unarchive a single recipient record */
+export async function unarchiveRecipient(recipientId: number, userId: number) {
+  return prisma.recipient.updateMany({
+    where: {
+      id: recipientId,
+      userId, // ownership check
+    },
+    data: {
+      isArchived: false,
+    },
+  });
+}
+
+/** Unarchive all archived notifications for a user */
+export async function unarchiveAll(userId: number) {
+  return prisma.recipient.updateMany({
+    where: {
+      userId,
+      isArchived: true,
+    },
+    data: {
+      isArchived: false,
+    },
+  });
+}
+
+/** Get notification counts by status for a user */
+export async function getCountsByStatus(userId: number) {
+  const [unread, read, archived] = await Promise.all([
+    prisma.recipient.count({
+      where: { userId, isRead: false, isArchived: false },
+    }),
+    prisma.recipient.count({
+      where: { userId, isRead: true, isArchived: false },
+    }),
+    prisma.recipient.count({
+      where: { userId, isArchived: true },
+    }),
+  ]);
+  return { unread, read, archived };
 }

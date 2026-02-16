@@ -44,6 +44,13 @@ export interface UnreadCountDTO {
   count: number;
 }
 
+/** NotificationCountsDTO - Counts per notification status for tab badges */
+export interface NotificationCountsDTO {
+  unread: number;
+  read: number;
+  archived: number;
+}
+
 /** BroadcastAnnouncementDTO - Body for creating a broadcast */
 export interface BroadcastAnnouncementDTO {
   title: string;

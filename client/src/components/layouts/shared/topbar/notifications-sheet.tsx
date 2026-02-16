@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, Fragment } from 'react';
-import { Bell, Calendar, Settings, Settings2, Shield, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, Calendar, ExternalLink, Settings, Settings2, Shield, Users } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -65,6 +65,8 @@ function EmptyState() {
 }
 
 export function NotificationsSheet({ trigger, refetchUnreadCount }: NotificationsSheetProps) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [mutating, setMutating] = useState(false);
   const {
@@ -133,6 +135,7 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
               onMarkAsRead={handleMarkAsRead}
               onAcknowledge={handleAcknowledge}
               onDecline={handleDecline}
+              onNavigate={() => setOpen(false)}
             />
             {index < notifications.length - 1 && <Separator />}
           </Fragment>
@@ -142,7 +145,7 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
   };
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent className="gap-0 sm:w-[500px] inset-5 start-auto h-auto rounded-lg p-0 sm:max-w-none [&_[data-slot=sheet-close]]:top-4.5 [&_[data-slot=sheet-close]]:end-5">
         <SheetHeader className="mb-0">
@@ -247,12 +250,25 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
             </Tabs>
           </ScrollArea>
         </SheetBody>
-        <SheetFooter className="border-t border-border p-5 grid grid-cols-2 gap-2.5">
-          <Button variant="outline" onClick={handleArchiveAll} disabled={mutating}>
-            Archive all
-          </Button>
-          <Button variant="outline" onClick={handleMarkAllAsRead} disabled={mutating}>
-            Mark all as read
+        <SheetFooter className="border-t border-border p-5 flex flex-col gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 w-full">
+            <Button variant="outline" onClick={handleArchiveAll} disabled={mutating}>
+              Archive all
+            </Button>
+            <Button variant="outline" onClick={handleMarkAllAsRead} disabled={mutating}>
+              Mark all as read
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full text-sm text-muted-foreground"
+            onClick={() => {
+              setOpen(false);
+              navigate('/notification-center');
+            }}
+          >
+            <ExternalLink className="size-4 me-1.5" />
+            View all notifications
           </Button>
         </SheetFooter>
       </SheetContent>

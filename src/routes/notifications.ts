@@ -13,8 +13,9 @@ router.get('/', requirePermission('Notifications', 'read'), async (req: Authenti
 
     const category = req.query.category as string | undefined;
     const unreadOnly = req.query.unreadOnly === 'true';
+    const status = req.query.status as 'unread' | 'read' | 'archived' | undefined;
 
-    const notifications = await notificationOrchestrator.getForUser(userId, category, unreadOnly);
+    const notifications = await notificationOrchestrator.getForUser(userId, category, unreadOnly, status);
     res.json(notifications);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch notifications' });
@@ -31,6 +32,32 @@ router.get('/unread-count', requirePermission('Notifications', 'read'), async (r
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch unread count' });
+  }
+});
+
+// GET /notifications/counts — Get notification counts by status for tab badges
+router.get('/counts', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+
+    const counts = await notificationOrchestrator.getCountsByStatus(userId);
+    res.json(counts);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch notification counts' });
+  }
+});
+
+// PATCH /notifications/unarchive-all — Unarchive all archived notifications
+router.patch('/unarchive-all', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+
+    await notificationOrchestrator.unarchiveAll(userId);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unarchive all notifications' });
   }
 });
 
@@ -76,6 +103,38 @@ router.patch('/:recipientId/archive', requirePermission('Notifications', 'read')
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to archive notification' });
+  }
+});
+
+// PATCH /notifications/:recipientId/unread — Mark single as unread
+router.patch('/:recipientId/unread', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+
+    const recipientId = Number(req.params.recipientId);
+    if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
+
+    await notificationOrchestrator.markAsUnread(recipientId, userId);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark notification as unread' });
+  }
+});
+
+// PATCH /notifications/:recipientId/unarchive — Unarchive single
+router.patch('/:recipientId/unarchive', requirePermission('Notifications', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.dsUserId;
+    if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+
+    const recipientId = Number(req.params.recipientId);
+    if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
+
+    await notificationOrchestrator.unarchive(recipientId, userId);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unarchive notification' });
   }
 });
 

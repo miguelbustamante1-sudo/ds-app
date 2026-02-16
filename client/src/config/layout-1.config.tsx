@@ -25,6 +25,7 @@ import {
   Grid,
   Heart,
   HelpCircle,
+  Inbox,
   Kanban,
   Key,
   Layout,
@@ -98,6 +99,11 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Bell,
     path: '/announcements',
     permission: 'Notifications',
+  },
+  {
+    title: 'Notification Center',
+    icon: Inbox,
+    path: '/notification-center',
   },
   { heading: 'Maintenance', role: 'admin' },
   {

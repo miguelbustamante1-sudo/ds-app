@@ -24,6 +24,8 @@ import { getStatusByName } from '../../db/timeOffStatuses';
 import { resolveAuthUser, parseIdParam, type ResolvedAuthRequest } from './helpers';
 import { notificationOrchestrator } from '../../services/notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../services/notifications/repository';
+import { prisma } from '../../db/prisma';
+import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 
 const router = express.Router();
 
@@ -239,6 +241,12 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
           ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
           : 'Your supervisor';
 
+        const category = await prisma.timeOffCategory.findUnique({
+          where: { categoryId },
+          select: { categoryName: true },
+        });
+        const categoryLabel = category?.categoryName ?? 'time-off';
+
         await notificationOrchestrator.create({
           categoryName: 'Inbox',
           itemType: 'item-3',
@@ -246,10 +254,10 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
             userName: supervisorName,
             avatar: '300-1.png',
             badgeColor: 'online',
-            description: 'created a time-off for you',
-            link: '/my-time-off',
+            description: `created a ${categoryLabel} time-off for you`,
+            link: `/timeoff-detail/${created.timeOffId}`,
             day: 'Today',
-            info: `${timeOffStartDate} to ${timeOffEndDate}`,
+            info: `${formatDateDDMMYYYY(timeOffStartDate)} to ${formatDateDDMMYYYY(timeOffEndDate)}`,
             sourceId: created.timeOffId,
             sourceEntity: 'TimeOff',
           },

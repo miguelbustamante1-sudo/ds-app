@@ -103,6 +103,30 @@ export interface UpdateSupervisorTimeOffDTO {
 }
 
 /**
+ * TimeOffDetailDTO - Full detail of a single time-off request for the detail page
+ */
+export interface TimeOffDetailDTO {
+  timeOffId: number;
+  timeOffStartDate: Date;
+  timeOffEndDate: Date;
+  timeOffDays: number;
+  categoryId: number | null;
+  categoryName: string;
+  statusId: number | null;
+  statusName: string;
+  teamMemberName: string;
+  role: 'owner' | 'supervisor';
+  availableActions: ('acknowledge' | 'decline' | 'cancel')[];
+  changeLogs: {
+    changeLogId: number;
+    changeLogComment: string;
+    changeLogCreatedBy: number | null;
+    changeLogCreatedDate: Date | null;
+    createdByUserName: string | null;
+  }[];
+}
+
+/**
  * CancelMyTimeOffDTO - Data for cancelling own time off request
  */
 export interface CancelMyTimeOffDTO {

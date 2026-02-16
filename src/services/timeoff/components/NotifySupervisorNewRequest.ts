@@ -1,6 +1,7 @@
 import { prisma } from '../../../db/prisma';
 import { notificationOrchestrator } from '../../notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../notifications/repository';
+import { formatDateDDMMYYYY } from './FormatDateDDMMYYYY';
 
 export async function notifySupervisorNewRequest(params: {
   teamMemberId: number;
@@ -8,6 +9,7 @@ export async function notifySupervisorNewRequest(params: {
   timeOffStartDate: string;
   timeOffEndDate: string;
   employeeName: string;
+  categoryName: string;
 }): Promise<void> {
   // Step 1: Find the active supervisor
   const today = new Date();
@@ -38,10 +40,10 @@ export async function notifySupervisorNewRequest(params: {
       userName: params.employeeName,
       avatar: '300-1.png',
       badgeColor: 'online',
-      description: 'nuevo Time Off solicitado',
-      link: '/supervisor-time-off',
+      description: `requested ${params.categoryName} time-off`,
+      link: `/timeoff-detail/${params.timeOffId}`,
       day: 'Today',
-      info: `${params.timeOffStartDate} to ${params.timeOffEndDate}`,
+      info: `${formatDateDDMMYYYY(params.timeOffStartDate)} to ${formatDateDDMMYYYY(params.timeOffEndDate)}`,
       sourceId: params.timeOffId,
       sourceEntity: 'TimeOff',
     },

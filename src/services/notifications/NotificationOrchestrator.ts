@@ -10,8 +10,13 @@ import {
   createNotificationWithRecipients,
   markAsRead,
   markAllAsRead,
+  markAsUnread as repoMarkAsUnread,
+  markAllAsUnread as repoMarkAllAsUnread,
   archiveRecipient,
   archiveAll,
+  unarchiveRecipient,
+  unarchiveAll as repoUnarchiveAll,
+  getCountsByStatus as repoGetCountsByStatus,
   getUserIdsByTeamMemberIds,
   getSentBroadcasts,
   getBroadcastRecipients,
@@ -44,9 +49,10 @@ export class NotificationOrchestrator {
   async getForUser(
     userId: number,
     categoryName?: string,
-    unreadOnly?: boolean
+    unreadOnly?: boolean,
+    status?: 'unread' | 'read' | 'archived'
   ): Promise<NotificationDTO[]> {
-    const rows = await getNotificationsForUser(userId, categoryName, unreadOnly);
+    const rows = await getNotificationsForUser(userId, categoryName, unreadOnly, status);
     return (rows as RecipientWithNotification[]).map(toNotificationDTO);
   }
 
@@ -101,6 +107,31 @@ export class NotificationOrchestrator {
   /** Archive all notifications for user */
   async archiveAll(userId: number): Promise<void> {
     await archiveAll(userId);
+  }
+
+  /** Mark a notification as unread for user */
+  async markAsUnread(recipientId: number, userId: number): Promise<void> {
+    await repoMarkAsUnread(recipientId, userId);
+  }
+
+  /** Mark all read notifications as unread for user */
+  async markAllAsUnread(userId: number): Promise<void> {
+    await repoMarkAllAsUnread(userId);
+  }
+
+  /** Unarchive a notification for user */
+  async unarchive(recipientId: number, userId: number): Promise<void> {
+    await unarchiveRecipient(recipientId, userId);
+  }
+
+  /** Unarchive all archived notifications for user */
+  async unarchiveAll(userId: number): Promise<void> {
+    await repoUnarchiveAll(userId);
+  }
+
+  /** Get notification counts by status for user */
+  async getCountsByStatus(userId: number): Promise<{ unread: number; read: number; archived: number }> {
+    return repoGetCountsByStatus(userId);
   }
 
   /** Broadcast a notification to all team members under a supervisor */

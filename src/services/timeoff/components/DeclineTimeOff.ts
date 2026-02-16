@@ -2,6 +2,7 @@ import { prisma } from '../../../db/prisma';
 import { Prisma } from '@prisma/client';
 import { notificationOrchestrator } from '../../notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../notifications/repository';
+import { formatDateDDMMYYYY } from './FormatDateDDMMYYYY';
 
 export async function declineTimeOff(
   timeOffId: number,
@@ -19,6 +20,9 @@ export async function declineTimeOff(
           teamMemberSurnames: true,
           teamMemberKnownAs: true,
         },
+      },
+      category: {
+        select: { categoryName: true },
       },
     },
   });
@@ -78,8 +82,7 @@ export async function declineTimeOff(
       || `${timeOff.teamMember?.teamMemberNames ?? ''} ${timeOff.teamMember?.teamMemberSurnames ?? ''}`.trim()
       || 'An employee';
 
-    const startDate = timeOff.timeOffStartDate.toISOString().split('T')[0];
-    const endDate = timeOff.timeOffEndDate.toISOString().split('T')[0];
+    const categoryLabel = timeOff.category?.categoryName ?? 'time-off';
 
     await notificationOrchestrator.create({
       categoryName: 'Inbox',
@@ -88,10 +91,10 @@ export async function declineTimeOff(
         userName: employeeName,
         avatar: '300-1.png',
         badgeColor: 'busy',
-        description: 'declined the time-off you created',
-        link: '/supervisor-time-off',
+        description: `declined the ${categoryLabel} time-off you created`,
+        link: `/timeoff-detail/${timeOffId}`,
         day: 'Today',
-        info: `${startDate} to ${endDate}`,
+        info: `${formatDateDDMMYYYY(timeOff.timeOffStartDate.toISOString())} to ${formatDateDDMMYYYY(timeOff.timeOffEndDate.toISOString())}`,
         sourceId: timeOffId,
         sourceEntity: 'TimeOff',
       },

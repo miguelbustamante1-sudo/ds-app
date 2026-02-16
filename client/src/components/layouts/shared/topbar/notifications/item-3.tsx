@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +20,7 @@ interface Item3Props {
   actionType?: string;
   onAccept?: () => void;
   onDecline?: () => void;
+  onNavigate?: () => void;
   sourceId?: number;
   sourceEntity?: string;
 }
@@ -36,12 +37,20 @@ export default function Item3({
   actionType,
   onAccept,
   onDecline,
+  onNavigate,
   sourceId,
   sourceEntity,
 }: Item3Props) {
+  const navigate = useNavigate();
   const resolvedLink = sourceEntity === 'TimeOff' && sourceId
     ? `${link}?timeOffId=${sourceId}`
     : link;
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNavigate?.();
+    navigate(resolvedLink);
+  };
 
   return (
     <div className="flex grow gap-2.5 px-5">
@@ -56,13 +65,17 @@ export default function Item3({
       <div className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-1">
           <div className="text-sm font-medium mb-px">
-            <Link to="#" className="hover:text-primary text-mono font-semibold">
+            <span className="hover:text-primary text-mono font-semibold">
               {userName}
-            </Link>
+            </span>
             <span className="text-secondary-foreground"> {description} </span>
-            <Link to={resolvedLink} className="hover:text-primary text-primary">
-              {link}
-            </Link>
+            <span
+              role="link"
+              className="hover:text-primary text-primary underline cursor-pointer"
+              onClick={handleViewDetails}
+            >
+              View details
+            </span>
             <span className="text-secondary-foreground"> {day}</span>
           </div>
           <span className="flex items-center text-xs font-medium text-muted-foreground">
