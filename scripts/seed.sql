@@ -81,7 +81,12 @@ INSERT INTO ds.tbl_to_categories_x_country (cat_id, cou_id, cxc_status, cxc_is_f
 INSERT INTO ds.tbl_to_categories_x_country (cat_id, cou_id, cxc_status, cxc_is_fixed_duration, cxc_fixed_days, cxc_allow_half_day, cxc_is_calendar) VALUES ('5', '2', '0', 'f', NULL, 'f', 'f') ON CONFLICT (cat_id, cou_id) DO NOTHING;
 INSERT INTO ds.tbl_to_categories_x_country (cat_id, cou_id, cxc_status, cxc_is_fixed_duration, cxc_fixed_days, cxc_allow_half_day, cxc_is_calendar) VALUES ('5', '3', '0', 'f', NULL, 'f', 'f') ON CONFLICT (cat_id, cou_id) DO NOTHING;
 
--- 7. Team Member (the dev user)
+-- 7. Roles
+-- Add roles
+INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description)
+VALUES (1, 'admin', 'admin'); ON CONFLICT (rol_id) DO NOTHING;
+
+-- 7.1 Team Member (the dev user)
 -- Change the name to yours
 INSERT INTO ds.tbl_team_members (tms_id, tms_names, tms_surnames, tms_stadat, cou_id, tms_seniority, tms_primary_role)
 VALUES (1, 'Dev', 'User', CURRENT_DATE, 1, 'Senior', 1) ON CONFLICT (tms_id) DO NOTHING;
@@ -94,7 +99,7 @@ VALUES (1, 'Dev User', 'email.com', 'employee', CURRENT_DATE, 1) ON CONFLICT (us
 -- 9. Auth User (used by dev login)
 -- IMPORTANT: Change the email to match DEV_USERNAME in .env.local
 INSERT INTO sec.auth_users (id, onelogin_id, email, first_name, last_name, roles, created_at, updated_at)
-VALUES (1, 'dev-1', 'email.com', 'Dev', 'User', ARRAY['user'], now(), now()) ON CONFLICT (id) DO NOTHING;
+VALUES (1, 'dev-1', 'email.com', 'Dev', 'User', ARRAY['user', 'admin'], now(), now()) ON CONFLICT (id) DO NOTHING;
 
 -- 10. Security Roles and User Role assignment
 INSERT INTO sec.rol_roles (rol_id, rol_name, rol_description, created_at) VALUES (1, 'admin', 'Administrator', now()) ON CONFLICT (rol_id) DO NOTHING;
