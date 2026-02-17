@@ -84,7 +84,7 @@ INSERT INTO ds.tbl_to_categories_x_country (cat_id, cou_id, cxc_status, cxc_is_f
 -- 7. Roles
 -- Add roles
 INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description)
-VALUES (1, 'admin', 'admin'); ON CONFLICT (rol_id) DO NOTHING;
+VALUES (1, 'admin', 'admin') ON CONFLICT (rol_id) DO NOTHING;
 
 -- 7.1 Team Member (the dev user)
 -- Change the name to yours
