@@ -28,6 +28,7 @@ interface TimeOffManagementGridProps {
   showCancelled: boolean;
   onEditClick: (timeOff: TimeOffWithTeamMemberDTO) => void;
   onCancelClick: (timeOff: TimeOffWithTeamMemberDTO) => void;
+  onRowClick?: (timeOff: TimeOffWithTeamMemberDTO) => void;
 }
 
 /**
@@ -69,6 +70,7 @@ export function TimeOffManagementGrid({
   showCancelled,
   onEditClick,
   onCancelClick,
+  onRowClick,
 }: TimeOffManagementGridProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'timeOffStartDate', desc: true }
@@ -251,6 +253,7 @@ export function TimeOffManagementGrid({
         <DataGrid
           table={table}
           recordCount={table.getFilteredRowModel().rows.length}
+          onRowClick={onRowClick}
           tableLayout={{
             headerBackground: true,
             headerBorder: true,

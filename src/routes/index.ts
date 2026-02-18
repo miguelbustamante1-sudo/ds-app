@@ -18,6 +18,12 @@ import supervisorAssignmentsRouter from './supervisorAssignments';
 import holidaysRouter from './holidays';
 import chartsRouter from './charts';
 import notificationsRouter from './notifications';
+import endorsementsRouter from './endorsements';
+import bonusCategoriesRouter from './bonusCategories';
+import endorsementBonusesRouter from './endorsementBonuses';
+import tierBandsRouter from './tierBands';
+import bonusSubcategoriesRouter from './bonusSubcategories';
+import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 
 export default function registerRoutes() {
   const router = Router();
@@ -41,6 +47,12 @@ export default function registerRoutes() {
   router.use('/holidays', holidaysRouter);
   router.use('/charts', chartsRouter);
   router.use('/notifications', notificationsRouter);
+  router.use('/endorsements', endorsementsRouter);
+  router.use('/bonus-categories', bonusCategoriesRouter);
+  router.use('/endorsement-bonuses', endorsementBonusesRouter);
+  router.use('/tier-bands', tierBandsRouter);
+  router.use('/bonus-subcategories', bonusSubcategoriesRouter);
+  router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
 
   return router;
 }

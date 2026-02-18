@@ -2,7 +2,7 @@ import { prisma } from './prisma';
 import type { Country } from '@prisma/client';
 import { info } from '../logger';
 
-export const TABLE = 'ds.tbl_countries';
+export const TABLE = 'ds.cou_countries';
 
 /**
  * Check that the countries table exists (non-destructive)

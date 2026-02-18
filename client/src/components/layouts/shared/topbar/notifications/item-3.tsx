@@ -23,6 +23,7 @@ interface Item3Props {
   onNavigate?: () => void;
   sourceId?: number;
   sourceEntity?: string;
+  notificationRecipientId?: number;
 }
 
 export default function Item3({
@@ -38,12 +39,11 @@ export default function Item3({
   onAccept,
   onDecline,
   onNavigate,
-  sourceId,
-  sourceEntity,
+  notificationRecipientId,
 }: Item3Props) {
   const navigate = useNavigate();
-  const resolvedLink = sourceEntity === 'TimeOff' && sourceId
-    ? `${link}?timeOffId=${sourceId}`
+  const resolvedLink = notificationRecipientId
+    ? `${link}?recipientId=${notificationRecipientId}`
     : link;
 
   const handleViewDetails = (e: React.MouseEvent) => {

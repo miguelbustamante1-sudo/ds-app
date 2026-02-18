@@ -17,12 +17,12 @@ INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (4, 'Cancelled') ON CON
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (5, 'Rejected') ON CONFLICT (sta_id) DO NOTHING;
 
 -- 2. Regions
-INSERT INTO ds.tbl_regions (reg_id, reg_name) VALUES ('1', 'Central America') ON CONFLICT (reg_id) DO NOTHING;
+INSERT INTO ds.reg_regions (reg_id, reg_name) VALUES ('1', 'Central America') ON CONFLICT (reg_id) DO NOTHING;
 
 -- 3. Countries (add more as needed)
-INSERT INTO ds.tbl_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('1', 'El Salvador', '1', 'SV') ON CONFLICT (cou_id) DO NOTHING;
-INSERT INTO ds.tbl_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('2', 'Guatemala', '1', 'GT') ON CONFLICT (cou_id) DO NOTHING;
-INSERT INTO ds.tbl_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('3', 'Mexico', '1', 'MX') ON CONFLICT (cou_id) DO NOTHING;
+INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('1', 'El Salvador', '1', 'SV') ON CONFLICT (cou_id) DO NOTHING;
+INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('2', 'Guatemala', '1', 'GT') ON CONFLICT (cou_id) DO NOTHING;
+INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('3', 'Mexico', '1', 'MX') ON CONFLICT (cou_id) DO NOTHING;
 
 -- 5. Time Off Categories
 INSERT INTO ds.tbl_to_categories (cat_id, cat_name) VALUES (1, 'Bench') ON CONFLICT (cat_id) DO NOTHING;

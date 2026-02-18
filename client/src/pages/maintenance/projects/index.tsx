@@ -81,6 +81,7 @@ export function ProjectsPage() {
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingProject(undefined);
+    projects.loadItems();
   };
 
   return (

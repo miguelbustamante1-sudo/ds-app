@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { SortingState } from '@tanstack/react-table';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
@@ -24,6 +25,7 @@ import { CancelTimeOffDialog } from './components/CancelTimeOffDialog';
 import { EditSupervisorTimeOffDialog } from './components/EditSupervisorTimeOffDialog';
 
 export function SupervisorTimeOffPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Team members state
@@ -75,6 +77,10 @@ export function SupervisorTimeOffPage() {
     setSelectedTeamMember(teamMember);
     setTeamMemberDrawerOpen(false); // Close drawer on mobile when team member is selected
   }, []);
+
+  const handleRowClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
+    navigate(`/timeoff-detail/${timeOff.timeOffId}`);
+  }, [navigate]);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setTimeOffToEdit(timeOff);
@@ -156,6 +162,7 @@ export function SupervisorTimeOffPage() {
                 loading={timeOffsHook.loading}
                 onEditClick={handleEditClick}
                 onCancelClick={handleCancelClick}
+                onRowClick={handleRowClick}
               />
             </div>
           ) : (

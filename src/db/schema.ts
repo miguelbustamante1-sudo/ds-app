@@ -16,8 +16,8 @@ export type SchemaCheckResult = {
 
 // Expected columns for tables the app depends on. Keep this minimal — list only columns used by the code.
 const EXPECTED: Record<string, string[]> = {
-  'ds.tbl_countries': ['cou_id', 'reg_id', 'cou_name'],
-  'ds.tbl_regions': ['reg_id', 'reg_name'],
+  'ds.cou_countries': ['cou_id', 'reg_id', 'cou_name'],
+  'ds.reg_regions': ['reg_id', 'reg_name'],
   'ds.tbl_to_categories': ['cat_id', 'cat_name'],
   'ds.tbl_to_categories_x_country': ['cxc_id', 'cat_id', 'cou_id', 'cxc_status', 'cxc_is_calendar'],
   'ds.tbl_team_members': [

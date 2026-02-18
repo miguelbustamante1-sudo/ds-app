@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import type { TimeOffWithTeamMemberDTO, TimeOffWithDetailsDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import {
@@ -60,6 +61,7 @@ function toSupervisedTeamMember(timeOff: TimeOffWithTeamMemberDTO): SupervisedTe
 
 export function TimeOffManagementPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // State
   const [showCancelled, setShowCancelled] = useState(false);
@@ -95,6 +97,10 @@ export function TimeOffManagementPage() {
     setSelectedTimeOff(timeOff);
     setEditDialogOpen(true);
   }, []);
+
+  const handleRowClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
+    navigate(`/timeoff-detail/${timeOff.timeOffId}?from=/timeoff-management`);
+  }, [navigate]);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
     setSelectedTimeOff(timeOff);
@@ -149,6 +155,7 @@ export function TimeOffManagementPage() {
           timeOffs={timeOffsHook.timeOffs}
           loading={timeOffsHook.loading}
           showCancelled={showCancelled}
+          onRowClick={handleRowClick}
           onEditClick={handleEditClick}
           onCancelClick={handleCancelClick}
         />

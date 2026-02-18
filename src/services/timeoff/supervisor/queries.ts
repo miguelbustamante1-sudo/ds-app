@@ -84,7 +84,7 @@ export async function getTeamMembersBySupervisor(
     FROM team_hierarchy th
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = th.team_member_id
     LEFT JOIN ds.tbl_roles r ON r.rol_id = tm.tms_primary_role
-    LEFT JOIN ds.tbl_countries c ON c.cou_id = tm.cou_id
+    LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     ORDER BY th.team_member_id, th.depth ASC
   `;
 
@@ -458,7 +458,7 @@ export async function getAllTeamTimeOffs(
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
-    LEFT JOIN ds.tbl_countries c ON c.cou_id = tm.cou_id
+    LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     INNER JOIN ds.tbl_to_categories cat ON cat.cat_id = tof.cat_id
     INNER JOIN ds.tbl_to_statuses sta ON sta.sta_id = tof.sta_id
     ORDER BY tof.tto_stadat DESC
@@ -530,7 +530,7 @@ export async function getTeamTimeOffByCountry(
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
-    LEFT JOIN ds.tbl_countries c ON c.cou_id = tm.cou_id
+    LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     WHERE tof.sta_id <> 4
       AND tof.tto_stadat >= ${effectiveStartDate}
       AND tof.tto_stadat <= ${effectiveEndDate}

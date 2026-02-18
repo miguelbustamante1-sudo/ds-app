@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import type { Region } from '@prisma/client';
 
-export const TABLE = 'ds.tbl_regions';
+export const TABLE = 'ds.reg_regions';
 
 /**
  * Check that the regions table exists (non-destructive)

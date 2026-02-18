@@ -17,9 +17,11 @@ model Country {
   teamMembers       TeamMember[]
   categoryCountries CategoryCountry[]
   holidays          Holiday[]
+  endorsements       Endorsement[]
+  bonusSubcategories BonusSubcategory[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
-  @@map("tbl_countries")
+  @@map("cou_countries")
   @@schema("ds")
 }
 
@@ -30,6 +32,7 @@ model Project {
   projectExternalId  String?             @map("pro_external_id") @db.VarChar(200)
   projectSow         String?             @map("pro_sow") @db.VarChar(100)
   projectAssignments ProjectAssignment[]
+  endorsements       Endorsement[]
 
   @@map("pro_projects")
   @@schema("ds")
@@ -41,7 +44,7 @@ model Region {
   regionName String    @map("reg_name") @db.VarChar(100)
   countries  Country[]
 
-  @@map("tbl_regions")
+  @@map("reg_regions")
   @@schema("ds")
 }
 
@@ -97,14 +100,14 @@ model TimeOffChangeLog {
   changeLogOldValues   Json?     @map("toc_old_values")
   changeLogNewValues   Json?     @map("toc_new_values")
   changeLogCreatedBy   Int?      @map("toc_created_by")
-  changeLogCreatedDate DateTime? @map("toc_credat") @db.Date
+  changeLogCreatedDate DateTime? @map("toc_created_at") @db.Date
   timeOff              TimeOff?  @relation(fields: [timeOffId], references: [timeOffId], onDelete: Cascade, map: "fk_tbl_timeoff_changelog_tto")
   createdByUser        User?     @relation(fields: [changeLogCreatedBy], references: [userId], map: "fk_tbl_timeoff_changelog_usr")
 
   @@index([changeLogCreatedDate], map: "idx_tbl_timeoff_changelog_credat")
   @@index([timeOffId], map: "idx_tbl_timeoff_changelog_tto_id")
   @@index([changeLogCreatedBy], map: "idx_tbl_timeoff_changelog_usr_id")
-  @@map("tbl_timeoff_changelog")
+  @@map("toc_timeoff_changelog")
   @@schema("ds")
 }
 
@@ -256,6 +259,35 @@ model Holiday {
   @@index([countryId], map: "idx_hol_cou_id")
   @@index([holidayDate], map: "idx_hol_date")
   @@map("hol_holiday")
+  @@schema("ds")
+}
+
+model Endorsement {
+  endorsementId      Int       @id @default(autoincrement()) @map("end_id") @db.Integer
+  candidateFirstName String    @map("end_candidate_first_name") @db.Text
+  candidateLastName  String    @map("end_candidate_last_name") @db.Text
+  candidatePosition  String    @map("end_candidate_position") @db.Text
+  projectId          Int       @map("pro_id")
+  clientManagerEmail String    @map("end_client_manager_email") @db.Text
+  tibId              Int?      @map("tib_id")
+  billingRate        Decimal?  @map("end_billing_rate") @db.Decimal(12, 2)
+  countryId          Int       @map("cou_id")
+  startDate          DateTime  @map("end_start_date") @db.Date
+  status             String    @default("Pending") @map("end_status") @db.Text
+  createdBy          String    @map("end_created_by") @db.Text
+  createdAt          DateTime? @default(now()) @map("end_created_at") @db.Timestamptz(6)
+  updatedBy          String?   @map("end_updated_by") @db.Text
+  updatedAt          DateTime? @map("end_updated_at") @db.Timestamptz(6)
+  comment            String?   @map("end_comment") @db.Text
+  project            Project            @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_end_project")
+  country            Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_end_country")
+  tierBand           TierBand?          @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_end_tier_band")
+  endorsementBonuses EndorsementBonus[]
+
+  @@index([projectId], map: "idx_pro_id")
+  @@index([countryId], map: "idx_cou_id")
+  @@index([tibId], map: "idx_tib_id")
+  @@map("end_endorsements")
   @@schema("ds")
 }
 
@@ -422,4 +454,54 @@ model Recipient {
   @@index([notificationId], map: "idx_rec_ntf_id")
   @@map("rec_recipients")
   @@schema("com")
+}
+
+model BonusCategory {
+  bonusCategoryId    Int                @id @default(autoincrement()) @map("bca_id") @db.Integer
+  bonusCategoryName  String             @unique @map("bca_name") @db.Text
+  bonusSubcategories BonusSubcategory[]
+
+  @@map("bca_bonus_categories")
+  @@schema("ds")
+}
+
+model BonusSubcategory {
+  bonusSubcategoryId            Int                @id @default(autoincrement()) @map("bsc_id") @db.Integer
+  bonusCategoryId               Int                @map("bca_id")
+  bonusSubcategoryName          String             @map("bsc_name") @db.Text
+  countryId                     Int                @map("cou_id")
+  bonusSubcategoryMetadata      Json               @default("{}") @map("bsc_metadata")
+  bonusSubcategoryDefaultAmount Decimal?           @map("bsc_default_amount") @db.Decimal(15, 2)
+  bonusCategory                 BonusCategory      @relation(fields: [bonusCategoryId], references: [bonusCategoryId], onDelete: Restrict, map: "fk_bsc_bca")
+  country                       Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_bsc_cou")
+  endorsementBonuses            EndorsementBonus[]
+
+  @@unique([bonusCategoryId, countryId, bonusSubcategoryName], map: "uk_bsc_category_country_name")
+  @@map("bsc_bonus_subcategories")
+  @@schema("ds")
+}
+
+model TierBand {
+  tierBandId          Int           @id @default(autoincrement()) @map("tib_id") @db.Integer
+  tierBandDescription String        @unique @map("tib_description") @db.Text
+  endorsements        Endorsement[]
+
+  @@map("tib_tier_band")
+  @@schema("ds")
+}
+
+model EndorsementBonus {
+  endorsementBonusId        Int               @id @default(autoincrement()) @map("ebn_id") @db.Integer
+  endorsementId             Int               @map("end_id")
+  bonusSubcategoryId        Int?              @map("bsc_id")
+  endorsementBonusAmount    Decimal?          @map("ebn_amount") @db.Decimal(15, 2)
+  endorsementBonusMetadata  Json              @default("{}") @map("ebn_metadata")
+  endorsementBonusComments  String?           @map("ebn_comments") @db.Text
+  endorsementBonusCreatedAt DateTime?         @default(now()) @map("ebn_created_at") @db.Timestamptz(6)
+  endorsementBonusCreatedBy String?           @map("ebn_created_by") @db.Text
+  endorsement               Endorsement       @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_ebn_end")
+  bonusSubcategory          BonusSubcategory? @relation(fields: [bonusSubcategoryId], references: [bonusSubcategoryId], onDelete: Restrict, map: "fk_ebn_bsc")
+
+  @@map("ebn_endorsement_bonus")
+  @@schema("ds")
 }

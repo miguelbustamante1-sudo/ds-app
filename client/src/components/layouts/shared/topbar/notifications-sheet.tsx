@@ -1,17 +1,7 @@
 import { ReactNode, useEffect, useState, Fragment } from 'react';
-import { Bell, Calendar, ExternalLink, Settings, Settings2, Shield, Users } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Bell, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Sheet,
@@ -23,7 +13,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from './notifications/item-mapper';
 
@@ -32,12 +21,6 @@ interface NotificationsSheetProps {
   refetchUnreadCount?: () => Promise<void>;
 }
 
-const CATEGORY_MAP: Record<string, string | undefined> = {
-  all: undefined,
-  inbox: 'inbox',
-  team: 'team',
-  following: 'following',
-};
 
 function LoadingSkeleton() {
   return (
@@ -67,7 +50,6 @@ function EmptyState() {
 export function NotificationsSheet({ trigger, refetchUnreadCount }: NotificationsSheetProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
   const [mutating, setMutating] = useState(false);
   const {
     notifications,
@@ -81,12 +63,8 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
   } = useNotifications();
 
   useEffect(() => {
-    fetchNotifications(CATEGORY_MAP[activeTab]);
-  }, [activeTab, fetchNotifications]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const handleMarkAsRead = async (recipientId: number) => {
     await markAsRead(recipientId);
@@ -115,11 +93,6 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
     await archiveAll();
     await refetchUnreadCount?.();
     setMutating(false);
-  };
-
-  const hasUnreadInCategory = (category: string | undefined) => {
-    if (!category) return notifications.some((n) => !n.isRead);
-    return notifications.some((n) => !n.isRead && n.categoryName === category);
   };
 
   const renderNotificationList = () => {
@@ -153,101 +126,7 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
         </SheetHeader>
         <SheetBody className="grow p-0">
           <ScrollArea className="h-[calc(100vh-10.5rem)]">
-            <Tabs defaultValue="all" className="w-full relative" onValueChange={handleTabChange}>
-              <TabsList variant="line" className="w-full px-5 mb-5">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="inbox" className="relative">
-                  Inbox
-                  {hasUnreadInCategory('inbox') && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 absolute top-1 -end-1" />
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="team" className="relative">
-                  Team
-                  {hasUnreadInCategory('team') && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 absolute top-1 -end-1" />
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="following" className="relative">
-                  Following
-                  {hasUnreadInCategory('following') && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 absolute top-1 -end-1" />
-                  )}
-                </TabsTrigger>
-                <div className="grow flex items-center justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        mode="icon"
-                        className="mb-1"
-                      >
-                        <Settings className="size-4.5!" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      className="w-44"
-                      side="bottom"
-                      align="end"
-                    >
-                      <DropdownMenuItem asChild>
-                        <Link to="#">
-                          <Users /> Invite Users
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <Settings2 />
-                          <span>Team Settings</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                          <DropdownMenuSubContent className="w-44">
-                            <DropdownMenuItem asChild>
-                              <Link to="#">
-                                <Shield />
-                                Find Members
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to="#">
-                                <Calendar /> Meetings
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to="#">
-                                <Shield /> Group Settings
-                              </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                      </DropdownMenuSub>
-                      <DropdownMenuItem asChild>
-                        <Link to="#">
-                          <Shield /> Group Settings
-                        </Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TabsList>
-
-              <TabsContent value="all" className="mt-0">
-                {renderNotificationList()}
-              </TabsContent>
-
-              <TabsContent value="inbox" className="mt-0">
-                {renderNotificationList()}
-              </TabsContent>
-
-              <TabsContent value="team" className="mt-0">
-                {renderNotificationList()}
-              </TabsContent>
-
-              <TabsContent value="following" className="mt-0">
-                {renderNotificationList()}
-              </TabsContent>
-            </Tabs>
+            {renderNotificationList()}
           </ScrollArea>
         </SheetBody>
         <SheetFooter className="border-t border-border p-5 flex flex-col gap-2.5">

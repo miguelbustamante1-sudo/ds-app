@@ -8,6 +8,7 @@ export * from './AuthUser';
 
 // Domain DTOs
 export * from './Country';
+export * from './Endorsement';
 export * from './Holiday';
 export * from './Region';
 export * from './Role';
@@ -24,6 +25,9 @@ export * from './User';
 
 // Communication DTOs
 export * from './Notification';
+
+export * from './TierBand';
+export * from './TimeOffChangeLog';
 
 // Security DTOs
 export * from './Permission';

@@ -1,0 +1,75 @@
+# --------------------------------------------------------------
+# Google Cloud upload ignore (used by `glcoud run deploy --sourcee .`)
+# Goal: reduce upload size safely for React+Vite+TS + Prisma + Metronic repos.
+# --------------------------------------------------------------
+
+# VCS
+.git/
+.gitignore
+
+# Node deps & package manager caches
+**/node_modules/
+**/.pnpm-store/
+**/.yarn/
+**/.cache/
+**/.turbo/
+**/.npm/
+**/.parcel-cache/
+documents/
+dist/
+
+# Build outputs (these are produced during build; don't upload)
+**/dist/
+**/build/
+**/out/
+**/.next/
+**/.vite/
+**/.nuxt/
+
+# Prisma local artifacts you don't need to upload
+**/.prisma/
+
+# Logs and temp files
+**/*.log
+**/*.tmp
+**/*.temp
+**/.swp
+**/.swo
+**/.pid
+
+# Test / coverage outputs
+**/coverage/
+**/test-results/
+**/.nyc_output/
+**/__tests__/
+**/*.spec.*
+**/*.test.*
+
+# Docs / samples / misc and large files
+**/docs/
+**/samples/
+**/examples/
+
+# Editor / OS files
+**/.DS_Store
+**/Thumbs.db
+**/.vscode/
+**/.idea/
+
+# Env files (don't upload secrets)
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Metronic - ignore common heavy areas you usually dont need at build/runtime
+
+**/metronic/**/documentation/
+**/metronic/**/demo/
+**/metronic/**/examples/
+**/metronic/**/docs/
+**/metronic/**/demos/
+**/metronic/**/html/**/documentation/
+**/metronic/**/html/**/docs/
+**/metronic/**/html/**/theme/demo*/
+
+

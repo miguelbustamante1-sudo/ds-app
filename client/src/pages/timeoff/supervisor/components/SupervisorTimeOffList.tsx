@@ -25,6 +25,7 @@ interface SupervisorTimeOffListProps {
   loading: boolean;
   onEditClick: (timeOff: TimeOffWithDetailsDTO) => void;
   onCancelClick: (timeOff: TimeOffWithDetailsDTO) => void;
+  onRowClick?: (timeOff: TimeOffWithDetailsDTO) => void;
 }
 
 /**
@@ -60,7 +61,7 @@ function canEdit(timeOff: TimeOffWithDetailsDTO): boolean {
   return startDate >= today;
 }
 
-export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick }: SupervisorTimeOffListProps) {
+export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick }: SupervisorTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'timeOffStartDate', desc: false }
   ]);
@@ -217,6 +218,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
                 headerBorder: true,
                 rowBorder: true,
               }}
+              onRowClick={onRowClick}
             >
               <DataGridTable />
               <DataGridPagination sizes={[5, 10, 25]} />

@@ -19,6 +19,15 @@ import { TeamMemberProfilePage } from '@/pages/my-team/profile';
 import { AnnouncementsPage } from '@/pages/announcements';
 import { NotificationCenterPage } from '@/pages/notifications';
 import { ProjectAssignmentsPage } from '@/pages/project-assignments';
+import { TimeOffDetailPage } from '@/pages/timeoff/detail';
+import { EndorsementsPage } from '@/pages/endorsements';
+import { EndorsementCreatePage } from '@/pages/endorsements/create';
+import { EndorsementDetailPage } from '@/pages/endorsements/detail';
+import { TierBandsPage } from '@/pages/maintenance/tier-bands';
+import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
+import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
+import { ReportsPage } from '@/pages/reports';
+import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 
 export function AppRoutingSetup() {
   return (
@@ -41,6 +50,10 @@ export function AppRoutingSetup() {
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/notification-center" element={<NotificationCenterPage />} />
         <Route path="/project-assignments" element={<ProjectAssignmentsPage />} />
+        <Route path="/timeoff-detail/:timeOffId" element={<TimeOffDetailPage />} />
+        <Route path="/endorsements" element={<EndorsementsPage />} />
+        <Route path="/endorsements/create" element={<EndorsementCreatePage />} />
+        <Route path="/endorsements/:id" element={<EndorsementDetailPage />} />
         <Route path="/maintenance/countries" element={<CountriesPage />} />
         <Route path="/maintenance/projects" element={<ProjectsPage />} />
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
@@ -48,6 +61,11 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
         <Route path="/maintenance/holidays" element={<HolidaysPage />} />
         <Route path="/maintenance/category-country" element={<CategoryCountryPage />} />
+        <Route path="/maintenance/tier-bands" element={<TierBandsPage />} />
+        <Route path="/maintenance/bonus-categories" element={<BonusCategoriesPage />} />
+        <Route path="/maintenance/bonus-subcategories" element={<BonusSubcategoriesPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

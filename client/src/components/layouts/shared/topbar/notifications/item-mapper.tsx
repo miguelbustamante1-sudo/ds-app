@@ -80,7 +80,7 @@ export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, on
   const typedPayload = payload as Record<string, unknown>;
   const isTimeOffAction = typedPayload.sourceEntity === 'TimeOff' && actionType === 'actionable';
 
-  const extraProps: Record<string, unknown> = { onNavigate };
+  const extraProps: Record<string, unknown> = { onNavigate, notificationRecipientId: id };
   if (isTimeOffAction && onAcknowledge && onDecline) {
     const sourceId = typedPayload.sourceId as number;
     extraProps.onAccept = () => onAcknowledge(sourceId, id);

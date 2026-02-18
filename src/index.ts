@@ -164,13 +164,13 @@ Promise.all([ensureCategoriesTableExists(), ensureCountriesTableExists(), ensure
   }
 
   if (!countryExists) {
-    console.error('Countries table ds.tbl_countries not found - API may fail until table is created.');
+    console.error('Countries table ds.cou_countries not found - API may fail until table is created.');
   } else {
     console.log('Countries table found');
   }
 
   if (!regionExists) {
-    console.error('Regions table ds.tbl_regions not found - API may fail until table is created.');
+    console.error('Regions table ds.reg_regions not found - API may fail until table is created.');
   } else {
     console.log('Regions table found');
   }
