@@ -5,8 +5,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { LoadingBarContainer } from 'react-top-loading-bar';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/auth/auth-provider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const { BASE_URL } = import.meta.env;
+
+const queryClient = new QueryClient();
 
 export function App() {
   return (
@@ -19,14 +22,16 @@ export function App() {
       enableColorScheme
     >
       <HelmetProvider>
-        <LoadingBarContainer>
-          <BrowserRouter basename={BASE_URL}>
-            <AuthProvider>
-              <Toaster />
-              <AppRouting />
-            </AuthProvider>
-          </BrowserRouter>
-        </LoadingBarContainer>
+        <QueryClientProvider client={queryClient}>
+          <LoadingBarContainer>
+            <BrowserRouter basename={BASE_URL}>
+              <AuthProvider>
+                <Toaster />
+                <AppRouting />
+              </AuthProvider>
+            </BrowserRouter>
+          </LoadingBarContainer>
+        </QueryClientProvider>
       </HelmetProvider>
     </ThemeProvider>
   );

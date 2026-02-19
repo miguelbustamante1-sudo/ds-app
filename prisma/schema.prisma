@@ -12,7 +12,8 @@ model Country {
   countryId         Int               @id @default(autoincrement()) @map("cou_id") @db.Integer
   countryName       String            @map("cou_name") @db.VarChar(100)
   regionId          Int?              @map("reg_id")
-  countryIso        String?           @map("cou_iso") @db.VarChar(2)
+  countryIso            String?           @map("cou_iso") @db.VarChar(2)
+  countryCurrencySymbol String?           @map("cou_currency_symbol") @db.VarChar(10)
   region            Region?           @relation(fields: [regionId], references: [regionId], onDelete: Restrict, map: "fk_tbl_countries_reg")
   teamMembers       TeamMember[]
   categoryCountries CategoryCountry[]
@@ -71,6 +72,7 @@ model TeamMember {
   workdayId                         String?                @map("wdid") @db.VarChar(100)
   teamMemberSeniority               String                 @map("tms_seniority") @db.VarChar(100)
   teamMemberPrimaryRole             Int?                   @map("tms_primary_role")
+  tierBandId                        Int?                   @map("tib_id")
   teamMemberCreatedBy               Int?                   @map("tms_created_by")
   teamMemberCreatedDate             DateTime?              @map("tms_credat") @db.Date
   teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
@@ -78,6 +80,7 @@ model TeamMember {
   createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
   country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
   primaryRole                       Role?                  @relation(fields: [teamMemberPrimaryRole], references: [roleId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
+  tierBand                          TierBand?              @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
   lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
   timeOffs                          TimeOff[]
   projectAssignments                ProjectAssignment[]
@@ -87,6 +90,7 @@ model TeamMember {
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
   @@index([teamMemberPrimaryRole], map: "idx_tbl_team_members_rol_id")
+  @@index([tierBandId], map: "idx_tbl_team_members_tib_id")
   @@index([teamMemberLastUpdatedBy], map: "idx_tbl_team_members_uby")
   @@map("tbl_team_members")
   @@schema("ds")
@@ -283,6 +287,7 @@ model Endorsement {
   country            Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_end_country")
   tierBand           TierBand?          @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_end_tier_band")
   endorsementBonuses EndorsementBonus[]
+  hirings            Hiring[]
 
   @@index([projectId], map: "idx_pro_id")
   @@index([countryId], map: "idx_cou_id")
@@ -409,6 +414,43 @@ model UserRole {
   @@schema("sec")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Hiring {
+  id            Int       @id @default(autoincrement()) @map("hir_id") @db.Integer
+  endorsementId Int       @map("end_id")
+  startDate     DateTime  @map("hir_start_date") @db.Date
+  billableDate  DateTime  @map("hir_billable_date") @db.Date
+  workdayId     String?    @map("hir_workday_id") @db.Text
+  createdBy     String    @map("hir_created_by") @db.Text
+  createdAt     DateTime? @default(now()) @map("hir_created_at") @db.Timestamptz(6)
+  updatedBy     String?   @map("hir_updated_by") @db.Text
+  updatedAt     DateTime? @map("hir_updated_at") @db.Timestamptz(6)
+  currencySymbol String?   @map("hir_currency_symbol") @db.VarChar(10)
+  comment       String?   @map("hir_comment") @db.Text
+  status        String    @default("Pending") @map("hir_status") @db.Text
+  endorsement   Endorsement @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_hir_endorsments")
+
+  @@index([endorsementId], map: "idx_hir_end_id")
+  @@map("hir_hiring")
+  @@schema("ds")
+}
+
+model Audit {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @map("aud_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("aud_created_at") @db.Timestamptz(6)
+  createdBy  String   @map("aud_created_by")
+  entityName String   @map("aud_entity_name")
+  entityId   String   @map("aud_entity_id")
+  oldValues  Json?    @map("aud_old_values")
+  newValues  Json?    @map("aud_new_values")
+  comment    String?  @map("aud_comment")
+
+  @@index([entityName, entityId], map: "idx_aud_entity_search")
+  @@index([createdAt], map: "idx_aud_created_at")
+  @@map("aud_audits")
+  @@schema("ds")
+}
+
 /// Notification category/tab (com schema)
 model Category {
   id            Int            @id @default(autoincrement()) @map("cat_id")
@@ -485,6 +527,7 @@ model TierBand {
   tierBandId          Int           @id @default(autoincrement()) @map("tib_id") @db.Integer
   tierBandDescription String        @unique @map("tib_description") @db.Text
   endorsements        Endorsement[]
+  teamMembers         TeamMember[]
 
   @@map("tib_tier_band")
   @@schema("ds")

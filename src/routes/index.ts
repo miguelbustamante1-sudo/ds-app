@@ -19,6 +19,7 @@ import holidaysRouter from './holidays';
 import chartsRouter from './charts';
 import notificationsRouter from './notifications';
 import endorsementsRouter from './endorsements';
+import hiringRouter from './hiring';
 import bonusCategoriesRouter from './bonusCategories';
 import endorsementBonusesRouter from './endorsementBonuses';
 import tierBandsRouter from './tierBands';
@@ -48,6 +49,7 @@ export default function registerRoutes() {
   router.use('/charts', chartsRouter);
   router.use('/notifications', notificationsRouter);
   router.use('/endorsements', endorsementsRouter);
+  router.use('/hiring', hiringRouter);
   router.use('/bonus-categories', bonusCategoriesRouter);
   router.use('/endorsement-bonuses', endorsementBonusesRouter);
   router.use('/tier-bands', tierBandsRouter);

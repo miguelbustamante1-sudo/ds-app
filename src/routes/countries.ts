@@ -60,11 +60,11 @@ router.get('/:id', requirePermission('Countries', 'read'), async (req: Request, 
 // POST /countries
 router.post('/', requirePermission('Countries', 'create'), async (req: Request, res: Response) => {
   try {
-    const { reg_id, cou_name } = req.body as { reg_id?: number | null; cou_name?: string };
-    if (!cou_name || typeof cou_name !== 'string') return res.status(400).json({ error: 'cou_name is required' });
-    const regId = typeof reg_id === 'number' ? reg_id : null;
+    const { countryName, regionId, currencySymbol } = req.body as { countryName?: string; regionId?: number | null; currencySymbol?: string | null };
+    if (!countryName || typeof countryName !== 'string') return res.status(400).json({ error: 'countryName is required' });
+    const regId = typeof regionId === 'number' ? regionId : null;
 
-    const created = await createCountry(regId, cou_name);
+    const created = await createCountry(regId, countryName, currencySymbol);
     res.status(201).json(created);
   } catch (err) {
     error(err);
@@ -78,11 +78,11 @@ router.put('/:id', requirePermission('Countries', 'create'), async (req: Request
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { reg_id, cou_name } = req.body as { reg_id?: number | null; cou_name?: string };
-    if (!cou_name || typeof cou_name !== 'string') return res.status(400).json({ error: 'cou_name is required' });
-    const regId = typeof reg_id === 'number' ? reg_id : null;
+    const { countryName, regionId, currencySymbol } = req.body as { countryName?: string; regionId?: number | null; currencySymbol?: string | null };
+    if (!countryName || typeof countryName !== 'string') return res.status(400).json({ error: 'countryName is required' });
+    const regId = typeof regionId === 'number' ? regionId : null;
 
-    const updated = await updateCountry(id, regId, cou_name);
+    const updated = await updateCountry(id, regId, countryName, currencySymbol);
     if (!updated) return res.status(404).json({ error: 'Country not found' });
 
     res.json(updated);

@@ -28,6 +28,8 @@ import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
 import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
+import { HiringPage } from '@/pages/hiring';
+import { HiringDetailPage } from '@/pages/hiring/detail';
 
 export function AppRoutingSetup() {
   return (
@@ -64,6 +66,9 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/tier-bands" element={<TierBandsPage />} />
         <Route path="/maintenance/bonus-categories" element={<BonusCategoriesPage />} />
         <Route path="/maintenance/bonus-subcategories" element={<BonusSubcategoriesPage />} />
+        <Route path="/hiring" element={<HiringPage />} />
+        <Route path="/hiring/new" element={<HiringDetailPage />} />
+        <Route path="/hiring/:id" element={<HiringDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
       </Route>

@@ -100,6 +100,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/endorsements',
     permission: 'Endorsements',
   },
+  {
+    title: 'Hiring',
+    icon: UserCheck,
+    path: '/hiring',
+    permission: 'Hiring',
+  },
   { heading: 'Reports' },
   {
     title: 'Reports',

@@ -19,6 +19,7 @@ interface CountryFormData {
   countryName: string;
   regionId: string;
   countryIso: string;
+  currencySymbol: string;
 }
 
 interface CountryFormDialogProps {
@@ -47,6 +48,7 @@ export function CountryFormDialog({
       countryName: '',
       regionId: '',
       countryIso: '',
+      currencySymbol: '',
     },
   });
 
@@ -57,12 +59,14 @@ export function CountryFormDialog({
           countryName: country.countryName,
           regionId: country.regionId?.toString() || '',
           countryIso: country.countryIso || '',
+          currencySymbol: country.currencySymbol || '',
         });
       } else {
         reset({
           countryName: '',
           regionId: '',
           countryIso: '',
+          currencySymbol: '',
         });
       }
     }
@@ -75,6 +79,7 @@ export function CountryFormDialog({
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
+          currencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPut<CountryDTO, UpdateCountryDTO>(`/api/countries/${country.countryId}`, payload);
         toast({
@@ -86,6 +91,7 @@ export function CountryFormDialog({
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
+          currencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPost<CountryDTO, CreateCountryDTO>('/api/countries', payload);
         toast({
@@ -177,6 +183,27 @@ export function CountryFormDialog({
               )}
               <p className="text-sm text-muted-foreground">
                 Optional 2-letter ISO country code
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currencySymbol">Currency Symbol</Label>
+              <Input
+                id="currencySymbol"
+                placeholder="e.g., $"
+                maxLength={10}
+                {...register('currencySymbol', {
+                  maxLength: {
+                    value: 10,
+                    message: 'Currency symbol must be 10 characters or fewer',
+                  },
+                })}
+              />
+              {errors.currencySymbol && (
+                <p className="text-sm text-destructive">{errors.currencySymbol.message}</p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Optional currency symbol (e.g., $, €, £)
               </p>
             </div>
           </div>

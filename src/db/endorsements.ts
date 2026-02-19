@@ -10,7 +10,7 @@ export async function getEndorsements(status?: string): Promise<Endorsement[]> {
     where: { status: status ?? 'Pending' },
     include: {
       project: { select: { projectName: true } },
-      country: { select: { countryName: true } },
+      country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -49,7 +49,7 @@ export async function createEndorsement(data: {
     },
     include: {
       project: { select: { projectName: true } },
-      country: { select: { countryName: true } },
+      country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
     },
   });
@@ -119,7 +119,7 @@ export async function createEndorsementWithBonuses(
 
 const ENDORSEMENT_INCLUDE = {
   project: { select: { projectName: true } },
-  country: { select: { countryName: true } },
+  country: { select: { countryName: true, countryCurrencySymbol: true } },
   tierBand: { select: { tierBandId: true, tierBandDescription: true } },
   endorsementBonuses: {
     include: {

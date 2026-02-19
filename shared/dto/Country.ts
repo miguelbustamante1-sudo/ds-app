@@ -10,6 +10,7 @@ export interface CountryDTO {
   countryName: string;
   regionId: number | null;
   countryIso: string | null;
+  currencySymbol: string | null;
 }
 
 /**
@@ -19,6 +20,7 @@ export interface CreateCountryDTO {
   countryName: string;
   regionId: number | null;
   countryIso?: string | null;
+  currencySymbol?: string | null;
 }
 
 /**
@@ -28,4 +30,5 @@ export interface UpdateCountryDTO {
   countryName?: string;
   regionId?: number | null;
   countryIso?: string | null;
+  currencySymbol?: string | null;
 }

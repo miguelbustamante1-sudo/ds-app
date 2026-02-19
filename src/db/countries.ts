@@ -36,21 +36,23 @@ export async function getCountryById(id: number): Promise<Country | null> {
   });
 }
 
-export async function createCountry(regionId: number | null, countryName: string): Promise<Country> {
+export async function createCountry(regionId: number | null, countryName: string, currencySymbol?: string | null): Promise<Country> {
   return await prisma.country.create({
     data: {
       regionId,
       countryName,
+      countryCurrencySymbol: currencySymbol ?? null,
     },
   });
 }
 
-export async function updateCountry(id: number, regionId: number | null, countryName: string): Promise<Country | null> {
+export async function updateCountry(id: number, regionId: number | null, countryName: string, currencySymbol?: string | null): Promise<Country | null> {
   return await prisma.country.update({
     where: { countryId: id },
     data: {
       regionId,
       countryName,
+      countryCurrencySymbol: currencySymbol ?? null,
     },
   });
 }

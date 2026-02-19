@@ -1,4 +1,4 @@
-import { Sql } from '@prisma/client/runtime/library';
+
 import { prisma } from '../../../db/prisma';
 import type {
   TimeOffChangeLogQueryDTO,
@@ -35,7 +35,7 @@ interface RawChangeLogRow {
 /** Format a nullable Date to ISO date string or null. */
 function toISODate(d: Date | null | undefined): string | null {
   if (!d) return null;
-  return d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0];
+  return d instanceof Date ? (d.toISOString().split('T')[0] ?? null) : (String(d).split('T')[0] ?? null);
 }
 
 /** Parse comma-separated numeric string into number array (empty → null). */
@@ -230,14 +230,14 @@ export async function getTimeOffChangeLog(
     countryName:      r.country_name,
     changedByName:    r.changed_by_name,
     comment:          r.comment,
-    origStartDate:    r.orig_start_date ? String(r.orig_start_date).split('T')[0] : null,
-    origEndDate:      r.orig_end_date   ? String(r.orig_end_date).split('T')[0]   : null,
+    origStartDate:    r.orig_start_date ? (String(r.orig_start_date).split('T')[0] ?? null) : null,
+    origEndDate:      r.orig_end_date   ? (String(r.orig_end_date).split('T')[0]   ?? null) : null,
     origDays:         r.orig_days != null ? Number(r.orig_days) : null,
     origCategory:     r.orig_category,
     origStatus:       r.orig_status,
     origActive:       (r.orig_active as 'Yes' | 'No' | null) ?? null,
-    newStartDate:     r.new_start_date  ? String(r.new_start_date).split('T')[0]  : null,
-    newEndDate:       r.new_end_date    ? String(r.new_end_date).split('T')[0]    : null,
+    newStartDate:     r.new_start_date  ? (String(r.new_start_date).split('T')[0]  ?? null) : null,
+    newEndDate:       r.new_end_date    ? (String(r.new_end_date).split('T')[0]    ?? null) : null,
     newDays:          r.new_days  != null ? Number(r.new_days)  : null,
     newCategory:      r.new_category,
     newStatus:        r.new_status,

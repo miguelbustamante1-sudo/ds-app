@@ -113,13 +113,14 @@ export function CountriesPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Region ID</TableHead>
                 <TableHead>ISO Code</TableHead>
+                <TableHead>Currency Symbol</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {countries.items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No countries found. Create your first country to get started.
                   </TableCell>
                 </TableRow>
@@ -130,6 +131,7 @@ export function CountriesPage() {
                     <TableCell>{country.countryName}</TableCell>
                     <TableCell>{country.regionId ?? '-'}</TableCell>
                     <TableCell>{country.countryIso ?? '-'}</TableCell>
+                    <TableCell>{country.currencySymbol ?? '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

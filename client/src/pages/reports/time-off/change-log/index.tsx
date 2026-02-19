@@ -184,7 +184,9 @@ export function TimeOffChangeLogPage() {
                   rowBorder: true,
                 }}
               >
-                <DataGridTable />
+                <div className="overflow-x-auto">
+                  <DataGridTable />
+                </div>
                 <DataGridPagination sizes={[25, 50, 100]} />
               </DataGrid>
             </DataGridContainer>

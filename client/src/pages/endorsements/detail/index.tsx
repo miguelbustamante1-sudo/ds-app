@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import {
   Toolbar,
   ToolbarActions,
@@ -16,6 +16,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogBody,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiPut, apiPatch, apiPost, ApiError } from '@/lib/api';
 import { formatUTCDate } from '@/lib/utils';
@@ -112,6 +120,11 @@ export function EndorsementDetailPage() {
   // ── Edit state ──────────────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
 
+  // ── Approve state ────────────────────────────────────────────────────────────
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveComment, setApproveComment] = useState('');
+  const [approving, setApproving] = useState(false);
+
   // ── Add Bonus state ─────────────────────────────────────────────────────────
   const [currentBonusSelection, setCurrentBonusSelection] = useState<number | null>(null);
   const [currentBonusAmount, setCurrentBonusAmount] = useState<number | null>(null);
@@ -202,6 +215,26 @@ export function EndorsementDetailPage() {
       const message = err instanceof ApiError ? err.message : 'Failed to save endorsement';
       toast({ title: 'Error', description: message, variant: 'destructive' });
       // Stay in edit mode so the user can correct and retry
+    }
+  };
+
+  // ── Approve handler ──────────────────────────────────────────────────────────
+  const handleApprove = async () => {
+    try {
+      setApproving(true);
+      await apiPatch<void, UpdateEndorsementStatusDTO>(
+        `/api/endorsements/${endorsementId}/status`,
+        { status: 'Approved', comment: approveComment },
+      );
+      toast({ title: 'Approved', description: 'Endorsement has been approved.' });
+      setApproveDialogOpen(false);
+      setApproveComment('');
+      reload(endorsementId);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to approve endorsement';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -362,8 +395,14 @@ export function EndorsementDetailPage() {
             endorsementId={endorsementId}
             onSuccess={() => reload(endorsementId)}
           />
+          {endorsement.status === 'Pending' && !isEditing && (
+            <Button onClick={() => setApproveDialogOpen(true)}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve
+            </Button>
+          )}
           {!isEditing ? (
-            <Button onClick={() => setIsEditing(true)}>Edit</Button>
+            <Button variant="outline" onClick={() => setIsEditing(true)}>Edit</Button>
           ) : (
             <>
               <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
@@ -681,6 +720,34 @@ export function EndorsementDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Approve Dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={(open) => { setApproveDialogOpen(open); if (!open) setApproveComment(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Endorsement</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <Label htmlFor="approveComment">Approval Comment</Label>
+            <Textarea
+              id="approveComment"
+              className="mt-2"
+              rows={4}
+              placeholder="Enter an approval comment..."
+              value={approveComment}
+              onChange={(e) => setApproveComment(e.target.value)}
+            />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setApproveDialogOpen(false); setApproveComment(''); }} disabled={approving}>
+              Cancel
+            </Button>
+            <Button onClick={handleApprove} disabled={approving || !approveComment.trim()}>
+              {approving ? 'Approving...' : 'Approve'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

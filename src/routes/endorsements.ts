@@ -96,7 +96,15 @@ router.patch('/:id/status', requirePermission('Endorsements', 'create'), async (
     if (!existing) return res.status(404).json({ error: 'Endorsement not found' });
 
     const updateData: Record<string, unknown> = { status, updatedBy };
-    if (comment !== undefined) updateData.comment = comment;
+    if (comment !== undefined) {
+      if (status === 'Approved') {
+        const approvalNote = `Approval comment: ${comment}`;
+        const existingComment = (existing as { comment?: string | null }).comment;
+        updateData.comment = existingComment ? `${existingComment}\n${approvalNote}` : approvalNote;
+      } else {
+        updateData.comment = comment;
+      }
+    }
 
     const updated = await updateEndorsement(id, updateData);
     res.json(updated);

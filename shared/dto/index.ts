@@ -9,6 +9,7 @@ export * from './AuthUser';
 // Domain DTOs
 export * from './Country';
 export * from './Endorsement';
+export * from './Hiring';
 export * from './Holiday';
 export * from './Region';
 export * from './Role';

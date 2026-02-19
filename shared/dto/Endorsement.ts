@@ -25,6 +25,22 @@ export interface EndorsementDTO {
 }
 
 /**
+ * EndorsementBonusWithCategoryDTO - Bonus entry with its subcategory and category resolved
+ */
+export interface EndorsementBonusWithCategoryDTO {
+  endorsementBonusId: number;
+  bonusSubcategoryId: number | null;
+  endorsementBonusAmount: number | null;
+  bonusSubcategory: {
+    bonusSubcategoryName: string;
+    bonusCategory: {
+      bonusCategoryId: number;
+      bonusCategoryName: string;
+    };
+  } | null;
+}
+
+/**
  * EndorsementWithDetailsDTO - Enriched DTO with project and country names
  */
 export interface EndorsementWithDetailsDTO extends EndorsementDTO {
@@ -33,11 +49,13 @@ export interface EndorsementWithDetailsDTO extends EndorsementDTO {
   };
   country: {
     countryName: string;
+    countryCurrencySymbol: string | null;
   };
   tierBand: {
     tierBandId: number;
     tierBandDescription: string;
   } | null;
+  endorsementBonuses?: EndorsementBonusWithCategoryDTO[];
 }
 
 /**
