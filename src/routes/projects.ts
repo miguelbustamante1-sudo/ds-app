@@ -1,15 +1,22 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import type { Project } from '@prisma/client';
 import type { CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
-import { getAllProjects, getProjectById, createProject, updateProject, deleteProject } from '../db/projects';
+import {
+  getAllProjects,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+} from '../db/projects';
 import { error } from '../logger';
-import { requirePermission } from '../middleware/auth';
+import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
+import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 
 const router = express.Router();
 
 // GET /projects
-router.get('/', requirePermission('Projects', 'read'), async (req: Request, res: Response) => {
+router.get('/', requirePermission('Projects', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const projects: Project[] = await getAllProjects();
     res.json(projects);
@@ -20,7 +27,7 @@ router.get('/', requirePermission('Projects', 'read'), async (req: Request, res:
 });
 
 // GET /projects/:id
-router.get('/:id', requirePermission('Projects', 'read'), async (req: Request, res: Response) => {
+router.get('/:id', requirePermission('Projects', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
@@ -36,11 +43,38 @@ router.get('/:id', requirePermission('Projects', 'read'), async (req: Request, r
 });
 
 // POST /projects
-router.post('/', requirePermission('Projects', 'create'), async (req: Request, res: Response) => {
+router.post('/', requirePermission('Projects', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { projectName, projectExternalId, projectSow } = req.body as CreateProjectDTO;
+    const createdBy = req.user?.email ?? 'unknown';
+    const {
+      projectName,
+      projectExternalId,
+      projectSow,
+      projectStartDate,
+      projectEndDate,
+      projectActive,
+    } = req.body as CreateProjectDTO;
 
-    const project = await createProject(projectName ?? null, projectExternalId ?? null, projectSow ?? null);
+    const project = await createProject({
+      projectName: projectName ?? null,
+      projectExternalId: projectExternalId ?? null,
+      projectSow: projectSow ?? null,
+      projectStartDate: projectStartDate ? new Date(projectStartDate) : null,
+      projectEndDate: projectEndDate ? new Date(projectEndDate) : null,
+      projectActive: projectActive ?? true,
+      projectCreatedAt: new Date(),
+      projectCreatedBy: createdBy,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'pro_projects',
+      entityId: String(project.projectId),
+      createdBy,
+      oldValues: null,
+      newValues: project,
+      comment: `Project "${project.projectName}" created`,
+    });
+
     res.status(201).json(project);
   } catch (err) {
     error(err);
@@ -49,15 +83,41 @@ router.post('/', requirePermission('Projects', 'create'), async (req: Request, r
 });
 
 // PUT /projects/:id
-router.put('/:id', requirePermission('Projects', 'create'), async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('Projects', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { projectName, projectExternalId, projectSow } = req.body as UpdateProjectDTO;
+    const updatedBy = req.user?.email ?? 'unknown';
+    const {
+      projectName,
+      projectExternalId,
+      projectSow,
+      projectStartDate,
+      projectEndDate,
+      projectActive,
+    } = req.body as UpdateProjectDTO;
 
-    const project = await updateProject(id, projectName ?? null, projectExternalId ?? null, projectSow ?? null);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    const before = await getProjectById(id);
+    if (!before) return res.status(404).json({ error: 'Project not found' });
+
+    const project = await updateProject(id, {
+      projectName: projectName ?? null,
+      projectExternalId: projectExternalId ?? null,
+      projectSow: projectSow ?? null,
+      projectStartDate: projectStartDate ? new Date(projectStartDate) : null,
+      projectEndDate: projectEndDate ? new Date(projectEndDate) : null,
+      projectActive: projectActive ?? null,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'pro_projects',
+      entityId: String(id),
+      createdBy: updatedBy,
+      oldValues: before,
+      newValues: project,
+      comment: `Project "${project?.projectName}" updated`,
+    });
 
     res.json(project);
   } catch (err) {
@@ -67,12 +127,27 @@ router.put('/:id', requirePermission('Projects', 'create'), async (req: Request,
 });
 
 // DELETE /projects/:id
-router.delete('/:id', requirePermission('Projects', 'delete'), async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('Projects', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
+    const deletedBy = req.user?.email ?? 'unknown';
+
+    const before = await getProjectById(id);
+    if (!before) return res.status(404).json({ error: 'Project not found' });
+
     await deleteProject(id);
+
+    await auditOrchestrator.log({
+      entityName: 'pro_projects',
+      entityId: String(id),
+      createdBy: deletedBy,
+      oldValues: before,
+      newValues: null,
+      comment: `Project "${before.projectName}" deleted`,
+    });
+
     res.status(204).send();
   } catch (err) {
     error(err);

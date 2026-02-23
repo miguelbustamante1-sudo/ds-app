@@ -16,7 +16,7 @@ interface LayoutProviderProps {
 }
 
 export function LayoutProvider({ children }: LayoutProviderProps) {
-  const [sidebarCollapse, setSidebarCollapse] = useState(false);
+  const [sidebarCollapse, setSidebarCollapse] = useState(true);
   const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>('light');
 
   return (

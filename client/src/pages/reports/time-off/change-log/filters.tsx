@@ -139,9 +139,7 @@ function useTeamMemberOptions(): ComboBoxOption[] {
   });
   return data.map((m) => ({
     value: String(m.teamMemberId),
-    label: m.teamMemberKnownAs
-      ? `${m.teamMemberKnownAs} ${m.teamMemberSurnames}`
-      : `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+    label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
   }));
 }
 

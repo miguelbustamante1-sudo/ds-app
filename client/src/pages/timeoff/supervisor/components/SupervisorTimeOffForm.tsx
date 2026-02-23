@@ -5,7 +5,7 @@ import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
-import { calculateFixedDurationEndDate } from '../../utils/fixedDurationEndDate';
+import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -139,28 +139,25 @@ export function SupervisorTimeOffForm({
     loadData();
   }, [teamMember?.teamMemberId, toast]);
 
-  // Reset dates, comment, and clear errors when category changes so the form starts clean
+  // Reset comment when category changes
   useEffect(() => {
     if (categoryId) {
-      setValue('startDate', undefined);
-      setValue('endDate', undefined);
       setValue('comment', '');
-      clearErrors(['startDate', 'endDate']);
     }
-  }, [categoryId, setValue, clearErrors]);
+  }, [categoryId, setValue]);
 
-  // Auto-calculate end date for fixed-duration categories
-  useEffect(() => {
-    if (isFixedDuration && fixedDays && startDate) {
-      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
-      // Only update if different to avoid infinite loop
-      if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
-        setValue('endDate', calculatedEndDate);
-      }
-    }
-  }, [isFixedDuration, fixedDays, isCalendar, startDate, endDate, setValue]);
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    isCalendar,
+    setValue,
+    clearErrors,
+  });
 
-  // Clear end date when start date changes and is higher than end date
+  // Clear end date when start date moves past it (non-fixed categories only)
   useEffect(() => {
     if (startDate && endDate && startDate > endDate && !isFixedDuration) {
       setValue('endDate', undefined);

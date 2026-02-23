@@ -1,5 +1,4 @@
 import { Bell, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
@@ -24,18 +23,7 @@ export function Header() {
         headerSticky && 'border-b border-border',
       )}
     >
-      <div className="container-fluid flex justify-between items-stretch lg:gap-4">
-        {/* HeaderLogo */}
-        <div className="flex items-center gap-2.5">
-          <Link to="/" className="shrink-0">
-            <img
-              src={toAbsoluteUrl('/media/app/telus_mini.png')}
-              className="h-[25px] w-full"
-              alt="mini-logo"
-            />
-          </Link>
-        </div>
-
+      <div className="container-fluid flex justify-end items-stretch lg:gap-4">
         {/* HeaderTopbar */}
         <div className="flex items-center gap-3">
           <SearchDialog

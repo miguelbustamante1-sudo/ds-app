@@ -32,6 +32,11 @@ model Project {
   projectName        String?             @map("pro_name") @db.VarChar(200)
   projectExternalId  String?             @map("pro_external_id") @db.VarChar(200)
   projectSow         String?             @map("pro_sow") @db.VarChar(100)
+  projectStartDate   DateTime?           @map("pro_start_date") @db.Date
+  projectEndDate     DateTime?           @map("pro_end_date") @db.Date
+  projectActive      Boolean?            @default(true) @map("pro_active")
+  projectCreatedAt   DateTime?           @map("pro_created_at") @db.Date
+  projectCreatedBy   String?             @map("pro_created_by") @db.VarChar(250)
   projectAssignments ProjectAssignment[]
   endorsements       Endorsement[]
 
@@ -153,21 +158,22 @@ model TimeOff {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model ProjectAssignment {
   projectAssignmentId               Int         @id @default(autoincrement()) @map("tmp_id") @db.Integer
-  teamMemberId                      Int?        @map("tms_id")
-  projectId                         Int?        @map("pro_id")
+  teamMemberId                      Int         @map("tms_id")
+  projectId                         Int         @map("pro_id")
   projectAssignmentStartDate        DateTime    @map("tmp_start_date") @db.Date
   projectAssignmentEndDate          DateTime?   @map("tmp_end_date") @db.Date
-  projectAssignmentBillRate         Decimal?    @map("tmp_bill_rate") @db.Decimal(15, 2)
-  projectAssignmentBillRateCurrency String?     @map("tmp_bill_rate_currency") @db.VarChar(3)
+  projectAssignmentBillRate         Decimal?    @default(0) @map("tmp_bill_rate") @db.Decimal(15, 2)
+  projectAssignmentBillRateCurrency String?     @map("tmp_bill_rate_currency") @db.VarChar(255)
   projectAssignmentCreatedBy        Int?        @map("tmp_created_by")
-  projectAssignmentCreatedDate      DateTime?   @map("tmp_created_at") @db.Date
+  projectAssignmentCreatedDate      DateTime?   @default(now()) @map("tmp_created_at") @db.Date
   projectAssignmentLastUpdatedBy    Int?        @map("tmp_updated_by")
   projectAssignmentLastUpdatedDate  DateTime?   @map("tmp_updated_at") @db.Date
-  projectAssignmentAllocation       Decimal?    @map("tmp_allocation") @db.Decimal(5, 2)
+  projectAssignmentAllocation       Decimal     @default(0) @map("tmp_allocation") @db.Decimal(5, 2)
   projectAssignmentDeleted          Boolean     @default(false) @map("tmp_deleted")
+  projectAssignmentDeleteReason     String?     @map("tmp_delete_reason") @db.VarChar(255)
   createdByUser                     User?       @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
-  project                           Project?    @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
-  teamMember                        TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
+  project                           Project     @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
+  teamMember                        TeamMember  @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
   lastUpdatedByUser                 User?       @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
 
   @@index([projectAssignmentCreatedBy], map: "idx_tmp_team_member_project_cby")

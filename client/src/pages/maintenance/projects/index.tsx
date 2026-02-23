@@ -9,6 +9,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -31,6 +32,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { ProjectFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
+
+function formatDate(value: string | null): string {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString();
+}
 
 export function ProjectsPage() {
   const [formOpen, setFormOpen] = useState(false);
@@ -114,13 +120,16 @@ export function ProjectsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>External ID</TableHead>
                 <TableHead>SOW</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Active</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projects.items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No projects found. Create your first project to get started.
                   </TableCell>
                 </TableRow>
@@ -131,6 +140,13 @@ export function ProjectsPage() {
                     <TableCell>{project.projectName ?? '-'}</TableCell>
                     <TableCell>{project.projectExternalId ?? '-'}</TableCell>
                     <TableCell>{project.projectSow ?? '-'}</TableCell>
+                    <TableCell>{formatDate(project.projectStartDate)}</TableCell>
+                    <TableCell>{formatDate(project.projectEndDate)}</TableCell>
+                    <TableCell>
+                      <Badge variant={project.projectActive ? 'primary' : 'secondary'}>
+                        {project.projectActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

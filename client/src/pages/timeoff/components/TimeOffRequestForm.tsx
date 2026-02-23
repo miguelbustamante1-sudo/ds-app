@@ -4,7 +4,7 @@ import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
-import { calculateFixedDurationEndDate } from '../utils/fixedDurationEndDate';
+import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -124,25 +124,16 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     loadData();
   }, [toast]);
 
-  // Reset dates and clear errors when category changes so the form starts clean
-  useEffect(() => {
-    if (categoryId) {
-      setValue('startDate', undefined);
-      setValue('endDate', undefined);
-      clearErrors(['startDate', 'endDate']);
-    }
-  }, [categoryId, setValue, clearErrors]);
-
-  // Auto-calculate end date for fixed-duration categories
-  useEffect(() => {
-    if (isFixedDuration && fixedDays && startDate) {
-      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
-      // Only update if different to avoid infinite loop
-      if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
-        setValue('endDate', calculatedEndDate);
-      }
-    }
-  }, [isFixedDuration, fixedDays, isCalendar, startDate, endDate, setValue]);
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    isCalendar,
+    setValue,
+    clearErrors,
+  });
 
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;

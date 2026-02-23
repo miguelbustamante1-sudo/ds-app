@@ -10,6 +10,11 @@ export interface ProjectDTO {
   projectName: string | null;
   projectExternalId: string | null;
   projectSow: string | null;
+  projectStartDate: string | null;
+  projectEndDate: string | null;
+  projectActive: boolean | null;
+  projectCreatedAt: string | null;
+  projectCreatedBy: string | null;
 }
 
 /**
@@ -19,6 +24,9 @@ export interface CreateProjectDTO {
   projectName: string | null;
   projectExternalId?: string | null;
   projectSow?: string | null;
+  projectStartDate?: string | null;
+  projectEndDate?: string | null;
+  projectActive?: boolean | null;
 }
 
 /**
@@ -28,4 +36,7 @@ export interface UpdateProjectDTO {
   projectName?: string | null;
   projectExternalId?: string | null;
   projectSow?: string | null;
+  projectStartDate?: string | null;
+  projectEndDate?: string | null;
+  projectActive?: boolean | null;
 }

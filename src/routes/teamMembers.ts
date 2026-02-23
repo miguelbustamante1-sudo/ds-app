@@ -4,14 +4,15 @@ import type { Prisma } from '@prisma/client';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '../../shared/dto';
 import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor, createTeamMember, updateTeamMember, deleteTeamMember } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
-import { getTeamMembersBySupervisor as getSupervisorReports } from '../services/timeoff/supervisor/queries';
+import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
+import { getReports, getAvailableForProject } from '../services/teamMember';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
 // GET /team-members
-router.get('/', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
+router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, res: Response) => {
   try {
     const items = await getAllTeamMembersWithDetails();
     const dtos: TeamMemberDTO[] = items.map(item => ({
@@ -67,7 +68,7 @@ router.get('/supervisor/:supervisor_id', requirePermission('TeamMembers', 'read'
   }
 });
 
-// GET /team-members/my-reports - Get team members that report to the current user
+// GET /team-members/my-reports?hierarchy=direct|complete
 router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const teamMemberId = req.user?.teamMemberId;
@@ -75,7 +76,8 @@ router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: 
       return res.status(404).json({ error: 'Team member not found for current user' });
     }
 
-    const reports = await getSupervisorReports(teamMemberId);
+    const includeFullHierarchy = req.query.hierarchy === 'complete';
+    const reports = await getReports(teamMemberId, includeFullHierarchy);
     res.json(reports);
   } catch (err) {
     error(err);
@@ -100,6 +102,40 @@ router.get('/me', requirePermission('TeamMembers', 'read'), async (req: Authenti
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch team member profile' });
+  }
+});
+
+// GET /team-members/available-resources
+router.get('/available-resources', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const resources = await getAvailableResources();
+    res.json(resources);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch available resources' });
+  }
+});
+
+// GET /team-members/available-under-supervisor?projectId=&q=
+router.get('/available-under-supervisor', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const supervisorId = req.user?.teamMemberId;
+    if (!supervisorId) {
+      return res.status(403).json({ error: 'Current user is not linked to a team member' });
+    }
+
+    const projectId = Number(req.query.projectId);
+    if (!req.query.projectId || Number.isNaN(projectId)) {
+      return res.status(400).json({ error: 'projectId query parameter is required' });
+    }
+
+    const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+
+    const resources = await getAvailableForProject(supervisorId, projectId, q);
+    res.json(resources);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch available resources under supervisor' });
   }
 });
 

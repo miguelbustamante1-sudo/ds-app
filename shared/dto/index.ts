@@ -18,6 +18,7 @@ export * from './ProjectAssignment';
 export * from './SupervisorAssignment';
 export * from './SupervisedTeamMember';
 export * from './TeamMember';
+export * from './TeamMemberReport';
 export * from './TimeOff';
 export * from './TimeOffCategory';
 export * from './CategoryCountry';

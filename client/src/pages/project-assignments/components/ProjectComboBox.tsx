@@ -6,10 +6,11 @@ import { apiGet } from '@/lib/api';
 interface ProjectComboBoxProps {
   value: string;
   onValueChange: (value: string) => void;
+  placeholder?: string;
   disabled?: boolean;
 }
 
-export function ProjectComboBox({ value, onValueChange, disabled }: ProjectComboBoxProps) {
+export function ProjectComboBox({ value, onValueChange, placeholder, disabled }: ProjectComboBoxProps) {
   const [projects, setProjects] = useState<ProjectDTO[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +46,7 @@ export function ProjectComboBox({ value, onValueChange, disabled }: ProjectCombo
       options={options}
       value={value}
       onValueChange={onValueChange}
-      placeholder={loading ? 'Loading projects...' : 'Select a project'}
+      placeholder={loading ? 'Loading projects...' : (placeholder ?? 'Select a project')}
       searchPlaceholder="Search projects..."
       emptyMessage="No active projects found."
       disabled={disabled || loading}

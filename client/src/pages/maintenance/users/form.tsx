@@ -159,14 +159,9 @@ export function UserFormDialog({
     }
   };
 
-  const getTeamMemberDisplayName = (tm: TeamMemberDTO) => {
-    const fullName = `${tm.teamMemberNames} ${tm.teamMemberSurnames}`;
-    return tm.teamMemberKnownAs ? `${fullName} (${tm.teamMemberKnownAs})` : fullName;
-  };
-
   const teamMemberOptions: ComboBoxOption[] = teamMembers.map((tm) => ({
     value: tm.teamMemberId.toString(),
-    label: getTeamMemberDisplayName(tm),
+    label: `${tm.teamMemberNames} ${tm.teamMemberSurnames}`,
   }));
 
   return (

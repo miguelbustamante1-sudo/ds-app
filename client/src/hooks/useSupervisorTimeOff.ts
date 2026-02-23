@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { apiGet, apiPost, apiPatch, ApiError } from '../lib/api';
-import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
+import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO, TeamTimeOffCurrentMonthDTO, TeamMemberYearlySummaryDTO, TeamMemberTimeOffBreakdownDTO, TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
 import type { TimeOff } from '@prisma/client';
 
@@ -19,7 +19,7 @@ export interface UseSupervisorTimeOffOptions {
  * Hook for fetching supervised team members
  */
 export function useMyTeamMembers(options?: UseSupervisorTimeOffOptions) {
-  const [teamMembers, setTeamMembers] = useState<SupervisedTeamMemberDTO[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberReportDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export function useMyTeamMembers(options?: UseSupervisorTimeOffOptions) {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiGet<SupervisedTeamMemberDTO[]>(`${API_BASE}/my-team-members`);
+      const data = await apiGet<TeamMemberReportDTO[]>('/api/team-members/my-reports?hierarchy=complete');
       setTeamMembers(data);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to load team members';

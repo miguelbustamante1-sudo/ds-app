@@ -35,9 +35,10 @@ export async function getTeamMemberProjectsByTeamMember(teamMemberId: number): P
   });
 }
 
-export async function getTeamMemberProjectsByProject(projectId: number): Promise<ProjectAssignment[]> {
+export async function getTeamMemberProjectsByProject(projectId: number) {
   return await prisma.projectAssignment.findMany({
     where: { projectId },
+    include: { teamMember: true },
     orderBy: { projectAssignmentId: 'asc' },
   });
 }
@@ -73,4 +74,29 @@ export async function deleteTeamMemberProject(id: number): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function closeAndCreateAssignment(
+  currentId: number,
+  closeEndDate: Date,
+  newRecord: Prisma.ProjectAssignmentUncheckedCreateInput,
+  updatedBy: number | null,
+  updatedDate: Date,
+): Promise<{ closed: ProjectAssignment; created: ProjectAssignment }> {
+  return await prisma.$transaction(async (tx) => {
+    const closed = await tx.projectAssignment.update({
+      where: { projectAssignmentId: currentId },
+      data: {
+        projectAssignmentEndDate: closeEndDate,
+        projectAssignmentLastUpdatedBy: updatedBy,
+        projectAssignmentLastUpdatedDate: updatedDate,
+      },
+    });
+
+    const created = await tx.projectAssignment.create({
+      data: newRecord,
+    });
+
+    return { closed, created };
+  });
 }

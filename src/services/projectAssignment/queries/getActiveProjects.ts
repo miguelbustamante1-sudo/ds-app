@@ -1,24 +1,14 @@
 /**
- * Query to find projects that have at least one active assignment
+ * Query to find projects that are marked as active
  */
 
 import { prisma } from '../../../db/prisma';
 import type { ProjectDTO } from '@shared/dto';
 
 export async function getActiveProjects(search?: string): Promise<ProjectDTO[]> {
-  const today = new Date();
-
   const projects = await prisma.project.findMany({
     where: {
-      projectAssignments: {
-        some: {
-          projectAssignmentDeleted: false,
-          OR: [
-            { projectAssignmentEndDate: null },
-            { projectAssignmentEndDate: { gte: today } },
-          ],
-        },
-      },
+      projectActive: true,
       ...(search
         ? { projectName: { contains: search, mode: 'insensitive' as const } }
         : {}),
@@ -31,5 +21,10 @@ export async function getActiveProjects(search?: string): Promise<ProjectDTO[]> 
     projectName: p.projectName,
     projectExternalId: p.projectExternalId,
     projectSow: p.projectSow,
+    projectStartDate: p.projectStartDate?.toISOString() ?? null,
+    projectEndDate: p.projectEndDate?.toISOString() ?? null,
+    projectActive: p.projectActive ?? true,
+    projectCreatedAt: p.projectCreatedAt?.toISOString() ?? null,
+    projectCreatedBy: p.projectCreatedBy ?? null,
   }));
 }

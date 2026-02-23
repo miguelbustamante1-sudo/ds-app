@@ -59,3 +59,28 @@ export interface UpdateTeamMemberDTO {
   countryId?: number | null;
   teamMemberPrimaryRole?: number | null;
 }
+
+/**
+ * AvailableResourceDTO - Team member with their total active allocation.
+ * Used by the available-resources query to surface team members with capacity.
+ */
+export interface AvailableResourceDTO {
+  teamMemberId: number;
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+  teamMemberKnownAs: string | null;
+  teamMemberSeniority: string;
+  countryId: number | null;
+  countryName: string | null;
+  roleName: string | null;
+  totalAllocation: number;
+}
+
+/**
+ * AvailableResourceUnderSupervisorDTO - Extends AvailableResourceDTO with
+ * computed available allocation and country currency for the Add TM dialog.
+ */
+export interface AvailableResourceUnderSupervisorDTO extends AvailableResourceDTO {
+  availableAllocation: number;           // 100 - totalAllocation
+  countryCurrencySymbol: string | null;  // from Country.countryCurrencySymbol
+}

@@ -50,5 +50,6 @@ export interface UpdateProjectAssignmentDTO {
  */
 export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   teamMemberName: string | null;
+  teamMemberSeniority: string | null;
   projectName: string | null;
 }
