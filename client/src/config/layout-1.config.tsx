@@ -46,6 +46,7 @@ import {
   Users,
   Briefcase as WorkIcon,
   FolderKanban,
+  ShieldCheck,
   Zap,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
@@ -125,11 +126,36 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Inbox,
     path: '/notification-center',
   },
-  { heading: 'Maintenance', role: 'admin' },
+  { heading: 'Security', role: 'admin' },
+  {
+    title: 'Access Control',
+    icon: ShieldCheck,
+    role: 'admin',
+    children: [
+      {
+        title: 'Roles',
+        path: '/security/roles',
+        icon: Key,
+        permission: 'RBACRoles',
+      },
+      {
+        title: 'Resources',
+        path: '/security/options',
+        icon: Database,
+        permission: 'RBACOptions',
+      },
+      {
+        title: 'Permissions Matrix',
+        path: '/security/permissions',
+        icon: ShieldCheck,
+        permission: 'RBACPermissions',
+      },
+    ],
+  },
+  { heading: 'Maintenance'},
   {
     title: 'Master Data',
     icon: Database,
-    role: 'admin',
     children: [
       { title: 'Bonus Categories', path: '/maintenance/bonus-categories', icon: Star, permission: 'Endorsements' },
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },

@@ -17,6 +17,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface MyTimeOffListProps {
   timeOffs: TimeOffWithDetailsDTO[] | undefined;
@@ -47,6 +49,7 @@ function canModify(timeOff: TimeOffWithDetailsDTO): boolean {
 export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [showCancelled, setShowCancelled] = useState(false);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -133,8 +136,13 @@ export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, o
 
   const data = timeOffs ?? [];
 
+  const filteredData = useMemo(() => {
+    if (showCancelled) return data;
+    return data.filter(t => !t.statusName.toLowerCase().includes('cancelled'));
+  }, [data, showCancelled]);
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     state: {
       sorting,
@@ -171,22 +179,37 @@ export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, o
 
   return (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search time off requests..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search + Show Cancelled */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search time off requests..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="show-cancelled-my"
+            checked={showCancelled}
+            onCheckedChange={(checked) => setShowCancelled(checked === true)}
+          />
+          <Label
+            htmlFor="show-cancelled-my"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Show cancelled
+          </Label>
+        </div>
       </div>
 
       {/* Data Grid */}
       <DataGridContainer>
         <DataGrid
           table={table}
-          recordCount={data.length}
+          recordCount={filteredData.length}
           tableLayout={{
             headerBackground: true,
             headerBorder: true,

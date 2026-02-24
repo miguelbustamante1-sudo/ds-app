@@ -34,3 +34,4 @@ export * from './TimeOffChangeLog';
 // Security DTOs
 export * from './Permission';
 export * from './SecurityRole';
+export * from './Option';

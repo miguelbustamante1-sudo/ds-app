@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { BonusSubcategoryFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,7 @@ export function BonusSubcategoriesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingSubcategory, setDeletingSubcategory] = useState<BonusSubcategoryDTO | null>(null);
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const bonusSubcategories = useEntityList<BonusSubcategoryDTO, CreateBonusSubcategoryDTO, UpdateBonusSubcategoryDTO>({
     endpoint: '/api/bonus-subcategories',
@@ -84,6 +86,14 @@ export function BonusSubcategoriesPage() {
     bonusSubcategories.loadItems();
   };
 
+  if (!canRead('Endorsements')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -92,10 +102,12 @@ export function BonusSubcategoriesPage() {
           <ToolbarDescription>Manage bonus subcategory catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Subcategory
-          </Button>
+          {canCreate('Endorsements') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Subcategory
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 
@@ -143,20 +155,24 @@ export function BonusSubcategoriesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(subcategory)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(subcategory)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
+                        {canCreate('Endorsements') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(subcategory)}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                        )}
+                        {canDelete('Endorsements') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(subcategory)}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

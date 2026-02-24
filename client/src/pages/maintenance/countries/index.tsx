@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { CountryFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,7 @@ export function CountriesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingCountry, setDeletingCountry] = useState<CountryDTO | null>(null);
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const countries = useEntityList<CountryDTO, CreateCountryDTO, UpdateCountryDTO>({
     endpoint: '/api/countries',
@@ -83,6 +85,14 @@ export function CountriesPage() {
     setEditingCountry(undefined);
   };
 
+  if (!canRead('Countries')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -91,10 +101,12 @@ export function CountriesPage() {
           <ToolbarDescription>Manage countries catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Country
-          </Button>
+          {canCreate('Countries') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Country
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 
@@ -134,20 +146,24 @@ export function CountriesPage() {
                     <TableCell>{country.currencySymbol ?? '-'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(country)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(country)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
+                        {canCreate('Countries') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(country)}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                        )}
+                        {canDelete('Countries') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(country)}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -125,7 +125,7 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('1
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('16', 'TimeOffStatuses', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('17', 'TimeOffs', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('18', 'SupervisorTimeOff', NOW()) ON CONFLICT (opt_id) DO NOTHING;
-INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('19', 'Options', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('19', 'RBACOptions', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('20', 'Notifications', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 
 
@@ -162,9 +162,9 @@ BEGIN
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffStatuses', 't', 't', 't', 'CRUD', NOW(), '16', '2');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffs', 't', 't', 't', 'CRUD', NOW(), '17', '2');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorTimeOff', 't', 't', 't', NULL, NOW(), '18', '1');
-    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Options', 't', 't', 't', NULL, NOW(), '19', '1');
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('RBACOptions', 't', 't', 't', NULL, NOW(), '19', '1');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorTimeOff', 't', 't', 't', NULL, NOW(), '18', '2');
-    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Options', 't', 't', 't', NULL, NOW(), '19', '2');
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('RBACOptions', 't', 't', 't', NULL, NOW(), '19', '2');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Notifications', 't', 't', 't', 'CRUD', NOW(), '20', '1');
   END IF;
 END $$;

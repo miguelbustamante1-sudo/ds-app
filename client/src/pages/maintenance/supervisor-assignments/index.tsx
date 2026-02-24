@@ -35,6 +35,7 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { SupervisorAssignmentFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +65,7 @@ export function SupervisorAssignmentsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const assignments = useEntityList<SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO>({
     endpoint: '/api/supervisor-assignments',
@@ -134,12 +136,16 @@ export function SupervisorAssignmentsPage() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
-              <Pencil size={16} />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
-              <Trash2 size={16} className="text-destructive" />
-            </Button>
+            {canCreate('SupervisorAssignments') && (
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
+                <Pencil size={16} />
+              </Button>
+            )}
+            {canDelete('SupervisorAssignments') && (
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
+                <Trash2 size={16} className="text-destructive" />
+              </Button>
+            )}
           </div>
         ),
         size: 100,
@@ -147,7 +153,7 @@ export function SupervisorAssignmentsPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({
@@ -228,6 +234,14 @@ export function SupervisorAssignmentsPage() {
     return `This will permanently delete the supervisor assignment where "${supervisor}" supervises "${teamMember}". This action cannot be undone.`;
   };
 
+  if (!canRead('SupervisorAssignments')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -236,10 +250,12 @@ export function SupervisorAssignmentsPage() {
           <ToolbarDescription>Manage supervisor to team member assignments</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Assignment
-          </Button>
+          {canCreate('SupervisorAssignments') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Assignment
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 

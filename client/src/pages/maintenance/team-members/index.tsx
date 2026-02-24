@@ -34,6 +34,7 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { TeamMemberFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,6 +56,7 @@ export function TeamMembersPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const teamMembers = useEntityList<TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO>({
     endpoint: '/api/team-members',
@@ -140,12 +142,16 @@ export function TeamMembersPage() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
-              <Pencil size={16} />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
-              <Trash2 size={16} className="text-destructive" />
-            </Button>
+            {canCreate('TeamMembers') && (
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
+                <Pencil size={16} />
+              </Button>
+            )}
+            {canDelete('TeamMembers') && (
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
+                <Trash2 size={16} className="text-destructive" />
+              </Button>
+            )}
           </div>
         ),
         size: 100,
@@ -153,7 +159,7 @@ export function TeamMembersPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({
@@ -195,6 +201,14 @@ export function TeamMembersPage() {
     setEditingTeamMember(undefined);
   };
 
+  if (!canRead('TeamMembers')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -203,10 +217,12 @@ export function TeamMembersPage() {
           <ToolbarDescription>Manage team members catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Team Member
-          </Button>
+          {canCreate('TeamMembers') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Team Member
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 

@@ -38,6 +38,7 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { CategoryCountryFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,6 +51,7 @@ export function CategoryCountryPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const entities = useEntityList<CategoryCountryDTO, CreateCategoryCountryDTO, UpdateCategoryCountryDTO>({
     endpoint: '/api/time-off-categories-by-country',
@@ -169,12 +171,16 @@ export function CategoryCountryPage() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
-              <Pencil size={16} />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
-              <Trash2 size={16} className="text-destructive" />
-            </Button>
+            {canCreate('TimeOffCategoriesByCountry') && (
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
+                <Pencil size={16} />
+              </Button>
+            )}
+            {canDelete('TimeOffCategoriesByCountry') && (
+              <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(row.original)}>
+                <Trash2 size={16} className="text-destructive" />
+              </Button>
+            )}
           </div>
         ),
         size: 100,
@@ -182,7 +188,7 @@ export function CategoryCountryPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({
@@ -224,6 +230,14 @@ export function CategoryCountryPage() {
     setEditingItem(undefined);
   };
 
+  if (!canRead('TimeOffCategoriesByCountry')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -232,10 +246,12 @@ export function CategoryCountryPage() {
           <ToolbarDescription>Manage time-off category settings per country</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Category by Country
-          </Button>
+          {canCreate('TimeOffCategoriesByCountry') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Category by Country
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 

@@ -5,7 +5,7 @@ import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '..
 import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor, createTeamMember, updateTeamMember, deleteTeamMember } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
 import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
-import { getReports, getAvailableForProject } from '../services/teamMember';
+import { getReports, getAvailableForProject, getAvailableForProjectAll } from '../services/teamMember';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -119,17 +119,24 @@ router.get('/available-resources', requirePermission('TeamMembers', 'read'), asy
 // GET /team-members/available-under-supervisor?projectId=&q=
 router.get('/available-under-supervisor', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const supervisorId = req.user?.teamMemberId;
-    if (!supervisorId) {
-      return res.status(403).json({ error: 'Current user is not linked to a team member' });
-    }
-
     const projectId = Number(req.query.projectId);
     if (!req.query.projectId || Number.isNaN(projectId)) {
       return res.status(400).json({ error: 'projectId query parameter is required' });
     }
 
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+
+    const isBsa = req.user?.roles.includes('bsa') ?? false;
+
+    if (isBsa) {
+      const resources = await getAvailableForProjectAll(projectId, q);
+      return res.json(resources);
+    }
+
+    const supervisorId = req.user?.teamMemberId;
+    if (!supervisorId) {
+      return res.status(403).json({ error: 'Current user is not linked to a team member' });
+    }
 
     const resources = await getAvailableForProject(supervisorId, projectId, q);
     res.json(resources);

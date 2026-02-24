@@ -19,6 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface SupervisorTimeOffListProps {
   timeOffs: TimeOffWithDetailsDTO[];
@@ -66,12 +68,12 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
     { id: 'timeOffStartDate', desc: false }
   ]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [showCancelled, setShowCancelled] = useState(false);
 
-  // Filter out cancelled time-offs
-  const filteredTimeOffs = useMemo(() =>
-    timeOffs.filter(t => !t.statusName.toLowerCase().includes('cancelled')),
-    [timeOffs]
-  );
+  const filteredTimeOffs = useMemo(() => {
+    if (showCancelled) return timeOffs;
+    return timeOffs.filter(t => !t.statusName.toLowerCase().includes('cancelled'));
+  }, [timeOffs, showCancelled]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -191,21 +193,36 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
         <h3 className="text-lg font-semibold">Time Off Requests</h3>
       </div>
 
-      {filteredTimeOffs.length === 0 ? (
+      {timeOffs.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No time off requests found for this team member.
         </div>
       ) : (
         <div className="p-4 space-y-4">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search time off requests..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-10"
-            />
+          {/* Search + Show Cancelled */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search time off requests..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-cancelled-supervisor"
+                checked={showCancelled}
+                onCheckedChange={(checked) => setShowCancelled(checked === true)}
+              />
+              <Label
+                htmlFor="show-cancelled-supervisor"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Show cancelled
+              </Label>
+            </div>
           </div>
 
           {/* Data Grid */}

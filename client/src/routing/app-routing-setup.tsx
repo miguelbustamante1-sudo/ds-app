@@ -30,6 +30,9 @@ import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { HiringPage } from '@/pages/hiring';
 import { HiringDetailPage } from '@/pages/hiring/detail';
+import { RolesPage } from '@/pages/security/roles';
+import { OptionsPage } from '@/pages/security/options';
+import { PermissionsPage } from '@/pages/security/permissions';
 
 export function AppRoutingSetup() {
   return (
@@ -71,6 +74,10 @@ export function AppRoutingSetup() {
         <Route path="/hiring/:id" element={<HiringDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
+        {/* Security - RBAC management */}
+        <Route path="/security/roles" element={<RolesPage />} />
+        <Route path="/security/options" element={<OptionsPage />} />
+        <Route path="/security/permissions" element={<PermissionsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

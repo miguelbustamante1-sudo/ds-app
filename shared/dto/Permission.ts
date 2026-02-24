@@ -7,23 +7,26 @@
  */
 export interface PermissionDTO {
   permissionId: number;
-  permissionResource: string;
+  permissionResource: string | null;
   permissionRead: boolean;
   permissionWrite: boolean;
   permissionDelete: boolean;
   permissionDescription: string | null;
   updatedAt: Date | null;
+  optionId: number;
+  roleId: number;
 }
 
 /**
  * CreatePermissionDTO - Data required to create a new permission
  */
 export interface CreatePermissionDTO {
-  permissionResource: string;
   permissionRead?: boolean;
   permissionWrite?: boolean;
   permissionDelete?: boolean;
   permissionDescription?: string | null;
+  optionId: number;
+  roleId: number;
 }
 
 /**

@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { TierBandFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,7 @@ export function TierBandsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTierBand, setDeletingTierBand] = useState<TierBandDTO | null>(null);
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const tierBands = useEntityList<TierBandDTO, CreateTierBandDTO, UpdateTierBandDTO>({
     endpoint: '/api/tier-bands',
@@ -84,6 +86,14 @@ export function TierBandsPage() {
     tierBands.loadItems();
   };
 
+  if (!canRead('TierBands')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -92,10 +102,12 @@ export function TierBandsPage() {
           <ToolbarDescription>Manage tier band catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Tier Band
-          </Button>
+          {canCreate('TierBands') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Tier Band
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 
@@ -129,20 +141,24 @@ export function TierBandsPage() {
                     <TableCell>{tierBand.tierBandDescription}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(tierBand)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(tierBand)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
+                        {canCreate('TierBands') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(tierBand)}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                        )}
+                        {canDelete('TierBands') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(tierBand)}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

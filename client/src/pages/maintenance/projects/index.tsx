@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { ProjectFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,6 +45,7 @@ export function ProjectsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingProject, setDeletingProject] = useState<ProjectDTO | null>(null);
   const { toast } = useToast();
+  const { canRead, canCreate, canDelete } = usePermissions();
 
   const projects = useEntityList<ProjectDTO, CreateProjectDTO, UpdateProjectDTO>({
     endpoint: '/api/projects',
@@ -90,6 +92,14 @@ export function ProjectsPage() {
     projects.loadItems();
   };
 
+  if (!canRead('Projects')) {
+    return (
+      <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">
+        You don't have permission to view this page.
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       <Toolbar>
@@ -98,10 +108,12 @@ export function ProjectsPage() {
           <ToolbarDescription>Manage projects catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={handleCreate}>
-            <Plus size={16} className="me-1" />
-            New Project
-          </Button>
+          {canCreate('Projects') && (
+            <Button onClick={handleCreate}>
+              <Plus size={16} className="me-1" />
+              New Project
+            </Button>
+          )}
         </ToolbarActions>
       </Toolbar>
 
@@ -149,20 +161,24 @@ export function ProjectsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(project)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(project)}
-                        >
-                          <Trash2 size={16} className="text-destructive" />
-                        </Button>
+                        {canCreate('Projects') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(project)}
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                        )}
+                        {canDelete('Projects') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(project)}
+                          >
+                            <Trash2 size={16} className="text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
