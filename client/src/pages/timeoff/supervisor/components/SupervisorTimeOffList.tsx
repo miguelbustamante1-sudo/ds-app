@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { XCircle, Search, Pencil } from 'lucide-react';
 import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
+import { VACATION_CATEGORY_NAME } from '../../utils/elSalvadorVacationValidation';
+import type { CategoryMode } from './SupervisorTimeOffForm';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -28,6 +30,7 @@ interface SupervisorTimeOffListProps {
   onEditClick: (timeOff: TimeOffWithDetailsDTO) => void;
   onCancelClick: (timeOff: TimeOffWithDetailsDTO) => void;
   onRowClick?: (timeOff: TimeOffWithDetailsDTO) => void;
+  categoryMode?: CategoryMode;
 }
 
 /**
@@ -63,7 +66,7 @@ function canEdit(timeOff: TimeOffWithDetailsDTO): boolean {
   return startDate >= today;
 }
 
-export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick }: SupervisorTimeOffListProps) {
+export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick, categoryMode }: SupervisorTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'timeOffStartDate', desc: false }
   ]);
@@ -71,9 +74,24 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
   const [showCancelled, setShowCancelled] = useState(false);
 
   const filteredTimeOffs = useMemo(() => {
-    if (showCancelled) return timeOffs;
-    return timeOffs.filter(t => !t.statusName.toLowerCase().includes('cancelled'));
-  }, [timeOffs, showCancelled]);
+    let result = timeOffs;
+
+    if (categoryMode === 'vacation-only') {
+      result = result.filter(
+        (t) => t.categoryName.toLowerCase() === VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    } else if (categoryMode === 'exclude-vacation') {
+      result = result.filter(
+        (t) => t.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    }
+
+    if (!showCancelled) {
+      result = result.filter((t) => !t.statusName.toLowerCase().includes('cancelled'));
+    }
+
+    return result;
+  }, [timeOffs, showCancelled, categoryMode]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [

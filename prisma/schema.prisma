@@ -554,3 +554,11 @@ model EndorsementBonus {
   @@map("ebn_endorsement_bonus")
   @@schema("ds")
 }
+
+model Client {
+  Id   Int    @id @default(autoincrement()) @map("cli_id") @db.Integer
+  Name String @map("cli_name") @db.Text
+
+  @@map("cli_clients")
+  @@schema("ds")
+}

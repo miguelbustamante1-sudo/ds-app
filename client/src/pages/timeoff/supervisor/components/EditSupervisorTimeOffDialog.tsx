@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
@@ -26,11 +26,13 @@ import { apiGet, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../../utils/overlapDetection';
 import {
+  VACATION_CATEGORY_NAME,
   isElSalvadorVacation,
   calculateCalendarDays,
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../../utils/elSalvadorVacationValidation';
+import type { CategoryMode } from './SupervisorTimeOffForm';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -58,6 +60,7 @@ interface EditSupervisorTimeOffDialogProps {
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onConfirm: (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => Promise<void>;
   loading: boolean;
+  categoryMode?: CategoryMode;
 }
 
 export function EditSupervisorTimeOffDialog({
@@ -68,6 +71,7 @@ export function EditSupervisorTimeOffDialog({
   existingTimeOffs,
   onConfirm,
   loading,
+  categoryMode,
 }: EditSupervisorTimeOffDialogProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
@@ -142,6 +146,28 @@ export function EditSupervisorTimeOffDialog({
     }
     loadData();
   }, [teamMember?.teamMemberId, open, toast]);
+
+  // Filter categories based on categoryMode
+  const filteredCategories = useMemo(() => {
+    if (categoryMode === 'vacation-only') {
+      return categories.filter(
+        (c) => c.categoryName.toLowerCase() === VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    }
+    if (categoryMode === 'exclude-vacation') {
+      return categories.filter(
+        (c) => c.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    }
+    return categories;
+  }, [categories, categoryMode]);
+
+  // Auto-select the vacation category when in vacation-only mode
+  useEffect(() => {
+    if (categoryMode === 'vacation-only' && filteredCategories.length === 1) {
+      setValue('categoryId', filteredCategories[0].categoryId.toString());
+    }
+  }, [categoryMode, filteredCategories, setValue]);
 
   // Reset form when timeOff changes or dialog opens
   useEffect(() => {
@@ -249,7 +275,7 @@ export function EditSupervisorTimeOffDialog({
         <DialogHeader>
           <DialogTitle>Edit Time Off Request</DialogTitle>
           <DialogDescription>
-            Update the time off request for {teamMember.teamMemberFullName}.
+            Update the time off request for {teamMember.teamMemberNames} {teamMember.teamMemberSurnames}.
           </DialogDescription>
         </DialogHeader>
 
@@ -265,7 +291,7 @@ export function EditSupervisorTimeOffDialog({
               rules={{ required: 'Category is required' }}
               render={({ field }) => (
                 <ComboBox
-                  options={categories.map((cat): ComboBoxOption => ({
+                  options={filteredCategories.map((cat): ComboBoxOption => ({
                     value: cat.categoryId.toString(),
                     label: cat.categoryName,
                   }))}
@@ -274,7 +300,7 @@ export function EditSupervisorTimeOffDialog({
                   placeholder={loadingCategories ? 'Loading...' : 'Select category'}
                   searchPlaceholder="Search categories..."
                   emptyMessage="No categories found."
-                  disabled={loadingCategories}
+                  disabled={loadingCategories || categoryMode === 'vacation-only'}
                 />
               )}
             />
@@ -414,7 +440,7 @@ export function EditSupervisorTimeOffDialog({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Time off cannot extend beyond {teamMember.teamMemberFullName}'s end date ({format(teamMemberEndDate, 'PPP')}).
+                Time off cannot extend beyond {teamMember.teamMemberNames} {teamMember.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'PPP')}).
               </AlertDescription>
             </Alert>
           )}

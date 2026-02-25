@@ -14,27 +14,22 @@ import {
   useTeamMemberTimeOffs,
   useSupervisorTimeOffOperations,
 } from '@/hooks/useSupervisorTimeOff';
-import { TeamMembersDataGrid } from './components/TeamMembersDataGrid';
-import { SupervisorTimeOffList } from './components/SupervisorTimeOffList';
-import { SupervisorTimeOffForm } from './components/SupervisorTimeOffForm';
-import { CancelTimeOffDialog } from './components/CancelTimeOffDialog';
-import { EditSupervisorTimeOffDialog } from './components/EditSupervisorTimeOffDialog';
+import { TeamMembersDataGrid } from '../supervisor/components/TeamMembersDataGrid';
+import { SupervisorTimeOffList } from '../supervisor/components/SupervisorTimeOffList';
+import { SupervisorTimeOffForm } from '../supervisor/components/SupervisorTimeOffForm';
+import { CancelTimeOffDialog } from '../supervisor/components/CancelTimeOffDialog';
+import { EditSupervisorTimeOffDialog } from '../supervisor/components/EditSupervisorTimeOffDialog';
 
-export function SupervisorTimeOffPage() {
+export function SupervisorVacationsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Team members state
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
-  // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [timeOffToCancel, setTimeOffToCancel] = useState<TimeOffWithDetailsDTO | null>(null);
-
-  // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [timeOffToEdit, setTimeOffToEdit] = useState<TimeOffWithDetailsDTO | null>(null);
 
-  // Hooks
   const teamMembersHook = useMyTeamMembers({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
@@ -44,16 +39,12 @@ export function SupervisorTimeOffPage() {
   });
 
   const operationsHook = useSupervisorTimeOffOperations({
-    onSuccess: (message) => toast({ title: 'Success', description: message }),
+    onSuccess: (message) => toast({ title: 'Éxito', description: message }),
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
-  // Load team members on mount
-  useEffect(() => {
-    teamMembersHook.loadTeamMembers();
-  }, []);
+  useEffect(() => { teamMembersHook.loadTeamMembers(); }, []);
 
-  // Load time-offs when team member is selected
   useEffect(() => {
     if (selectedTeamMember) {
       timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
@@ -62,9 +53,8 @@ export function SupervisorTimeOffPage() {
     }
   }, [selectedTeamMember]);
 
-  // Handlers
-  const handleSelectTeamMember = useCallback((teamMember: TeamMemberReportDTO) => {
-    setSelectedTeamMember(teamMember);
+  const handleSelectTeamMember = useCallback((tm: TeamMemberReportDTO) => {
+    setSelectedTeamMember(tm);
   }, []);
 
   const handleRowClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
@@ -84,10 +74,7 @@ export function SupervisorTimeOffPage() {
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
-      // Refresh time-offs list
-      if (selectedTeamMember) {
-        timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
-      }
+      if (selectedTeamMember) timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
     },
     [operationsHook, selectedTeamMember, timeOffsHook]
   );
@@ -95,10 +82,7 @@ export function SupervisorTimeOffPage() {
   const handleConfirmEdit = useCallback(
     async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
       await operationsHook.updateTimeOff(timeOffId, data);
-      // Refresh time-offs list
-      if (selectedTeamMember) {
-        timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
-      }
+      if (selectedTeamMember) timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
     },
     [operationsHook, selectedTeamMember, timeOffsHook]
   );
@@ -106,10 +90,7 @@ export function SupervisorTimeOffPage() {
   const handleCreateTimeOff = useCallback(
     async (data: CreateSupervisorTimeOffDTO) => {
       await operationsHook.createTimeOff(data);
-      // Refresh time-offs list
-      if (selectedTeamMember) {
-        timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
-      }
+      if (selectedTeamMember) timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
     },
     [operationsHook, selectedTeamMember, timeOffsHook]
   );
@@ -118,14 +99,13 @@ export function SupervisorTimeOffPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>Supervisor Time Off Management</ToolbarPageTitle>
+          <ToolbarPageTitle>Supervisor Vacaciones</ToolbarPageTitle>
           <ToolbarDescription>
-            View and manage time off requests for your team members
+            Ver y gestionar solicitudes de vacaciones de tu equipo
           </ToolbarDescription>
         </ToolbarHeading>
       </Toolbar>
 
-      {/* Team Member Selector Bar */}
       <div className="flex items-center gap-4 mt-6">
         <div className="w-72 shrink-0">
           <TeamMembersDataGrid
@@ -137,13 +117,14 @@ export function SupervisorTimeOffPage() {
         </div>
         {selectedTeamMember && (
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold">{selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames}</span>
+            <span className="text-lg font-semibold">
+              {selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames}
+            </span>
             <span className="text-muted-foreground">WDID: {selectedTeamMember.workdayId}</span>
           </div>
         )}
       </div>
 
-      {/* Main Content */}
       <div className="mt-6">
         {selectedTeamMember ? (
           <div className="flex flex-col gap-6">
@@ -152,7 +133,7 @@ export function SupervisorTimeOffPage() {
               existingTimeOffs={timeOffsHook.timeOffs}
               onSubmit={handleCreateTimeOff}
               loading={operationsHook.loading}
-              categoryMode="exclude-vacation"
+              categoryMode="vacation-only"
             />
             <SupervisorTimeOffList
               timeOffs={timeOffsHook.timeOffs}
@@ -160,17 +141,16 @@ export function SupervisorTimeOffPage() {
               onEditClick={handleEditClick}
               onCancelClick={handleCancelClick}
               onRowClick={handleRowClick}
-              categoryMode="exclude-vacation"
+              categoryMode="vacation-only"
             />
           </div>
         ) : (
           <div className="bg-card rounded-lg border p-8 text-center text-muted-foreground">
-            Select a team member to view their time-off requests
+            Selecciona un miembro del equipo para ver sus vacaciones
           </div>
         )}
       </div>
 
-      {/* Cancel Dialog */}
       <CancelTimeOffDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
@@ -179,7 +159,6 @@ export function SupervisorTimeOffPage() {
         loading={operationsHook.loading}
       />
 
-      {/* Edit Dialog */}
       <EditSupervisorTimeOffDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
@@ -188,7 +167,7 @@ export function SupervisorTimeOffPage() {
         existingTimeOffs={timeOffsHook.timeOffs}
         onConfirm={handleConfirmEdit}
         loading={operationsHook.loading}
-        categoryMode="exclude-vacation"
+        categoryMode="vacation-only"
       />
     </div>
   );

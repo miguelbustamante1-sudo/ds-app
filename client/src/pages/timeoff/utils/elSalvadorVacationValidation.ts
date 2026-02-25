@@ -17,7 +17,7 @@ import { parseUTCDateAsLocal } from '@/lib/utils';
 
 // Constants
 const SV_COUNTRY_ISO = 'SV';
-const VACATION_CATEGORY_NAME = 'Vacation';
+export const VACATION_CATEGORY_NAME = 'Vacation';
 const ALLOWED_DAYS = [7, 8, 15] as const;
 const MAX_ANNUAL_DAYS = 15;
 

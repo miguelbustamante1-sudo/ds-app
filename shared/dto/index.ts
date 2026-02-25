@@ -6,6 +6,9 @@
 // Auth DTOs
 export * from './AuthUser';
 
+// Client DTOs
+export * from './Client';
+
 // Domain DTOs
 export * from './Country';
 export * from './Endorsement';

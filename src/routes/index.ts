@@ -25,6 +25,7 @@ import endorsementBonusesRouter from './endorsementBonuses';
 import tierBandsRouter from './tierBands';
 import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
+import clientsRouter from './clients';
 
 export default function registerRoutes() {
   const router = Router();
@@ -55,6 +56,7 @@ export default function registerRoutes() {
   router.use('/tier-bands', tierBandsRouter);
   router.use('/bonus-subcategories', bonusSubcategoriesRouter);
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
+  router.use('/clients', clientsRouter);
 
   return router;
 }

@@ -47,6 +47,7 @@ import {
   Briefcase as WorkIcon,
   FolderKanban,
   ShieldCheck,
+  Umbrella,
   Zap,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
@@ -81,6 +82,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Supervisor Time Off',
     icon: Users,
     path: '/supervisor-time-off',
+    permission: 'SupervisorTimeOff',
+  },
+  {
+    title: 'Supervisor Vacations',
+    icon: Umbrella,
+    path: '/supervisor-vacations',
     permission: 'SupervisorTimeOff',
   },
   {
@@ -160,6 +167,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Bonus Categories', path: '/maintenance/bonus-categories', icon: Star, permission: 'Endorsements' },
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },
       { title: 'Categories by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
+      { title: 'Clients', path: '/maintenance/clients', icon: Building, permission: 'Clients' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },
       { title: 'Projects', path: '/maintenance/projects', icon: FolderKanban, permission: 'Projects' },

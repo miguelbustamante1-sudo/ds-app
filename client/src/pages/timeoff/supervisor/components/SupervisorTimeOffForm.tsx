@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
@@ -18,6 +18,7 @@ import { apiGet, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../../utils/overlapDetection';
 import {
+  VACATION_CATEGORY_NAME,
   isElSalvadorVacation,
   calculateCalendarDays,
   getExistingVacationDaysThisYear,
@@ -42,11 +43,14 @@ interface FormData {
   comment: string;
 }
 
+export type CategoryMode = 'all' | 'vacation-only' | 'exclude-vacation';
+
 interface SupervisorTimeOffFormProps {
   teamMember: SupervisedTeamMemberDTO | null;
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
   loading: boolean;
+  categoryMode?: CategoryMode;
 }
 
 export function SupervisorTimeOffForm({
@@ -54,6 +58,7 @@ export function SupervisorTimeOffForm({
   existingTimeOffs,
   onSubmit,
   loading,
+  categoryMode,
 }: SupervisorTimeOffFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
@@ -138,6 +143,28 @@ export function SupervisorTimeOffForm({
     }
     loadData();
   }, [teamMember?.teamMemberId, toast]);
+
+  // Filter categories based on categoryMode
+  const filteredCategories = useMemo(() => {
+    if (categoryMode === 'vacation-only') {
+      return categories.filter(
+        (c) => c.categoryName.toLowerCase() === VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    }
+    if (categoryMode === 'exclude-vacation') {
+      return categories.filter(
+        (c) => c.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()
+      );
+    }
+    return categories;
+  }, [categories, categoryMode]);
+
+  // Auto-select the vacation category when in vacation-only mode
+  useEffect(() => {
+    if (categoryMode === 'vacation-only' && filteredCategories.length === 1) {
+      setValue('categoryId', filteredCategories[0].categoryId.toString());
+    }
+  }, [categoryMode, filteredCategories, setValue]);
 
   // Reset comment when category changes
   useEffect(() => {
@@ -249,7 +276,7 @@ export function SupervisorTimeOffForm({
         <div>
           <h3 className="text-lg font-semibold">New Time Off Request</h3>
           <p className="text-sm text-muted-foreground">
-            Creating request for <span className="font-medium">{teamMember.teamMemberFullName}</span>
+            Creating request for <span className="font-medium">{teamMember.teamMemberNames} {teamMember.teamMemberSurnames}</span>
           </p>
         </div>
       </div>
@@ -268,7 +295,7 @@ export function SupervisorTimeOffForm({
               rules={{ required: 'Category is required' }}
               render={({ field }) => (
                 <ComboBox
-                  options={categories.map((cat): ComboBoxOption => ({
+                  options={filteredCategories.map((cat): ComboBoxOption => ({
                     value: cat.categoryId.toString(),
                     label: cat.categoryName,
                   }))}
@@ -277,7 +304,7 @@ export function SupervisorTimeOffForm({
                   placeholder={loadingCategories ? 'Loading...' : 'Select category'}
                   searchPlaceholder="Search categories..."
                   emptyMessage="No categories found."
-                  disabled={loadingCategories}
+                  disabled={loadingCategories || categoryMode === 'vacation-only'}
                 />
               )}
             />
@@ -441,7 +468,7 @@ export function SupervisorTimeOffForm({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Time off cannot extend beyond {teamMember?.teamMemberFullName}'s end date ({format(teamMemberEndDate, 'PPP')}).
+              Time off cannot extend beyond {teamMember?.teamMemberNames} {teamMember?.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'PPP')}).
             </AlertDescription>
           </Alert>
         )}
