@@ -528,10 +528,11 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
   try {
     const { teamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
 
-    const { timeOffStartDate, timeOffEndDate, categoryId, warningReviewComment } = req.body as {
+    const { timeOffStartDate, timeOffEndDate, categoryId, comment, warningReviewComment } = req.body as {
       timeOffStartDate?: string;
       timeOffEndDate?: string;
       categoryId?: number;
+      comment?: string;
       warningReviewComment?: string;
     };
 
@@ -586,7 +587,7 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
 
     await createTimeOffChangeLog({
       timeOffId: created.timeOffId,
-      comment: 'Time-off request created',
+      comment: comment || 'Time-off request created',
       oldValues: {},
       newValues: { timeOffStartDate, timeOffEndDate, categoryId, statusId: effectiveStatusId },
       createdByUserId: userId,

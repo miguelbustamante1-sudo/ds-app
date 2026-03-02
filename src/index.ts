@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 import { authMiddleware } from './middleware/auth';
 import { getAllCountries } from './db/countries';
 import { error } from './logger';
+import { processAttritionTimeOffs } from './services/timeoff/attrition/processAttrition';
 
 import type { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -80,6 +81,11 @@ async function refreshSchemaCheck() {
 // Run immediately and then every 5 minutes
 refreshSchemaCheck();
 setInterval(refreshSchemaCheck, 5 * 60 * 1000);
+
+// Attrition job: cancel future time-offs for team members who have reached their end date.
+// Runs once on startup (to catch any missed days) and then every 24 hours.
+processAttritionTimeOffs();
+setInterval(processAttritionTimeOffs, 24 * 60 * 60 * 1000);
 
 // PostgreSQL connection pool for Cloud SQL
 // pool is provided by `src/db/pool.ts`

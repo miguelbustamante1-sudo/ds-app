@@ -27,6 +27,7 @@ export async function getAllTeamMembersWithDetails() {
     include: {
       country: { select: { countryName: true } },
       primaryRole: { select: { roleName: true } },
+      tierBand: { select: { tierBandDescription: true } },
     },
     orderBy: { teamMemberId: 'asc' },
   });

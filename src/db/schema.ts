@@ -18,8 +18,6 @@ export type SchemaCheckResult = {
 const EXPECTED: Record<string, string[]> = {
   'ds.cou_countries': ['cou_id', 'reg_id', 'cou_name'],
   'ds.reg_regions': ['reg_id', 'reg_name'],
-  'ds.tbl_to_categories': ['cat_id', 'cat_name'],
-  'ds.tbl_to_categories_x_country': ['cxc_id', 'cat_id', 'cou_id', 'cxc_status', 'cxc_is_calendar'],
   'ds.tbl_team_members': [
     'tms_id',
     'tms_primary_role',
@@ -63,7 +61,7 @@ const EXPECTED: Record<string, string[]> = {
     'tto_credat',
     'tto_last_updated_ny',
     'tto_last_upddat',
-    'cat_id',
+    'tot_id',
   ],
   'ds.tbl_users': ['usr_id', 'usr_name', 'usr_email', 'usr_role', 'usr_stadat', 'usr_enddat'],
 };

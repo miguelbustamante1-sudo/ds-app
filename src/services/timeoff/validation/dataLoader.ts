@@ -28,15 +28,26 @@ export async function loadValidationContext(
   // 2. Resolve effective country (default to GT = 2 if null)
   const effectiveCountryId = teamMember.countryId ?? DEFAULTS.COUNTRY_ID;
 
-  // 3. Load allowed categories for effective country
+  // 3. Load allowed categories for effective country (include daysBefore for the notice-period rule)
   const allowedCategories = await prisma.categoryCountry.findMany({
     where: {
       countryId: effectiveCountryId,
       categoryCountryStatus: 1,
     },
-    select: { categoryId: true },
+    select: { categoryId: true, categoryCountryDaysBefore: true },
   });
   const allowedCategoryIds = allowedCategories.map((c) => c.categoryId);
+
+  // Resolve categoryCountryDaysBefore for the requested category (0 when not found / not applicable)
+  const matchedCategoryCountry = allowedCategories.find((c) => c.categoryId === input.categoryId);
+  const categoryCountryDaysBefore = matchedCategoryCountry?.categoryCountryDaysBefore ?? 0;
+
+  // Load category name for use in validation error messages
+  const categoryRecord = await prisma.timeOffCategory.findUnique({
+    where: { categoryId: input.categoryId },
+    select: { categoryName: true },
+  });
+  const categoryName = categoryRecord?.categoryName ?? '';
 
   // 4. Load blocking status IDs (all except "Cancelled")
   const allStatuses = await prisma.timeOffStatus.findMany({
@@ -68,6 +79,8 @@ export async function loadValidationContext(
     allowedCategoryIds,
     blockingStatusIds,
     overlappingTimeOffs,
+    categoryCountryDaysBefore,
+    categoryName,
   };
 }
 

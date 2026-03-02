@@ -133,11 +133,11 @@ model TimeOff {
   timeOffCreatedDate     DateTime?          @map("tto_credat") @db.Date
   timeOffLastUpdatedBy   Int?               @map("tto_last_updated_ny")
   timeOffLastUpdatedDate DateTime?          @map("tto_last_upddat") @db.Date
-  categoryId             Int?               @map("cat_id")
+  categoryId             Int?               @map("tot_id")
   timeOffActive          Int                @default(1) @map("tto_active")
   statusId               Int?               @map("sta_id")
   changeLogs             TimeOffChangeLog[]
-  category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tbl_tms_time_off_cat")
+  category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tms_time_off_tot")
   createdByUser          User?              @relation("tbl_tms_time_off_tto_created_byTotbl_users", fields: [timeOffCreatedBy], references: [userId], map: "fk_tbl_tms_time_off_cby")
   status                 TimeOffStatus?     @relation(fields: [statusId], references: [statusId], onDelete: Restrict, map: "fk_tbl_tms_time_off_sta")
   teamMember             TeamMember?        @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tbl_tms_time_off_tms")
@@ -145,7 +145,7 @@ model TimeOff {
   originalTimeOff        TimeOff?           @relation("TimeOffOriginal", fields: [timeOffOriginalId], references: [timeOffId], onDelete: Restrict, map: "fk_tbl_tms_time_off_original")
   splitTimeOffs          TimeOff[]          @relation("TimeOffOriginal")
 
-  @@index([categoryId], map: "idx_tbl_tms_time_off_cat_id")
+  @@index([categoryId], map: "idx_tms_time_off_tot_id")
   @@index([timeOffCreatedBy], map: "idx_tbl_tms_time_off_cby")
   @@index([statusId], map: "idx_tbl_tms_time_off_sta_id")
   @@index([teamMemberId], map: "idx_tbl_tms_time_off_tms_id")
@@ -210,33 +210,34 @@ model SupervisorAssignment {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model TimeOffCategory {
-  categoryId        Int               @id @default(autoincrement()) @map("cat_id") @db.Integer
-  categoryName      String            @map("cat_name") @db.VarChar(100)
+  categoryId        Int               @id @default(autoincrement()) @map("tot_id") @db.Integer
+  categoryName      String            @map("tot_name") @db.VarChar(100)
   timeOffs          TimeOff[]
   categoryCountries CategoryCountry[]
 
-  @@map("tbl_to_categories")
+  @@map("tot_time_off_types")
   @@schema("ds")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model CategoryCountry {
-  categoryCountryId              Int             @id @default(autoincrement()) @map("cxc_id") @db.Integer
-  categoryId                     Int             @map("cat_id")
+  categoryCountryId              Int             @id @default(autoincrement()) @map("ttc_id") @db.Integer
+  categoryId                     Int             @map("tot_id")
   countryId                      Int             @map("cou_id")
-  categoryCountryStatus          Int             @default(1) @map("cxc_status")
-  categoryCountryAllowHalfDay    Boolean         @default(false) @map("cxc_allow_half_day")
-  categoryCountryIsFixedDuration Boolean         @default(false) @map("cxc_is_fixed_duration")
-  categoryCountryFixedDays       Decimal?        @map("cxc_fixed_days") @db.Decimal
-  categoryCountryIsCalendar      Boolean         @default(false) @map("cxc_is_calendar")
-  category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cat")
-  country                        Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_tbl_to_categories_x_country_cou")
+  categoryCountryStatus          Int             @default(1) @map("ttc_status")
+  categoryCountryAllowHalfDay    Boolean         @default(false) @map("ttc_allow_half_day")
+  categoryCountryIsFixedDuration Boolean         @default(false) @map("ttc_is_fixed_duration")
+  categoryCountryFixedDays       Decimal?        @map("ttc_fixed_days") @db.Decimal
+  categoryCountryIsCalendar      Boolean         @default(false) @map("ttc_is_calendar")
+  categoryCountryDaysBefore      Int             @default(0) @map("ttc_days_before")
+  category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_ttc_time_off_types")
+  country                        Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_ttc_cou_countries")
 
-  @@unique([categoryId, countryId], map: "uk_tbl_to_categories_x_country")
-  @@index([categoryId], map: "idx_tbl_to_categories_x_country_cat_id")
-  @@index([countryId], map: "idx_tbl_to_categories_x_country_cou_id")
-  @@map("tbl_to_categories_x_country")
+  @@unique([categoryId, countryId], map: "uk_ttc_tot_cou")
+  @@index([categoryId], map: "idx_ttc_tot_id")
+  @@index([countryId], map: "idx_ttc_cou_id")
+  @@map("ttc_type_of_to_by_country")
   @@schema("ds")
 }
 

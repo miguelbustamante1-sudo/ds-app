@@ -5,7 +5,8 @@ import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
-import { calculateFixedDurationEndDate } from '../../utils/fixedDurationEndDate';
+import { calculateFixedDurationEndDate, calculateRequestedDays } from '../../utils/fixedDurationEndDate';
+import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,8 @@ import {
   validateSVVacation,
 } from '../../utils/elSalvadorVacationValidation';
 import type { CategoryMode } from './SupervisorTimeOffForm';
+import { validateDaysBefore } from '../../utils/daysBefore';
+import { isDateInHolidayList } from '../../utils/holidayValidation';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -111,6 +114,19 @@ export function EditSupervisorTimeOffDialog({
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
   const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+  } = useHolidayAwareness({
+    countryIso: teamMember?.countryIso,
+    countryId: teamMember?.countryId,
+    startDate,
+    endDate,
+    categoryName: selectedCategory?.categoryName,
+  });
 
   // Load categories for the team member's country
   useEffect(() => {
@@ -198,6 +214,9 @@ export function EditSupervisorTimeOffDialog({
   // Validation: Start date cannot be on weekend
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
+  // Validation: Start date cannot be on a public holiday
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+
   // Validation: Attrition date - check if dates exceed team member's end date
   const exceedsAttritionDate = teamMemberEndDate && (
     (startDate && startDate > teamMemberEndDate) ||
@@ -222,6 +241,10 @@ export function EditSupervisorTimeOffDialog({
     ? calculateCalendarDays(startDate, endDate)
     : 0;
 
+  const hintDays = startDate && endDate && isDateRangeValid
+    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    : 0;
+
   // Pass timeOff?.timeOffId to exclude the time-off being edited from the calculation
   const existingVacationDays = isSVVacation
     ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, timeOff?.timeOffId)
@@ -230,6 +253,14 @@ export function EditSupervisorTimeOffDialog({
   const svValidation = isSVVacation && requestedDays > 0
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+
+  // Days-before notice period validation (advisory — does NOT block supervisor submission)
+  const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
+  const daysBeforeValidation = validateDaysBefore(
+    startDate,
+    daysBefore,
+    selectedCategory?.categoryName ?? ''
+  );
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, start date is weekend, or SV vacation invalid
   const canSave =
@@ -240,6 +271,7 @@ export function EditSupervisorTimeOffDialog({
     !hasOverlap &&
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
+    !isStartDateHoliday &&
     svValidation.valid &&
     !!comment?.trim() &&
     !loading;
@@ -343,8 +375,11 @@ export function EditSupervisorTimeOffDialog({
                         if (date < today) return true;
                         if (isWeekend(date)) return true;
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
+                        if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -356,7 +391,18 @@ export function EditSupervisorTimeOffDialog({
             {isStartDateWeekend && (
               <p className="text-sm text-destructive">Start date cannot be on a weekend</p>
             )}
+            {isStartDateHoliday && (
+              <p className="text-sm text-destructive">Start date cannot be on a public holiday</p>
+            )}
           </div>
+
+          {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
+          {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
+            </Alert>
+          )}
 
           {/* End Date */}
           <div className="space-y-2">
@@ -395,6 +441,8 @@ export function EditSupervisorTimeOffDialog({
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -405,11 +453,54 @@ export function EditSupervisorTimeOffDialog({
                 This category has a fixed duration of {fixedDays} day{fixedDays !== 1 ? 's' : ''}.
               </p>
             )}
+            {!isFixedDuration && hintDays > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {hintDays} day{hintDays !== 1 ? 's' : ''}
+              </p>
+            )}
             {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
             {startDate && endDate && !isDateRangeValid && (
               <p className="text-sm text-destructive">End date must be on or after start date</p>
             )}
           </div>
+
+          {/* Holiday Awareness Alerts */}
+          {svHolidaysInRange.length > 0 && (
+            <Alert>
+              <AlertDescription>
+                <p className="font-medium mb-2">
+                  Your request includes the following public holiday(s). These days will be counted as vacation days.
+                </p>
+                <ul className="list-disc list-inside text-sm">
+                  {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                    <li key={holiday.holidayId}>
+                      {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                      {holiday.holidayIsHalfDay && ' (half day)'}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {gtWeekdayHolidaysInRange.length > 0 && gtNetVacationDays !== null && (
+            <Alert>
+              <AlertDescription>
+                <p className="font-medium mb-2">
+                  The following public holiday(s) fall within your request and will not be counted as vacation days:
+                </p>
+                <ul className="list-disc list-inside text-sm mb-2">
+                  {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                    <li key={holiday.holidayId}>
+                      {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm font-medium">
+                  Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong>
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Overlap Warning */}
           {hasOverlap && (

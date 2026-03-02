@@ -16,6 +16,7 @@ import rbacUserRolesRouter from './rbacUserRoles';
 import rbacOptionsRouter from './rbacOptions';
 import supervisorAssignmentsRouter from './supervisorAssignments';
 import holidaysRouter from './holidays';
+import timeOffHolidaysRouter from './timeOffHolidays';
 import chartsRouter from './charts';
 import notificationsRouter from './notifications';
 import endorsementsRouter from './endorsements';
@@ -47,6 +48,7 @@ export default function registerRoutes() {
   router.use('/rbac/options', rbacOptionsRouter);
   router.use('/supervisor-assignments', supervisorAssignmentsRouter);
   router.use('/holidays', holidaysRouter);
+  router.use('/time-off-holidays', timeOffHolidaysRouter);
   router.use('/charts', chartsRouter);
   router.use('/notifications', notificationsRouter);
   router.use('/endorsements', endorsementsRouter);

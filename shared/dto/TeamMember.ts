@@ -17,6 +17,7 @@ export interface TeamMemberDTO {
   workdayId: string | null;
   teamMemberSeniority: string;
   teamMemberPrimaryRole: number | null;
+  tierBandId: number | null;
   teamMemberCreatedBy: number | null;
   teamMemberCreatedDate: Date | null;
   teamMemberLastUpdatedBy: number | null;
@@ -24,6 +25,7 @@ export interface TeamMemberDTO {
   // Optional included relation fields (for list views)
   countryName?: string | null;
   roleName?: string | null;
+  tierBandDescription?: string | null;
 }
 
 /**
@@ -41,6 +43,8 @@ export interface CreateTeamMemberDTO {
   teamMemberSeniority: string;
   countryId: number | null;
   teamMemberPrimaryRole: number | null;
+  tierBandId: number | null;
+  workdayId: string | null;
 }
 
 /**
@@ -55,9 +59,12 @@ export interface UpdateTeamMemberDTO {
   teamMemberSurnames?: string;
   teamMemberKnownAs?: string | null;
   teamMemberStartDate?: Date | string;
+  teamMemberEndDate?: Date | string | null;
   teamMemberSeniority?: string;
   countryId?: number | null;
   teamMemberPrimaryRole?: number | null;
+  tierBandId?: number | null;
+  workdayId?: string | null;
 }
 
 /**

@@ -6,6 +6,8 @@ import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
+import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
+import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +26,8 @@ import {
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../../utils/elSalvadorVacationValidation';
+import { validateDaysBefore } from '../../utils/daysBefore';
+import { isDateInHolidayList } from '../../utils/holidayValidation';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -85,6 +89,7 @@ export function SupervisorTimeOffForm({
   const startDate = watch('startDate');
   const endDate = watch('endDate');
   const categoryId = watch('categoryId');
+  const comment = watch('comment');
 
   // Get the selected category's configuration
   const selectedCategory = categories.find(
@@ -184,6 +189,19 @@ export function SupervisorTimeOffForm({
     clearErrors,
   });
 
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+  } = useHolidayAwareness({
+    countryIso: teamMember?.countryIso,
+    countryId: teamMember?.countryId,
+    startDate,
+    endDate,
+    categoryName: selectedCategory?.categoryName,
+  });
+
   // Clear end date when start date moves past it (non-fixed categories only)
   useEffect(() => {
     if (startDate && endDate && startDate > endDate && !isFixedDuration) {
@@ -196,6 +214,9 @@ export function SupervisorTimeOffForm({
 
   // Validation: Start date cannot be on weekend
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
+
+  // Validation: Start date cannot be on a public holiday
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
 
   // Validation: Attrition date - check if dates exceed team member's end date
   const exceedsAttritionDate = teamMemberEndDate && (
@@ -220,6 +241,10 @@ export function SupervisorTimeOffForm({
     ? calculateCalendarDays(startDate, endDate)
     : 0;
 
+  const hintDays = startDate && endDate && isDateRangeValid
+    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    : 0;
+
   const existingVacationDays = isSVVacation
     ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId)
     : 0;
@@ -227,6 +252,14 @@ export function SupervisorTimeOffForm({
   const svValidation = isSVVacation && requestedDays > 0
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+
+  // Days-before notice period validation (advisory — does NOT block supervisor submission)
+  const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
+  const daysBeforeValidation = validateDaysBefore(
+    startDate,
+    daysBefore,
+    selectedCategory?.categoryName ?? ''
+  );
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, start date is weekend, or SV vacation invalid
   const canSave =
@@ -238,7 +271,9 @@ export function SupervisorTimeOffForm({
     !hasOverlap &&
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
+    !isStartDateHoliday &&
     svValidation.valid &&
+    !!comment?.trim() &&
     !loading;
 
   const handleFormSubmit = useCallback(
@@ -344,8 +379,11 @@ export function SupervisorTimeOffForm({
                         if (date < today) return true;
                         if (isWeekend(date)) return true;
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
+                        if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -390,6 +428,8 @@ export function SupervisorTimeOffForm({
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -398,12 +438,23 @@ export function SupervisorTimeOffForm({
           </div>
         </div>
 
+        {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
+        {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Second Row - Comment */}
         <div className="space-y-2">
-          <Label htmlFor="comment">Comment</Label>
+          <Label htmlFor="comment">
+            Comment <span className="text-destructive">*</span>
+          </Label>
           <Controller
             name="comment"
             control={control}
+            rules={{ required: 'Comment is required' }}
             render={({ field }) => (
               <Textarea
                 {...field}
@@ -413,6 +464,9 @@ export function SupervisorTimeOffForm({
               />
             )}
           />
+          {errors.comment && (
+            <p className="text-sm text-destructive">{errors.comment.message}</p>
+          )}
         </div>
 
         {/* Validation Messages Row */}
@@ -432,12 +486,58 @@ export function SupervisorTimeOffForm({
           {isStartDateWeekend && (
             <p className="text-destructive">Start date cannot be on a weekend</p>
           )}
+          {isStartDateHoliday && (
+            <p className="text-destructive">Start date cannot be on a public holiday</p>
+          )}
           {isFixedDuration && fixedDays && (
             <p className="text-muted-foreground">
               Fixed duration: {fixedDays} day{fixedDays !== 1 ? 's' : ''}
             </p>
           )}
+          {!isFixedDuration && hintDays > 0 && (
+            <p className="text-muted-foreground">
+              {hintDays} day{hintDays !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
+
+        {/* Holiday Awareness Alerts */}
+        {svHolidaysInRange.length > 0 && (
+          <Alert>
+            <AlertDescription>
+              <p className="font-medium mb-2">
+                Your request includes the following public holiday(s). These days will be counted as vacation days.
+              </p>
+              <ul className="list-disc list-inside text-sm">
+                {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                  <li key={holiday.holidayId}>
+                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayIsHalfDay && ' (half day)'}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtWeekdayHolidaysInRange.length > 0 && gtNetVacationDays !== null && (
+          <Alert>
+            <AlertDescription>
+              <p className="font-medium mb-2">
+                The following public holiday(s) fall within your request and will not be counted as vacation days:
+              </p>
+              <ul className="list-disc list-inside text-sm mb-2">
+                {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                  <li key={holiday.holidayId}>
+                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm font-medium">
+                Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong>
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Overlap Warning */}
         {hasOverlap && (

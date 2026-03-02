@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   Captions,
   CheckCircle,
+  Clock,
   Code,
   Coffee,
   Database,
@@ -77,17 +78,16 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: CalendarCheck,
     path: '/my-time-off',
   },
+  {
+    title: 'Time Off Activity',
+    icon: Clock,
+    path: '/timeoff-activity',
+  },
   { heading: 'Actions' },
   {
     title: 'Supervisor Time Off',
     icon: Users,
     path: '/supervisor-time-off',
-    permission: 'SupervisorTimeOff',
-  },
-  {
-    title: 'Supervisor Vacations',
-    icon: Umbrella,
-    path: '/supervisor-vacations',
     permission: 'SupervisorTimeOff',
   },
   {
@@ -166,7 +166,6 @@ export const MENU_SIDEBAR: MenuConfig = [
     children: [
       { title: 'Bonus Categories', path: '/maintenance/bonus-categories', icon: Star, permission: 'Endorsements' },
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },
-      { title: 'Categories by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Clients', path: '/maintenance/clients', icon: Building, permission: 'Clients' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },
@@ -174,6 +173,8 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', icon: UserCheck, permission: 'SupervisorAssignments' },
       { title: 'Team Members', path: '/maintenance/team-members', icon: Users, permission: 'TeamMembers' },
       { title: 'Tier Bands', path: '/maintenance/tier-bands', icon: TrendingUp, permission: 'TierBands' },
+      { title: 'Type of TimeOff', path: '/maintenance/time-off-types', icon: Umbrella, permission: 'TimeOffCategories' },
+      { title: 'Type of TimeOff by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Users', path: '/maintenance/users', icon: UserCircle, permission: 'Users' },
     ],
   },

@@ -152,7 +152,7 @@ export function SupervisorTimeOffPage() {
               existingTimeOffs={timeOffsHook.timeOffs}
               onSubmit={handleCreateTimeOff}
               loading={operationsHook.loading}
-              categoryMode="exclude-vacation"
+              categoryMode="all"
             />
             <SupervisorTimeOffList
               timeOffs={timeOffsHook.timeOffs}
@@ -160,7 +160,7 @@ export function SupervisorTimeOffPage() {
               onEditClick={handleEditClick}
               onCancelClick={handleCancelClick}
               onRowClick={handleRowClick}
-              categoryMode="exclude-vacation"
+              categoryMode="all"
             />
           </div>
         ) : (
@@ -188,7 +188,7 @@ export function SupervisorTimeOffPage() {
         existingTimeOffs={timeOffsHook.timeOffs}
         onConfirm={handleConfirmEdit}
         loading={operationsHook.loading}
-        categoryMode="exclude-vacation"
+        categoryMode="all"
       />
     </div>
   );

@@ -26,6 +26,7 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       workdayId: item.workdayId,
       teamMemberSeniority: item.teamMemberSeniority,
       teamMemberPrimaryRole: item.teamMemberPrimaryRole,
+      tierBandId: item.tierBandId,
       teamMemberCreatedBy: item.teamMemberCreatedBy,
       teamMemberCreatedDate: item.teamMemberCreatedDate,
       teamMemberLastUpdatedBy: item.teamMemberLastUpdatedBy,
@@ -33,6 +34,7 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       // Include relation fields
       countryName: item.country?.countryName ?? null,
       roleName: item.primaryRole?.roleName ?? null,
+      tierBandDescription: item.tierBand?.tierBandDescription ?? null,
     }));
     res.json(dtos);
   } catch (err) {
@@ -182,12 +184,14 @@ router.post('/', requirePermission('TeamMembers', 'create'), async (req: Request
       teamMemberSeniority: dto.teamMemberSeniority,
       teamMemberStartDate: typeof dto.teamMemberStartDate === 'string' ? new Date(dto.teamMemberStartDate) : dto.teamMemberStartDate,
       teamMemberKnownAs: dto.teamMemberKnownAs,
+      workdayId: dto.workdayId ?? null,
       teamMemberCreatedBy: userId,
       teamMemberCreatedDate: now,
       teamMemberLastUpdatedBy: userId,
       teamMemberLastUpdatedDate: now,
       teamMemberPrimaryRole: dto.teamMemberPrimaryRole,
       countryId: dto.countryId,
+      tierBandId: dto.tierBandId ?? null,
     };
 
     const created = await createTeamMember(teamMemberData);
@@ -224,10 +228,19 @@ router.put('/:id', requirePermission('TeamMembers', 'create'), async (req: Reque
     if (dto.teamMemberSeniority !== undefined) updateData.teamMemberSeniority = dto.teamMemberSeniority;
     if (dto.teamMemberPrimaryRole !== undefined) updateData.teamMemberPrimaryRole = dto.teamMemberPrimaryRole;
     if (dto.countryId !== undefined) updateData.countryId = dto.countryId;
+    if (dto.tierBandId !== undefined) updateData.tierBandId = dto.tierBandId;
+    if (dto.workdayId !== undefined) updateData.workdayId = dto.workdayId;
     if (dto.teamMemberStartDate !== undefined) {
-      updateData.teamMemberStartDate = typeof dto.teamMemberStartDate === 'string' 
-        ? new Date(dto.teamMemberStartDate) 
+      updateData.teamMemberStartDate = typeof dto.teamMemberStartDate === 'string'
+        ? new Date(dto.teamMemberStartDate)
         : dto.teamMemberStartDate;
+    }
+    if (dto.teamMemberEndDate !== undefined) {
+      updateData.teamMemberEndDate = dto.teamMemberEndDate === null
+        ? null
+        : typeof dto.teamMemberEndDate === 'string'
+          ? new Date(dto.teamMemberEndDate)
+          : dto.teamMemberEndDate;
     }
 
     const updated = await updateTeamMember(id, updateData);

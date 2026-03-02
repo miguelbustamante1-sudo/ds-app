@@ -26,6 +26,7 @@ import { TeamMembersByCountryChart } from '@/components/charts/team-members-by-c
 import { TeamTimeOffByMonthChart } from '@/components/charts/team-timeoff-by-month-chart';
 import { TeamTimeOffCurrentMonthCard } from '@/components/charts/team-timeoff-current-month-card';
 import { TeamTimeOffByCountryChart } from '@/components/charts/team-timeoff-by-country-chart';
+import { TimeOffActivityFeed } from '@/components/charts/TimeOffActivityFeed';
 import {
   DATE_RANGE_PRESETS,
   loadDateRangeFromStorage,
@@ -167,12 +168,17 @@ export function Layout1Page() {
       </div>
 
       {/* Time Off by Country row */}
-      <div className="grid gap-5 lg:grid-cols-1">
+      <div className="grid gap-5 lg:grid-cols-1 mb-5">
         <TeamTimeOffByCountryChart
           key={`${date?.from?.getTime() ?? 'no-start'}-${date?.to?.getTime() ?? 'no-end'}`}
           startDate={date?.from}
           endDate={date?.to}
         />
+      </div>
+
+      {/* Time Off Activity Feed */}
+      <div className="grid gap-5 lg:grid-cols-1 mb-5">
+        <TimeOffActivityFeed />
       </div>
     </div>
   );

@@ -4,7 +4,8 @@ import { format, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, UpdateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
-import { calculateFixedDurationEndDate } from '../utils/fixedDurationEndDate';
+import { calculateFixedDurationEndDate, calculateRequestedDays } from '../utils/fixedDurationEndDate';
+import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,8 @@ import {
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../utils/elSalvadorVacationValidation';
+import { validateDaysBefore } from '../utils/daysBefore';
+import { isDateInHolidayList } from '../utils/holidayValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -71,6 +74,7 @@ export function EditTimeOffDialog({
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
+  const [userCountryId, setUserCountryId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const { toast } = useToast();
 
@@ -103,6 +107,19 @@ export function EditTimeOffDialog({
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
   const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
 
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+  } = useHolidayAwareness({
+    countryIso: userCountryIso,
+    countryId: userCountryId,
+    startDate,
+    endDate,
+    categoryName: selectedCategory?.categoryName,
+  });
+
   // Load categories, statuses, and user profile on mount
   useEffect(() => {
     async function loadData() {
@@ -124,6 +141,7 @@ export function EditTimeOffDialog({
           setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
         }
         setUserCountryIso(profile.countryIso);
+        setUserCountryId(profile.countryId);
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';
         toast({
@@ -164,6 +182,9 @@ export function EditTimeOffDialog({
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
 
+  // Validation: Start date cannot be on a public holiday
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+
   // Validation: Attrition date - check if dates exceed user's end date
   const exceedsAttritionDate = userEndDate && (
     (startDate && startDate > userEndDate) ||
@@ -188,6 +209,10 @@ export function EditTimeOffDialog({
     ? calculateCalendarDays(startDate, endDate)
     : 0;
 
+  const hintDays = startDate && endDate && isDateRangeValid
+    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    : 0;
+
   // Pass timeOff?.timeOffId to exclude the time-off being edited from the calculation
   const existingVacationDays = isSVVacation
     ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, timeOff?.timeOffId)
@@ -197,7 +222,15 @@ export function EditTimeOffDialog({
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, or SV validation fails
+  // Days-before notice period validation
+  const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
+  const daysBeforeValidation = validateDaysBefore(
+    startDate,
+    daysBefore,
+    selectedCategory?.categoryName ?? ''
+  );
+
+  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, or days-before rule violated
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -205,7 +238,9 @@ export function EditTimeOffDialog({
     isDateRangeValid &&
     !hasOverlap &&
     !exceedsAttritionDate &&
+    !isStartDateHoliday &&
     svValidation.valid &&
+    daysBeforeValidation.valid &&
     !!comment?.trim() &&
     !loading;
 
@@ -307,8 +342,11 @@ export function EditTimeOffDialog({
                         const today = startOfDay(new Date());
                         if (date < today) return true;
                         if (userEndDate && date > userEndDate) return true;
+                        if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -317,7 +355,18 @@ export function EditTimeOffDialog({
             {errors.startDate && (
               <p className="text-sm text-destructive">{errors.startDate.message}</p>
             )}
+            {isStartDateHoliday && (
+              <p className="text-sm text-destructive">Start date cannot be on a public holiday</p>
+            )}
           </div>
+
+          {/* Days-Before Notice Period Warning */}
+          {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
+            </Alert>
+          )}
 
           {/* End Date */}
           <div className="space-y-2">
@@ -356,6 +405,8 @@ export function EditTimeOffDialog({
                         if (userEndDate && date > userEndDate) return true;
                         return false;
                       }}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -366,11 +417,54 @@ export function EditTimeOffDialog({
                 This category has a fixed duration of {fixedDays} day{fixedDays !== 1 ? 's' : ''}.
               </p>
             )}
+            {!isFixedDuration && hintDays > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {hintDays} day{hintDays !== 1 ? 's' : ''}
+              </p>
+            )}
             {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
             {startDate && endDate && !isDateRangeValid && (
               <p className="text-sm text-destructive">End date must be on or after start date</p>
             )}
           </div>
+
+          {/* Holiday Awareness Alerts */}
+          {svHolidaysInRange.length > 0 && (
+            <Alert>
+              <AlertDescription>
+                <p className="font-medium mb-2">
+                  Your request includes the following public holiday(s). These days will be counted as vacation days.
+                </p>
+                <ul className="list-disc list-inside text-sm">
+                  {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                    <li key={holiday.holidayId}>
+                      {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                      {holiday.holidayIsHalfDay && ' (half day)'}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {gtWeekdayHolidaysInRange.length > 0 && gtNetVacationDays !== null && (
+            <Alert>
+              <AlertDescription>
+                <p className="font-medium mb-2">
+                  The following public holiday(s) fall within your request and will not be counted as vacation days:
+                </p>
+                <ul className="list-disc list-inside text-sm mb-2">
+                  {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                    <li key={holiday.holidayId}>
+                      {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm font-medium">
+                  Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong>
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Overlap Warning */}
           {hasOverlap && (

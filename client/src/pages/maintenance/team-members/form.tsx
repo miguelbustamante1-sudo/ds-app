@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, CountryDTO, RoleDTO } from '@shared/dto';
+import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, CountryDTO, RoleDTO, TierBandDTO } from '@shared/dto';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,8 +32,11 @@ interface TeamMemberFormData {
   teamMemberKnownAs: string;
   teamMemberSeniority: string;
   teamMemberStartDate: string;
+  teamMemberEndDate: string;
   countryId: string;
   teamMemberPrimaryRole: string;
+  tierBandId: string;
+  workdayId: string;
 }
 
 interface TeamMemberFormDialogProps {
@@ -42,11 +55,14 @@ export function TeamMemberFormDialog({
   const { toast } = useToast();
   const isEditing = !!teamMember;
 
-  // State for countries and roles
   const [countries, setCountries] = useState<CountryDTO[]>([]);
   const [roles, setRoles] = useState<RoleDTO[]>([]);
+  const [tierBands, setTierBands] = useState<TierBandDTO[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
+  const [loadingTierBands, setLoadingTierBands] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<TeamMemberFormData | null>(null);
+  const [showEndDateConfirm, setShowEndDateConfirm] = useState(false);
 
   const {
     register,
@@ -62,16 +78,18 @@ export function TeamMemberFormDialog({
       teamMemberKnownAs: '',
       teamMemberSeniority: '',
       teamMemberStartDate: '',
+      teamMemberEndDate: '',
       countryId: '',
       teamMemberPrimaryRole: '',
+      tierBandId: '',
+      workdayId: '',
     },
   });
 
-  // Watch form values for ComboBox
   const watchedCountryId = watch('countryId');
   const watchedPrimaryRole = watch('teamMemberPrimaryRole');
+  const watchedTierBandId = watch('tierBandId');
 
-  // ComboBox options
   const countryOptions: ComboBoxOption[] = countries.map((c) => ({
     value: c.countryId.toString(),
     label: c.countryName,
@@ -82,22 +100,30 @@ export function TeamMemberFormDialog({
     label: r.roleName,
   }));
 
-  // Load countries and roles when dialog opens
+  const tierBandOptions: ComboBoxOption[] = tierBands.map((t) => ({
+    value: t.tierBandId.toString(),
+    label: t.tierBandDescription,
+  }));
+
   useEffect(() => {
     if (open) {
-      // Load countries
       setLoadingCountries(true);
       apiGet<CountryDTO[]>('/api/countries')
         .then((data) => setCountries(data))
         .catch(() => toast({ title: 'Error', description: 'Failed to load countries', variant: 'destructive' }))
         .finally(() => setLoadingCountries(false));
 
-      // Load roles
       setLoadingRoles(true);
       apiGet<RoleDTO[]>('/api/roles')
         .then((data) => setRoles(data))
         .catch(() => toast({ title: 'Error', description: 'Failed to load roles', variant: 'destructive' }))
         .finally(() => setLoadingRoles(false));
+
+      setLoadingTierBands(true);
+      apiGet<TierBandDTO[]>('/api/tier-bands')
+        .then((data) => setTierBands(data))
+        .catch(() => toast({ title: 'Error', description: 'Failed to load tier bands', variant: 'destructive' }))
+        .finally(() => setLoadingTierBands(false));
     }
   }, [open, toast]);
 
@@ -107,14 +133,20 @@ export function TeamMemberFormDialog({
         const startDate = teamMember.teamMemberStartDate
           ? new Date(teamMember.teamMemberStartDate).toISOString().split('T')[0]
           : '';
+        const endDate = teamMember.teamMemberEndDate
+          ? new Date(teamMember.teamMemberEndDate).toISOString().split('T')[0]
+          : '';
         reset({
           teamMemberNames: teamMember.teamMemberNames,
           teamMemberSurnames: teamMember.teamMemberSurnames,
           teamMemberKnownAs: teamMember.teamMemberKnownAs || '',
           teamMemberSeniority: teamMember.teamMemberSeniority,
           teamMemberStartDate: startDate,
+          teamMemberEndDate: endDate,
           countryId: teamMember.countryId?.toString() || '',
           teamMemberPrimaryRole: teamMember.teamMemberPrimaryRole?.toString() || '',
+          tierBandId: teamMember.tierBandId?.toString() || '',
+          workdayId: teamMember.workdayId || '',
         });
       } else {
         reset({
@@ -123,14 +155,17 @@ export function TeamMemberFormDialog({
           teamMemberKnownAs: '',
           teamMemberSeniority: '',
           teamMemberStartDate: '',
+          teamMemberEndDate: '',
           countryId: '',
           teamMemberPrimaryRole: '',
+          tierBandId: '',
+          workdayId: '',
         });
       }
     }
   }, [open, teamMember, reset]);
 
-  const onSubmit = async (data: TeamMemberFormData) => {
+  const submitData = async (data: TeamMemberFormData) => {
     try {
       if (isEditing) {
         const payload: UpdateTeamMemberDTO = {
@@ -139,8 +174,11 @@ export function TeamMemberFormDialog({
           teamMemberKnownAs: data.teamMemberKnownAs.trim() || null,
           teamMemberSeniority: data.teamMemberSeniority.trim(),
           teamMemberStartDate: data.teamMemberStartDate,
+          teamMemberEndDate: data.teamMemberEndDate || null,
           countryId: data.countryId ? Number(data.countryId) : null,
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
+          tierBandId: data.tierBandId ? Number(data.tierBandId) : null,
+          workdayId: data.workdayId.trim() || null,
         };
         await apiPut<TeamMemberDTO, UpdateTeamMemberDTO>(`/api/team-members/${teamMember.teamMemberId}`, payload);
         toast({
@@ -156,6 +194,8 @@ export function TeamMemberFormDialog({
           teamMemberStartDate: data.teamMemberStartDate,
           countryId: data.countryId ? Number(data.countryId) : null,
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
+          tierBandId: data.tierBandId ? Number(data.tierBandId) : null,
+          workdayId: data.workdayId.trim() || null,
         };
         await apiPost<TeamMemberDTO, CreateTeamMemberDTO>('/api/team-members', payload);
         toast({
@@ -174,7 +214,63 @@ export function TeamMemberFormDialog({
     }
   };
 
+  const onSubmit = async (data: TeamMemberFormData) => {
+    // When editing: if the end date is being set or changed, require explicit confirmation
+    // because it will automatically cancel all future time-off requests for this member.
+    if (isEditing) {
+      const originalEndDate = teamMember?.teamMemberEndDate
+        ? new Date(teamMember.teamMemberEndDate).toISOString().split('T')[0]
+        : '';
+      const endDateChanged = data.teamMemberEndDate !== originalEndDate && data.teamMemberEndDate !== '';
+
+      if (endDateChanged) {
+        setPendingSubmitData(data);
+        setShowEndDateConfirm(true);
+        return;
+      }
+    }
+
+    await submitData(data);
+  };
+
+  const handleEndDateConfirmed = async () => {
+    setShowEndDateConfirm(false);
+    if (pendingSubmitData) {
+      await submitData(pendingSubmitData);
+      setPendingSubmitData(null);
+    }
+  };
+
+  const memberName = teamMember
+    ? `${teamMember.teamMemberKnownAs || teamMember.teamMemberNames} ${teamMember.teamMemberSurnames}`
+    : '';
+
   return (
+    <>
+    <AlertDialog open={showEndDateConfirm} onOpenChange={setShowEndDateConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm end date</AlertDialogTitle>
+          <AlertDialogDescription>
+            You are setting the end date for <strong>{memberName}</strong> to{' '}
+            <strong>{pendingSubmitData?.teamMemberEndDate}</strong>.
+            <br /><br />
+            All future time-off requests for this team member will be automatically
+            cancelled when this date is reached. Please confirm the date is correct
+            and not an error.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingSubmitData(null)}>
+            Go back
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleEndDateConfirmed}>
+            Yes, confirm end date
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -276,6 +372,20 @@ export function TeamMemberFormDialog({
               </div>
             </div>
 
+            {isEditing && (
+              <div className="space-y-2">
+                <Label htmlFor="teamMemberEndDate">End Date</Label>
+                <Input
+                  id="teamMemberEndDate"
+                  type="date"
+                  {...register('teamMemberEndDate')}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Leave blank for active members
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="countryId">Country</Label>
@@ -304,15 +414,29 @@ export function TeamMemberFormDialog({
               </div>
             </div>
 
-            {isEditing && teamMember.workdayId && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Workday ID (Read-only)</Label>
-                <Input value={teamMember.workdayId} disabled />
-                <p className="text-sm text-muted-foreground">
-                  Synced from external system
-                </p>
+                <Label htmlFor="tierBandId">Tier Band</Label>
+                <ComboBox
+                  options={tierBandOptions}
+                  value={watchedTierBandId}
+                  onValueChange={(value) => setValue('tierBandId', value)}
+                  placeholder="Select a tier band..."
+                  searchPlaceholder="Search tier bands..."
+                  emptyMessage="No tier bands found."
+                  disabled={loadingTierBands}
+                />
               </div>
-            )}
+
+              <div className="space-y-2">
+                <Label htmlFor="workdayId">Workday ID</Label>
+                <Input
+                  id="workdayId"
+                  placeholder="e.g., WD-12345"
+                  {...register('workdayId')}
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -331,5 +455,6 @@ export function TeamMemberFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

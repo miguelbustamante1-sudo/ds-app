@@ -116,6 +116,13 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
+        accessorKey: 'timeOffDays',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Days" />,
+        cell: ({ row }) => <span>{row.original.timeOffDays}</span>,
+        size: 80,
+        meta: { headerTitle: 'Days', skeleton: <Skeleton className="h-4 w-12" /> },
+      },
+      {
         accessorKey: 'statusName',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
         cell: ({ row }) => (

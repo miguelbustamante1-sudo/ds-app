@@ -2,7 +2,7 @@ import { prisma } from './prisma';
 import type { TimeOffCategory } from '@prisma/client';
 import type { CategoryByCountryDTO } from '../../shared/dto';
 
-export const TABLE = 'ds.tbl_to_categories';
+export const TABLE = 'ds.tot_time_off_types';
 
 // Default country ID (Guatemala) when team member has no country assigned
 const DEFAULT_COUNTRY_ID = 2;
@@ -66,7 +66,7 @@ export async function deleteCategory(id: number): Promise<void> {
 }
 
 /**
- * Get categories by country ISO code
+ * Get types of time-off by country ISO code
  */
 export async function getCategoriesByCountry(countryIso: string): Promise<CategoryByCountryDTO[]> {
   const results = await prisma.timeOffCategory.findMany({
@@ -116,6 +116,7 @@ export async function getCategoriesByCountry(countryIso: string): Promise<Catego
         categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
         categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
         categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
+        categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
       }))
   );
 }
@@ -169,5 +170,6 @@ export async function getCategoriesByTeamMemberId(
     categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
     categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
     categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
+    categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
   }));
 }

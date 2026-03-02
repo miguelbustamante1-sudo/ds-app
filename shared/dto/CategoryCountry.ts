@@ -12,6 +12,7 @@ export interface CategoryCountryDTO {
   categoryCountryIsFixedDuration: boolean;
   categoryCountryFixedDays: number | null;
   categoryCountryIsCalendar: boolean;
+  categoryCountryDaysBefore: number;
   // Joined fields for display
   categoryName: string;
   countryName: string;
@@ -27,6 +28,7 @@ export interface CreateCategoryCountryDTO {
   categoryCountryIsFixedDuration?: boolean;
   categoryCountryFixedDays?: number | null;
   categoryCountryIsCalendar?: boolean;
+  categoryCountryDaysBefore?: number;
 }
 
 /** Data allowed to update */
@@ -38,4 +40,5 @@ export interface UpdateCategoryCountryDTO {
   categoryCountryIsFixedDuration?: boolean;
   categoryCountryFixedDays?: number | null;
   categoryCountryIsCalendar?: boolean;
+  categoryCountryDaysBefore?: number;
 }

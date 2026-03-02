@@ -72,4 +72,15 @@ export const TimeOffValidationErrors = {
     message: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is 15 days. No additional vacation can be requested.`,
     metadata: { existingDays, maxAnnualDays: 15 },
   }),
+
+  DAYS_BEFORE_NOTICE_REQUIRED: (
+    categoryName: string,
+    requiredDays: number,
+    daysUntilStart: number,
+    earliestValidDate: Date
+  ): ValidationError => ({
+    code: 'DAYS_BEFORE_NOTICE_REQUIRED',
+    message: `Policy requires that time-off requests for "${categoryName}" be submitted at least ${requiredDays} days before the start date. The earliest valid start date is ${earliestValidDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
+    metadata: { categoryName, requiredDays, daysUntilStart, earliestValidDate },
+  }),
 } as const;

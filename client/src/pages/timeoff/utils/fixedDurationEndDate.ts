@@ -1,4 +1,27 @@
 /**
+ * Calculate the number of days between two dates respecting the category's day-counting mode.
+ * When isCalendar = true: counts all calendar days (inclusive).
+ * When isCalendar = false: counts only workdays (Mon-Fri, inclusive).
+ */
+export function calculateRequestedDays(startDate: Date, endDate: Date, isCalendar: boolean): number {
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  if (isCalendar) {
+    return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+  let count = 0;
+  const current = new Date(start);
+  while (current <= end) {
+    const day = current.getDay();
+    if (day !== 0 && day !== 6) count++;
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
+}
+
+/**
  * Calculate end date for fixed-duration categories.
  * When isCalendar = true: counts all days (including weekends).
  * When isCalendar = false: counts only workdays (Mon-Fri), skipping weekends.

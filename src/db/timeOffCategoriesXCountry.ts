@@ -49,7 +49,8 @@ export async function create(
   categoryCountryAllowHalfDay: boolean = false,
   categoryCountryIsFixedDuration: boolean = false,
   categoryCountryFixedDays: number | null = null,
-  categoryCountryIsCalendar: boolean = false
+  categoryCountryIsCalendar: boolean = false,
+  categoryCountryDaysBefore: number = 0
 ) {
   return await prisma.categoryCountry.create({
     data: {
@@ -60,6 +61,7 @@ export async function create(
       categoryCountryIsFixedDuration,
       categoryCountryFixedDays,
       categoryCountryIsCalendar,
+      categoryCountryDaysBefore,
     },
     include: includeRelations,
   });
@@ -73,7 +75,8 @@ export async function update(
   categoryCountryAllowHalfDay?: boolean,
   categoryCountryIsFixedDuration?: boolean,
   categoryCountryFixedDays?: number | null,
-  categoryCountryIsCalendar?: boolean
+  categoryCountryIsCalendar?: boolean,
+  categoryCountryDaysBefore?: number
 ) {
   return await prisma.categoryCountry.update({
     where: { categoryCountryId: id },
@@ -85,6 +88,7 @@ export async function update(
       ...(categoryCountryIsFixedDuration !== undefined && { categoryCountryIsFixedDuration }),
       ...(categoryCountryFixedDays !== undefined && { categoryCountryFixedDays }),
       ...(categoryCountryIsCalendar !== undefined && { categoryCountryIsCalendar }),
+      ...(categoryCountryDaysBefore !== undefined && { categoryCountryDaysBefore }),
     },
     include: includeRelations,
   });

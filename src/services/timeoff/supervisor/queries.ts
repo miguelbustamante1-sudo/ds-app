@@ -257,11 +257,11 @@ export async function getTeamTimeOffCurrentMonth(
       tof.tto_stadat AS time_off_start_date,
       tof.tto_enddat AS time_off_end_date,
       tof.tto_days AS time_off_days,
-      cat.cat_name AS category_name
+      cat.tot_name AS category_name
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
-    INNER JOIN ds.tbl_to_categories cat ON cat.cat_id = tof.cat_id
+    INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
     WHERE tof.sta_id <> 4
       AND (
         (EXTRACT(YEAR FROM tof.tto_stadat) = ${currentYear} AND EXTRACT(MONTH FROM tof.tto_stadat) = ${currentMonth})
@@ -364,15 +364,15 @@ export async function getTeamMemberTimeOffBreakdown(
 
   const results = await prisma.$queryRaw<RawCategoryBreakdown[]>`
     SELECT
-      cat.cat_id AS category_id,
-      cat.cat_name AS category_name,
+      cat.tot_id AS category_id,
+      cat.tot_name AS category_name,
       COALESCE(SUM(tof.tto_days), 0)::int AS total_days
     FROM ds.tbl_tms_time_off tof
-    INNER JOIN ds.tbl_to_categories cat ON cat.cat_id = tof.cat_id
+    INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
     WHERE tof.tms_id = ${teamMemberId}
       AND tof.sta_id <> 4
       AND EXTRACT(YEAR FROM tof.tto_stadat) = ${targetYear}
-    GROUP BY cat.cat_id, cat.cat_name
+    GROUP BY cat.tot_id, cat.tot_name
     ORDER BY total_days DESC
   `;
 
@@ -451,15 +451,15 @@ export async function getAllTeamTimeOffs(
       tof.tto_stadat AS time_off_start_date,
       tof.tto_enddat AS time_off_end_date,
       tof.tto_days AS time_off_days,
-      tof.cat_id AS category_id,
-      cat.cat_name AS category_name,
+      tof.tot_id AS category_id,
+      cat.tot_name AS category_name,
       tof.sta_id AS status_id,
       sta.sta_name AS status_name
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
-    INNER JOIN ds.tbl_to_categories cat ON cat.cat_id = tof.cat_id
+    INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
     INNER JOIN ds.tbl_to_statuses sta ON sta.sta_id = tof.sta_id
     ORDER BY tof.tto_stadat DESC
   `;

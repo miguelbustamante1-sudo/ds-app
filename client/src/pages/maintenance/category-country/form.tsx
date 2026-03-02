@@ -30,6 +30,7 @@ interface CategoryCountryFormData {
   categoryCountryIsFixedDuration: boolean;
   categoryCountryFixedDays: string;
   categoryCountryIsCalendar: boolean;
+  categoryCountryDaysBefore: string;
 }
 
 interface CategoryCountryFormDialogProps {
@@ -68,6 +69,7 @@ export function CategoryCountryFormDialog({
       categoryCountryIsFixedDuration: false,
       categoryCountryFixedDays: '',
       categoryCountryIsCalendar: false,
+      categoryCountryDaysBefore: '0',
     },
   });
 
@@ -116,6 +118,7 @@ export function CategoryCountryFormDialog({
           categoryCountryIsFixedDuration: item.categoryCountryIsFixedDuration,
           categoryCountryFixedDays: item.categoryCountryFixedDays?.toString() ?? '',
           categoryCountryIsCalendar: item.categoryCountryIsCalendar,
+          categoryCountryDaysBefore: item.categoryCountryDaysBefore.toString(),
         });
       } else {
         reset({
@@ -126,6 +129,7 @@ export function CategoryCountryFormDialog({
           categoryCountryIsFixedDuration: false,
           categoryCountryFixedDays: '',
           categoryCountryIsCalendar: false,
+          categoryCountryDaysBefore: '0',
         });
       }
     }
@@ -144,6 +148,7 @@ export function CategoryCountryFormDialog({
             ? Number(data.categoryCountryFixedDays)
             : null,
           categoryCountryIsCalendar: data.categoryCountryIsCalendar,
+          categoryCountryDaysBefore: Number(data.categoryCountryDaysBefore),
         };
         await apiPut<CategoryCountryDTO, UpdateCategoryCountryDTO>(
           `/api/time-off-categories-by-country/${item.categoryCountryId}`,
@@ -161,6 +166,7 @@ export function CategoryCountryFormDialog({
             ? Number(data.categoryCountryFixedDays)
             : null,
           categoryCountryIsCalendar: data.categoryCountryIsCalendar,
+          categoryCountryDaysBefore: Number(data.categoryCountryDaysBefore),
         };
         await apiPost<CategoryCountryDTO, CreateCategoryCountryDTO>(
           '/api/time-off-categories-by-country',
@@ -314,6 +320,17 @@ export function CategoryCountryFormDialog({
                 {...register('categoryCountryIsCalendar')}
               />
               <Label htmlFor="categoryCountryIsCalendar">Calendar Days</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="categoryCountryDaysBefore">Days Before</Label>
+              <Input
+                id="categoryCountryDaysBefore"
+                type="number"
+                min="0"
+                placeholder="0"
+                {...register('categoryCountryDaysBefore')}
+              />
             </div>
           </div>
 

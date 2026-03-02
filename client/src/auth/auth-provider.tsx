@@ -29,6 +29,7 @@ export interface AuthUser {
   avatarUrl?: string;
   roles: string[];
   permissions: PermissionMap;
+  teamMemberId?: number;
 }
 
 interface AuthContextValue {
@@ -58,6 +59,7 @@ const mapUser = (data: any): AuthUser | null => {
     avatarUrl: data.avatarUrl || undefined,
     roles: Array.isArray(data.roles) ? data.roles : [],
     permissions: (data.permissions as PermissionMap) || {},
+    teamMemberId: data.teamMemberId != null ? Number(data.teamMemberId) : undefined,
   };
 };
 

@@ -131,11 +131,25 @@ export function TeamMembersPage() {
         meta: { headerTitle: 'Role', skeleton: <Skeleton className="h-4 w-24" /> },
       },
       {
+        accessorKey: 'tierBandDescription',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Tier Band" />,
+        cell: ({ row }) => row.original.tierBandDescription ?? '-',
+        size: 130,
+        meta: { headerTitle: 'Tier Band', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
         accessorKey: 'workdayId',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Workday ID" />,
         cell: ({ row }) => row.original.workdayId || '-',
         size: 120,
         meta: { headerTitle: 'Workday ID', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        accessorKey: 'teamMemberEndDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
+        cell: ({ row }) => formatDate(row.original.teamMemberEndDate),
+        size: 120,
+        meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         id: 'actions',

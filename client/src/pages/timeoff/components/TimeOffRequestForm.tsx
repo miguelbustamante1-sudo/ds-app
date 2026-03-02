@@ -5,6 +5,8 @@ import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
+import { calculateRequestedDays } from '../utils/fixedDurationEndDate';
+import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,6 +20,7 @@ const isWeekend = (date: Date): boolean => {
   const day = date.getDay();
   return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
 };
+import { Textarea } from '@/components/ui/textarea';
 import { apiGet, apiPost, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../utils/overlapDetection';
@@ -27,6 +30,8 @@ import {
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../utils/elSalvadorVacationValidation';
+import { validateDaysBefore } from '../utils/daysBefore';
+import { isDateInHolidayList } from '../utils/holidayValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -44,6 +49,7 @@ interface FormData {
   categoryId: string;
   startDate: Date | undefined;
   endDate: Date | undefined;
+  comment: string;
 }
 
 interface TimeOffRequestFormProps {
@@ -56,6 +62,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
+  const [userCountryId, setUserCountryId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
@@ -73,12 +80,14 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
       categoryId: '',
       startDate: undefined,
       endDate: undefined,
+      comment: '',
     },
   });
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
   const categoryId = watch('categoryId');
+  const comment = watch('comment');
 
   // Get the selected category's configuration
   const selectedCategory = categories.find(
@@ -111,6 +120,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
           setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
         }
         setUserCountryIso(profile.countryIso);
+        setUserCountryId(profile.countryId);
       } catch (error) {
         toast({
           title: 'Error',
@@ -135,11 +145,27 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     clearErrors,
   });
 
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+  } = useHolidayAwareness({
+    countryIso: userCountryIso,
+    countryId: userCountryId,
+    startDate,
+    endDate,
+    categoryName: selectedCategory?.categoryName,
+  });
+
   // Validation: Date range
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
 
   // Validation: Start date cannot be on weekend
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
+
+  // Validation: Start date cannot be on a public holiday
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
 
   // Validation: Attrition date - check if dates exceed user's end date
   const exceedsAttritionDate = userEndDate && (
@@ -171,7 +197,20 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, or SV validation fails
+  // Days hint: respects isCalendar flag (calendar days vs workdays only)
+  const hintDays = startDate && endDate && isDateRangeValid
+    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    : 0;
+
+  // Days-before notice period validation
+  const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
+  const daysBeforeValidation = validateDaysBefore(
+    startDate,
+    daysBefore,
+    selectedCategory?.categoryName ?? ''
+  );
+
+  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, or days-before rule violated
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -180,7 +219,10 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     !hasOverlap &&
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
+    !isStartDateHoliday &&
     svValidation.valid &&
+    daysBeforeValidation.valid &&
+    !!comment?.trim() &&
     !submitting;
 
   const onSubmit = useCallback(async (data: FormData) => {
@@ -192,6 +234,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
         categoryId: Number(data.categoryId),
         timeOffStartDate: data.startDate.toISOString(),
         timeOffEndDate: data.endDate.toISOString(),
+        comment: data.comment,
       };
 
       await apiPost('/api/time-offs/my-requests', payload);
@@ -284,8 +327,11 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                       if (date < today) return true;
                       if (isWeekend(date)) return true;
                       if (userEndDate && date > userEndDate) return true;
+                      if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
                       return false;
                     }}
+                    modifiers={{ holiday: holidayDatesForCalendar }}
+                    modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                   />
                 </PopoverContent>
               </Popover>
@@ -297,7 +343,18 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
           {isStartDateWeekend && (
             <p className="text-sm text-destructive">Start date cannot be on a weekend</p>
           )}
+          {isStartDateHoliday && (
+            <p className="text-sm text-destructive">Start date cannot be on a public holiday</p>
+          )}
         </div>
+
+        {/* Days-Before Notice Period Warning */}
+        {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
+          </Alert>
+        )}
 
         {/* End Date */}
         <div className="space-y-2">
@@ -336,6 +393,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                       if (userEndDate && date > userEndDate) return true;
                       return false;
                     }}
+                    modifiers={{ holiday: holidayDatesForCalendar }}
+                    modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                   />
                 </PopoverContent>
               </Popover>
@@ -346,6 +405,11 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
               This category has a fixed duration of {fixedDays} day{fixedDays !== 1 ? 's' : ''}.
             </p>
           )}
+          {!isFixedDuration && hintDays > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {hintDays} day{hintDays !== 1 ? 's' : ''}
+            </p>
+          )}
           {errors.endDate && (
             <p className="text-sm text-destructive">{errors.endDate.message}</p>
           )}
@@ -353,6 +417,44 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
             <p className="text-sm text-destructive">End date must be on or after start date</p>
           )}
         </div>
+
+        {/* Holiday Awareness Alerts */}
+        {svHolidaysInRange.length > 0 && (
+          <Alert>
+            <AlertDescription>
+              <p className="font-medium mb-2">
+                Your request includes the following public holiday(s). These days will be counted as vacation days.
+              </p>
+              <ul className="list-disc list-inside text-sm">
+                {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                  <li key={holiday.holidayId}>
+                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayIsHalfDay && ' (half day)'}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtWeekdayHolidaysInRange.length > 0 && gtNetVacationDays !== null && (
+          <Alert>
+            <AlertDescription>
+              <p className="font-medium mb-2">
+                The following public holiday(s) fall within your request and will not be counted as vacation days:
+              </p>
+              <ul className="list-disc list-inside text-sm mb-2">
+                {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
+                  <li key={holiday.holidayId}>
+                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm font-medium">
+                Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong>
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Overlap Warning */}
         {hasOverlap && (
@@ -411,6 +513,29 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Comment */}
+        <div className="space-y-2">
+          <Label htmlFor="comment">
+            Comment <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="comment"
+            control={control}
+            rules={{ required: 'Comment is required' }}
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                id="comment"
+                placeholder="Add a note about this request..."
+                rows={2}
+              />
+            )}
+          />
+          {errors.comment && (
+            <p className="text-sm text-destructive">{errors.comment.message}</p>
+          )}
+        </div>
 
         {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={!canSave}>

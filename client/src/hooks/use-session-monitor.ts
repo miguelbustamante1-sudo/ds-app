@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 const WARNING_THRESHOLD_SECONDS = 30;
+const PROACTIVE_REFRESH_THRESHOLD_SECONDS = 5 * 60; // 5 minutes before expiration
 const CHECK_INTERVAL_MS = 1000;
 const SESSION_EXPIRES_KEY = 'session_expires_at';
 
@@ -26,6 +27,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}): UseSe
   const [isExpired, setIsExpired] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const expiredCallbackFired = useRef(false);
+  const proactiveRefreshAttempted = useRef(false);
 
   // Get expiration time from localStorage
   const getExpirationTime = useCallback((): number | null => {
@@ -61,6 +63,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}): UseSe
         setIsWarningVisible(false);
         setIsExpired(false);
         expiredCallbackFired.current = false;
+        proactiveRefreshAttempted.current = false;
         onRefreshSuccess?.(data.expiresAt);
         return true;
       }
@@ -79,6 +82,21 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}): UseSe
   const dismissWarning = useCallback(() => {
     setIsWarningVisible(false);
   }, []);
+
+  // Proactively refresh the session before it expires, without requiring user interaction.
+  // Falls back to the 30-second warning modal if the refresh fails.
+  useEffect(() => {
+    if (
+      timeRemaining !== null &&
+      timeRemaining > 0 &&
+      timeRemaining <= PROACTIVE_REFRESH_THRESHOLD_SECONDS &&
+      !isExpired &&
+      !proactiveRefreshAttempted.current
+    ) {
+      proactiveRefreshAttempted.current = true;
+      refreshSession();
+    }
+  }, [timeRemaining, isExpired, refreshSession]);
 
   // Check session status
   useEffect(() => {

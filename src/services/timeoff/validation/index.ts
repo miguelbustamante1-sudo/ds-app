@@ -12,6 +12,7 @@ import { validateAttritionDate } from './rules/attritionDate.rule';
 import { validateNoOverlap } from './rules/overlapPrevention.rule';
 import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
+import { validateDaysBefore } from './rules/daysBefore.rule';
 import { TimeOffValidationErrors } from './errors';
 
 /**
@@ -63,6 +64,12 @@ export async function validateTimeOff(
   const categoryResult = validateCategoryCountry(input, context);
   if (!categoryResult.valid && categoryResult.error) {
     errors.push(categoryResult.error);
+  }
+
+  // Rule 3b: Days-before notice period
+  const daysBeforeResult = validateDaysBefore(input, context);
+  if (!daysBeforeResult.valid && daysBeforeResult.error) {
+    errors.push(daysBeforeResult.error);
   }
 
   // Rule 4: Attrition date validation

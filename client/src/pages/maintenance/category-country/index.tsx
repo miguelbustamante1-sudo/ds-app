@@ -167,6 +167,13 @@ export function CategoryCountryPage() {
         meta: { headerTitle: 'Calendar Days', skeleton: <Skeleton className="h-4 w-12" /> },
       },
       {
+        accessorKey: 'categoryCountryDaysBefore',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Days Before" />,
+        cell: ({ row }) => row.original.categoryCountryDaysBefore,
+        size: 110,
+        meta: { headerTitle: 'Days Before', skeleton: <Skeleton className="h-4 w-12" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
@@ -242,14 +249,14 @@ export function CategoryCountryPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>Categories by Country</ToolbarPageTitle>
-          <ToolbarDescription>Manage time-off category settings per country</ToolbarDescription>
+          <ToolbarPageTitle>Type of TimeOff by Country</ToolbarPageTitle>
+          <ToolbarDescription>Manage time-off types settings per country</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
           {canCreate('TimeOffCategoriesByCountry') && (
             <Button onClick={handleCreate}>
               <Plus size={16} className="me-1" />
-              New Category by Country
+              New Type of TimeOff by Country
             </Button>
           )}
         </ToolbarActions>
@@ -259,7 +266,7 @@ export function CategoryCountryPage() {
       <div className="relative mt-6 max-w-sm">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search categories by country..."
+          placeholder="Search types of time-off by country..."
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="pl-10"
@@ -296,7 +303,7 @@ export function CategoryCountryPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the category-country record for "{deletingItem?.categoryName}" in "{deletingItem?.countryName}".
+              This will permanently delete the type-of-timeoff-by-country record for "{deletingItem?.categoryName}" in "{deletingItem?.countryName}".
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

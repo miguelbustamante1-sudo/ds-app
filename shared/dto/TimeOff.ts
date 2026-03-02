@@ -57,6 +57,7 @@ export interface CreateMyTimeOffDTO {
   timeOffEndDate: Date | string;
   timeOffDays?: number;
   categoryId: number;
+  comment: string;
   warningReviewComment?: string;
 }
 

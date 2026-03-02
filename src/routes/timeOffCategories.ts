@@ -12,6 +12,7 @@ import {
   getCategoriesByTeamMemberId,
 } from '../db/timeOffCategories';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
+import { auditOrchestrator } from '../services/audit';
 
 const router = express.Router();
 
@@ -55,7 +56,7 @@ router.get('/country/:countryIso', requirePermission('TimeOffCategories', 'read'
     const categories: CategoryByCountryDTO[] = await getCategoriesByCountry(countryIso);
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch categories by country' });
+    res.status(500).json({ error: 'Failed to fetch type of timeoff by country' });
   }
 });
 
@@ -76,7 +77,7 @@ router.get('/team-member/:teamMemberId', requirePermission('TimeOffCategories', 
 
     res.json(categories);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch categories for team member' });
+    res.status(500).json({ error: 'Failed to fetch types of time-off for team member' });
   }
 });
 
@@ -87,11 +88,11 @@ router.get('/:id', requirePermission('TimeOffCategories', 'read'), async (req: A
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const category = await getCategoryById(id);
-    if (!category) return res.status(404).json({ error: 'Category not found' });
+    if (!category) return res.status(404).json({ error: 'Type of time-off not found' });
 
     res.json(category);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch category' });
+    res.status(500).json({ error: 'Failed to fetch type of time-off' });
   }
 });
 
@@ -104,9 +105,19 @@ router.post('/', requirePermission('TimeOffCategories', 'create'), async (req: A
     }
 
     const created = await createCategory(categoryName);
+
+    await auditOrchestrator.log({
+      entityName: 'tot_time_off_types',
+      entityId: String(created.categoryId),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: created,
+      comment: `Time off type "${created.categoryName}" created`,
+    });
+
     res.status(201).json(created);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create category' });
+    res.status(500).json({ error: 'Failed to create type of time-off' });
   }
 });
 
@@ -121,12 +132,22 @@ router.put('/:id', requirePermission('TimeOffCategories', 'create'), async (req:
       return res.status(400).json({ error: 'categoryName is required' });
     }
 
+    const before = await getCategoryById(id);
     const updated = await updateCategory(id, categoryName);
-    if (!updated) return res.status(404).json({ error: 'Category not found' });
+    if (!updated) return res.status(404).json({ error: 'Type of time-off not found' });
+
+    await auditOrchestrator.log({
+      entityName: 'tot_time_off_types',
+      entityId: String(id),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: before,
+      newValues: updated,
+      comment: `Time off type updated to "${updated.categoryName}"`,
+    });
 
     res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update category' });
+    res.status(500).json({ error: 'Failed to update type of time-off' });
   }
 });
 
@@ -136,10 +157,21 @@ router.delete('/:id', requirePermission('TimeOffCategories', 'delete'), async (r
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
+    const before = await getCategoryById(id);
     await deleteCategory(id);
+
+    await auditOrchestrator.log({
+      entityName: 'tot_time_off_types',
+      entityId: String(id),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: before,
+      newValues: null,
+      comment: `Time off type "${before?.categoryName}" deleted`,
+    });
+
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete category' });
+    res.status(500).json({ error: 'Failed to delete type of time-off' });
   }
 });
 

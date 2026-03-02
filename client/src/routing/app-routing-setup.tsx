@@ -13,7 +13,6 @@ import { HolidaysPage } from '@/pages/maintenance/holidays';
 import { CategoryCountryPage } from '@/pages/maintenance/category-country';
 import { MyTimeOffPage } from '@/pages/timeoff';
 import { SupervisorTimeOffPage } from '@/pages/timeoff/supervisor';
-import { SupervisorVacationsPage } from '@/pages/timeoff/vacations';
 import { TimeOffManagementPage } from '@/pages/timeoff/management';
 import { MyTeamPage } from '@/pages/my-team';
 import { TeamMemberProfilePage } from '@/pages/my-team/profile';
@@ -21,6 +20,7 @@ import { AnnouncementsPage } from '@/pages/announcements';
 import { NotificationCenterPage } from '@/pages/notifications';
 import { ProjectAssignmentsPage } from '@/pages/project-assignments';
 import { TimeOffDetailPage } from '@/pages/timeoff/detail';
+import { TimeOffActivityPage } from '@/pages/timeoff/activity';
 import { EndorsementsPage } from '@/pages/endorsements';
 import { EndorsementCreatePage } from '@/pages/endorsements/create';
 import { EndorsementDetailPage } from '@/pages/endorsements/detail';
@@ -28,6 +28,7 @@ import { TierBandsPage } from '@/pages/maintenance/tier-bands';
 import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
 import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
 import { ClientsPage } from '@/pages/maintenance/clients';
+import { TimeOffTypesPage } from '@/pages/maintenance/time-off-types';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { HiringPage } from '@/pages/hiring';
@@ -53,12 +54,12 @@ export function AppRoutingSetup() {
         <Route path="/my-team/:id" element={<TeamMemberProfilePage />} />
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
-        <Route path="/supervisor-vacations" element={<SupervisorVacationsPage />} />
         <Route path="/time-off-management" element={<TimeOffManagementPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/notification-center" element={<NotificationCenterPage />} />
         <Route path="/project-assignments" element={<ProjectAssignmentsPage />} />
         <Route path="/timeoff-detail/:timeOffId" element={<TimeOffDetailPage />} />
+        <Route path="/timeoff-activity" element={<TimeOffActivityPage />} />
         <Route path="/endorsements" element={<EndorsementsPage />} />
         <Route path="/endorsements/create" element={<EndorsementCreatePage />} />
         <Route path="/endorsements/:id" element={<EndorsementDetailPage />} />
@@ -73,6 +74,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/bonus-categories" element={<BonusCategoriesPage />} />
         <Route path="/maintenance/bonus-subcategories" element={<BonusSubcategoriesPage />} />
         <Route path="/maintenance/clients" element={<ClientsPage />} />
+        <Route path="/maintenance/time-off-types" element={<TimeOffTypesPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />

@@ -30,6 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
+import { formatUTCDate } from '@/lib/utils';
 import { HolidayFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -88,12 +89,7 @@ export function HolidaysPage() {
 
   const formatDate = (date: Date | string | null) => {
     if (!date) return '-';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatUTCDate(date, 'MMM d, yyyy');
   };
 
   if (!canRead('Holidays')) {

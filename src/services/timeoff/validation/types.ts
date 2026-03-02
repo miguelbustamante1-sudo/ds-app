@@ -26,6 +26,8 @@ export interface TimeOffValidationContext {
   effectiveCountryId: number;
   allowedCategoryIds: number[];
   blockingStatusIds: number[];
+  categoryCountryDaysBefore: number;
+  categoryName: string;
   overlappingTimeOffs: Array<{
     timeOffId: number;
     timeOffStartDate: Date;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import type { HolidayDTO, CreateHolidayDTO, UpdateHolidayDTO, CountryDTO } from '@shared/dto';
 import {
@@ -16,6 +17,7 @@ import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { parseUTCDateAsLocal } from '@/lib/utils';
 
 interface HolidayFormData {
   holidayName: string;
@@ -88,7 +90,7 @@ export function HolidayFormDialog({
     if (open) {
       if (holiday) {
         const holidayDate = holiday.holidayDate
-          ? new Date(holiday.holidayDate).toISOString().split('T')[0]
+          ? format(parseUTCDateAsLocal(holiday.holidayDate), 'yyyy-MM-dd')
           : '';
         reset({
           holidayName: holiday.holidayName,
