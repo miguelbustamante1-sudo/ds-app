@@ -51,11 +51,11 @@ function canCancel(timeOff: TimeOffWithTeamMemberDTO): boolean {
 }
 
 /**
- * Check if a time-off can be edited (only future time offs)
+ * Check if a time-off can be edited (only future time offs, not cancelled or rejected)
  */
 function canEdit(timeOff: TimeOffWithTeamMemberDTO): boolean {
   const statusLower = timeOff.statusName.toLowerCase();
-  if (statusLower.includes('cancelled')) return false;
+  if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return false;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

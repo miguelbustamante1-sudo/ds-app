@@ -40,10 +40,11 @@ function getStatusVariant(statusName: string): 'success' | 'secondary' | 'destru
 }
 
 /**
- * Check if a time-off can be edited or cancelled (not cancelled status)
+ * Check if a time-off can be edited or cancelled (not cancelled or rejected status)
  */
 function canModify(timeOff: TimeOffWithDetailsDTO): boolean {
-  return !timeOff.statusName.toLowerCase().includes('cancelled');
+  const statusLower = timeOff.statusName.toLowerCase();
+  return !statusLower.includes('cancelled') && !statusLower.includes('rejected');
 }
 
 export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {

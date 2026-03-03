@@ -383,6 +383,10 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       return res.status(400).json({ error: 'Cannot edit a cancelled time-off request' });
     }
 
+    if (timeOff.statusId === 5) { // Rejected
+      return res.status(400).json({ error: 'Cannot edit a rejected time-off request' });
+    }
+
     const validationResult = await validateTimeOff({
       teamMemberId: timeOff.teamMemberId,
       categoryId,

@@ -15,6 +15,7 @@ import { authMiddleware } from './middleware/auth';
 import { getAllCountries } from './db/countries';
 import { error } from './logger';
 import { processAttritionTimeOffs } from './services/timeoff/attrition/processAttrition';
+import { processCountdownNotifications } from './services/timeoff/countdownNotifications/processCountdownNotifications';
 
 import type { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -86,6 +87,13 @@ setInterval(refreshSchemaCheck, 5 * 60 * 1000);
 // Runs once on startup (to catch any missed days) and then every 24 hours.
 processAttritionTimeOffs();
 setInterval(processAttritionTimeOffs, 24 * 60 * 60 * 1000);
+
+// Countdown notifications: alert team member and their supervisor chain at
+// 90, 60, 30, 15, and 1 day(s) before a time off's start date.
+// Runs once on startup (catches any milestone missed while server was down)
+// and then every 24 hours.
+processCountdownNotifications();
+setInterval(processCountdownNotifications, 24 * 60 * 60 * 1000);
 
 // PostgreSQL connection pool for Cloud SQL
 // pool is provided by `src/db/pool.ts`

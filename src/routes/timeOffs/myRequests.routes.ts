@@ -78,12 +78,16 @@ router.get('/detail/:timeOffId', requirePermission('TimeOffs', 'read'), resolveA
       || `${teamMember?.teamMemberNames ?? ''} ${teamMember?.teamMemberSurnames ?? ''}`.trim()
       || 'Unknown';
 
-    // Compute available actions — only when status is Tentative (statusId === 1)
+    // Compute available actions based on status and role
     let availableActions: TimeOffDetailDTO['availableActions'] = [];
-    if (timeOff.statusId === 1) {
+    if (timeOff.statusId === 1) { // Tentative
       if (role === 'owner') {
         availableActions = ['acknowledge', 'decline', 'cancel'];
       } else {
+        availableActions = ['cancel'];
+      }
+    } else if (timeOff.statusId === 5) { // Rejected — only supervisor can cancel
+      if (role === 'supervisor') {
         availableActions = ['cancel'];
       }
     }
@@ -229,8 +233,14 @@ router.patch('/detail/:timeOffId/cancel', requirePermission('TimeOffs', 'read'),
       return res.status(403).json({ error: 'Not authorized to cancel this time-off' });
     }
 
-    if (timeOff.statusId !== 1) {
+    // Only Tentative (1) and Rejected (5) can be cancelled
+    if (timeOff.statusId !== 1 && timeOff.statusId !== 5) {
       return res.status(400).json({ error: 'Action already taken on this time-off' });
+    }
+
+    // Rejected time-offs can only be cancelled by a supervisor
+    if (timeOff.statusId === 5 && !isSupervisor) {
+      return res.status(403).json({ error: 'Only supervisors can cancel a rejected time-off' });
     }
 
     const cancelledStatus = await getStatusByName('cancelled');
@@ -396,6 +406,10 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
 
     if (timeOff.statusId === cancelledStatus.statusId) {
       return res.status(400).json({ error: 'Time-off is already cancelled' });
+    }
+
+    if (timeOff.statusId === 5) { // Rejected
+      return res.status(403).json({ error: 'Only supervisors can cancel a rejected time-off' });
     }
 
     const updated = await updateTimeOff(
