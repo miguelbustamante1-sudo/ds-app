@@ -1,18 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Toolbar,
   ToolbarActions,
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { REPORTS_REGISTRY } from './registry';
+import { REPORTS_REGISTRY, type ReportEntry } from './registry';
 import { ReportCard } from './components/ReportCard';
 import { ReportsSearch } from './components/ReportsSearch';
+import { listActiveReports } from './dynamic/api';
 
 export function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [dynamicEntries, setDynamicEntries] = useState<ReportEntry[]>([]);
 
-  const filtered = REPORTS_REGISTRY.filter((entry) => {
+  useEffect(() => {
+    listActiveReports().then((reports) => {
+      const entries: ReportEntry[] = reports.map((r) => ({
+        id: `dynamic-${r.reportId}`,
+        title: r.reportName,
+        description: r.reportDescription ?? '',
+        path: `/reports/dynamic/${r.reportId}/run`,
+        group: r.reportGroup,
+        permission: r.reportPermission ?? undefined,
+        isDynamic: true,
+      }));
+      setDynamicEntries(entries);
+    }).catch(() => {});
+  }, []);
+
+  const allEntries = [...REPORTS_REGISTRY, ...dynamicEntries];
+
+  const filtered = allEntries.filter((entry) => {
     const term = searchTerm.toLowerCase();
     return (
       entry.title.toLowerCase().includes(term) ||
@@ -20,7 +39,7 @@ export function ReportsPage() {
     );
   });
 
-  const grouped = filtered.reduce<Record<string, typeof filtered>>(
+  const grouped = filtered.reduce<Record<string, typeof allEntries>>(
     (acc, entry) => {
       if (!acc[entry.group]) acc[entry.group] = [];
       acc[entry.group].push(entry);

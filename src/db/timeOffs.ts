@@ -135,6 +135,7 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
     include: {
       category: { select: { categoryName: true } },
       status: { select: { statusName: true } },
+      _count: { select: { changeLogs: true } },
     },
     orderBy: { timeOffStartDate: 'desc' },
   });
@@ -149,5 +150,6 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
     categoryName: timeOff.category?.categoryName ?? 'Unknown',
     statusId: timeOff.statusId,
     statusName: timeOff.status?.statusName ?? 'Unknown',
+    changeLogCount: timeOff._count.changeLogs,
   }));
 }

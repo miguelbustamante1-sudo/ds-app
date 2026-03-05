@@ -563,3 +563,62 @@ model Client {
   @@map("cli_clients")
   @@schema("ds")
 }
+
+model ReportDefinition {
+  reportId          Int               @id @default(autoincrement()) @map("rpt_id") @db.Integer
+  reportName        String            @map("rpt_name") @db.VarChar(200)
+  reportDescription String?           @map("rpt_description") @db.VarChar(2000)
+  reportGroup       String            @map("rpt_group") @db.VarChar(100)
+  reportSqlQuery    String            @map("rpt_sql_query") @db.Text
+  reportActive      Boolean           @default(true) @map("rpt_active")
+  reportPermission  String?           @map("rpt_permission") @db.VarChar(100)
+  reportCreatedAt   DateTime          @default(now()) @map("rpt_created_at") @db.Timestamptz(6)
+  reportCreatedBy   String            @map("rpt_created_by") @db.VarChar(250)
+  reportUpdatedAt   DateTime?         @map("rpt_updated_at") @db.Timestamptz(6)
+  reportUpdatedBy   String?           @map("rpt_updated_by") @db.VarChar(250)
+  parameters        ReportParameter[]
+
+  @@index([reportActive], map: "idx_rpt_report_definitions_active")
+  @@map("rpt_report_definitions")
+  @@schema("ds")
+}
+
+model ReportParameter {
+  parameterId       Int              @id @default(autoincrement()) @map("rtp_id") @db.Integer
+  reportId          Int              @map("rpt_id")
+  parameterName     String           @map("rtp_name") @db.VarChar(100)
+  parameterLabel    String           @map("rtp_label") @db.VarChar(200)
+  parameterType     String           @map("rtp_type") @db.VarChar(50)
+  parameterRequired Boolean          @default(true) @map("rtp_required")
+  parameterDefault  String?          @map("rtp_default") @db.VarChar(500)
+  parameterOrder    Int              @default(0) @map("rtp_order")
+  parameterOptions  String?          @map("rtp_options") @db.Text
+  report            ReportDefinition @relation(fields: [reportId], references: [reportId], onDelete: Cascade, map: "fk_rtp_report_parameters_rpt")
+
+  @@index([reportId], map: "idx_rpt_report_parameters_rpt_id")
+  @@map("rtp_report_parameters")
+  @@schema("ds")
+}
+
+model WorkdayInfo {
+  wdid                 String    @id @map("win_wdid") @db.VarChar
+  hireDate             DateTime? @map("win_hire_date") @db.Date
+  corporateEmail       String?   @map("win_corporate_email") @db.VarChar
+  personalEmail        String?   @map("win_personal_email") @db.VarChar
+  allEmails            Json      @map("win_all_emails")
+  cellphone            String?   @map("win_cellphone") @db.VarChar
+  homePhone            String?   @map("win_home_phone") @db.VarChar
+  birthDate            String?   @map("win_birth_date") @db.VarChar
+  parenthood           Boolean?  @map("win_parenthood")
+  workStyle            String?   @map("win_work_style") @db.VarChar
+  gender               String?   @map("win_gender") @db.VarChar
+  billingStatus        String?   @map("win_billing_status") @db.VarChar
+  costCenterHierarchy  String?   @map("win_cost_center_hierarchy") @db.VarChar
+  costCenterNames      String?   @map("win_cost_center_names") @db.VarChar
+  directManager        String?   @map("win_direct_manager") @db.VarChar
+  vacation             Decimal?  @map("win_vacation") @db.Decimal
+  personalDays         Decimal?  @map("win_personal_days") @db.Decimal
+
+  @@map("win_worday_info")
+  @@schema("es")
+}

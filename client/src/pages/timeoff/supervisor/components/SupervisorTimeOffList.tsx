@@ -134,6 +134,13 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
         meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
+        accessorKey: 'changeLogCount',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Changes" />,
+        cell: ({ row }) => <span>{row.original.changeLogCount}</span>,
+        size: 90,
+        meta: { headerTitle: 'Changes', skeleton: <Skeleton className="h-4 w-10" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => {

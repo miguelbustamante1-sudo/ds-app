@@ -34,6 +34,7 @@ export interface TimeOffWithDetailsDTO {
   categoryName: string;
   statusId: number | null;
   statusName: string;
+  changeLogCount: number;
 }
 
 /**
@@ -227,4 +228,5 @@ export interface TimeOffWithTeamMemberDTO {
   categoryName: string;
   statusId: number | null;
   statusName: string;
+  changeLogCount: number;
 }

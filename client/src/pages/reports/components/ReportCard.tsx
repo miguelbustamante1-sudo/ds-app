@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { PermissionGate } from '@/components/PermissionGate';
 import type { ReportEntry } from '../registry';
 
@@ -20,6 +21,9 @@ function ReportCardInner({ entry }: ReportCardProps) {
         <div className="flex items-center gap-2 text-primary">
           <FileText size={18} />
           <span className="font-semibold text-sm">{entry.title}</span>
+          {entry.isDynamic && (
+            <Badge variant="secondary" className="text-xs ml-auto">Custom</Badge>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">{entry.description}</p>
       </CardContent>

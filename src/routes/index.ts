@@ -26,7 +26,9 @@ import endorsementBonusesRouter from './endorsementBonuses';
 import tierBandsRouter from './tierBands';
 import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
+import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
+import workdayInfoRouter from './workdayInfo';
 
 export default function registerRoutes() {
   const router = Router();
@@ -58,7 +60,9 @@ export default function registerRoutes() {
   router.use('/tier-bands', tierBandsRouter);
   router.use('/bonus-subcategories', bonusSubcategoriesRouter);
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
+  router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
+  router.use('/workday-info', workdayInfoRouter);
 
   return router;
 }

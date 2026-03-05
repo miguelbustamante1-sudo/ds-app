@@ -27,12 +27,14 @@ export * from './TimeOffCategory';
 export * from './CategoryCountry';
 export * from './TimeOffStatus';
 export * from './User';
+export * from './WorkdayInfo';
 
 // Communication DTOs
 export * from './Notification';
 
 export * from './TierBand';
 export * from './TimeOffChangeLog';
+export * from './DynamicReport';
 
 // Security DTOs
 export * from './Permission';

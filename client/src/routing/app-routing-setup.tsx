@@ -29,8 +29,13 @@ import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
 import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
 import { ClientsPage } from '@/pages/maintenance/clients';
 import { TimeOffTypesPage } from '@/pages/maintenance/time-off-types';
+import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
+import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
+import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
+import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
+import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
 import { HiringPage } from '@/pages/hiring';
 import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
@@ -75,11 +80,17 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/bonus-subcategories" element={<BonusSubcategoriesPage />} />
         <Route path="/maintenance/clients" element={<ClientsPage />} />
         <Route path="/maintenance/time-off-types" element={<TimeOffTypesPage />} />
+        <Route path="/maintenance/time-off-statuses" element={<TimeOffStatusesPage />} />
+        <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
+        <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
+        <Route path="/reports/dynamic/new" element={<ReportWizard />} />
+        <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
+        <Route path="/reports/dynamic/:id/run" element={<RunReportPage />} />
         {/* Security - RBAC management */}
         <Route path="/security/roles" element={<RolesPage />} />
         <Route path="/security/options" element={<OptionsPage />} />

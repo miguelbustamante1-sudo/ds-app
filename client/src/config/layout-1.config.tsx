@@ -121,6 +121,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/reports',
     permission: 'Reports',
   },
+  {
+    title: 'Manage Dynamic Reports',
+    icon: Database,
+    path: '/reports/dynamic',
+    permission: 'Reports',
+  },
   { heading: 'Communications' },
   {
     title: 'Announcements',
@@ -173,9 +179,11 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', icon: UserCheck, permission: 'SupervisorAssignments' },
       { title: 'Team Members', path: '/maintenance/team-members', icon: Users, permission: 'TeamMembers' },
       { title: 'Tier Bands', path: '/maintenance/tier-bands', icon: TrendingUp, permission: 'TierBands' },
+      { title: 'Time Off Statuses', path: '/maintenance/time-off-statuses', icon: CheckCircle, permission: 'TimeOffStatuses' },
       { title: 'Type of TimeOff', path: '/maintenance/time-off-types', icon: Umbrella, permission: 'TimeOffCategories' },
       { title: 'Type of TimeOff by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Users', path: '/maintenance/users', icon: UserCircle, permission: 'Users' },
+      { title: 'Workday Info', path: '/maintenance/workday-info', icon: WorkIcon, permission: 'WorkdayInfo' },
     ],
   },
 ];

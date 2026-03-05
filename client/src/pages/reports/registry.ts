@@ -5,6 +5,7 @@ export interface ReportEntry {
   path: string;
   group: string;
   permission?: string;
+  isDynamic?: boolean;
 }
 
 export const REPORTS_REGISTRY: ReportEntry[] = [

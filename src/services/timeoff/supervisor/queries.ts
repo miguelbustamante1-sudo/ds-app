@@ -409,6 +409,7 @@ interface RawAllTeamTimeOff {
   category_name: string;
   status_id: number | null;
   status_name: string;
+  change_log_count: number;
 }
 
 /**
@@ -454,7 +455,8 @@ export async function getAllTeamTimeOffs(
       tof.tot_id AS category_id,
       cat.tot_name AS category_name,
       tof.sta_id AS status_id,
-      sta.sta_name AS status_name
+      sta.sta_name AS status_name,
+      (SELECT COUNT(*)::int FROM ds.toc_timeoff_changelog cl WHERE cl.tto_id = tof.tto_id) AS change_log_count
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
@@ -478,6 +480,7 @@ export async function getAllTeamTimeOffs(
     categoryName: row.category_name,
     statusId: row.status_id,
     statusName: row.status_name,
+    changeLogCount: Number(row.change_log_count),
   }));
 }
 
