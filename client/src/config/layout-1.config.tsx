@@ -174,6 +174,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },
       { title: 'Clients', path: '/maintenance/clients', icon: Building, permission: 'Clients' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
+      { title: 'Functional Areas', path: '/maintenance/functional-areas', icon: Network, permission: 'FunctionalAreas' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },
       { title: 'Projects', path: '/maintenance/projects', icon: FolderKanban, permission: 'Projects' },
       { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', icon: UserCheck, permission: 'SupervisorAssignments' },

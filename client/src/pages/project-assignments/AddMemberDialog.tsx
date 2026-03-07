@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { AvailableForProjectDTO } from '@shared/dto/TeamMemberReport';
+import type { FunctionalAreaDTO } from '@shared/dto';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
-import { apiPost } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { MemberComboBox } from './components/MemberComboBox';
 
@@ -31,12 +33,23 @@ interface FormData {
   projectAssignmentBillRate: string;
   projectAssignmentBillRateCurrency: string;
   projectAssignmentAllocation: string;
+  functionalAreaId: string;
 }
 
 export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Props) {
   const { toast } = useToast();
   const [selectedTm, setSelectedTm] = useState<AvailableForProjectDTO | null>(null);
   const [teamMemberId, setTeamMemberId] = useState('');
+  const [allFunctionalAreas, setAllFunctionalAreas] = useState<FunctionalAreaDTO[]>([]);
+  const [functionalAreaId, setFunctionalAreaId] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      apiGet<FunctionalAreaDTO[]>('/api/functional-areas')
+        .then(setAllFunctionalAreas)
+        .catch(() => toast({ title: 'Error', description: 'Failed to load functional areas', variant: 'destructive' }));
+    }
+  }, [open, toast]);
 
   const {
     register,
@@ -52,12 +65,19 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
       projectAssignmentBillRate: '',
       projectAssignmentBillRateCurrency: '',
       projectAssignmentAllocation: '',
+      functionalAreaId: '',
     },
   });
+
+  const functionalAreas = selectedTm?.countryId
+    ? allFunctionalAreas.filter((fa) => fa.countryId === selectedTm.countryId)
+    : allFunctionalAreas;
 
   const handleTmSelect = (tm: AvailableForProjectDTO) => {
     setSelectedTm(tm);
     setValue('projectAssignmentBillRateCurrency', tm.countryCurrencySymbol ?? '');
+    setValue('functionalAreaId', '');
+    setFunctionalAreaId('');
   };
 
   const handleValueChange = (val: string) => {
@@ -73,6 +93,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
       reset();
       setTeamMemberId('');
       setSelectedTm(null);
+      setFunctionalAreaId('');
     }
     onOpenChange(v);
   };
@@ -87,6 +108,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
         projectAssignmentBillRate: Number(data.projectAssignmentBillRate),
         projectAssignmentBillRateCurrency: data.projectAssignmentBillRateCurrency.toUpperCase(),
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
+        functionalAreaId: Number(data.functionalAreaId),
       });
       toast({ title: 'Success', description: 'Team member added to project.' });
       onSuccess();
@@ -215,6 +237,28 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
               />
               {errors.projectAssignmentBillRateCurrency && (
                 <p className="text-sm text-destructive">{errors.projectAssignmentBillRateCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Functional Area <span className="text-destructive">*</span>
+              </Label>
+              <ComboBox
+                options={functionalAreas.map((fa): ComboBoxOption => ({ value: String(fa.Id), label: fa.Name }))}
+                value={functionalAreaId}
+                onValueChange={(val) => {
+                  setFunctionalAreaId(val);
+                  setValue('functionalAreaId', val, { shouldValidate: true });
+                }}
+                placeholder="Select functional area..."
+                searchPlaceholder="Search functional areas..."
+                emptyMessage="No functional areas found."
+                disabled={!selectedTm}
+              />
+              <input type="hidden" {...register('functionalAreaId', { required: 'Functional area is required' })} />
+              {errors.functionalAreaId && (
+                <p className="text-sm text-destructive">{errors.functionalAreaId.message}</p>
               )}
             </div>
 

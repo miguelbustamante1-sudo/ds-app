@@ -29,6 +29,7 @@ import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import workdayInfoRouter from './workdayInfo';
+import functionalAreasRouter from './functionalArea';
 
 export default function registerRoutes() {
   const router = Router();
@@ -63,6 +64,7 @@ export default function registerRoutes() {
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/workday-info', workdayInfoRouter);
+  router.use('/functional-areas', functionalAreasRouter);
 
   return router;
 }

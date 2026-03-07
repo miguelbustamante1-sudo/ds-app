@@ -28,6 +28,7 @@ export interface TimeOffValidationContext {
   blockingStatusIds: number[];
   categoryCountryDaysBefore: number;
   categoryName: string;
+  workdayBalance: { vacation: number; personalDays: number };
   overlappingTimeOffs: Array<{
     timeOffId: number;
     timeOffStartDate: Date;

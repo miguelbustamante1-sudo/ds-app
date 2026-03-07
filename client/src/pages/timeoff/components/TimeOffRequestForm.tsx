@@ -32,6 +32,7 @@ import {
 } from '../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
+import { validateWorkdayBalance } from '../utils/workdayBalanceValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -55,9 +56,10 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
+  workdayBalance: { vacation: number; personalDays: number } | null;
 }
 
-export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffRequestFormProps) {
+export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
@@ -210,7 +212,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     selectedCategory?.categoryName ?? ''
   );
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, or days-before rule violated
+  // Workday balance validation
+  const balanceValidation = selectedCategory && hintDays > 0
+    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, workdayBalance)
+    : { valid: true, errorMessage: null, available: 0 };
+
+  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -222,6 +229,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
     !isStartDateHoliday &&
     svValidation.valid &&
     daysBeforeValidation.valid &&
+    balanceValidation.valid &&
     !!comment?.trim() &&
     !submitting;
 
@@ -511,6 +519,14 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
                 <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
               )}
             </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Workday Balance Warning */}
+        {!balanceValidation.valid && balanceValidation.errorMessage && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
           </Alert>
         )}
 

@@ -19,10 +19,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { WorkdayBalanceBadges } from './WorkdayBalanceBadges';
 
 interface MyTimeOffListProps {
   timeOffs: TimeOffWithDetailsDTO[] | undefined;
   loading: boolean;
+  balance?: { vacation: number; personalDays: number } | null;
+  balanceLoading?: boolean;
   onEditClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   onCancelClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   onRowClick?: (timeOff: TimeOffWithDetailsDTO) => void;
@@ -47,7 +50,7 @@ function canModify(timeOff: TimeOffWithDetailsDTO): boolean {
   return !statusLower.includes('cancelled') && !statusLower.includes('rejected');
 }
 
-export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
+export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [showCancelled, setShowCancelled] = useState(false);
@@ -170,32 +173,33 @@ export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, o
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  if (loading) {
-    return (
-      <div className="bg-card rounded-lg border p-6">
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
+  const listContent = () => {
+    if (loading) {
+      return (
+        <div className="bg-card rounded-lg border p-6">
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (!data.length) {
-    return (
-      <div className="bg-card rounded-lg border">
-        <div className="text-center py-12 text-muted-foreground">
-          No time off requests found. Create your first request using the form.
+    if (!data.length) {
+      return (
+        <div className="bg-card rounded-lg border">
+          <div className="text-center py-12 text-muted-foreground">
+            No time off requests found. Create your first request using the form.
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  return (
-    <div className="space-y-4">
-      {/* Search + Show Cancelled */}
-      <div className="flex items-center gap-4">
+    return (
+      <>
+        {/* Search + Show Cancelled */}
+        <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -220,21 +224,33 @@ export function MyTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, o
         </div>
       </div>
 
-      {/* Data Grid */}
-      <DataGridContainer>
-        <DataGrid
-          table={table}
-          recordCount={filteredData.length}
-          tableLayout={{
-            headerBackground: true,
-            headerBorder: true,
-            rowBorder: true,
-          }}
-          onRowClick={onRowClick}
-        >
-          <DataGridTable />
-        </DataGrid>
-      </DataGridContainer>
+        {/* Data Grid */}
+        <DataGridContainer>
+          <DataGrid
+            table={table}
+            recordCount={filteredData.length}
+            tableLayout={{
+              headerBackground: true,
+              headerBorder: true,
+              rowBorder: true,
+            }}
+            onRowClick={onRowClick}
+          >
+            <DataGridTable />
+          </DataGrid>
+        </DataGridContainer>
+      </>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <WorkdayBalanceBadges
+        vacation={balance?.vacation ?? 0}
+        personalDays={balance?.personalDays ?? 0}
+        loading={balanceLoading}
+      />
+      {listContent()}
     </div>
   );
 }

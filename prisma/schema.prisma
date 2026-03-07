@@ -20,6 +20,7 @@ model Country {
   holidays          Holiday[]
   endorsements       Endorsement[]
   bonusSubcategories BonusSubcategory[]
+  functionalAreas    FunctionalArea[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
   @@map("cou_countries")
@@ -169,12 +170,14 @@ model ProjectAssignment {
   projectAssignmentLastUpdatedBy    Int?        @map("tmp_updated_by")
   projectAssignmentLastUpdatedDate  DateTime?   @map("tmp_updated_at") @db.Date
   projectAssignmentAllocation       Decimal     @default(0) @map("tmp_allocation") @db.Decimal(5, 2)
-  projectAssignmentDeleted          Boolean     @default(false) @map("tmp_deleted")
-  projectAssignmentDeleteReason     String?     @map("tmp_delete_reason") @db.VarChar(255)
-  createdByUser                     User?       @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
-  project                           Project     @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
-  teamMember                        TeamMember  @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
-  lastUpdatedByUser                 User?       @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
+  projectAssignmentDeleted          Boolean?        @default(false) @map("tmp_deleted")
+  projectAssignmentDeleteReason     String?         @map("tmp_delete_reason") @db.VarChar(255)
+  functionalAreaId                  Int?            @map("far_id")
+  createdByUser                     User?           @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
+  project                           Project         @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
+  teamMember                        TeamMember      @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
+  lastUpdatedByUser                 User?           @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
+  functionalArea                    FunctionalArea? @relation(fields: [functionalAreaId], references: [Id], onDelete: Restrict, map: "fk_tmp_team_member_project_far")
 
   @@index([projectAssignmentCreatedBy], map: "idx_tmp_team_member_project_cby")
   @@index([projectId], map: "idx_tmp_team_member_project_pro_id")
@@ -597,6 +600,17 @@ model ReportParameter {
 
   @@index([reportId], map: "idx_rpt_report_parameters_rpt_id")
   @@map("rtp_report_parameters")
+  @@schema("ds")
+}
+
+model FunctionalArea {
+  Id   Int      @id @default(autoincrement()) @map("far_id") @db.Integer
+  Name String   @map("far_name") @db.Text
+  countryId          Int?     @map("cou_id")
+  country            Country?           @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
+  projectAssignments ProjectAssignment[]
+
+  @@map("far_functional_areas")
   @@schema("ds")
 }
 

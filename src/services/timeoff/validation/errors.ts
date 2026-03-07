@@ -73,6 +73,18 @@ export const TimeOffValidationErrors = {
     metadata: { existingDays, maxAnnualDays: 15 },
   }),
 
+  INSUFFICIENT_VACATION_BALANCE: (requested: number, available: number): ValidationError => ({
+    code: 'INSUFFICIENT_VACATION_BALANCE',
+    message: `Insufficient vacation balance. Requested: ${requested} days, Available: ${available} days.`,
+    metadata: { requested, available },
+  }),
+
+  INSUFFICIENT_PERSONAL_DAY_BALANCE: (requested: number, available: number): ValidationError => ({
+    code: 'INSUFFICIENT_PERSONAL_DAY_BALANCE',
+    message: `Insufficient personal day balance. Requested: ${requested} days, Available: ${available} days.`,
+    metadata: { requested, available },
+  }),
+
   DAYS_BEFORE_NOTICE_REQUIRED: (
     categoryName: string,
     requiredDays: number,

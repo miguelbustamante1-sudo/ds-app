@@ -7,6 +7,7 @@ import { prisma } from '../../../db/prisma';
 import type { TimeOffValidationInput, TimeOffValidationContext } from './types';
 import { DEFAULTS } from './types';
 import type { ElSalvadorVacationContext } from './rules/elSalvadorVacation.rule';
+import { getWorkdayBalance } from '../components/GetWorkdayBalance';
 
 const CANCELLED_STATUS_NAME = 'cancelled';
 
@@ -73,6 +74,8 @@ export async function loadValidationContext(
     },
   });
 
+  const workdayBalance = await getWorkdayBalance(input.teamMemberId);
+
   return {
     teamMember,
     effectiveCountryId,
@@ -81,6 +84,7 @@ export async function loadValidationContext(
     overlappingTimeOffs,
     categoryCountryDaysBefore,
     categoryName,
+    workdayBalance,
   };
 }
 

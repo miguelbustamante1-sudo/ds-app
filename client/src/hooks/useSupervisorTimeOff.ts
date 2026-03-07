@@ -252,6 +252,37 @@ export function useTeamMemberTimeOffBreakdown(options?: UseSupervisorTimeOffOpti
   };
 }
 
+interface WorkdayBalance {
+  vacation: number;
+  personalDays: number;
+}
+
+/**
+ * Hook for fetching a team member's Workday balance (vacation + personal days)
+ */
+export function useTeamMemberWorkdayBalance() {
+  const [balance, setBalance] = useState<WorkdayBalance | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadBalance = useCallback(async (teamMemberId: number): Promise<void> => {
+    try {
+      setLoading(true);
+      const data = await apiGet<WorkdayBalance>(`${API_BASE}/team-member/${teamMemberId}/workday-balance`);
+      setBalance(data);
+    } catch {
+      setBalance(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const clearBalance = useCallback(() => {
+    setBalance(null);
+  }, []);
+
+  return { balance, loading, loadBalance, clearBalance };
+}
+
 /**
  * Hook for fetching all time-offs for all supervised team members
  */

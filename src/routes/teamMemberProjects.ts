@@ -48,11 +48,9 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentLastUpdatedBy: item.projectAssignmentLastUpdatedBy,
       projectAssignmentLastUpdatedDate: item.projectAssignmentLastUpdatedDate,
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
-      projectAssignmentDeleted: item.projectAssignmentDeleted,
+      projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       teamMemberName: item.teamMember
-        ? (item.teamMember.teamMemberKnownAs
-            ? `${item.teamMember.teamMemberKnownAs} ${item.teamMember.teamMemberSurnames}`
-            : `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`)
+        ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: item.project?.projectName ?? null,
@@ -96,11 +94,9 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentLastUpdatedBy: item.projectAssignmentLastUpdatedBy,
       projectAssignmentLastUpdatedDate: item.projectAssignmentLastUpdatedDate,
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
-      projectAssignmentDeleted: item.projectAssignmentDeleted,
+      projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       teamMemberName: item.teamMember
-        ? (item.teamMember.teamMemberKnownAs
-            ? `${item.teamMember.teamMemberKnownAs} ${item.teamMember.teamMemberSurnames}`
-            : `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`)
+        ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: null,

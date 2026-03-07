@@ -26,6 +26,8 @@ import { notificationOrchestrator } from '../../services/notifications/Notificat
 import { getUserIdsByTeamMemberIds } from '../../services/notifications/repository';
 import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
+import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
+import { adjustWorkdayBalance } from '../../services/timeoff/components/AdjustWorkdayBalance';
 
 const router = express.Router();
 
@@ -126,6 +128,28 @@ router.get('/team-member/:teamMemberId/yearly-breakdown', requirePermission('Tim
   } catch (err) {
     console.error('[TimeOff] Error fetching team member yearly breakdown:', err);
     res.status(500).json({ error: 'Failed to fetch time-off breakdown' });
+  }
+});
+
+// GET /team-member/:teamMemberId/workday-balance
+router.get('/team-member/:teamMemberId/workday-balance', requirePermission('TimeOffs', 'read'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const { teamMemberId: supervisorId } = req as ResolvedAuthRequest;
+
+    const targetTeamMemberId = parseIdParam(req.params.teamMemberId);
+    if (targetTeamMemberId === null) {
+      return res.status(400).json({ error: 'Invalid team member id' });
+    }
+
+    const hasAuthority = await verifySupervisorRelationship(supervisorId, targetTeamMemberId);
+    if (!hasAuthority) {
+      return res.status(403).json({ error: 'Not authorized to view workday balance for this team member' });
+    }
+
+    const balance = await getWorkdayBalance(targetTeamMemberId);
+    res.json(balance);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch workday balance' });
   }
 });
 
@@ -231,21 +255,24 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       createdByUserId: userId,
     });
 
-    // Auto-create actionable notification for the employee
+    const createdBy = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+
+    // Auto-create actionable notification for the employee & adjust balance
     try {
       const employeeUserIds = await getUserIdsByTeamMemberIds([teamMemberId]);
       const employeeUserId = employeeUserIds[0];
+
+      const category = await prisma.timeOffCategory.findUnique({
+        where: { categoryId },
+        select: { categoryName: true },
+      });
+      const categoryLabel = category?.categoryName ?? 'time-off';
+
       if (employeeUserId !== undefined) {
         const authReq = req as ResolvedAuthRequest;
         const supervisorName = authReq.user?.firstName
           ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
           : 'Your supervisor';
-
-        const category = await prisma.timeOffCategory.findUnique({
-          where: { categoryId },
-          select: { categoryName: true },
-        });
-        const categoryLabel = category?.categoryName ?? 'time-off';
 
         await notificationOrchestrator.create({
           categoryName: 'Inbox',
@@ -264,8 +291,10 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
           recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
         });
       }
+
+      await adjustWorkdayBalance(teamMemberId, categoryLabel, totalDays, createdBy);
     } catch (notifErr) {
-      console.error('[TimeOff] Failed to create notification for employee:', notifErr);
+      console.error('[TimeOff] Failed to create notification or adjust balance on supervisor create:', notifErr);
     }
 
     res.status(201).json(created);
@@ -279,6 +308,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
 router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
   try {
     const { teamMemberId: supervisorTeamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const createdBy = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
 
     const timeOffId = Number(req.params.timeOffId);
     if (Number.isNaN(timeOffId)) {
@@ -312,9 +342,17 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       return res.status(400).json({ error: 'Time-off is already cancelled' });
     }
 
+    const oldDays = Number(timeOff.timeOffDays);
+    const employeeTeamMemberId = timeOff.teamMemberId;
+
+    const categoryRecord = timeOff.categoryId
+      ? await prisma.timeOffCategory.findUnique({ where: { categoryId: timeOff.categoryId }, select: { categoryName: true } })
+      : null;
+    const categoryName = categoryRecord?.categoryName ?? '';
+
     const updated = await updateTimeOff(
       timeOffId,
-      timeOff.teamMemberId,
+      employeeTeamMemberId,
       timeOff.timeOffStartDate,
       timeOff.timeOffEndDate,
       userId,
@@ -331,6 +369,12 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       createdByUserId: userId,
     });
 
+    try {
+      await adjustWorkdayBalance(employeeTeamMemberId, categoryName, -oldDays, createdBy);
+    } catch (balanceErr) {
+      console.error('[TimeOff] Failed to restore balance on supervisor cancel:', balanceErr);
+    }
+
     res.json(updated);
   } catch (err) {
     console.error('[TimeOff] Error cancelling time-off:', err);
@@ -342,6 +386,7 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
 router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
   try {
     const { teamMemberId: supervisorTeamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const createdBy = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
 
     const timeOffId = Number(req.params.timeOffId);
     if (Number.isNaN(timeOffId)) {
@@ -403,12 +448,20 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       });
     }
 
+    const oldDays = Number(timeOff.timeOffDays);
+
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       timeOff.teamMemberId,
       categoryId,
       new Date(timeOffStartDate),
       new Date(timeOffEndDate)
     );
+
+    const categoryRecord = await prisma.timeOffCategory.findUnique({
+      where: { categoryId },
+      select: { categoryName: true },
+    });
+    const categoryName = categoryRecord?.categoryName ?? '';
 
     const updated = await updateTimeOff(
       timeOffId,
@@ -437,6 +490,13 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       },
       createdByUserId: userId,
     });
+
+    try {
+      const delta = totalDays - oldDays;
+      await adjustWorkdayBalance(timeOff.teamMemberId, categoryName, delta, createdBy);
+    } catch (balanceErr) {
+      console.error('[TimeOff] Failed to adjust balance on supervisor edit:', balanceErr);
+    }
 
     res.json(updated);
   } catch (err) {

@@ -10,6 +10,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, ApiError } from '@/lib/api';
 import { useMyTimeOffOperations } from '@/hooks/useMyTimeOffOperations';
+import { useMyWorkdayBalance } from '@/hooks/useMyWorkdayBalance';
 import { MyTimeOffList } from './components/MyTimeOffList';
 import { TimeOffRequestForm } from './components/TimeOffRequestForm';
 import { CancelMyTimeOffDialog } from './components/CancelMyTimeOffDialog';
@@ -21,6 +22,7 @@ export function MyTimeOffPage() {
   const [timeOffs, setTimeOffs] = useState<TimeOffWithDetailsDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { balance, loading: balanceLoading, refetchBalance } = useMyWorkdayBalance();
 
   // Dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -56,7 +58,8 @@ export function MyTimeOffPage() {
 
   const handleSuccess = useCallback(() => {
     loadTimeOffs();
-  }, [loadTimeOffs]);
+    refetchBalance();
+  }, [loadTimeOffs, refetchBalance]);
 
   // Action handlers
   const handleRowClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
@@ -77,16 +80,18 @@ export function MyTimeOffPage() {
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
       loadTimeOffs();
+      refetchBalance();
     },
-    [operationsHook, loadTimeOffs]
+    [operationsHook, loadTimeOffs, refetchBalance]
   );
 
   const handleConfirmEdit = useCallback(
     async (timeOffId: number, data: UpdateMyTimeOffDTO) => {
       await operationsHook.updateTimeOff(timeOffId, data);
       loadTimeOffs();
+      refetchBalance();
     },
-    [operationsHook, loadTimeOffs]
+    [operationsHook, loadTimeOffs, refetchBalance]
   );
 
   return (
@@ -104,6 +109,8 @@ export function MyTimeOffPage() {
           <MyTimeOffList
             timeOffs={timeOffs}
             loading={loading}
+            balance={balance}
+            balanceLoading={balanceLoading}
             onEditClick={handleEditClick}
             onCancelClick={handleCancelClick}
             onRowClick={handleRowClick}
@@ -115,6 +122,7 @@ export function MyTimeOffPage() {
           <TimeOffRequestForm
             existingTimeOffs={timeOffs}
             onSuccess={handleSuccess}
+            workdayBalance={balance}
           />
         </div>
       </div>
@@ -136,6 +144,7 @@ export function MyTimeOffPage() {
         existingTimeOffs={timeOffs}
         onConfirm={handleConfirmEdit}
         loading={operationsHook.loading}
+        workdayBalance={balance}
       />
     </div>
   );

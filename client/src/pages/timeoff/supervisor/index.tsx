@@ -13,7 +13,9 @@ import {
   useMyTeamMembers,
   useTeamMemberTimeOffs,
   useSupervisorTimeOffOperations,
+  useTeamMemberWorkdayBalance,
 } from '@/hooks/useSupervisorTimeOff';
+import { WorkdayBalanceBadges } from '../components/WorkdayBalanceBadges';
 import { TeamMembersDataGrid } from './components/TeamMembersDataGrid';
 import { SupervisorTimeOffList } from './components/SupervisorTimeOffList';
 import { SupervisorTimeOffForm } from './components/SupervisorTimeOffForm';
@@ -48,17 +50,21 @@ export function SupervisorTimeOffPage() {
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
+  const balanceHook = useTeamMemberWorkdayBalance();
+
   // Load team members on mount
   useEffect(() => {
     teamMembersHook.loadTeamMembers();
   }, []);
 
-  // Load time-offs when team member is selected
+  // Load time-offs and balance when team member is selected
   useEffect(() => {
     if (selectedTeamMember) {
       timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+      balanceHook.loadBalance(selectedTeamMember.teamMemberId);
     } else {
       timeOffsHook.clearTimeOffs();
+      balanceHook.clearBalance();
     }
   }, [selectedTeamMember]);
 
@@ -139,6 +145,11 @@ export function SupervisorTimeOffPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg font-semibold">{selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames}</span>
             <span className="text-muted-foreground">WDID: {selectedTeamMember.workdayId}</span>
+            <WorkdayBalanceBadges
+              vacation={balanceHook.balance?.vacation ?? 0}
+              personalDays={balanceHook.balance?.personalDays ?? 0}
+              loading={balanceHook.loading}
+            />
           </div>
         )}
       </div>

@@ -28,6 +28,7 @@ export * from './CategoryCountry';
 export * from './TimeOffStatus';
 export * from './User';
 export * from './WorkdayInfo';
+export * from './FunctionalArea';
 
 // Communication DTOs
 export * from './Notification';

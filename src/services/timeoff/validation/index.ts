@@ -13,6 +13,8 @@ import { validateNoOverlap } from './rules/overlapPrevention.rule';
 import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
 import { validateDaysBefore } from './rules/daysBefore.rule';
+import { validateWorkdayBalance } from './rules/workdayBalance.rule';
+import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 import { TimeOffValidationErrors } from './errors';
 
 /**
@@ -89,6 +91,18 @@ export async function validateTimeOff(
   const svResult = validateElSalvadorVacation(svVacationContext);
   if (!svResult.valid && svResult.error) {
     errors.push(svResult.error);
+  }
+
+  // Rule 7: Workday balance (Vacation / Personal Day only)
+  const { totalDays } = await calculateTimeOffDaysForTeamMember(
+    input.teamMemberId,
+    input.categoryId,
+    input.timeOffStartDate,
+    input.timeOffEndDate
+  );
+  const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
+  if (!balanceResult.valid && balanceResult.error) {
+    errors.push(balanceResult.error);
   }
 
   return {

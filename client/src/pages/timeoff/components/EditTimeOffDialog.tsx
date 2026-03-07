@@ -33,6 +33,7 @@ import {
 } from '../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
+import { validateWorkdayBalance } from '../utils/workdayBalanceValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -60,6 +61,7 @@ interface EditTimeOffDialogProps {
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onConfirm: (timeOffId: number, data: UpdateMyTimeOffDTO) => Promise<void>;
   loading: boolean;
+  workdayBalance: { vacation: number; personalDays: number } | null;
 }
 
 export function EditTimeOffDialog({
@@ -69,6 +71,7 @@ export function EditTimeOffDialog({
   existingTimeOffs,
   onConfirm,
   loading,
+  workdayBalance,
 }: EditTimeOffDialogProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
@@ -230,7 +233,22 @@ export function EditTimeOffDialog({
     selectedCategory?.categoryName ?? ''
   );
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, or days-before rule violated
+  // Workday balance validation — add back the original request's days since they were already deducted
+  const categoryNameLower = selectedCategory?.categoryName?.toLowerCase().trim();
+  const isVacationCategory = categoryNameLower === 'vacation';
+  const isPersonalDayCategory = categoryNameLower === 'personal day' || categoryNameLower === 'personal days';
+  const oldRequestDays = timeOff?.timeOffDays ?? 0;
+  const effectiveBalance = workdayBalance
+    ? {
+        vacation: workdayBalance.vacation + (isVacationCategory ? oldRequestDays : 0),
+        personalDays: workdayBalance.personalDays + (isPersonalDayCategory ? oldRequestDays : 0),
+      }
+    : null;
+  const balanceValidation = selectedCategory && hintDays > 0
+    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, effectiveBalance)
+    : { valid: true, errorMessage: null, available: 0 };
+
+  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -241,6 +259,7 @@ export function EditTimeOffDialog({
     !isStartDateHoliday &&
     svValidation.valid &&
     daysBeforeValidation.valid &&
+    balanceValidation.valid &&
     !!comment?.trim() &&
     !loading;
 
@@ -523,6 +542,14 @@ export function EditTimeOffDialog({
                   <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
                 )}
               </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Workday Balance Warning */}
+          {!balanceValidation.valid && balanceValidation.errorMessage && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
             </Alert>
           )}
 

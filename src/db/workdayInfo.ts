@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { Prisma } from '@prisma/client';
 import type { WorkdayInfo } from '@prisma/client';
 import type { CreateWorkdayInfoDTO, UpdateWorkdayInfoDTO } from '../../shared/dto/WorkdayInfo';
 
@@ -21,7 +22,7 @@ export async function createWorkdayInfo(data: CreateWorkdayInfoDTO): Promise<Wor
       hireDate: data.hireDate ? new Date(data.hireDate) : null,
       corporateEmail: data.corporateEmail ?? null,
       personalEmail: data.personalEmail ?? null,
-      allEmails: data.allEmails ?? [],
+      allEmails: data.allEmails === null ? Prisma.JsonNull : (data.allEmails ?? []),
       cellphone: data.cellphone ?? null,
       homePhone: data.homePhone ?? null,
       birthDate: data.birthDate ?? null,
@@ -45,7 +46,7 @@ export async function updateWorkdayInfo(wdid: string, data: UpdateWorkdayInfoDTO
       ...(data.hireDate !== undefined ? { hireDate: data.hireDate ? new Date(data.hireDate) : null } : {}),
       ...(data.corporateEmail !== undefined ? { corporateEmail: data.corporateEmail } : {}),
       ...(data.personalEmail !== undefined ? { personalEmail: data.personalEmail } : {}),
-      ...(data.allEmails !== undefined ? { allEmails: data.allEmails } : {}),
+      ...(data.allEmails !== undefined ? { allEmails: data.allEmails === null ? Prisma.JsonNull : data.allEmails } : {}),
       ...(data.cellphone !== undefined ? { cellphone: data.cellphone } : {}),
       ...(data.homePhone !== undefined ? { homePhone: data.homePhone } : {}),
       ...(data.birthDate !== undefined ? { birthDate: data.birthDate } : {}),
