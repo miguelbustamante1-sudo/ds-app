@@ -5,7 +5,7 @@ import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '..
 import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor, createTeamMember, updateTeamMember, deleteTeamMember } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
 import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
-import { getReports, getAvailableForProject, getAvailableForProjectAll } from '../services/teamMember';
+import { getReports, getAvailableForProject, getAvailableForProjectAll, getProfileForSupervisor } from '../services/teamMember';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -145,6 +145,25 @@ router.get('/available-under-supervisor', requirePermission('ProjectAssignments'
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch available resources under supervisor' });
+  }
+});
+
+// GET /team-members/:teamMemberId/profile
+router.get('/:teamMemberId/profile', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const supervisorId = req.user?.teamMemberId;
+    if (!supervisorId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const targetId = parseInt(req.params.teamMemberId, 10);
+    if (isNaN(targetId)) return res.status(400).json({ message: 'Invalid team member ID' });
+
+    const profile = await getProfileForSupervisor(supervisorId, targetId);
+    if (!profile) return res.status(403).json({ message: 'Forbidden' });
+
+    return res.json(profile);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch team member profile' });
   }
 });
 

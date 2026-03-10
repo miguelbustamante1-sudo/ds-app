@@ -1,6 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import {
   Toolbar,
   ToolbarDescription,
@@ -12,17 +11,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, User, Briefcase, MapPin, Calendar, Users, CalendarDays } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, MapPin, Calendar, Users, CalendarDays, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMyTeamMembers, useTeamMemberTimeOffBreakdown } from '@/hooks/useSupervisorTimeOff';
-import { formatDate } from '@/lib/helpers';
+import { useTeamMemberProfile } from '@/hooks/useTeamMemberProfile';
+import { useTeamMemberTimeOffBreakdown } from '@/hooks/useSupervisorTimeOff';
+import { formatUTCDate } from '@/lib/utils';
 
 export function TeamMemberProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { teamMembers, loading: loadingMembers, loadTeamMembers } = useMyTeamMembers({
+  const { profile, loading, loadProfile } = useTeamMemberProfile({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
@@ -30,24 +30,15 @@ export function TeamMemberProfilePage() {
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
-  const loading = loadingMembers;
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
-    loadTeamMembers();
-  }, []);
-
-  // Load breakdown when team member ID is available
-  useEffect(() => {
     if (id) {
-      loadBreakdown(parseInt(id, 10));
+      const teamMemberId = parseInt(id, 10);
+      loadProfile(teamMemberId);
+      loadBreakdown(teamMemberId);
     }
   }, [id]);
-
-  const teamMember = useMemo<SupervisedTeamMemberDTO | undefined>(() => {
-    if (!id) return undefined;
-    return teamMembers.find((tm) => tm.teamMemberId === parseInt(id, 10));
-  }, [teamMembers, id]);
 
   const handleBack = () => {
     navigate('/my-team');
@@ -65,12 +56,14 @@ export function TeamMemberProfilePage() {
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
+          <Skeleton className="h-64 md:col-span-2" />
+          <Skeleton className="h-64 md:col-span-2" />
         </div>
       </div>
     );
   }
 
-  if (!teamMember) {
+  if (!profile) {
     return (
       <div className="container">
         <Toolbar>
@@ -100,12 +93,14 @@ export function TeamMemberProfilePage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <ToolbarPageTitle>{teamMember.teamMemberFullName}</ToolbarPageTitle>
+              <ToolbarPageTitle>
+                {profile.teamMemberNames} {profile.teamMemberSurnames}
+              </ToolbarPageTitle>
               <ToolbarDescription>
-                {teamMember.teamMemberKnownAs && (
-                  <span className="mr-2">"{teamMember.teamMemberKnownAs}"</span>
+                {profile.teamMemberKnownAs && (
+                  <span className="mr-2">"{profile.teamMemberKnownAs}"</span>
                 )}
-                {teamMember.workdayId && <span>WDID: {teamMember.workdayId}</span>}
+                {profile.workdayId && <span>WDID: {profile.workdayId}</span>}
               </ToolbarDescription>
             </div>
           </div>
@@ -125,17 +120,19 @@ export function TeamMemberProfilePage() {
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
-                <dd className="text-sm mt-1">{teamMember.teamMemberFullName}</dd>
+                <dd className="text-sm mt-1">
+                  {profile.teamMemberNames} {profile.teamMemberSurnames}
+                </dd>
               </div>
-              {teamMember.teamMemberKnownAs && (
+              {profile.teamMemberKnownAs && (
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">Known As</dt>
-                  <dd className="text-sm mt-1">{teamMember.teamMemberKnownAs}</dd>
+                  <dd className="text-sm mt-1">{profile.teamMemberKnownAs}</dd>
                 </div>
               )}
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Workday ID</dt>
-                <dd className="text-sm mt-1">{teamMember.workdayId || '-'}</dd>
+                <dd className="text-sm mt-1">{profile.workdayId || '-'}</dd>
               </div>
             </dl>
           </CardContent>
@@ -153,11 +150,11 @@ export function TeamMemberProfilePage() {
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Seniority</dt>
-                <dd className="text-sm mt-1">{teamMember.teamMemberSeniority || '-'}</dd>
+                <dd className="text-sm mt-1">{profile.teamMemberSeniority || '-'}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Primary Role</dt>
-                <dd className="text-sm mt-1">{teamMember.primaryRoleName || '-'}</dd>
+                <dd className="text-sm mt-1">{profile.primaryRoleName || '-'}</dd>
               </div>
             </dl>
           </CardContent>
@@ -176,10 +173,10 @@ export function TeamMemberProfilePage() {
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Country</dt>
                 <dd className="text-sm mt-1 flex items-center gap-2">
-                  {teamMember.countryName || '-'}
-                  {teamMember.countryIso && (
+                  {profile.countryName || '-'}
+                  {profile.countryIso && (
                     <span className="text-xs text-muted-foreground">
-                      ({teamMember.countryIso})
+                      ({profile.countryIso})
                     </span>
                   )}
                 </dd>
@@ -201,8 +198,8 @@ export function TeamMemberProfilePage() {
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Report Type</dt>
                 <dd className="text-sm mt-1">
-                  <Badge variant={teamMember.reportType === 'Direct' ? 'primary' : 'secondary'}>
-                    {teamMember.reportType}
+                  <Badge variant={profile.reportType === 'Direct' ? 'primary' : 'secondary'}>
+                    {profile.reportType}
                   </Badge>
                 </dd>
               </div>
@@ -210,28 +207,110 @@ export function TeamMemberProfilePage() {
                 <dt className="text-sm font-medium text-muted-foreground">Assignment Start Date</dt>
                 <dd className="text-sm mt-1 flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                  {formatDate(teamMember.supervisorAssignmentStartDate)}
+                  {formatUTCDate(profile.supervisorAssignmentStartDate)}
                 </dd>
               </div>
-              {teamMember.supervisorAssignmentEndDate && (
+              {profile.supervisorAssignmentEndDate && (
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">Assignment End Date</dt>
                   <dd className="text-sm mt-1 flex items-center gap-2">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
-                    {formatDate(teamMember.supervisorAssignmentEndDate)}
+                    {formatUTCDate(profile.supervisorAssignmentEndDate)}
                   </dd>
                 </div>
               )}
-              {teamMember.teamMemberEndDate && (
+              {profile.teamMemberEndDate && (
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">Team Member End Date</dt>
                   <dd className="text-sm mt-1 flex items-center gap-2 text-destructive">
                     <Calendar className="h-3 w-3" />
-                    {formatDate(teamMember.teamMemberEndDate)}
+                    {formatUTCDate(profile.teamMemberEndDate)}
                   </dd>
                 </div>
               )}
             </dl>
+          </CardContent>
+        </Card>
+
+        {/* Workday Information */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Workday Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!profile.workdayId ? (
+              <p className="text-sm text-muted-foreground">No Workday ID linked to this team member</p>
+            ) : (
+              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Hire Date</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.hireDate ? formatUTCDate(profile.hireDate) : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Work Style</dt>
+                  <dd className="text-sm mt-1">{profile.workStyle || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Gender</dt>
+                  <dd className="text-sm mt-1">{profile.gender || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Birth Date</dt>
+                  <dd className="text-sm mt-1">{profile.birthDate || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Parenthood</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.parenthood === null ? '-' : profile.parenthood ? 'Yes' : 'No'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Billing Status</dt>
+                  <dd className="text-sm mt-1">{profile.billingStatus || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Cost Center</dt>
+                  <dd className="text-sm mt-1">{profile.costCenterNames || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Direct Manager (Workday)</dt>
+                  <dd className="text-sm mt-1">{profile.directManager || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Corporate Email</dt>
+                  <dd className="text-sm mt-1">{profile.corporateEmail || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Personal Email</dt>
+                  <dd className="text-sm mt-1">{profile.personalEmail || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Cellphone</dt>
+                  <dd className="text-sm mt-1">{profile.cellphone || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Home Phone</dt>
+                  <dd className="text-sm mt-1">{profile.homePhone || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Vacation Days</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.vacation != null ? `${profile.vacation} days` : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Personal Days</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.personalDays != null ? `${profile.personalDays} days` : '-'}
+                  </dd>
+                </div>
+              </dl>
+            )}
           </CardContent>
         </Card>
 

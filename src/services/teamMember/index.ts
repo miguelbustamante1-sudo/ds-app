@@ -3,3 +3,4 @@ export { getAvailableForProject } from './queries/getAvailableForProject';
 export { getAvailableForProjectAll } from './queries/getAvailableForProjectAll';
 export { getReportsForActivityLog } from './queries/getReportsForActivityLog';
 export { getSupervisorsForCountdownNotification } from './queries/getSupervisorsForCountdownNotification';
+export { getProfileForSupervisor } from './queries/getProfileForSupervisor';
