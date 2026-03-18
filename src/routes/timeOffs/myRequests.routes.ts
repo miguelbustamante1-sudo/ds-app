@@ -18,6 +18,7 @@ import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayB
 import { notifySupervisorNewRequest } from '../../services/timeoff/components/NotifySupervisorNewRequest';
 import { adjustWorkdayBalance } from '../../services/timeoff/components/AdjustWorkdayBalance';
 import { verifySupervisorRelationship } from '../../services/timeoff/supervisor';
+import { validateCancellationDaysBefore } from '../../services/timeoff/components/ValidateCancellationDaysBefore';
 import { prisma } from '../../db/prisma';
 import type { TimeOffDetailDTO } from '../../../shared/dto/TimeOff';
 
@@ -428,6 +429,18 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       return res.status(403).json({ error: 'Not authorized to cancel this time-off' });
     }
 
+    const dateValidation = await validateCancellationDaysBefore({
+      startDate: timeOff.timeOffStartDate,
+      categoryId: timeOff.categoryId,
+      teamMemberId,
+    });
+
+    if (!dateValidation.valid) {
+      return res.status(400).json({
+        error: `This time-off can no longer be self-cancelled. Cancellations must be requested at least ${dateValidation.requiredDaysBefore} day(s) before the start date.`,
+      });
+    }
+
     const cancelledStatus = await getStatusByName('cancelled');
     if (!cancelledStatus) {
       return res.status(500).json({ error: 'Cancelled status not found in system' });
@@ -594,6 +607,147 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
   } catch (err) {
     console.error('[TimeOff] Error editing own time-off:', err);
     res.status(500).json({ error: 'Failed to edit time-off' });
+  }
+});
+
+// POST /split — Atomic SV vacation split: creates two time-off requests in a single transaction
+router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const { teamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const createdBy = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+
+    const { categoryId, periodA, periodB, comment } = req.body as {
+      categoryId?: number;
+      periodA?: { startDate: string; endDate: string };
+      periodB?: { startDate: string; endDate: string };
+      comment?: string;
+    };
+
+    if (categoryId === undefined || categoryId === null) {
+      return res.status(400).json({ error: 'categoryId is required' });
+    }
+    if (!periodA?.startDate || !periodA?.endDate) {
+      return res.status(400).json({ error: 'periodA startDate and endDate are required' });
+    }
+    if (!periodB?.startDate || !periodB?.endDate) {
+      return res.status(400).json({ error: 'periodB startDate and endDate are required' });
+    }
+
+    const effectiveStatusId = DEFAULTS.STATUS_ID;
+
+    // Validate each period independently — SV rule allows 7, 8, or 15 days when 0 existing days
+    const [validationA, validationB] = await Promise.all([
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodA.startDate),
+        timeOffEndDate: new Date(periodA.endDate),
+        statusId: effectiveStatusId,
+      }),
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodB.startDate),
+        timeOffEndDate: new Date(periodB.endDate),
+        statusId: effectiveStatusId,
+      }),
+    ]);
+
+    if (!validationA.valid) {
+      return res.status(400).json({ error: 'Period 1 validation failed', details: validationA.errors });
+    }
+    if (!validationB.valid) {
+      return res.status(400).json({ error: 'Period 2 validation failed', details: validationB.errors });
+    }
+
+    // Calculate days for each period
+    const [{ totalDays: daysA }, { totalDays: daysB }] = await Promise.all([
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodA.startDate), new Date(periodA.endDate)),
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
+    ]);
+
+    const now = new Date();
+
+    // Atomic save — both periods succeed or both are rolled back
+    const [createdA, createdB] = await prisma.$transaction(async (tx) => {
+      const a = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodA.startDate),
+          timeOffEndDate: new Date(periodA.endDate),
+          timeOffDays: daysA,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: effectiveStatusId,
+        },
+      });
+      const b = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodB.startDate),
+          timeOffEndDate: new Date(periodB.endDate),
+          timeOffDays: daysB,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: effectiveStatusId,
+        },
+      });
+      return [a, b] as const;
+    });
+
+    const logComment = comment?.trim() || 'SV vacation split request created';
+
+    await Promise.all([
+      createTimeOffChangeLog({
+        timeOffId: createdA.timeOffId,
+        comment: logComment,
+        oldValues: {},
+        newValues: { timeOffStartDate: periodA.startDate, timeOffEndDate: periodA.endDate, categoryId, statusId: effectiveStatusId },
+        createdByUserId: userId,
+      }),
+      createTimeOffChangeLog({
+        timeOffId: createdB.timeOffId,
+        comment: logComment,
+        oldValues: {},
+        newValues: { timeOffStartDate: periodB.startDate, timeOffEndDate: periodB.endDate, categoryId, statusId: effectiveStatusId },
+        createdByUserId: userId,
+      }),
+    ]);
+
+    // Notify supervisor and adjust balance (best-effort — failure does not block creation)
+    const authReq = req as ResolvedAuthRequest;
+    const employeeName = authReq.user?.firstName
+      ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
+      : 'A team member';
+
+    try {
+      const category = await prisma.timeOffCategory.findUnique({
+        where: { categoryId },
+        select: { categoryName: true },
+      });
+      const categoryLabel = category?.categoryName ?? 'time-off';
+
+      await notifySupervisorNewRequest({
+        teamMemberId,
+        timeOffId: createdA.timeOffId,
+        timeOffStartDate: periodA.startDate,
+        timeOffEndDate: periodA.endDate,
+        employeeName,
+        categoryName: categoryLabel,
+      });
+
+      await adjustWorkdayBalance(teamMemberId, categoryLabel, daysA, createdBy);
+      await adjustWorkdayBalance(teamMemberId, categoryLabel, daysB, createdBy);
+    } catch (notifErr) {
+      console.error('[TimeOff] Failed to notify supervisor or adjust balance on split create:', notifErr);
+    }
+
+    res.status(201).json({ periodA: createdA, periodB: createdB });
+  } catch (err) {
+    console.error('[TimeOff] Error creating split vacation:', err);
+    res.status(500).json({ error: 'Failed to create split vacation requests' });
   }
 });
 

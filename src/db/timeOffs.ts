@@ -133,23 +133,37 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
       ],
     },
     include: {
-      category: { select: { categoryName: true } },
+      teamMember: { select: { countryId: true } },
+      category: {
+        select: {
+          categoryName: true,
+          categoryCountries: { select: { categoryCountryDaysBefore: true, countryId: true } },
+        },
+      },
       status: { select: { statusName: true } },
       _count: { select: { changeLogs: true } },
     },
     orderBy: { timeOffStartDate: 'desc' },
   });
 
-  return timeOffs.map((timeOff) => ({
-    timeOffId: timeOff.timeOffId,
-    timeOffStartDate: timeOff.timeOffStartDate,
-    timeOffEndDate: timeOff.timeOffEndDate,
-    timeOffDays: Number(timeOff.timeOffDays),
-    timeOffOriginalId: timeOff.timeOffOriginalId,
-    categoryId: timeOff.categoryId,
-    categoryName: timeOff.category?.categoryName ?? 'Unknown',
-    statusId: timeOff.statusId,
-    statusName: timeOff.status?.statusName ?? 'Unknown',
-    changeLogCount: timeOff._count.changeLogs,
-  }));
+  return timeOffs.map((timeOff) => {
+    const countryId = timeOff.teamMember?.countryId ?? null;
+    const categoryCountry = timeOff.category?.categoryCountries.find(
+      (cc) => cc.countryId === countryId
+    );
+
+    return {
+      timeOffId: timeOff.timeOffId,
+      timeOffStartDate: timeOff.timeOffStartDate,
+      timeOffEndDate: timeOff.timeOffEndDate,
+      timeOffDays: Number(timeOff.timeOffDays),
+      timeOffOriginalId: timeOff.timeOffOriginalId,
+      categoryId: timeOff.categoryId,
+      categoryName: timeOff.category?.categoryName ?? 'Unknown',
+      statusId: timeOff.statusId,
+      statusName: timeOff.status?.statusName ?? 'Unknown',
+      changeLogCount: timeOff._count.changeLogs,
+      categoryCountryDaysBefore: categoryCountry?.categoryCountryDaysBefore ?? 0,
+    };
+  });
 }

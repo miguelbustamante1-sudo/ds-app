@@ -41,6 +41,8 @@ export function ProjectAssignmentsPage() {
 
   const { assignments, loading, loadAssignments } = useProjectAssignments(projectId);
 
+  const [clientId, setClientId] = useState<number | null>(null);
+
   const [changeRateOpen, setChangeRateOpen] = useState(false);
   const [changeRateRow, setChangeRateRow] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
 
@@ -125,6 +127,13 @@ export function ProjectAssignmentsPage() {
             : '-',
         size: 110,
         meta: { headerTitle: 'Allocation', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        accessorKey: 'clientContactName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Contact" />,
+        cell: ({ row }) => row.original.clientContactName ?? '–',
+        size: 160,
+        meta: { headerTitle: 'Contact', skeleton: <Skeleton className="h-4 w-28" /> },
       },
     ],
     [],
@@ -230,6 +239,7 @@ export function ProjectAssignmentsPage() {
         <ProjectComboBox
           value={projectId?.toString() ?? ''}
           onValueChange={(val) => setProjectIdParam(val)}
+          onSelectFull={(project) => setClientId(project?.clientId ?? null)}
           placeholder="Search and select a project…"
         />
       </div>
@@ -322,6 +332,7 @@ export function ProjectAssignmentsPage() {
           open={addOpen}
           onOpenChange={setAddOpen}
           projectId={projectId}
+          clientId={clientId}
           onSuccess={() => {
             setAddOpen(false);
             loadAssignments();

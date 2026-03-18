@@ -9,7 +9,7 @@ import type { ReportDefinitionSummaryDTO } from '@shared/dto/DynamicReport';
 
 interface RbacOption {
   optionId: number;
-  optionName: string;
+  optionDescription: string;
 }
 
 interface Step3MetadataProps {
@@ -43,7 +43,7 @@ export function Step3Metadata({
 
     // Load RBAC options for permission field
     apiGet<RbacOption[]>('/api/rbac/options').then((opts) => {
-      setPermissionOptions(opts.map((o) => ({ value: o.optionName, label: o.optionName })));
+      setPermissionOptions(opts.map((o) => ({ value: o.optionDescription, label: o.optionDescription })));
     }).catch(() => {});
   }, []);
 

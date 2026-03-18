@@ -14,6 +14,7 @@ export async function getActiveProjects(search?: string): Promise<ProjectDTO[]> 
         : {}),
     },
     orderBy: { projectName: 'asc' },
+    include: { client: true },
   });
 
   return projects.map((p) => ({
@@ -26,5 +27,7 @@ export async function getActiveProjects(search?: string): Promise<ProjectDTO[]> 
     projectActive: p.projectActive ?? true,
     projectCreatedAt: p.projectCreatedAt?.toISOString() ?? null,
     projectCreatedBy: p.projectCreatedBy ?? null,
+    clientId: p.clientId,
+    clientName: p.client?.Name ?? null,
   }));
 }

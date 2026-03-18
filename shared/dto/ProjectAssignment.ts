@@ -19,6 +19,7 @@ export interface ProjectAssignmentDTO {
   projectAssignmentLastUpdatedDate: Date | null;
   projectAssignmentAllocation: number | null;
   projectAssignmentDeleted: boolean;
+  clientContactId: number | null;
 }
 
 /**
@@ -32,6 +33,7 @@ export interface CreateProjectAssignmentDTO {
   projectAssignmentBillRate?: number | null;
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
+  clientContactId?: number | null;
 }
 
 /**
@@ -43,6 +45,7 @@ export interface UpdateProjectAssignmentDTO {
   projectAssignmentBillRate?: number | null;
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
+  clientContactId?: number | null;
 }
 
 /**
@@ -52,4 +55,5 @@ export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   teamMemberName: string | null;
   teamMemberSeniority: string | null;
   projectName: string | null;
+  clientContactName: string | null;
 }

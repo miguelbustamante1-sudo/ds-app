@@ -13,15 +13,18 @@ export async function ensureProjectsTableExists(): Promise<boolean> {
   }
 }
 
-export async function getAllProjects(): Promise<Project[]> {
+export async function getAllProjects(clientId?: number) {
   return await prisma.project.findMany({
+    where: clientId !== undefined ? { clientId } : {},
     orderBy: { projectId: 'asc' },
+    include: { client: true },
   });
 }
 
-export async function getProjectById(id: number): Promise<Project | null> {
+export async function getProjectById(id: number) {
   return await prisma.project.findUnique({
     where: { projectId: id },
+    include: { client: true },
   });
 }
 
@@ -34,9 +37,10 @@ export interface CreateProjectInput {
   projectActive?: boolean | null;
   projectCreatedAt: Date;
   projectCreatedBy: string;
+  clientId?: number | null;
 }
 
-export async function createProject(input: CreateProjectInput): Promise<Project> {
+export async function createProject(input: CreateProjectInput) {
   return await prisma.project.create({
     data: {
       projectName: input.projectName,
@@ -47,7 +51,9 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       projectActive: input.projectActive ?? true,
       projectCreatedAt: input.projectCreatedAt,
       projectCreatedBy: input.projectCreatedBy,
+      clientId: input.clientId ?? null,
     },
+    include: { client: true },
   });
 }
 
@@ -58,12 +64,10 @@ export interface UpdateProjectInput {
   projectStartDate?: Date | null;
   projectEndDate?: Date | null;
   projectActive?: boolean | null;
+  clientId?: number | null;
 }
 
-export async function updateProject(
-  id: number,
-  input: UpdateProjectInput
-): Promise<Project | null> {
+export async function updateProject(id: number, input: UpdateProjectInput) {
   const data: Record<string, unknown> = {};
   if (input.projectName !== undefined) data.projectName = input.projectName;
   if (input.projectExternalId !== undefined) data.projectExternalId = input.projectExternalId;
@@ -71,10 +75,12 @@ export async function updateProject(
   if (input.projectStartDate !== undefined) data.projectStartDate = input.projectStartDate;
   if (input.projectEndDate !== undefined) data.projectEndDate = input.projectEndDate;
   if (input.projectActive !== undefined) data.projectActive = input.projectActive;
+  if (input.clientId !== undefined) data.clientId = input.clientId;
 
   return await prisma.project.update({
     where: { projectId: id },
     data,
+    include: { client: true },
   });
 }
 

@@ -6,24 +6,26 @@ import { apiGet } from '@/lib/api';
 interface EndorsementProjectComboBoxProps {
   value: string;
   onValueChange: (value: string) => void;
+  clientId?: string;
   disabled?: boolean;
 }
 
-export function EndorsementProjectComboBox({ value, onValueChange, disabled }: EndorsementProjectComboBoxProps) {
+export function EndorsementProjectComboBox({ value, onValueChange, clientId, disabled }: EndorsementProjectComboBoxProps) {
   const [projects, setProjects] = useState<ProjectDTO[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGet<ProjectDTO[]>('/api/projects');
+      const url = clientId ? `/api/projects?clientId=${clientId}` : '/api/projects';
+      const data = await apiGet<ProjectDTO[]>(url);
       setProjects(data);
     } catch {
       console.error('Failed to load projects');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clientId]);
 
   useEffect(() => {
     loadProjects();
@@ -44,10 +46,10 @@ export function EndorsementProjectComboBox({ value, onValueChange, disabled }: E
       options={options}
       value={value}
       onValueChange={onValueChange}
-      placeholder={loading ? 'Loading projects...' : 'Select a project'}
+      placeholder={loading ? 'Loading projects...' : clientId ? 'Select a project' : 'Select a client first'}
       searchPlaceholder="Search projects..."
       emptyMessage="No projects found."
-      disabled={disabled || loading}
+      disabled={disabled || loading || !clientId}
     />
   );
 }

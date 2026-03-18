@@ -46,6 +46,7 @@ export interface EndorsementBonusWithCategoryDTO {
 export interface EndorsementWithDetailsDTO extends EndorsementDTO {
   project: {
     projectName: string | null;
+    clientId: number | null;
   };
   country: {
     countryName: string;

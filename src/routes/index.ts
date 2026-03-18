@@ -28,6 +28,7 @@ import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
+import clientContactsRouter from './clientContacts';
 import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
 
@@ -63,6 +64,7 @@ export default function registerRoutes() {
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
+  router.use('/client-contacts', clientContactsRouter);
   router.use('/workday-info', workdayInfoRouter);
   router.use('/functional-areas', functionalAreasRouter);
 

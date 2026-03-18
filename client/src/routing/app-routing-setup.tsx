@@ -28,6 +28,7 @@ import { TierBandsPage } from '@/pages/maintenance/tier-bands';
 import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
 import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
 import { ClientsPage } from '@/pages/maintenance/clients';
+import { ClientContactsPage } from '@/pages/maintenance/client-contacts';
 import { TimeOffTypesPage } from '@/pages/maintenance/time-off-types';
 import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
@@ -80,6 +81,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/bonus-categories" element={<BonusCategoriesPage />} />
         <Route path="/maintenance/bonus-subcategories" element={<BonusSubcategoriesPage />} />
         <Route path="/maintenance/clients" element={<ClientsPage />} />
+        <Route path="/maintenance/client-contacts" element={<ClientContactsPage />} />
         <Route path="/maintenance/time-off-types" element={<TimeOffTypesPage />} />
         <Route path="/maintenance/time-off-statuses" element={<TimeOffStatusesPage />} />
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />

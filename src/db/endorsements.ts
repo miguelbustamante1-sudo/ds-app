@@ -118,7 +118,7 @@ export async function createEndorsementWithBonuses(
 }
 
 const ENDORSEMENT_INCLUDE = {
-  project: { select: { projectName: true } },
+  project: { select: { projectName: true, clientId: true } },
   country: { select: { countryName: true, countryCurrencySymbol: true } },
   tierBand: { select: { tierBandId: true, tierBandDescription: true } },
   endorsementBonuses: {

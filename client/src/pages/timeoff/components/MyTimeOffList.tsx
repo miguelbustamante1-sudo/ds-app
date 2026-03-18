@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pencil, XCircle, Search } from 'lucide-react';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import type { TimeOffWithDetailsDTO } from '../../../../../shared/dto/TimeOff';
 import {
   ColumnDef,
@@ -43,11 +43,28 @@ function getStatusVariant(statusName: string): 'success' | 'secondary' | 'destru
 }
 
 /**
- * Check if a time-off can be edited or cancelled (not cancelled or rejected status)
+ * Check if a time-off can be edited (not cancelled or rejected status)
  */
 function canModify(timeOff: TimeOffWithDetailsDTO): boolean {
   const statusLower = timeOff.statusName.toLowerCase();
   return !statusLower.includes('cancelled') && !statusLower.includes('rejected');
+}
+
+/**
+ * Check if a time-off can be self-cancelled (status guard + days-before rule)
+ */
+function canCancel(timeOff: TimeOffWithDetailsDTO): boolean {
+  const statusLower = timeOff.statusName.toLowerCase();
+  if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return false;
+
+  const required = Math.max(timeOff.categoryCountryDaysBefore ?? 0, 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = parseUTCDateAsLocal(String(timeOff.timeOffStartDate));
+  startDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((startDate.getTime() - today.getTime()) / 86_400_000);
+
+  return diffDays > required;
 }
 
 export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
@@ -112,10 +129,13 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEd
       {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) =>
-          canModify(row.original) ? (
+        cell: ({ row }) => {
+          const showEdit = onEditClick && canModify(row.original);
+          const showCancel = onCancelClick && canCancel(row.original);
+          if (!showEdit && !showCancel) return null;
+          return (
             <div className="flex items-center gap-1">
-              {onEditClick && (
+              {showEdit && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -129,7 +149,7 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEd
                   Edit
                 </Button>
               )}
-              {onCancelClick && (
+              {showCancel && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -144,7 +164,8 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEd
                 </Button>
               )}
             </div>
-          ) : null,
+          );
+        },
         size: 180,
         meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-4 w-24" /> },
       },

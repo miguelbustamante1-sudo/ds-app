@@ -15,6 +15,8 @@ export interface ProjectDTO {
   projectActive: boolean | null;
   projectCreatedAt: string | null;
   projectCreatedBy: string | null;
+  clientId: number | null;
+  clientName: string | null;
 }
 
 /**
@@ -27,6 +29,7 @@ export interface CreateProjectDTO {
   projectStartDate?: string | null;
   projectEndDate?: string | null;
   projectActive?: boolean | null;
+  clientId?: number | null;
 }
 
 /**
@@ -39,4 +42,5 @@ export interface UpdateProjectDTO {
   projectStartDate?: string | null;
   projectEndDate?: string | null;
   projectActive?: boolean | null;
+  clientId?: number | null;
 }

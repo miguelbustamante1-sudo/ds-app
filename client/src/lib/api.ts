@@ -38,8 +38,14 @@ async function handleResponse<T>(response: Response, endpoint: string): Promise<
     }
 
     const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+    const detailMessages = Array.isArray(errorData.details) && errorData.details.length > 0
+      ? (errorData.details as Array<{ message?: string }>)
+          .map((d) => d.message)
+          .filter(Boolean)
+          .join(' ')
+      : null;
     throw new ApiError(
-      errorData.error || `HTTP ${response.status}`,
+      detailMessages || errorData.error || `HTTP ${response.status}`,
       response.status,
       endpoint
     );

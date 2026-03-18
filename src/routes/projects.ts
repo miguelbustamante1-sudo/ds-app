@@ -1,6 +1,5 @@
 import express from 'express';
 import type { Response } from 'express';
-import type { Project } from '@prisma/client';
 import type { CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
 import {
   getAllProjects,
@@ -15,11 +14,21 @@ import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 
 const router = express.Router();
 
+function toProjectDTO(project: Awaited<ReturnType<typeof getProjectById>>) {
+  if (!project) return null;
+  return {
+    ...project,
+    clientName: project.client?.Name ?? null,
+    client: undefined,
+  };
+}
+
 // GET /projects
 router.get('/', requirePermission('Projects', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const projects: Project[] = await getAllProjects();
-    res.json(projects);
+    const clientId = req.query.clientId ? Number(req.query.clientId) : undefined;
+    const projects = await getAllProjects(clientId);
+    res.json(projects.map(toProjectDTO));
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch projects' });
@@ -35,7 +44,7 @@ router.get('/:id', requirePermission('Projects', 'read'), async (req: Authentica
     const project = await getProjectById(id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
-    res.json(project);
+    res.json(toProjectDTO(project));
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch project' });
@@ -53,6 +62,7 @@ router.post('/', requirePermission('Projects', 'create'), async (req: Authentica
       projectStartDate,
       projectEndDate,
       projectActive,
+      clientId,
     } = req.body as CreateProjectDTO;
 
     const project = await createProject({
@@ -64,6 +74,7 @@ router.post('/', requirePermission('Projects', 'create'), async (req: Authentica
       projectActive: projectActive ?? true,
       projectCreatedAt: new Date(),
       projectCreatedBy: createdBy,
+      clientId: clientId ?? null,
     });
 
     await auditOrchestrator.log({
@@ -75,7 +86,7 @@ router.post('/', requirePermission('Projects', 'create'), async (req: Authentica
       comment: `Project "${project.projectName}" created`,
     });
 
-    res.status(201).json(project);
+    res.status(201).json(toProjectDTO(project));
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to create project' });
@@ -96,6 +107,7 @@ router.put('/:id', requirePermission('Projects', 'create'), async (req: Authenti
       projectStartDate,
       projectEndDate,
       projectActive,
+      clientId,
     } = req.body as UpdateProjectDTO;
 
     const before = await getProjectById(id);
@@ -108,6 +120,7 @@ router.put('/:id', requirePermission('Projects', 'create'), async (req: Authenti
       projectStartDate: projectStartDate ? new Date(projectStartDate) : null,
       projectEndDate: projectEndDate ? new Date(projectEndDate) : null,
       projectActive: projectActive ?? null,
+      ...(clientId !== undefined ? { clientId } : {}),
     });
 
     await auditOrchestrator.log({
@@ -119,7 +132,7 @@ router.put('/:id', requirePermission('Projects', 'create'), async (req: Authenti
       comment: `Project "${project?.projectName}" updated`,
     });
 
-    res.json(project);
+    res.json(toProjectDTO(project));
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to update project' });

@@ -102,18 +102,6 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/project-assignments',
     permission: 'ProjectAssignments',
   },
-  {
-    title: 'Endorsements',
-    icon: Award,
-    path: '/endorsements',
-    permission: 'Endorsements',
-  },
-  {
-    title: 'Hiring',
-    icon: UserCheck,
-    path: '/hiring',
-    permission: 'Hiring',
-  },
   { heading: 'Reports' },
   {
     title: 'Reports',
@@ -138,6 +126,21 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Notification Center',
     icon: Inbox,
     path: '/notification-center',
+  },
+  { heading: 'BSA', role: 'bsa' },
+  {
+    title: 'Endorsements',
+    icon: Award,
+    path: '/endorsements',
+    role: 'bsa',
+    permission: 'Endorsements',
+  },
+  {
+    title: 'Hiring',
+    icon: UserCheck,
+    path: '/hiring',
+    role: 'bsa',
+    permission: 'Hiring',
   },
   { heading: 'Security', role: 'admin' },
   {
@@ -165,14 +168,16 @@ export const MENU_SIDEBAR: MenuConfig = [
       },
     ],
   },
-  { heading: 'Maintenance'},
+  { heading: 'Maintenance', role: 'bsa' },
   {
     title: 'Master Data',
     icon: Database,
+    role: 'bsa',
     children: [
       { title: 'Bonus Categories', path: '/maintenance/bonus-categories', icon: Star, permission: 'Endorsements' },
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },
       { title: 'Clients', path: '/maintenance/clients', icon: Building, permission: 'Clients' },
+      { title: 'Client Contacts', path: '/maintenance/client-contacts', icon: Building, permission: 'Clients' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },
       { title: 'Functional Areas', path: '/maintenance/functional-areas', icon: Network, permission: 'FunctionalAreas' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },

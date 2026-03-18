@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import type { ProjectDTO, CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
+import type { ProjectDTO, ClientDTO, CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
-import { apiPost, apiPut } from '@/lib/api';
+import { apiGet, apiPost, apiPut } from '@/lib/api';
 
 interface ProjectFormData {
   projectName: string;
@@ -23,6 +24,7 @@ interface ProjectFormData {
   projectStartDate: string;
   projectEndDate: string;
   projectActive: boolean;
+  clientId: string;
 }
 
 interface ProjectFormDialogProps {
@@ -41,6 +43,9 @@ export function ProjectFormDialog({
   const { toast } = useToast();
   const isEditing = !!project;
 
+  const [clients, setClients] = useState<ClientDTO[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -56,10 +61,29 @@ export function ProjectFormDialog({
       projectStartDate: '',
       projectEndDate: '',
       projectActive: true,
+      clientId: '',
     },
   });
 
   const projectActive = watch('projectActive');
+  const watchedClientId = watch('clientId');
+
+  const clientOptions: ComboBoxOption[] = clients.map((c) => ({
+    value: c.Id.toString(),
+    label: c.Name,
+  }));
+
+  useEffect(() => {
+    if (open) {
+      setLoadingClients(true);
+      apiGet<ClientDTO[]>('/api/clients')
+        .then((data) => setClients(data))
+        .catch(() =>
+          toast({ title: 'Error', description: 'Failed to load clients', variant: 'destructive' }),
+        )
+        .finally(() => setLoadingClients(false));
+    }
+  }, [open, toast]);
 
   useEffect(() => {
     if (open) {
@@ -75,6 +99,7 @@ export function ProjectFormDialog({
             ? project.projectEndDate.substring(0, 10)
             : '',
           projectActive: project.projectActive ?? true,
+          clientId: project.clientId?.toString() ?? '',
         });
       } else {
         reset({
@@ -84,6 +109,7 @@ export function ProjectFormDialog({
           projectStartDate: '',
           projectEndDate: '',
           projectActive: true,
+          clientId: '',
         });
       }
     }
@@ -99,6 +125,7 @@ export function ProjectFormDialog({
           projectStartDate: data.projectStartDate || null,
           projectEndDate: data.projectEndDate || null,
           projectActive: data.projectActive,
+          clientId: data.clientId ? Number(data.clientId) : null,
         };
         await apiPut<ProjectDTO, UpdateProjectDTO>(`/api/projects/${project.projectId}`, payload);
         toast({ title: 'Success', description: 'Project updated successfully' });
@@ -110,6 +137,7 @@ export function ProjectFormDialog({
           projectStartDate: data.projectStartDate || null,
           projectEndDate: data.projectEndDate || null,
           projectActive: data.projectActive,
+          clientId: data.clientId ? Number(data.clientId) : null,
         };
         await apiPost<ProjectDTO, CreateProjectDTO>('/api/projects', payload);
         toast({ title: 'Success', description: 'Project created successfully' });
@@ -154,6 +182,19 @@ export function ProjectFormDialog({
               {errors.projectName && (
                 <p className="text-sm text-destructive">{errors.projectName.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Client</Label>
+              <ComboBox
+                options={clientOptions}
+                value={watchedClientId}
+                onValueChange={(value) => setValue('clientId', value)}
+                placeholder="Select a client..."
+                searchPlaceholder="Search clients..."
+                emptyMessage="No clients found."
+                disabled={loadingClients}
+              />
             </div>
 
             <div className="space-y-2">

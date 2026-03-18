@@ -17,6 +17,7 @@ export async function getAllTeamMemberProjects() {
     include: {
       teamMember: true,
       project: true,
+      clientContact: true,
     },
     orderBy: { projectAssignmentId: 'asc' },
   });
@@ -38,7 +39,7 @@ export async function getTeamMemberProjectsByTeamMember(teamMemberId: number): P
 export async function getTeamMemberProjectsByProject(projectId: number) {
   return await prisma.projectAssignment.findMany({
     where: { projectId },
-    include: { teamMember: true },
+    include: { teamMember: true, clientContact: true },
     orderBy: { projectAssignmentId: 'asc' },
   });
 }

@@ -49,11 +49,13 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentLastUpdatedDate: item.projectAssignmentLastUpdatedDate,
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
+      clientContactId: item.clientContactId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: item.project?.projectName ?? null,
+      clientContactName: item.clientContact?.name ?? null,
     }));
     res.json(dtos);
   } catch (err) {
@@ -95,11 +97,13 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentLastUpdatedDate: item.projectAssignmentLastUpdatedDate,
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
+      clientContactId: item.clientContactId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: null,
+      clientContactName: item.clientContact?.name ?? null,
     }));
     res.json(dtos);
   } catch (err) {

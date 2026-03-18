@@ -54,7 +54,7 @@ export async function getHiringById(id: number) {
       endorsement: {
         include: {
           project: { select: { projectName: true } },
-          country: { select: { countryName: true, countryCurrencySymbol: true } },
+          country: { select: { countryName: true, countryCurrencySymbol: true, countryIso: true } },
           tierBand: true,
           endorsementBonuses: {
             include: {

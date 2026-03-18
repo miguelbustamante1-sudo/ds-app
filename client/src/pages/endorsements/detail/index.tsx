@@ -31,6 +31,7 @@ import { useEndorsementDetail } from './useEndorsementDetail';
 import { useBonusSubcategories } from '../components/useBonusSubcategories';
 import { EndorsementProjectComboBox } from '../components/EndorsementProjectComboBox';
 import { EndorsementTierBandComboBox } from '../components/EndorsementTierBandComboBox';
+import { EndorsementClientManagerEmailField } from '../components/EndorsementClientManagerEmailField';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '../components/BonusMetadataFields';
 import { BonusDetailTable } from './BonusDetailTable';
@@ -502,16 +503,20 @@ export function EndorsementDetailPage() {
               <dd className="text-sm mt-1">
                 {isEditing ? (
                   <>
-                    <Input
-                      id="clientManagerEmail"
-                      type="email"
-                      {...register('clientManagerEmail', {
-                        required: 'Email is required',
-                        pattern: {
-                          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                          message: 'Invalid email format',
-                        },
-                      })}
+                    <EndorsementClientManagerEmailField
+                      value={watch('clientManagerEmail')}
+                      onChange={(val) => setValue('clientManagerEmail', val, { shouldValidate: true })}
+                      clientId={endorsement.project?.clientId?.toString()}
+                      inputProps={{
+                        id: 'clientManagerEmail',
+                        ...register('clientManagerEmail', {
+                          required: 'Email is required',
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: 'Invalid email format',
+                          },
+                        }),
+                      }}
                     />
                     {errors.clientManagerEmail && (
                       <p className="text-sm text-destructive mt-1">{errors.clientManagerEmail.message}</p>

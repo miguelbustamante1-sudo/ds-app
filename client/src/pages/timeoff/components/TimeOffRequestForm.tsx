@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { format, startOfDay } from 'date-fns';
+import { format, addDays, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateMyTimeOffDTO } from '@shared/dto/TimeOff';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
@@ -22,6 +22,7 @@ const isWeekend = (date: Date): boolean => {
 };
 import { Textarea } from '@/components/ui/textarea';
 import { apiGet, apiPost, ApiError } from '@/lib/api';
+import { SVVacationSplitMode, type SplitPeriod } from './SVVacationSplitMode';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../utils/overlapDetection';
 import {
@@ -67,6 +68,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const [userCountryId, setUserCountryId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isSplitMode, setIsSplitMode] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -195,6 +197,30 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId)
     : 0;
 
+  // SV 15-day mode: applies when SV + Vacation + 0 days used this year.
+  // Must NOT use isFixedDuration — see requirements.
+  const isSV15DayMode = isSVVacation && existingVacationDays === 0;
+
+  // Auto-calculate end date for SV 15-day mode (start + 14 = 15 inclusive calendar days)
+  useEffect(() => {
+    if (!isSV15DayMode) return;
+    if (!startDate) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('endDate' as any, undefined as any);
+      return;
+    }
+    const sv15End = addDays(startDate, 14);
+    if (!endDate || endDate.getTime() !== sv15End.getTime()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('endDate' as any, sv15End as any);
+    }
+  }, [isSV15DayMode, startDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset split mode when category changes
+  useEffect(() => {
+    setIsSplitMode(false);
+  }, [categoryId]);
+
   const svValidation = isSVVacation && requestedDays > 0
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
@@ -232,6 +258,33 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     balanceValidation.valid &&
     !!comment?.trim() &&
     !submitting;
+
+  const handleSaveSplit = useCallback(async (periodA: SplitPeriod, periodB: SplitPeriod) => {
+    setSubmitting(true);
+    try {
+      await apiPost('/api/time-offs/my-requests/split', {
+        categoryId: Number(categoryId),
+        periodA: {
+          startDate: periodA.startDate.toISOString(),
+          endDate: periodA.endDate.toISOString(),
+        },
+        periodB: {
+          startDate: periodB.startDate.toISOString(),
+          endDate: periodB.endDate.toISOString(),
+        },
+        comment,
+      });
+      toast({ title: 'Success', description: 'Split vacation requests created successfully' });
+      reset();
+      setIsSplitMode(false);
+      onSuccess();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to create split vacation requests';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [categoryId, comment, reset, onSuccess, toast]);
 
   const onSubmit = useCallback(async (data: FormData) => {
     if (!data.startDate || !data.endDate) return;
@@ -301,6 +354,20 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           )}
         </div>
 
+        {/* Date range area — replaced in-place by split mode when active */}
+        {isSplitMode && startDate ? (
+          <SVVacationSplitMode
+            anchorStartDate={startDate}
+            countryIso={userCountryIso}
+            countryId={userCountryId}
+            userEndDate={userEndDate}
+            comment={comment ?? ''}
+            submitting={submitting}
+            onBack={() => setIsSplitMode(false)}
+            onSaveSplit={handleSaveSplit}
+          />
+        ) : (
+          <>
         {/* Start Date */}
         <div className="space-y-2">
           <Label>
@@ -382,7 +449,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
                       'w-full justify-start text-left font-normal',
                       !field.value && 'text-muted-foreground'
                     )}
-                    disabled={isFixedDuration}
+                    disabled={isFixedDuration || isSV15DayMode}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {field.value ? format(field.value, 'PPP') : 'Pick a date'}
@@ -413,7 +480,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               This category has a fixed duration of {fixedDays} day{fixedDays !== 1 ? 's' : ''}.
             </p>
           )}
-          {!isFixedDuration && hintDays > 0 && (
+          {isSV15DayMode && (
+            <p className="text-sm text-muted-foreground">
+              15 calendar days (auto-set for El Salvador)
+            </p>
+          )}
+          {!isFixedDuration && !isSV15DayMode && hintDays > 0 && (
             <p className="text-sm text-muted-foreground">
               {hintDays} day{hintDays !== 1 ? 's' : ''}
             </p>
@@ -529,6 +601,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
           </Alert>
         )}
+          </>
+        )}
 
         {/* Comment */}
         <div className="space-y-2">
@@ -553,10 +627,29 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           )}
         </div>
 
-        {/* Submit Button */}
-        <Button type="submit" className="w-full" disabled={!canSave}>
-          {submitting ? 'Saving...' : 'Submit Request'}
-        </Button>
+        {/* Action buttons — hidden when split mode is active (Save Split lives inside SVVacationSplitMode) */}
+        {!isSplitMode && (
+          isSV15DayMode ? (
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={!canSave}>
+                {submitting ? 'Saving...' : 'Save'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={!startDate || submitting}
+                onClick={() => setIsSplitMode(true)}
+              >
+                Split
+              </Button>
+            </div>
+          ) : (
+            <Button type="submit" className="w-full" disabled={!canSave}>
+              {submitting ? 'Saving...' : 'Submit Request'}
+            </Button>
+          )
+        )}
       </form>
     </div>
   );

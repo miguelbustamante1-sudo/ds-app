@@ -8,6 +8,7 @@ export * from './AuthUser';
 
 // Client DTOs
 export * from './Client';
+export * from './ClientContact';
 
 // Domain DTOs
 export * from './Country';

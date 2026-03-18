@@ -118,6 +118,13 @@ export function ProjectsPage() {
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
+        accessorKey: 'clientName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Client" />,
+        cell: ({ row }) => row.original.clientName ?? '-',
+        size: 160,
+        meta: { headerTitle: 'Client', skeleton: <Skeleton className="h-4 w-28" /> },
+      },
+      {
         accessorKey: 'projectActive',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Active" />,
         cell: ({ row }) => (

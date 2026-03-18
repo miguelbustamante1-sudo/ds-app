@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { BonusCategoryDTO, EndorsementWithDetailsDTO, HiringDTO, CreateHiringDTO, UpdateHiringDTO } from '@shared/dto';
 import { apiGet, apiPost, apiPatch, ApiError } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 
 export function useHiringDetail(
   mode: 'draft' | 'execute',
@@ -43,8 +44,8 @@ export function useHiringDetail(
         setHiring(data);
         setEndorsement(data.endorsement);
         // Pre-populate form fields from the hiring record
-        setStartDate(data.startDate ?? '');
-        setBillableDate(data.billableDate ?? '');
+        setStartDate(data.startDate ? formatUTCDate(data.startDate, 'yyyy-MM-dd') : '');
+        setBillableDate(data.billableDate ? formatUTCDate(data.billableDate, 'yyyy-MM-dd') : '');
         setWorkdayId(data.workdayId ?? '');
         setCurrencySymbol(data.currencySymbol ?? data.endorsement.country.countryCurrencySymbol ?? '');
         billableDateManuallySet.current = false;

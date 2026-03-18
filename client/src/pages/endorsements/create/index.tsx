@@ -20,7 +20,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiPost } from '@/lib/api';
+import { EndorsementClientComboBox } from '../components/EndorsementClientComboBox';
 import { EndorsementProjectComboBox } from '../components/EndorsementProjectComboBox';
+import { EndorsementClientManagerEmailField } from '../components/EndorsementClientManagerEmailField';
 import { EndorsementCountryComboBox } from '../components/EndorsementCountryComboBox';
 import { EndorsementTierBandComboBox } from '../components/EndorsementTierBandComboBox';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
@@ -33,6 +35,7 @@ interface EndorsementFormData {
   candidateFirstName: string;
   candidateLastName: string;
   candidatePosition: string;
+  clientId: string;
   projectId: string;
   clientManagerEmail: string;
   tibId: string;
@@ -57,6 +60,7 @@ export function EndorsementCreatePage() {
       candidateFirstName: '',
       candidateLastName: '',
       candidatePosition: '',
+      clientId: '',
       projectId: '',
       clientManagerEmail: '',
       tibId: '',
@@ -67,10 +71,16 @@ export function EndorsementCreatePage() {
     },
   });
 
+  const clientIdValue = watch('clientId');
   const projectIdValue = watch('projectId');
   const countryIdValue = watch('countryId');
   const tibIdValue = watch('tibId');
   const startDateValue = watch('startDate');
+
+  // Reset project when client changes
+  useEffect(() => {
+    setValue('projectId', '', { shouldValidate: false });
+  }, [clientIdValue, setValue]);
 
   const numericCountryId = countryIdValue ? Number(countryIdValue) : null;
 
@@ -263,25 +273,15 @@ export function EndorsementCreatePage() {
             )}
           </div>
 
-          {/* Client Manager Email */}
+          {/* Client */}
           <div className="space-y-2">
-            <Label htmlFor="clientManagerEmail">
-              Client Manager Email <span className="text-destructive">*</span>
+            <Label>
+              Client <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="clientManagerEmail"
-              type="email"
-              {...register('clientManagerEmail', {
-                required: 'Client manager email is required',
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Invalid email format',
-                },
-              })}
+            <EndorsementClientComboBox
+              value={clientIdValue}
+              onValueChange={(value) => setValue('clientId', value, { shouldValidate: true })}
             />
-            {errors.clientManagerEmail && (
-              <p className="text-sm text-destructive">{errors.clientManagerEmail.message}</p>
-            )}
           </div>
 
           {/* Project */}
@@ -291,6 +291,7 @@ export function EndorsementCreatePage() {
             </Label>
             <EndorsementProjectComboBox
               value={projectIdValue}
+              clientId={clientIdValue}
               onValueChange={(value) => setValue('projectId', value, { shouldValidate: true })}
             />
             {errors.projectId && (
@@ -300,6 +301,31 @@ export function EndorsementCreatePage() {
               type="hidden"
               {...register('projectId', { required: 'Project is required' })}
             />
+          </div>
+
+          {/* Client Manager Email */}
+          <div className="space-y-2">
+            <Label htmlFor="clientManagerEmail">
+              Client Manager Email <span className="text-destructive">*</span>
+            </Label>
+            <EndorsementClientManagerEmailField
+              value={watch('clientManagerEmail')}
+              onChange={(val) => setValue('clientManagerEmail', val, { shouldValidate: true })}
+              clientId={clientIdValue}
+              inputProps={{
+                id: 'clientManagerEmail',
+                ...register('clientManagerEmail', {
+                  required: 'Client manager email is required',
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: 'Invalid email format',
+                  },
+                }),
+              }}
+            />
+            {errors.clientManagerEmail && (
+              <p className="text-sm text-destructive">{errors.clientManagerEmail.message}</p>
+            )}
           </div>
 
           {/* Country */}

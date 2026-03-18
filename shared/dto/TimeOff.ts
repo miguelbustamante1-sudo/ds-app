@@ -35,6 +35,7 @@ export interface TimeOffWithDetailsDTO {
   statusId: number | null;
   statusName: string;
   changeLogCount: number;
+  categoryCountryDaysBefore: number;
 }
 
 /**

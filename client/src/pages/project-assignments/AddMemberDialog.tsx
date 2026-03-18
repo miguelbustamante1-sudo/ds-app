@@ -18,11 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { MemberComboBox } from './components/MemberComboBox';
+import { ContactComboBox } from './components/ContactComboBox';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectId: number;
+  clientId: number | null;
   onSuccess: () => void;
 }
 
@@ -34,14 +36,16 @@ interface FormData {
   projectAssignmentBillRateCurrency: string;
   projectAssignmentAllocation: string;
   functionalAreaId: string;
+  clientContactId: string;
 }
 
-export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Props) {
+export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuccess }: Props) {
   const { toast } = useToast();
   const [selectedTm, setSelectedTm] = useState<AvailableForProjectDTO | null>(null);
   const [teamMemberId, setTeamMemberId] = useState('');
   const [allFunctionalAreas, setAllFunctionalAreas] = useState<FunctionalAreaDTO[]>([]);
   const [functionalAreaId, setFunctionalAreaId] = useState('');
+  const [contactId, setContactId] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -66,6 +70,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
       projectAssignmentBillRateCurrency: '',
       projectAssignmentAllocation: '',
       functionalAreaId: '',
+      clientContactId: '',
     },
   });
 
@@ -94,6 +99,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
       setTeamMemberId('');
       setSelectedTm(null);
       setFunctionalAreaId('');
+      setContactId('');
     }
     onOpenChange(v);
   };
@@ -109,6 +115,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
         projectAssignmentBillRateCurrency: data.projectAssignmentBillRateCurrency.toUpperCase(),
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
         functionalAreaId: Number(data.functionalAreaId),
+        clientContactId: data.clientContactId ? Number(data.clientContactId) : null,
       });
       toast({ title: 'Success', description: 'Team member added to project.' });
       onSuccess();
@@ -260,6 +267,20 @@ export function AddMemberDialog({ open, onOpenChange, projectId, onSuccess }: Pr
               {errors.functionalAreaId && (
                 <p className="text-sm text-destructive">{errors.functionalAreaId.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Contact</Label>
+              <ContactComboBox
+                clientId={clientId}
+                value={contactId}
+                onValueChange={(val) => {
+                  setContactId(val);
+                  setValue('clientContactId', val);
+                }}
+                disabled={!clientId}
+              />
+              <input type="hidden" {...register('clientContactId')} />
             </div>
 
             <div className="space-y-2">

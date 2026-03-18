@@ -2,9 +2,10 @@ import { prisma } from '../../db/prisma';
 import { createHiring, getHiringById } from './repository';
 import type { CreateHiringInput } from './repository';
 import type { CreateHiringDTO, UpdateHiringDTO, HiringDTO } from '@shared/dto';
-import type { TeamMember, ProjectAssignment } from '@prisma/client';
+import type { TeamMember, ProjectAssignment, TimeOff } from '@prisma/client';
 import { createTeamMember } from './components/CreateTeamMember';
 import { createProjectAssignment } from './components/CreateProjectAssignment';
+import { createProjectedVacations } from './components/CreateProjectedVacations';
 import { auditOrchestrator } from '../audit';
 import { error } from '../../logger';
 
@@ -13,9 +14,10 @@ type OrchestratorResult<T> =
   | { success: false; errors: { field: string; message: string }[] };
 
 export interface ExecuteHiringResult {
-  hiring: HiringDTO;
-  teamMember: TeamMember;
+  hiring:             HiringDTO;
+  teamMember:         TeamMember;
   projectAssignments: ProjectAssignment[];
+  projectedTimeOffs:  TimeOff[];
 }
 
 export class HiringOrchestrator {
@@ -86,7 +88,7 @@ export class HiringOrchestrator {
 
     // --- Atomic transaction ---
 
-    const { teamMember, projectAssignments, updatedHiring, hiringBefore } =
+    const { teamMember, projectAssignments, projectedTimeOffs, updatedHiring, hiringBefore } =
       await prisma.$transaction(async (tx) => {
         const tm = await createTeamMember(tx, {
           candidateFirstName: endorsement.candidateFirstName,
@@ -109,6 +111,13 @@ export class HiringOrchestrator {
           createdByUserId: dsUserId,
         });
 
+        const tofs = await createProjectedVacations(tx, {
+          teamMemberId:    tm.teamMemberId,
+          countryIso:      endorsement.country.countryIso,
+          startDate,
+          createdByUserId: dsUserId,
+        });
+
         const before = await tx.hiring.findUnique({ where: { id } });
 
         const h = await tx.hiring.update({
@@ -127,7 +136,7 @@ export class HiringOrchestrator {
           },
         });
 
-        return { teamMember: tm, projectAssignments: pas, updatedHiring: h, hiringBefore: before };
+        return { teamMember: tm, projectAssignments: pas, projectedTimeOffs: tofs, updatedHiring: h, hiringBefore: before };
       });
 
     // --- Audit logs emitted after the transaction commits ---
@@ -153,6 +162,17 @@ export class HiringOrchestrator {
         });
       }
 
+      for (const tf of projectedTimeOffs) {
+        await auditOrchestrator.log({
+          entityName: 'tbl_tms_time_off',
+          entityId:   String(tf.timeOffId),
+          createdBy:  updatedBy,
+          oldValues:  null,
+          newValues:  tf as unknown as Record<string, unknown>,
+          comment:    `Projected vacation created for team member ${teamMember.teamMemberId}`,
+        });
+      }
+
       await auditOrchestrator.log({
         entityName: 'hir_hiring',
         entityId:   String(id),
@@ -171,6 +191,7 @@ export class HiringOrchestrator {
         hiring:             updatedHiring as unknown as HiringDTO,
         teamMember,
         projectAssignments,
+        projectedTimeOffs,
       },
     };
   }

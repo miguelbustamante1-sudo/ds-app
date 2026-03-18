@@ -154,7 +154,7 @@ router.get('/:teamMemberId/profile', requirePermission('TeamMembers', 'read'), a
     const supervisorId = req.user?.teamMemberId;
     if (!supervisorId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const targetId = parseInt(req.params.teamMemberId, 10);
+    const targetId = parseInt(req.params.teamMemberId ?? '', 10);
     if (isNaN(targetId)) return res.status(400).json({ message: 'Invalid team member ID' });
 
     const profile = await getProfileForSupervisor(supervisorId, targetId);

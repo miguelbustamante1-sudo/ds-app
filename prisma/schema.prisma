@@ -38,6 +38,8 @@ model Project {
   projectActive      Boolean?            @default(true) @map("pro_active")
   projectCreatedAt   DateTime?           @map("pro_created_at") @db.Date
   projectCreatedBy   String?             @map("pro_created_by") @db.VarChar(250)
+  clientId           Int?                @map("cli_id") @db.Integer
+  client             Client?             @relation(fields: [clientId], references: [Id])
   projectAssignments ProjectAssignment[]
   endorsements       Endorsement[]
 
@@ -136,6 +138,7 @@ model TimeOff {
   timeOffLastUpdatedDate DateTime?          @map("tto_last_upddat") @db.Date
   categoryId             Int?               @map("tot_id")
   timeOffActive          Int                @default(1) @map("tto_active")
+  timeOffIsProjected     Boolean            @default(false) @map("tto_is_projected")
   statusId               Int?               @map("sta_id")
   changeLogs             TimeOffChangeLog[]
   category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tms_time_off_tot")
@@ -173,11 +176,13 @@ model ProjectAssignment {
   projectAssignmentDeleted          Boolean?        @default(false) @map("tmp_deleted")
   projectAssignmentDeleteReason     String?         @map("tmp_delete_reason") @db.VarChar(255)
   functionalAreaId                  Int?            @map("far_id")
+  clientContactId                   Int?            @map("cco_id")
   createdByUser                     User?           @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
   project                           Project         @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
   teamMember                        TeamMember      @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")
   lastUpdatedByUser                 User?           @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
   functionalArea                    FunctionalArea? @relation(fields: [functionalAreaId], references: [Id], onDelete: Restrict, map: "fk_tmp_team_member_project_far")
+  clientContact                     ClientContact?  @relation(fields: [clientContactId], references: [id], onDelete: Restrict, map: "fk_tmp_team_member_project_cco")
 
   @@index([projectAssignmentCreatedBy], map: "idx_tmp_team_member_project_cby")
   @@index([projectId], map: "idx_tmp_team_member_project_pro_id")
@@ -560,10 +565,28 @@ model EndorsementBonus {
 }
 
 model Client {
-  Id   Int    @id @default(autoincrement()) @map("cli_id") @db.Integer
-  Name String @map("cli_name") @db.Text
+  Id       Int            @id @default(autoincrement()) @map("cli_id") @db.Integer
+  Name     String         @map("cli_name") @db.Text
+  contacts ClientContact[]
+  projects Project[]
 
   @@map("cli_clients")
+  @@schema("ds")
+}
+
+model ClientContact {
+  id          Int     @id @default(autoincrement()) @map("cco_id") @db.Integer
+  clientId    Int     @map("cli_id") @db.Integer
+  name        String  @map("cco_name") @db.VarChar(255)
+  email       String  @map("cco_email") @db.VarChar(255)
+  phoneNumber String  @map("cco_phone_number") @db.VarChar(50)
+  position    String? @map("cco_position") @db.VarChar(100)
+  active      Boolean @default(true) @map("cco_active")
+
+  client             Client              @relation(fields: [clientId], references: [Id], onDelete: Cascade)
+  projectAssignments ProjectAssignment[]
+
+  @@map("cco_client_contact")
   @@schema("ds")
 }
 
