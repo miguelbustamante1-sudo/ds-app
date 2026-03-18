@@ -1,6 +1,6 @@
 # Time Off — User Manual
 
-> **Version 1.0 · March 2026**
+> **Version 1.1 · March 2026**
 > This manual covers the Time Off module from two perspectives: **Team Member** and **Supervisor**. Read the section that applies to you, or both if you hold both roles.
 
 ---
@@ -61,9 +61,12 @@ These numbers come directly from Workday and reflect your current balance after 
 1. On the My Time Off page, fill out the request form.
 2. Choose the **category** that matches your absence (Vacation, Personal Day, etc.). The categories available depend on your country.
 3. Select a **start date** and an **end date**.
-4. Submit the request.
+4. Enter a **comment** — this field is required for all requests.
+5. Submit the request.
 
 The system immediately validates several rules (see Section 1.4). If any rule is violated, you will see an error message explaining why.
+
+> **Holiday highlighting:** Public holidays in your country are shown in amber in the date picker. Hovering over or selecting a range that includes holidays will trigger an informational alert (see Section 1.4, Rule 6).
 
 Once accepted, the request is created with status **Tentative**. Your balance is deducted right away.
 
@@ -82,46 +85,109 @@ The system enforces the following rules automatically. Knowing them in advance w
 ---
 
 **Rule 1 — No weekend start**
-Your request cannot start on a Saturday or Sunday. If you need days that include a weekend, your start date must be the Monday after (or the Friday before, if applicable).
+Your request cannot start on a Saturday or Sunday. If you need days that include a weekend, your start date must be the Monday after (or the Friday before, if applicable). Weekend dates are disabled in the date picker.
 
 ---
 
-**Rule 2 — Advance notice requirement**
-Each category has a minimum number of days you must request *before* the start date. For example, if the requirement is 5 days, you cannot request a vacation that starts in 3 days. The exact number varies by category and country — check with your supervisor if you are unsure.
+**Rule 2 — No public holiday start**
+Your request cannot start on a public holiday. Public holidays in your country are highlighted in amber in the calendar. If you select a start date that falls on a holiday, an error message appears and the Save button is disabled.
 
 ---
 
-**Rule 3 — No overlapping requests**
-You cannot have two active requests covering the same dates. Cancelled requests do not count as active.
+**Rule 3 — Advance notice requirement**
+Each category has a minimum number of days you must request *before* the start date. This is measured in **calendar days** (weekends count). For example, if the requirement is 5 days, you cannot request a vacation that starts within 5 days from today. When the requirement is not met, the form shows an error and the earliest valid start date.
+
+The exact number varies by category and country — check with your supervisor if you are unsure.
 
 ---
 
-**Rule 4 — Sufficient balance**
-Your vacation and personal day requests are checked against your Workday balance. If you do not have enough days, the request will be rejected.
+**Rule 4 — No overlapping requests**
+You cannot have two active requests covering the same dates. Cancelled requests do not count as active. The form highlights the conflicting request(s) by name and date range.
 
 ---
 
-**Rule 5 — Respect your end date**
+**Rule 5 — Sufficient balance**
+Your vacation and personal day requests are validated against your Workday balance **before you can submit**. If the number of days you have selected exceeds your available balance, the form shows an error and the Save button is disabled. You cannot submit a request you do not have balance for.
+
+---
+
+**Rule 6 — Respect your end date**
 If your employment has a contractual end date in the system, you cannot create a request that extends beyond that date.
 
 ---
 
-**Rule 6 — Holidays are counted**
-The system is aware of public holidays in your country. Depending on how your category is configured, holidays may or may not count toward the days deducted from your balance.
+**Rule 7 — Holidays are counted (or not) depending on your country**
+The system is aware of public holidays in your country and shows them in amber in the calendar. What happens when a holiday falls in your range depends on your country configuration:
+
+- **El Salvador:** Holidays within your request dates **count as vacation days** and are deducted from your balance. An informational alert lists any affected holidays.
+- **Guatemala:** Weekday public holidays within your request dates **are not counted** as vacation days — they are subtracted from your gross day count. An alert lists the holidays and shows your resulting net vacation days.
 
 ---
 
-**Rule 7 — El Salvador only: Vacation 7/8/15 rule**
+**Rule 8 — El Salvador only: Vacation 7/8/15 rule**
 If your country is El Salvador and you are requesting Vacation, a special rule applies:
 
 - You may only request **7**, **8**, or **15** calendar days per request.
 - Your annual vacation total is capped at **15 days**.
-- If you have already used 7 days this year, your next request must be 8 days (and vice versa).
+- If you have already used 7 days this year, your next request must be exactly 8 days (and vice versa).
 - If you have already reached 15 days, you cannot request more vacation until the next year.
+
+The form displays a status panel showing how many vacation days you have already used this year and which day options are available to you.
+
+**15-day mode (0 days used):** When you have not yet taken any vacation this year and select the Vacation category, the form enters 15-day mode automatically. The end date is calculated for you (start date + 14 = 15 calendar days) and the end date picker is disabled. You can submit as a single 15-day block, or you can choose to **split** the request into two separate periods — see Section 1.5.
 
 ---
 
-### 1.5 Acknowledging or declining a supervisor-created request
+### 1.5 El Salvador only: Splitting a vacation into two periods
+
+When you are in 15-day mode (Vacation category, 0 days used this year, country = El Salvador), the form shows two action buttons: **Save** and **Split**. If you want to take your 15 days across two separate blocks of time rather than one continuous period, click **Split**.
+
+[screenshot here]
+
+#### What split mode does
+
+Splitting creates **two separate time-off requests** at the same time, each with its own start and end date. Together they must add up to exactly 15 calendar days: one period of 7 days and one period of 8 days (in either order).
+
+#### How to fill out the split form
+
+**Period 1**
+
+| Field | Behavior |
+|---|---|
+| Start Date | Locked to the start date you already selected in the main form |
+| End Date | You pick this date. The system calculates the number of calendar days and requires the result to be exactly **7** or **8** |
+
+If the end date you choose does not yield 7 or 8 days, an error appears and Period 2 remains locked until you correct it.
+
+**Period 2**
+
+| Field | Behavior |
+|---|---|
+| Start Date | You pick this date. It must be **after** Period 1's end date. A gap between the two periods is allowed |
+| End Date | Auto-calculated. If Period 1 is 7 days, Period 2 is set to 8 days; if Period 1 is 8 days, Period 2 is set to 7 days |
+
+> The end date of Period 2 is always computed automatically — you only choose when it starts.
+
+#### Holiday awareness in split mode
+
+Each period shows its own holiday alert. If a public holiday falls within a period, it is highlighted in amber on the calendar and listed in a warning beneath the date fields. For El Salvador, holidays inside either period **count as vacation days** just as they do in single-request mode.
+
+#### Saving a split request
+
+The **Save Split** button becomes active only when:
+- Period 1 has a valid end date (exactly 7 or 8 days from its start)
+- Period 2 has a valid start date (after Period 1 ends)
+- A comment has been entered in the comment field
+
+Clicking Save Split submits both requests at once. If either fails, neither is saved.
+
+#### Going back
+
+Click **Back to single request** at the top of the split form to return to the standard 15-day mode and discard the split configuration.
+
+---
+
+### 1.6 Acknowledging or declining a supervisor-created request
 
 When your supervisor creates a time-off request for you, you will receive a **notification** in the system. The request starts as **Tentative** and requires your response.
 
@@ -132,13 +198,13 @@ Open the request from your notification or from the My Time Off list, then:
 
 > If you do not act on a Tentative request, the system will send you reminders as the start date approaches (see the Notifications section).
 
-### 1.6 Editing a request
+### 1.7 Editing a request
 
 You can edit a **Tentative** or **Acknowledged** request as long as the start date is still far enough in the future to comply with the advance notice rule.
 
 Go to the request detail, make your changes, and save. The balance is adjusted automatically to reflect the difference in days.
 
-### 1.7 Cancelling your own request
+### 1.8 Cancelling your own request
 
 You can cancel a request from the detail page. A few conditions apply:
 
@@ -147,7 +213,7 @@ You can cancel a request from the detail page. A few conditions apply:
 
 When a request is cancelled, the days are immediately returned to your balance.
 
-### 1.8 Viewing your activity log
+### 1.9 Viewing your activity log
 
 Go to **Time Off → Activity** to see a full chronological history of everything that has happened on your requests: when they were created, edited, acknowledged, declined, or cancelled. Each entry shows who made the change and, when applicable, the before and after values.
 
@@ -285,7 +351,27 @@ A: The supervisor view is limited to your direct reports. The Management view sh
 ---
 
 **Q: How do I know if a specific date is a public holiday?**
-A: The system validates holidays automatically based on your country. If you attempt to create a request and a holiday validation applies, it will be reflected in your day count or surfaced in a message. You can also ask your HR team for the holiday calendar.
+A: Public holidays in your country are highlighted in amber directly in the date picker calendar. You do not need to check a separate calendar — just look for the amber-highlighted dates. If a holiday falls within your selected date range, an alert will appear in the form describing which holidays are included and whether they count toward your balance.
+
+---
+
+**Q: My start date is a public holiday. Why can't I select it?**
+A: The start date of a request cannot fall on a public holiday. The date is disabled in the calendar picker and the form will show an error if you attempt to use it. Choose the next available working day.
+
+---
+
+**Q: I am in El Salvador and I see a "Split" button. What does it do?**
+A: The Split button appears when you have not used any vacation days yet this year and you select the Vacation category. Instead of taking all 15 days in one continuous block, splitting lets you schedule two separate periods — one of 7 days and one of 8 days (in either order, with a gap between them if you like). See Section 1.5 for detailed instructions.
+
+---
+
+**Q: I submitted a split vacation. Now I see two separate requests in my list — is that expected?**
+A: Yes. A split vacation always creates two independent time-off requests, each with its own dates and status. They are tracked separately in the table and in the activity log. Each can be acknowledged, declined, or cancelled independently.
+
+---
+
+**Q: The Save button is disabled but I have filled in all the fields. What might be wrong?**
+A: Several validations can block submission. Check for any alert messages in the form — they explain the specific problem. Common causes include: insufficient Workday balance, the start date is too close to today (advance notice rule), the start date falls on a weekend or public holiday, the dates overlap an existing request, or the comment field is empty.
 
 ---
 
@@ -296,7 +382,8 @@ A: The system validates holidays automatically based on your country. If you att
 | I want to... | Where to go | Prerequisite |
 |---|---|---|
 | Check my balance | My Time Off → top of page | — |
-| Submit a request | My Time Off → form | Enough balance, advance notice met |
+| Submit a request | My Time Off → form | Enough balance, advance notice met, comment required |
+| Submit a split vacation (El Salvador) | My Time Off → form → Split button | Vacation category, 0 days used this year; comment required |
 | Acknowledge/decline a supervisor request | My Time Off → open the Tentative request | Request must be in Tentative status |
 | Edit my request | My Time Off → open request → Edit | Request must be Tentative or Acknowledged |
 | Cancel my request | My Time Off → open request → Cancel | Must be before notice deadline |

@@ -194,7 +194,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     : 0;
 
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId)
+    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4)
     : 0;
 
   // SV 15-day mode: applies when SV + Vacation + 0 days used this year.

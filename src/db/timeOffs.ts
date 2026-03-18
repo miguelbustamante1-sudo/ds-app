@@ -118,11 +118,13 @@ export async function deleteTimeOff(id: number): Promise<boolean> {
 
 /**
  * Get time offs for the current user (My Time Offs)
- * Returns past 1 month + all future time offs with category and status details
+ * Returns past 1 month + all records starting in the current year + all future time offs.
+ * The current-year window ensures SV vacation day counting is accurate for the full year.
  */
 export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDetailsDTO[]> {
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const startOfYear = new Date(new Date().getFullYear(), 0, 1);
 
   const timeOffs = await prisma.timeOff.findMany({
     where: {
@@ -130,6 +132,7 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
       timeOffActive: 1,
       OR: [
         { timeOffEndDate: { gte: oneMonthAgo } },
+        { timeOffStartDate: { gte: startOfYear } },
       ],
     },
     include: {
@@ -158,6 +161,7 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
       timeOffEndDate: timeOff.timeOffEndDate,
       timeOffDays: Number(timeOff.timeOffDays),
       timeOffOriginalId: timeOff.timeOffOriginalId,
+      timeOffIsProjected: timeOff.timeOffIsProjected,
       categoryId: timeOff.categoryId,
       categoryName: timeOff.category?.categoryName ?? 'Unknown',
       statusId: timeOff.statusId,

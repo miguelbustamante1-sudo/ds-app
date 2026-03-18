@@ -30,6 +30,7 @@ export interface TimeOffWithDetailsDTO {
   timeOffEndDate: Date;
   timeOffDays: number;
   timeOffOriginalId: number | null;
+  timeOffIsProjected: boolean;
   categoryId: number | null;
   categoryName: string;
   statusId: number | null;

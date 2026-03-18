@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { format, startOfDay } from 'date-fns';
+import { format, addDays, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn, formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
-import { apiGet, ApiError } from '@/lib/api';
+import { apiGet, apiPost, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../../utils/overlapDetection';
 import {
@@ -28,6 +28,7 @@ import {
 } from '../../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
+import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -67,6 +68,8 @@ export function SupervisorTimeOffForm({
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [isSplitMode, setIsSplitMode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -171,10 +174,11 @@ export function SupervisorTimeOffForm({
     }
   }, [categoryMode, filteredCategories, setValue]);
 
-  // Reset comment when category changes
+  // Reset comment and split mode when category changes
   useEffect(() => {
     if (categoryId) {
       setValue('comment', '');
+      setIsSplitMode(false);
     }
   }, [categoryId, setValue]);
 
@@ -246,12 +250,58 @@ export function SupervisorTimeOffForm({
     : 0;
 
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+
+  // SV 15-day mode: applies when SV + Vacation + 0 days used this year
+  const isSV15DayMode = isSVVacation && existingVacationDays === 0;
+
+  // Auto-calculate end date for SV 15-day mode (start + 14 = 15 inclusive calendar days)
+  useEffect(() => {
+    if (!isSV15DayMode) return;
+    if (!startDate) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('endDate' as any, undefined as any);
+      return;
+    }
+    const sv15End = addDays(startDate, 14);
+    if (!endDate || endDate.getTime() !== sv15End.getTime()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setValue('endDate' as any, sv15End as any);
+    }
+  }, [isSV15DayMode, startDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveSplit = useCallback(async (periodA: SplitPeriod, periodB: SplitPeriod) => {
+    if (!teamMember) return;
+    setSubmitting(true);
+    try {
+      await apiPost('/api/time-offs/supervisor/split', {
+        teamMemberId: teamMember.teamMemberId,
+        categoryId: Number(categoryId),
+        periodA: {
+          startDate: periodA.startDate.toISOString(),
+          endDate: periodA.endDate.toISOString(),
+        },
+        periodB: {
+          startDate: periodB.startDate.toISOString(),
+          endDate: periodB.endDate.toISOString(),
+        },
+        comment,
+      });
+      toast({ title: 'Success', description: 'Split vacation requests created successfully' });
+      reset();
+      setIsSplitMode(false);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Failed to create split vacation requests';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [teamMember, categoryId, comment, reset, toast]);
 
   // Days-before notice period validation (advisory — does NOT block supervisor submission)
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
@@ -317,133 +367,154 @@ export function SupervisorTimeOffForm({
       </div>
 
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-        {/* First Row - Category and Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          {/* Category Select */}
-          <div className="space-y-2">
-            <Label htmlFor="category">
-              Category <span className="text-destructive">*</span>
-            </Label>
-            <Controller
-              name="categoryId"
-              control={control}
-              rules={{ required: 'Category is required' }}
-              render={({ field }) => (
-                <ComboBox
-                  options={filteredCategories.map((cat): ComboBoxOption => ({
-                    value: cat.categoryId.toString(),
-                    label: cat.categoryName,
-                  }))}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  placeholder={loadingCategories ? 'Loading...' : 'Select category'}
-                  searchPlaceholder="Search categories..."
-                  emptyMessage="No categories found."
-                  disabled={loadingCategories || categoryMode === 'vacation-only'}
-                />
-              )}
-            />
-          </div>
-
-          {/* Start Date */}
-          <div className="space-y-2">
-            <Label>
-              Start Date <span className="text-destructive">*</span>
-            </Label>
-            <Controller
-              name="startDate"
-              control={control}
-              rules={{ required: 'Start date is required' }}
-              render={({ field }) => (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      defaultMonth={field.value ?? new Date()}
-                      disabled={(date) => {
-                        const today = startOfDay(new Date());
-                        if (date < today) return true;
-                        if (isWeekend(date)) return true;
-                        if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                        if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
-                        return false;
-                      }}
-                      modifiers={{ holiday: holidayDatesForCalendar }}
-                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-            />
-          </div>
-
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label>
-              End Date <span className="text-destructive">*</span>
-            </Label>
-            <Controller
-              name="endDate"
-              control={control}
-              rules={{ required: 'End date is required' }}
-              render={({ field }) => (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                      disabled={isFixedDuration}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      defaultMonth={field.value ?? startDate ?? new Date()}
-                      disabled={(date) => {
-                        const today = startOfDay(new Date());
-                        if (date < today) return true;
-                        if (startDate && date < startDate) return true;
-                        if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                        return false;
-                      }}
-                      modifiers={{ holiday: holidayDatesForCalendar }}
-                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              )}
-            />
-          </div>
+        {/* Category Select */}
+        <div className="space-y-2">
+          <Label htmlFor="category">
+            Category <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            name="categoryId"
+            control={control}
+            rules={{ required: 'Category is required' }}
+            render={({ field }) => (
+              <ComboBox
+                options={filteredCategories.map((cat): ComboBoxOption => ({
+                  value: cat.categoryId.toString(),
+                  label: cat.categoryName,
+                }))}
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder={loadingCategories ? 'Loading...' : 'Select category'}
+                searchPlaceholder="Search categories..."
+                emptyMessage="No categories found."
+                disabled={loadingCategories || categoryMode === 'vacation-only'}
+              />
+            )}
+          />
         </div>
 
-        {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
-        {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
-          </Alert>
+        {/* Date range area — replaced by split mode when active */}
+        {isSplitMode && startDate ? (
+          <SVVacationSplitMode
+            anchorStartDate={startDate}
+            countryIso={teamMember.countryIso}
+            countryId={teamMember.countryId}
+            userEndDate={teamMemberEndDate}
+            comment={comment ?? ''}
+            submitting={submitting}
+            onBack={() => setIsSplitMode(false)}
+            onSaveSplit={handleSaveSplit}
+          />
+        ) : (
+          <>
+            {/* Date Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label>
+                  Start Date <span className="text-destructive">*</span>
+                </Label>
+                <Controller
+                  name="startDate"
+                  control={control}
+                  rules={{ required: 'Start date is required' }}
+                  render={({ field }) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          defaultMonth={field.value ?? new Date()}
+                          disabled={(date) => {
+                            const today = startOfDay(new Date());
+                            if (date < today) return true;
+                            if (isWeekend(date)) return true;
+                            if (teamMemberEndDate && date > teamMemberEndDate) return true;
+                            if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                            return false;
+                          }}
+                          modifiers={{ holiday: holidayDatesForCalendar }}
+                          modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />
+              </div>
+
+              {/* End Date */}
+              <div className="space-y-2">
+                <Label>
+                  End Date <span className="text-destructive">*</span>
+                </Label>
+                <Controller
+                  name="endDate"
+                  control={control}
+                  rules={{ required: 'End date is required' }}
+                  render={({ field }) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                          disabled={isFixedDuration || isSV15DayMode}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          defaultMonth={field.value ?? startDate ?? new Date()}
+                          disabled={(date) => {
+                            const today = startOfDay(new Date());
+                            if (date < today) return true;
+                            if (startDate && date < startDate) return true;
+                            if (teamMemberEndDate && date > teamMemberEndDate) return true;
+                            return false;
+                          }}
+                          modifiers={{ holiday: holidayDatesForCalendar }}
+                          modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />
+                {isSV15DayMode && (
+                  <p className="text-sm text-muted-foreground">
+                    15 calendar days (auto-set for El Salvador)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
+            {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
+              </Alert>
+            )}
+          </>
         )}
 
         {/* Second Row - Comment */}
@@ -469,6 +540,9 @@ export function SupervisorTimeOffForm({
           )}
         </div>
 
+        {/* Validation messages and alerts — hidden in split mode */}
+        {!isSplitMode && (
+          <>
         {/* Validation Messages Row */}
         <div className="flex flex-wrap gap-4 text-sm">
           {errors.categoryId && (
@@ -494,7 +568,7 @@ export function SupervisorTimeOffForm({
               Fixed duration: {fixedDays} day{fixedDays !== 1 ? 's' : ''}
             </p>
           )}
-          {!isFixedDuration && hintDays > 0 && (
+          {!isFixedDuration && !isSV15DayMode && hintDays > 0 && (
             <p className="text-muted-foreground">
               {hintDays} day{hintDays !== 1 ? 's' : ''}
             </p>
@@ -598,11 +672,32 @@ export function SupervisorTimeOffForm({
             </AlertDescription>
           </Alert>
         )}
+          </>
+        )}
 
-        {/* Submit Button */}
-        <Button type="submit" disabled={!canSave}>
-          {loading ? 'Creating...' : 'Create Time Off Request'}
-        </Button>
+        {/* Submit Button — hidden when split mode is active */}
+        {!isSplitMode && (
+          isSV15DayMode ? (
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={!canSave}>
+                {loading ? 'Creating...' : 'Create Time Off Request'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={!startDate || loading}
+                onClick={() => setIsSplitMode(true)}
+              >
+                Split
+              </Button>
+            </div>
+          ) : (
+            <Button type="submit" disabled={!canSave}>
+              {loading ? 'Creating...' : 'Create Time Off Request'}
+            </Button>
+          )
+        )}
       </form>
     </div>
   );

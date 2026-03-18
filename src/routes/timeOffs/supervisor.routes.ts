@@ -304,6 +304,165 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
   }
 });
 
+// POST /split — Atomic SV vacation split for a supervised team member
+router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const { teamMemberId: supervisorTeamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const createdBy = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+
+    const { teamMemberId, categoryId, periodA, periodB, comment } = req.body as {
+      teamMemberId?: number;
+      categoryId?: number;
+      periodA?: { startDate: string; endDate: string };
+      periodB?: { startDate: string; endDate: string };
+      comment?: string;
+    };
+
+    if (!teamMemberId) {
+      return res.status(400).json({ error: 'teamMemberId is required' });
+    }
+    if (categoryId === undefined || categoryId === null) {
+      return res.status(400).json({ error: 'categoryId is required' });
+    }
+    if (!periodA?.startDate || !periodA?.endDate) {
+      return res.status(400).json({ error: 'periodA startDate and endDate are required' });
+    }
+    if (!periodB?.startDate || !periodB?.endDate) {
+      return res.status(400).json({ error: 'periodB startDate and endDate are required' });
+    }
+
+    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    if (!hasAuthority) {
+      return res.status(403).json({ error: 'Not authorized to create time-off for this team member' });
+    }
+
+    const effectiveStatusId = DEFAULTS.STATUS_ID;
+
+    const [validationA, validationB] = await Promise.all([
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodA.startDate),
+        timeOffEndDate: new Date(periodA.endDate),
+        statusId: effectiveStatusId,
+      }),
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodB.startDate),
+        timeOffEndDate: new Date(periodB.endDate),
+        statusId: effectiveStatusId,
+      }),
+    ]);
+
+    if (!validationA.valid) {
+      return res.status(400).json({ error: 'Period 1 validation failed', details: validationA.errors });
+    }
+    if (!validationB.valid) {
+      return res.status(400).json({ error: 'Period 2 validation failed', details: validationB.errors });
+    }
+
+    const [{ totalDays: daysA }, { totalDays: daysB }] = await Promise.all([
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodA.startDate), new Date(periodA.endDate)),
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
+    ]);
+
+    const now = new Date();
+
+    const [createdA, createdB] = await prisma.$transaction(async (tx) => {
+      const a = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodA.startDate),
+          timeOffEndDate: new Date(periodA.endDate),
+          timeOffDays: daysA,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: effectiveStatusId,
+        },
+      });
+      const b = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodB.startDate),
+          timeOffEndDate: new Date(periodB.endDate),
+          timeOffDays: daysB,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: effectiveStatusId,
+        },
+      });
+      return [a, b] as const;
+    });
+
+    const logComment = comment?.trim() || 'SV vacation split request created by supervisor';
+
+    await Promise.all([
+      createTimeOffChangeLog({
+        timeOffId: createdA.timeOffId,
+        comment: logComment,
+        oldValues: null,
+        newValues: { timeOffStartDate: periodA.startDate, timeOffEndDate: periodA.endDate, categoryId, statusId: effectiveStatusId },
+        createdByUserId: userId,
+      }),
+      createTimeOffChangeLog({
+        timeOffId: createdB.timeOffId,
+        comment: logComment,
+        oldValues: null,
+        newValues: { timeOffStartDate: periodB.startDate, timeOffEndDate: periodB.endDate, categoryId, statusId: effectiveStatusId },
+        createdByUserId: userId,
+      }),
+    ]);
+
+    try {
+      const employeeUserIds = await getUserIdsByTeamMemberIds([teamMemberId]);
+      const employeeUserId = employeeUserIds[0];
+
+      const category = await prisma.timeOffCategory.findUnique({
+        where: { categoryId },
+        select: { categoryName: true },
+      });
+      const categoryLabel = category?.categoryName ?? 'time-off';
+
+      if (employeeUserId !== undefined) {
+        const authReq = req as ResolvedAuthRequest;
+        const supervisorName = authReq.user?.firstName
+          ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
+          : 'Your supervisor';
+
+        await notificationOrchestrator.create({
+          categoryName: 'Inbox',
+          itemType: 'item-3',
+          payload: {
+            userName: supervisorName,
+            avatar: '300-1.png',
+            badgeColor: 'online',
+            description: `created a split ${categoryLabel} time-off for you`,
+            link: `/timeoff-detail/${createdA.timeOffId}`,
+            day: 'Today',
+            info: `${formatDateDDMMYYYY(periodA.startDate)} to ${formatDateDDMMYYYY(periodB.endDate)}`,
+            sourceId: createdA.timeOffId,
+            sourceEntity: 'TimeOff',
+          },
+          recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
+        });
+      }
+
+      await adjustWorkdayBalance(teamMemberId, categoryLabel, daysA, createdBy);
+      await adjustWorkdayBalance(teamMemberId, categoryLabel, daysB, createdBy);
+    } catch (notifErr) {
+      console.error('[TimeOff] Failed to create notification or adjust balance on supervisor split create:', notifErr);
+    }
+
+    res.status(201).json({ periodA: createdA, periodB: createdB });
+  } catch (err) {
+    console.error('[TimeOff] Error creating supervisor split vacation:', err);
+    res.status(500).json({ error: 'Failed to create split vacation requests' });
+  }
+});
+
 // PATCH /:timeOffId/cancel
 router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
   try {
