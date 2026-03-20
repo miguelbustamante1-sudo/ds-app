@@ -13,6 +13,7 @@
 
 import { eachDayOfInterval, isWeekend, differenceInCalendarDays } from 'date-fns';
 import type { HolidayDTO } from '@shared/dto/Holiday';
+import type { ActiveSwapSummaryDTO } from '@shared/dto/HolidaySwap';
 import { parseUTCDateAsLocal } from '@/lib/utils';
 
 // Re-exported so the hook and consumers share the same paired type.
@@ -26,7 +27,7 @@ export interface HolidayWithEffectiveDate {
 // ---------------------------------------------------------------------------
 
 function parseHolidayDate(holidayDate: Date | string): Date {
-  return holidayDate instanceof Date ? holidayDate : new Date(holidayDate);
+  return holidayDate instanceof Date ? holidayDate : parseUTCDateAsLocal(holidayDate);
 }
 
 /** Returns a new Date with only the month and day of `source`, set in `year`. */
@@ -190,4 +191,43 @@ export function buildCalendarHolidayDates(
   }
 
   return dates;
+}
+
+// ---------------------------------------------------------------------------
+// applySwapsToHolidays
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a modified holiday list that reflects the user's active swaps:
+ *  - Removes the original holiday (matched by holidayId) from the list.
+ *  - Adds a synthetic "virtual holiday" for the replacementDate.
+ *
+ * The virtual entry reuses the original holiday's metadata but has its
+ * holidayDate set to the replacementDate and holidayIsRecurring = false.
+ */
+export function applySwapsToHolidays(
+  holidays: HolidayDTO[],
+  activeSwaps: ActiveSwapSummaryDTO[],
+): HolidayDTO[] {
+  if (activeSwaps.length === 0) return holidays;
+
+  const swappedIds = new Set(activeSwaps.map((s) => s.holidayId));
+
+  // Remove original holidays that have been swapped out
+  const filtered = holidays.filter((h) => !swappedIds.has(h.holidayId));
+
+  // Add a virtual entry for each replacement date
+  for (const swap of activeSwaps) {
+    const original = holidays.find((h) => h.holidayId === swap.holidayId);
+    if (!original) continue;
+
+    filtered.push({
+      ...original,
+      holidayDate: parseUTCDateAsLocal(swap.replacementDate).toISOString(),
+      holidayIsRecurring: false,
+      holidayIsActive: true,
+    });
+  }
+
+  return filtered;
 }

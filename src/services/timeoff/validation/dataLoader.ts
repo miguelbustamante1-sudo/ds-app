@@ -74,6 +74,25 @@ export async function loadValidationContext(
     },
   });
 
+  // 6. Load TM's approved holiday swaps (for validation rules)
+  const approvedStatus = allStatuses.find((s) => s.statusName.trim().toLowerCase() === 'acknowledged');
+  const rawActiveSwaps = approvedStatus
+    ? await prisma.holidaySwap.findMany({
+        where: {
+          teamMemberId: input.teamMemberId,
+          active: true,
+          statusId: approvedStatus.statusId,
+        },
+        select: {
+          holidaySwapId: true,
+          originalDate: true,
+          replacementDate: true,
+          statusId: true,
+          holiday: { select: { holidayName: true } },
+        },
+      })
+    : [];
+
   const workdayBalance = await getWorkdayBalance(input.teamMemberId);
 
   return {
@@ -81,6 +100,13 @@ export async function loadValidationContext(
     effectiveCountryId,
     allowedCategoryIds,
     blockingStatusIds,
+    activeSwaps: rawActiveSwaps.map((s) => ({
+      holidaySwapId: s.holidaySwapId,
+      holidayName: s.holiday.holidayName,
+      originalDate: s.originalDate,
+      replacementDate: s.replacementDate,
+      statusId: s.statusId,
+    })),
     overlappingTimeOffs,
     categoryCountryDaysBefore,
     categoryName,

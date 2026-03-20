@@ -3,7 +3,11 @@
  * Used for Guatemala (GT)
  */
 
-export function calculateWorkdays(startDate: Date, endDate: Date): number {
+export function calculateWorkdays(
+  startDate: Date,
+  endDate: Date,
+  weekdayHolidaysToExclude?: Date[],
+): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
@@ -21,6 +25,23 @@ export function calculateWorkdays(startDate: Date, endDate: Date): number {
       count++;
     }
     current.setDate(current.getDate() + 1);
+  }
+
+  // Subtract weekday holidays that fall within the range (UTC year/month/day comparison)
+  if (weekdayHolidaysToExclude && weekdayHolidaysToExclude.length > 0) {
+    for (const holiday of weekdayHolidaysToExclude) {
+      const hYear = holiday.getUTCFullYear();
+      const hMonth = holiday.getUTCMonth();
+      const hDay = holiday.getUTCDate();
+      const dayOfWeek = holiday.getUTCDay();
+      // Only subtract if it's a weekday within the range
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const hDate = new Date(Date.UTC(hYear, hMonth, hDay));
+        if (hDate >= start && hDate <= end) {
+          count--;
+        }
+      }
+    }
   }
 
   return count;

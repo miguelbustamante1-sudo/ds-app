@@ -6,7 +6,9 @@
  */
 
 import { prisma } from '../../../db/prisma';
-import { getCalculationStrategy, getCalculationType } from './strategies';
+import { getCalculationStrategy, getCalculationType, calculateWorkdays } from './strategies';
+import { calculateCalendarDays } from './strategies/calendar';
+import { loadHolidaysForCalc } from './components/LoadHolidaysForCalc';
 import type { DayCalculationInput, DayCalculationResult } from './types';
 
 /**
@@ -27,8 +29,10 @@ export function calculateTimeOffDays(
 }
 
 /**
- * Calculate time off days for a specific team member
- * Loads the isCalendar flag from the CategoryCountry record
+ * Calculate time off days for a specific team member.
+ * Loads the isCalendar flag from the CategoryCountry record.
+ * For workday-based categories (isCalendar = false), deducts weekday holidays
+ * (including active holiday-swap substitutions) from the count.
  */
 export async function calculateTimeOffDaysForTeamMember(
   teamMemberId: number,
@@ -55,7 +59,22 @@ export async function calculateTimeOffDaysForTeamMember(
 
   const isCalendar = categoryCountry?.categoryCountryIsCalendar ?? false;
 
-  return calculateTimeOffDays({ startDate, endDate, isCalendar });
+  if (isCalendar) {
+    return {
+      totalDays: calculateCalendarDays(startDate, endDate),
+      calculationType: 'calendar',
+    };
+  }
+
+  // Workday path: deduct effective weekday holidays (respects active swaps)
+  const weekdayHolidays = teamMember?.countryId
+    ? await loadHolidaysForCalc(teamMemberId, teamMember.countryId, startDate, endDate)
+    : [];
+
+  return {
+    totalDays: calculateWorkdays(startDate, endDate, weekdayHolidays),
+    calculationType: 'workdays',
+  };
 }
 
 // Re-export types

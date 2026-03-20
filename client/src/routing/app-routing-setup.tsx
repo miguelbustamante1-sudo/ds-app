@@ -38,6 +38,8 @@ import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
+import { HolidaySwapsPage } from '@/pages/timeoff/holiday-swaps';
+import { PendingRequestsPage } from '@/pages/my-team/pending-requests';
 import { HiringPage } from '@/pages/hiring';
 import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
@@ -58,6 +60,7 @@ export function AppRoutingSetup() {
       >
         <Route path="/" element={<Layout1Page />} />
         <Route path="/my-team" element={<MyTeamPage />} />
+        <Route path="/my-team/pending" element={<PendingRequestsPage />} />
         <Route path="/my-team/:id" element={<TeamMemberProfilePage />} />
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
@@ -67,6 +70,7 @@ export function AppRoutingSetup() {
         <Route path="/project-assignments" element={<ProjectAssignmentsPage />} />
         <Route path="/timeoff-detail/:timeOffId" element={<TimeOffDetailPage />} />
         <Route path="/timeoff-activity" element={<TimeOffActivityPage />} />
+        <Route path="/holiday-swaps" element={<HolidaySwapsPage />} />
         <Route path="/endorsements" element={<EndorsementsPage />} />
         <Route path="/endorsements/create" element={<EndorsementCreatePage />} />
         <Route path="/endorsements/:id" element={<EndorsementDetailPage />} />

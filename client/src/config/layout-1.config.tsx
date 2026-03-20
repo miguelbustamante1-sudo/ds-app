@@ -79,6 +79,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/my-time-off',
   },
   {
+    title: 'Holiday Swaps',
+    icon: CalendarCheck,
+    path: '/holiday-swaps',
+    permission: 'HolidaySwaps',
+  },
+  {
     title: 'Time Off Activity',
     icon: Clock,
     path: '/timeoff-activity',
@@ -101,6 +107,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: FolderKanban,
     path: '/project-assignments',
     permission: 'ProjectAssignments',
+  },
+  {
+    title: 'Pending Requests',
+    icon: Inbox,
+    path: '/my-team/pending',
+    permission: 'HolidaySwaps',
   },
   { heading: 'Reports' },
   {

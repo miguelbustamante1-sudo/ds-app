@@ -14,6 +14,7 @@ import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
 import { validateDaysBefore } from './rules/daysBefore.rule';
 import { validateWorkdayBalance } from './rules/workdayBalance.rule';
+import { validateSwappedHolidayNotInRange, validateReplacementDayNotInRange } from './rules/holidaySwap.rule';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 import { TimeOffValidationErrors } from './errors';
 
@@ -100,6 +101,17 @@ export async function validateTimeOff(
     input.timeOffStartDate,
     input.timeOffEndDate
   );
+  // Rule 8: Holiday Swap conflict rules
+  const swappedHolidayResult = validateSwappedHolidayNotInRange(input, context);
+  if (!swappedHolidayResult.valid && swappedHolidayResult.error) {
+    errors.push(swappedHolidayResult.error);
+  }
+
+  const replacementDayResult = validateReplacementDayNotInRange(input, context);
+  if (!replacementDayResult.valid && replacementDayResult.error) {
+    errors.push(replacementDayResult.error);
+  }
+
   const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
   if (!balanceResult.valid && balanceResult.error) {
     errors.push(balanceResult.error);

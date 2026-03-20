@@ -95,4 +95,15 @@ export const TimeOffValidationErrors = {
     message: `Policy requires that time-off requests for "${categoryName}" be submitted at least ${requiredDays} days before the start date. The earliest valid start date is ${earliestValidDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
     metadata: { categoryName, requiredDays, daysUntilStart, earliestValidDate },
   }),
+  SWAPPED_HOLIDAY_IN_RANGE: (holidayName: string, date: Date): ValidationError => ({
+    code: 'SWAPPED_HOLIDAY_IN_RANGE',
+    message: `You have swapped ${holidayName} and must work on ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. Please adjust your request dates.`,
+    metadata: { holidayName, date },
+  }),
+
+  REPLACEMENT_DAY_IN_RANGE: (date: Date): ValidationError => ({
+    code: 'REPLACEMENT_DAY_IN_RANGE',
+    message: `Your replacement day ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} is a personal holiday and cannot be included in a Time Off request.`,
+    metadata: { date },
+  }),
 } as const;

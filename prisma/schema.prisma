@@ -91,6 +91,7 @@ model TeamMember {
   tierBand                          TierBand?              @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
   lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
   timeOffs                          TimeOff[]
+  holidaySwaps                      HolidaySwap[]
   projectAssignments                ProjectAssignment[]
   supervisorAssignmentsAsSupervisor SupervisorAssignment[] @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
   supervisorAssignments             SupervisorAssignment[] @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
@@ -251,9 +252,10 @@ model CategoryCountry {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model TimeOffStatus {
-  statusId   Int       @id @default(autoincrement()) @map("sta_id") @db.Integer
-  statusName String    @map("sta_name") @db.VarChar(100)
-  timeOffs   TimeOff[]
+  statusId     Int           @id @default(autoincrement()) @map("sta_id") @db.Integer
+  statusName   String        @map("sta_name") @db.VarChar(100)
+  timeOffs     TimeOff[]
+  holidaySwaps HolidaySwap[]
 
   @@map("tbl_to_statuses")
   @@schema("ds")
@@ -273,7 +275,8 @@ model Holiday {
   holidayUpdatedBy   String?   @map("hol_updated_by") @db.VarChar(50)
   holidayDeletedAt   DateTime? @map("hol_deleted_at") @db.Timestamptz(6)
   holidayIsActive    Boolean?  @default(true) @map("hol_is_active")
-  country            Country   @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_hol_country")
+  country            Country      @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_hol_country")
+  holidaySwaps       HolidaySwap[]
 
   @@index([countryId], map: "idx_hol_cou_id")
   @@index([holidayDate], map: "idx_hol_date")
@@ -637,6 +640,29 @@ model FunctionalArea {
   @@schema("ds")
 }
 
+model HolidaySwap {
+  holidaySwapId       Int           @id @default(autoincrement()) @map("hsw_id") @db.Integer
+  teamMemberId        Int           @map("tms_id")
+  holidayId           Int           @map("hol_id")
+  statusId            Int           @map("sta_id")
+  originalDate        DateTime      @map("hsw_original_date") @db.Date
+  replacementDate     DateTime      @map("hsw_replacement_date") @db.Date
+  createdBy           String?       @map("hsw_created_by") @db.Text
+  createdAt           DateTime?     @default(now()) @map("hsw_created_at") @db.Timestamptz(6)
+  updatedBy           String?       @map("hsw_updated_by") @db.Text
+  updatedAt           DateTime?     @map("hsw_updated_at") @db.Timestamptz(6)
+  active              Boolean       @default(true) @map("hsw_active")
+  teamMember          TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_hsw_team_member")
+  holiday             Holiday       @relation(fields: [holidayId], references: [holidayId], onDelete: Restrict, map: "fk_hsw_holiday")
+  status              TimeOffStatus @relation(fields: [statusId], references: [statusId], onDelete: Restrict, map: "fk_hsw_status")
+
+  @@index([teamMemberId], map: "idx_hsw_tms_id")
+  @@index([holidayId], map: "idx_hsw_hol_id")
+  @@index([statusId], map: "idx_hsw_sta_id")
+  @@map("hsw_holiday_swap")
+  @@schema("ds")
+}
+
 model WorkdayInfo {
   wdid                 String    @id @map("win_wdid") @db.VarChar
   hireDate             DateTime? @map("win_hire_date") @db.Date
@@ -656,6 +682,6 @@ model WorkdayInfo {
   vacation             Decimal?  @map("win_vacation") @db.Decimal
   personalDays         Decimal?  @map("win_personal_days") @db.Decimal
 
-  @@map("win_worday_info")
+  @@map("win_workday_info")
   @@schema("es")
 }

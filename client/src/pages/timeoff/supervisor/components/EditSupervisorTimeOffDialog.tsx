@@ -7,6 +7,7 @@ import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { calculateFixedDurationEndDate, calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
+import type { ActiveSwapSummaryDTO } from '@shared/dto/HolidaySwap';
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,7 @@ export function EditSupervisorTimeOffDialog({
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [activeSwaps, setActiveSwaps] = useState<ActiveSwapSummaryDTO[]>([]);
   const { toast } = useToast();
 
   // Get team member's end date for attrition validation
@@ -126,6 +128,7 @@ export function EditSupervisorTimeOffDialog({
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
+    activeSwaps,
   });
 
   // Load categories for the team member's country
@@ -148,6 +151,29 @@ export function EditSupervisorTimeOffDialog({
         );
         if (cancelledStatus) {
           setCancelledStatusId(cancelledStatus.statusId);
+        }
+
+        // Load target TM's active (acknowledged) swaps for holiday substitution
+        try {
+          const swapsData = await apiGet<import('@shared/dto/HolidaySwap').HolidaySwapDTO[]>(
+            `/api/holiday-swaps/team/${teamMember.teamMemberId}`
+          );
+          const acknowledged = swapsData
+            .filter((s) => s.active && s.statusName.toLowerCase().trim() === 'acknowledged')
+            .map((s) => ({
+              holidaySwapId: s.holidaySwapId,
+              holidayId: s.holidayId,
+              holidayName: s.holidayName,
+              originalDate: typeof s.originalDate === 'string'
+                ? s.originalDate
+                : (s.originalDate as Date).toISOString(),
+              replacementDate: typeof s.replacementDate === 'string'
+                ? s.replacementDate
+                : (s.replacementDate as Date).toISOString(),
+            }));
+          setActiveSwaps(acknowledged);
+        } catch {
+          setActiveSwaps([]);
         }
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';

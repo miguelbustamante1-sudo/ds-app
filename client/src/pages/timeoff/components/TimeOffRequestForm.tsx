@@ -7,6 +7,7 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
+import { useActiveSwaps } from '../holiday-swaps/hooks/useActiveSwaps';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -61,6 +62,7 @@ interface TimeOffRequestFormProps {
 }
 
 export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
+  const { activeSwaps, loadActiveSwaps } = useActiveSwaps();
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
@@ -136,7 +138,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
       }
     }
     loadData();
-  }, [toast]);
+    loadActiveSwaps();
+  }, [toast, loadActiveSwaps]);
 
   useTimeOffFormDates({
     categoryId,
@@ -160,6 +163,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
+    activeSwaps,
   });
 
   // Validation: Date range

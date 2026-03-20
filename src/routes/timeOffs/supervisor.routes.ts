@@ -463,6 +463,64 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
   }
 });
 
+// PATCH /:timeOffId/acknowledge
+router.patch('/:timeOffId/acknowledge', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const { teamMemberId: supervisorTeamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+
+    const timeOffId = Number(req.params.timeOffId);
+    if (Number.isNaN(timeOffId)) {
+      return res.status(400).json({ error: 'Invalid time-off id' });
+    }
+
+    const timeOff = await getTimeOffById(timeOffId);
+    if (!timeOff) {
+      return res.status(404).json({ error: 'Time-off not found' });
+    }
+
+    if (!timeOff.teamMemberId) {
+      return res.status(400).json({ error: 'Time-off has no associated team member' });
+    }
+    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    if (!hasAuthority) {
+      return res.status(403).json({ error: 'Not authorized to acknowledge this time-off' });
+    }
+
+    const acknowledgedStatus = await getStatusByName('acknowledged');
+    if (!acknowledgedStatus) {
+      return res.status(500).json({ error: 'Acknowledged status not found in system' });
+    }
+
+    if (timeOff.statusId === acknowledgedStatus.statusId) {
+      return res.status(400).json({ error: 'Time-off is already acknowledged' });
+    }
+
+    const updated = await updateTimeOff(
+      timeOffId,
+      timeOff.teamMemberId,
+      timeOff.timeOffStartDate,
+      timeOff.timeOffEndDate,
+      userId,
+      new Date().toISOString(),
+      timeOff.categoryId,
+      acknowledgedStatus.statusId
+    );
+
+    await createTimeOffChangeLog({
+      timeOffId,
+      comment: 'Acknowledged by supervisor',
+      oldValues: { statusId: timeOff.statusId },
+      newValues: { statusId: acknowledgedStatus.statusId },
+      createdByUserId: userId,
+    });
+
+    res.json(updated);
+  } catch (err) {
+    console.error('[TimeOff] Error acknowledging time-off:', err);
+    res.status(500).json({ error: 'Failed to acknowledge time-off' });
+  }
+});
+
 // PATCH /:timeOffId/cancel
 router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
   try {

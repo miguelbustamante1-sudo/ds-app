@@ -31,6 +31,8 @@ import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
 import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
+import holidaySwapRouter from './holidaySwap.routes';
+import pendingRequestsRouter from './pendingRequests.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -67,6 +69,8 @@ export default function registerRoutes() {
   router.use('/client-contacts', clientContactsRouter);
   router.use('/workday-info', workdayInfoRouter);
   router.use('/functional-areas', functionalAreasRouter);
+  router.use('/holiday-swaps', holidaySwapRouter);
+  router.use('/team/pending-requests', pendingRequestsRouter);
 
   return router;
 }

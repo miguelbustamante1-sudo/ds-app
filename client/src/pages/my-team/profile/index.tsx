@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Toolbar,
@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useTeamMemberProfile } from '@/hooks/useTeamMemberProfile';
 import { useTeamMemberTimeOffBreakdown } from '@/hooks/useSupervisorTimeOff';
 import { formatUTCDate } from '@/lib/utils';
+import { apiGet } from '@/lib/api';
+import { HolidaySwapsSection } from './components/HolidaySwapsSection';
 
 export function TeamMemberProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +33,19 @@ export function TeamMemberProfilePage() {
   });
 
   const currentYear = new Date().getFullYear();
+  const [approvedStatusId, setApprovedStatusId] = useState<number | null>(null);
+  const [rejectedStatusId, setRejectedStatusId] = useState<number | null>(null);
+
+  useEffect(() => {
+    apiGet<Array<{ statusId: number; statusName: string }>>('/api/time-off-statuses')
+      .then((statuses) => {
+        const approved = statuses.find((s) => s.statusName.toLowerCase() === 'acknowledged');
+        const rejected = statuses.find((s) => s.statusName.toLowerCase() === 'rejected');
+        setApprovedStatusId(approved?.statusId ?? null);
+        setRejectedStatusId(rejected?.statusId ?? null);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -94,7 +109,7 @@ export function TeamMemberProfilePage() {
             </Button>
             <div>
               <ToolbarPageTitle>
-                {profile.teamMemberNames} {profile.teamMemberSurnames}
+                {`${profile.teamMemberNames} ${profile.teamMemberSurnames}`}
               </ToolbarPageTitle>
               <ToolbarDescription>
                 {profile.teamMemberKnownAs && (
@@ -313,6 +328,14 @@ export function TeamMemberProfilePage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Holiday Swaps */}
+        <HolidaySwapsSection
+          teamMemberId={parseInt(id!, 10)}
+          countryId={profile.countryId}
+          approvedStatusId={approvedStatusId}
+          rejectedStatusId={rejectedStatusId}
+        />
 
         {/* Time Off Summary */}
         <Card className="md:col-span-2">

@@ -13,12 +13,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { HolidayDTO } from '@shared/dto/Holiday';
+import type { ActiveSwapSummaryDTO } from '@shared/dto/HolidaySwap';
 import { apiGet } from '@/lib/api';
 import {
   getHolidaysInRangeWithDates,
   filterWeekdayHolidays,
   calculateNetVacationDays,
   buildCalendarHolidayDates,
+  applySwapsToHolidays,
   type HolidayWithEffectiveDate,
 } from '../utils/holidayValidation';
 
@@ -33,6 +35,8 @@ export interface UseHolidayAwarenessInput {
   endDate: Date | undefined;
   /** Used to gate GT logic — only 'Vacation' (case-insensitive) triggers it. */
   categoryName: string | undefined;
+  /** Active acknowledged holiday swaps for the team member. Applied as substitutions. */
+  activeSwaps: ActiveSwapSummaryDTO[];
 }
 
 export interface UseHolidayAwarenessResult {
@@ -64,7 +68,7 @@ const CALENDAR_YEAR_WINDOW = [
 export function useHolidayAwareness(
   input: UseHolidayAwarenessInput,
 ): UseHolidayAwarenessResult {
-  const { countryIso, countryId, startDate, endDate, categoryName } = input;
+  const { countryIso, countryId, startDate, endDate, categoryName, activeSwaps } = input;
 
   const [holidays, setHolidays] = useState<HolidayDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,13 +104,20 @@ export function useHolidayAwareness(
     };
   }, [countryId, isSupported]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Effective holiday list: raw holidays modified by the user's active swaps.
+  // Removes original holiday dates and inserts replacement dates in their place.
+  const effectiveHolidays = useMemo<HolidayDTO[]>(
+    () => applySwapsToHolidays(holidays, activeSwaps),
+    [holidays, activeSwaps],
+  );
+
   // SV: all active holidays in range (re-derived when dates change, no fetch).
   const svHolidaysInRange = useMemo<HolidayWithEffectiveDate[]>(() => {
-    if (normalizedIso !== 'SV' || !startDate || !endDate || holidays.length === 0) {
+    if (normalizedIso !== 'SV' || !startDate || !endDate || effectiveHolidays.length === 0) {
       return [];
     }
-    return getHolidaysInRangeWithDates(holidays, startDate, endDate);
-  }, [normalizedIso, holidays, startDate, endDate]);
+    return getHolidaysInRangeWithDates(effectiveHolidays, startDate, endDate);
+  }, [normalizedIso, effectiveHolidays, startDate, endDate]);
 
   // GT: weekday-only holidays in range — only when category is Vacation.
   const gtWeekdayHolidaysInRange = useMemo<HolidayWithEffectiveDate[]>(() => {
@@ -116,13 +127,13 @@ export function useHolidayAwareness(
       categoryName.toLowerCase() !== 'vacation' ||
       !startDate ||
       !endDate ||
-      holidays.length === 0
+      effectiveHolidays.length === 0
     ) {
       return [];
     }
-    const inRange = getHolidaysInRangeWithDates(holidays, startDate, endDate);
+    const inRange = getHolidaysInRangeWithDates(effectiveHolidays, startDate, endDate);
     return filterWeekdayHolidays(inRange);
-  }, [normalizedIso, categoryName, holidays, startDate, endDate]);
+  }, [normalizedIso, categoryName, effectiveHolidays, startDate, endDate]);
 
   // GT net vacation days — null when no weekday holidays (or conditions not met).
   const gtNetVacationDays = useMemo<number | null>(() => {
@@ -141,9 +152,9 @@ export function useHolidayAwareness(
 
   // Calendar highlight dates for both SV and GT.
   const holidayDatesForCalendar = useMemo<Date[]>(() => {
-    if (!isSupported || holidays.length === 0) return [];
-    return buildCalendarHolidayDates(holidays, CALENDAR_YEAR_WINDOW);
-  }, [isSupported, holidays]);
+    if (!isSupported || effectiveHolidays.length === 0) return [];
+    return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
+  }, [isSupported, effectiveHolidays]);
 
   return {
     svHolidaysInRange,

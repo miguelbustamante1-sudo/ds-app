@@ -29,6 +29,13 @@ export interface TimeOffValidationContext {
   categoryCountryDaysBefore: number;
   categoryName: string;
   workdayBalance: { vacation: number; personalDays: number };
+  activeSwaps: Array<{
+    holidaySwapId: number;
+    holidayName: string;
+    originalDate: Date;
+    replacementDate: Date;
+    statusId: number;
+  }>;
   overlappingTimeOffs: Array<{
     timeOffId: number;
     timeOffStartDate: Date;

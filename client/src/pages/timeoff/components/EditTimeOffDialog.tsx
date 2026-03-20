@@ -6,6 +6,7 @@ import type { TimeOffWithDetailsDTO, UpdateMyTimeOffDTO } from '@shared/dto/Time
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { calculateFixedDurationEndDate, calculateRequestedDays } from '../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
+import { useActiveSwaps } from '../holiday-swaps/hooks/useActiveSwaps';
 import {
   Dialog,
   DialogContent,
@@ -73,6 +74,7 @@ export function EditTimeOffDialog({
   loading,
   workdayBalance,
 }: EditTimeOffDialogProps) {
+  const { activeSwaps, loadActiveSwaps } = useActiveSwaps();
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
@@ -121,6 +123,7 @@ export function EditTimeOffDialog({
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
+    activeSwaps,
   });
 
   // Load categories, statuses, and user profile on mount
@@ -157,7 +160,8 @@ export function EditTimeOffDialog({
       }
     }
     loadData();
-  }, [toast]);
+    loadActiveSwaps();
+  }, [toast, loadActiveSwaps]);
 
   // Reset form when timeOff changes or dialog opens
   useEffect(() => {

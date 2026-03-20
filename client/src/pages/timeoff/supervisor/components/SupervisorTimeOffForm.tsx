@@ -8,6 +8,7 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
+import type { ActiveSwapSummaryDTO } from '@shared/dto/HolidaySwap';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -70,6 +71,7 @@ export function SupervisorTimeOffForm({
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [activeSwaps, setActiveSwaps] = useState<ActiveSwapSummaryDTO[]>([]);
   const { toast } = useToast();
 
   const {
@@ -138,6 +140,29 @@ export function SupervisorTimeOffForm({
         if (cancelledStatus) {
           setCancelledStatusId(cancelledStatus.statusId);
         }
+
+        // Load target TM's active (acknowledged) swaps for holiday substitution
+        try {
+          const swapsData = await apiGet<import('@shared/dto/HolidaySwap').HolidaySwapDTO[]>(
+            `/api/holiday-swaps/team/${teamMember.teamMemberId}`
+          );
+          const acknowledged = swapsData
+            .filter((s) => s.active && s.statusName.toLowerCase().trim() === 'acknowledged')
+            .map((s) => ({
+              holidaySwapId: s.holidaySwapId,
+              holidayId: s.holidayId,
+              holidayName: s.holidayName,
+              originalDate: typeof s.originalDate === 'string'
+                ? s.originalDate
+                : (s.originalDate as Date).toISOString(),
+              replacementDate: typeof s.replacementDate === 'string'
+                ? s.replacementDate
+                : (s.replacementDate as Date).toISOString(),
+            }));
+          setActiveSwaps(acknowledged);
+        } catch {
+          setActiveSwaps([]);
+        }
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';
         toast({
@@ -204,6 +229,7 @@ export function SupervisorTimeOffForm({
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
+    activeSwaps,
   });
 
   // Clear end date when start date moves past it (non-fixed categories only)
