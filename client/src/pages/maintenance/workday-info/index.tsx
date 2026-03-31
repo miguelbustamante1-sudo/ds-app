@@ -80,42 +80,54 @@ export function WorkdayInfoPage() {
       {
         accessorKey: 'corporateEmail',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Corporate Email" />,
-        cell: ({ row }) => row.original.corporateEmail ?? '—',
+        cell: ({ row }) => (
+          <span className="max-w-[200px] truncate block" title={row.original.corporateEmail ?? ''}>
+            {row.original.corporateEmail ?? '—'}
+          </span>
+        ),
         size: 220,
         meta: { headerTitle: 'Corporate Email', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
         accessorKey: 'directManager',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Direct Manager" />,
-        cell: ({ row }) => row.original.directManager ?? '—',
+        cell: ({ row }) => (
+          <span className="max-w-[160px] truncate block" title={row.original.directManager ?? ''}>
+            {row.original.directManager ?? '—'}
+          </span>
+        ),
         size: 180,
         meta: { headerTitle: 'Direct Manager', skeleton: <Skeleton className="h-4 w-32" /> },
       },
       {
         accessorKey: 'hireDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Hire Date" />,
-        cell: ({ row }) => (row.original.hireDate ? formatUTCDate(row.original.hireDate) : '—'),
+        cell: ({ row }) => <span>{row.original.hireDate ? formatUTCDate(row.original.hireDate) : '—'}</span>,
         size: 130,
         meta: { headerTitle: 'Hire Date', skeleton: <Skeleton className="h-4 w-24" /> },
       },
       {
         accessorKey: 'billingStatus',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Billing Status" />,
-        cell: ({ row }) => row.original.billingStatus ?? '—',
+        cell: ({ row }) => <span>{row.original.billingStatus ?? '—'}</span>,
         size: 140,
         meta: { headerTitle: 'Billing Status', skeleton: <Skeleton className="h-4 w-24" /> },
       },
       {
         accessorKey: 'costCenterNames',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Cost Center" />,
-        cell: ({ row }) => row.original.costCenterNames ?? '—',
+        cell: ({ row }) => (
+          <span className="max-w-[160px] truncate block" title={row.original.costCenterNames ?? ''}>
+            {row.original.costCenterNames ?? '—'}
+          </span>
+        ),
         size: 180,
         meta: { headerTitle: 'Cost Center', skeleton: <Skeleton className="h-4 w-32" /> },
       },
       {
         accessorKey: 'vacation',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Vacation Days" />,
-        cell: ({ row }) => (row.original.vacation != null ? row.original.vacation : '—'),
+        cell: ({ row }) => <span>{row.original.vacation != null ? row.original.vacation : '—'}</span>,
         size: 130,
         meta: { headerTitle: 'Vacation Days', skeleton: <Skeleton className="h-4 w-16" /> },
       },

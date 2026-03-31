@@ -6,7 +6,7 @@ import type { TimeOffWithDetailsDTO, UpdateMyTimeOffDTO } from '@shared/dto/Time
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { calculateFixedDurationEndDate, calculateRequestedDays } from '../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
-import { useActiveSwaps } from '../holiday-swaps/hooks/useActiveSwaps';
+
 import {
   Dialog,
   DialogContent,
@@ -34,7 +34,7 @@ import {
 } from '../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
-import { validateWorkdayBalance } from '../utils/workdayBalanceValidation';
+import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -62,7 +62,7 @@ interface EditTimeOffDialogProps {
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onConfirm: (timeOffId: number, data: UpdateMyTimeOffDTO) => Promise<void>;
   loading: boolean;
-  workdayBalance: { vacation: number; personalDays: number } | null;
+  workdayBalance: { vacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
 }
 
 export function EditTimeOffDialog({
@@ -74,12 +74,10 @@ export function EditTimeOffDialog({
   loading,
   workdayBalance,
 }: EditTimeOffDialogProps) {
-  const { activeSwaps, loadActiveSwaps } = useActiveSwaps();
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
-  const [userCountryId, setUserCountryId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const { toast } = useToast();
 
@@ -119,11 +117,9 @@ export function EditTimeOffDialog({
     holidayDatesForCalendar,
   } = useHolidayAwareness({
     countryIso: userCountryIso,
-    countryId: userCountryId,
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
-    activeSwaps,
   });
 
   // Load categories, statuses, and user profile on mount
@@ -147,7 +143,6 @@ export function EditTimeOffDialog({
           setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
         }
         setUserCountryIso(profile.countryIso);
-        setUserCountryId(profile.countryId);
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';
         toast({
@@ -160,8 +155,7 @@ export function EditTimeOffDialog({
       }
     }
     loadData();
-    loadActiveSwaps();
-  }, [toast, loadActiveSwaps]);
+  }, [toast]);
 
   // Reset form when timeOff changes or dialog opens
   useEffect(() => {
@@ -238,14 +232,18 @@ export function EditTimeOffDialog({
   );
 
   // Workday balance validation — add back the original request's days since they were already deducted
+  // For GT vacation, also add accrued days (1.25/month since 2025-12-31) based on request start date
   const categoryNameLower = selectedCategory?.categoryName?.toLowerCase().trim();
   const isVacationCategory = categoryNameLower === 'vacation';
   const isPersonalDayCategory = categoryNameLower === 'personal day' || categoryNameLower === 'personal days';
   const oldRequestDays = timeOff?.timeOffDays ?? 0;
+  const isGTVacation = userCountryIso === 'GT' && isVacationCategory;
+  const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
   const effectiveBalance = workdayBalance
     ? {
-        vacation: workdayBalance.vacation + (isVacationCategory ? oldRequestDays : 0),
+        vacation: workdayBalance.vacation + (isVacationCategory ? oldRequestDays : 0) + gtAccruedDays,
         personalDays: workdayBalance.personalDays + (isPersonalDayCategory ? oldRequestDays : 0),
+        exceptionDaysRemaining: workdayBalance.exceptionDaysRemaining,
       }
     : null;
   const balanceValidation = selectedCategory && hintDays > 0
@@ -323,13 +321,10 @@ export function EditTimeOffDialog({
                   placeholder={loadingCategories ? 'Loading...' : 'Select category'}
                   searchPlaceholder="Search categories..."
                   emptyMessage="No categories found."
-                  disabled={loadingCategories}
+                  disabled={true}
                 />
               )}
             />
-            {errors.categoryId && (
-              <p className="text-sm text-destructive">{errors.categoryId.message}</p>
-            )}
           </div>
 
           {/* Start Date */}

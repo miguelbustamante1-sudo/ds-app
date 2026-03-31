@@ -24,8 +24,9 @@ import { WorkdayBalanceBadges } from './WorkdayBalanceBadges';
 interface MyTimeOffListProps {
   timeOffs: TimeOffWithDetailsDTO[] | undefined;
   loading: boolean;
-  balance?: { vacation: number; personalDays: number } | null;
+  balance?: { vacation: number; personalDays: number; exceptionDaysUsed: number; exceptionDaysRemaining: number } | null;
   balanceLoading?: boolean;
+  countryIso?: string | null;
   onEditClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   onCancelClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   onRowClick?: (timeOff: TimeOffWithDetailsDTO) => void;
@@ -67,7 +68,7 @@ function canCancel(timeOff: TimeOffWithDetailsDTO): boolean {
   return diffDays > required;
 }
 
-export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
+export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, countryIso, onEditClick, onCancelClick, onRowClick }: MyTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [showCancelled, setShowCancelled] = useState(false);
@@ -270,6 +271,8 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, onEd
         vacation={balance?.vacation ?? 0}
         personalDays={balance?.personalDays ?? 0}
         loading={balanceLoading}
+        countryIso={countryIso}
+        exceptionDaysRemaining={balance?.exceptionDaysRemaining}
       />
       {listContent()}
     </div>

@@ -31,6 +31,7 @@ interface SupervisorTimeOffListProps {
   onCancelClick: (timeOff: TimeOffWithDetailsDTO) => void;
   onRowClick?: (timeOff: TimeOffWithDetailsDTO) => void;
   categoryMode?: CategoryMode;
+  selectedTimeOffId?: number | null;
 }
 
 /**
@@ -66,14 +67,18 @@ function canEdit(timeOff: TimeOffWithDetailsDTO): boolean {
   return startDate >= today;
 }
 
-export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick, categoryMode }: SupervisorTimeOffListProps) {
+export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancelClick, onRowClick, categoryMode, selectedTimeOffId }: SupervisorTimeOffListProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'timeOffStartDate', desc: false }
   ]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [showCancelled, setShowCancelled] = useState(false);
+  const [showPast, setShowPast] = useState(false);
 
   const filteredTimeOffs = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     let result = timeOffs;
 
     if (categoryMode === 'vacation-only') {
@@ -86,12 +91,20 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
       );
     }
 
+    if (!showPast) {
+      result = result.filter((t) => {
+        const end = parseUTCDateAsLocal(String(t.timeOffEndDate));
+        end.setHours(0, 0, 0, 0);
+        return end >= today;
+      });
+    }
+
     if (!showCancelled) {
       result = result.filter((t) => !t.statusName.toLowerCase().includes('cancelled'));
     }
 
     return result;
-  }, [timeOffs, showCancelled, categoryMode]);
+  }, [timeOffs, showCancelled, showPast, categoryMode]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -231,7 +244,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
         </div>
       ) : (
         <div className="p-4 space-y-4">
-          {/* Search + Show Cancelled */}
+          {/* Search + Filters */}
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -241,6 +254,16 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
                 onChange={(e) => setGlobalFilter(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-past-supervisor"
+                checked={showPast}
+                onCheckedChange={(checked) => setShowPast(checked === true)}
+              />
+              <Label htmlFor="show-past-supervisor" className="text-sm font-medium leading-none">
+                Show past
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -268,6 +291,9 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
                 rowBorder: true,
               }}
               onRowClick={onRowClick}
+              getRowClassName={(row) =>
+                selectedTimeOffId === row.timeOffId ? 'bg-muted/60' : ''
+              }
             >
               <DataGridTable />
               <DataGridPagination sizes={[5, 10, 25]} />

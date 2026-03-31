@@ -5,7 +5,9 @@ import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '..
 import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor, createTeamMember, updateTeamMember, deleteTeamMember } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
 import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
-import { getReports, getAvailableForProject, getAvailableForProjectAll, getProfileForSupervisor } from '../services/teamMember';
+import { getReports, getAvailableForProject, getAvailableForProjectAll, getProfileForSupervisor, getMyOwnProfile, getSupervisorList, getSupervisorChain } from '../services/teamMember';
+import { auditOrchestrator } from '../services/audit';
+import { prisma } from '../db/prisma';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -27,6 +29,7 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       teamMemberSeniority: item.teamMemberSeniority,
       teamMemberPrimaryRole: item.teamMemberPrimaryRole,
       tierBandId: item.tierBandId,
+      teamMemberFullLegalName: item.teamMemberFullLegalName,
       teamMemberCreatedBy: item.teamMemberCreatedBy,
       teamMemberCreatedDate: item.teamMemberCreatedDate,
       teamMemberLastUpdatedBy: item.teamMemberLastUpdatedBy,
@@ -84,6 +87,26 @@ router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: 
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+// GET /team-members/me/profile - Full profile for the current user (no supervisor check)
+router.get('/me/profile', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const profile = await getMyOwnProfile(teamMemberId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json(profile);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
 
@@ -148,6 +171,31 @@ router.get('/available-under-supervisor', requirePermission('ProjectAssignments'
   }
 });
 
+// GET /team-members/supervisors — all TMs who are currently acting as a supervisor
+router.get('/supervisors', requirePermission('TeamMembers', 'read'), async (_req: Request, res: Response) => {
+  try {
+    const supervisors = await getSupervisorList();
+    res.json(supervisors);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch supervisors' });
+  }
+});
+
+// GET /team-members/:id/supervisor-chain — supervisor chain up to 3 levels
+router.get('/:id/supervisor-chain', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid team member ID' });
+
+    const chain = await getSupervisorChain(id);
+    res.json(chain);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch supervisor chain' });
+  }
+});
+
 // GET /team-members/:teamMemberId/profile
 router.get('/:teamMemberId/profile', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -184,25 +232,27 @@ router.get('/:id', requirePermission('TeamMembers', 'read'), async (req: Request
 });
 
 // POST /team-members
-router.post('/', requirePermission('TeamMembers', 'create'), async (req: Request, res: Response) => {
+router.post('/', requirePermission('TeamMembers', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const dto = req.body as CreateTeamMemberDTO;
 
-    // Validation
-    if (!dto.teamMemberNames || !dto.teamMemberSurnames || !dto.teamMemberSeniority || !dto.teamMemberStartDate)
-      return res.status(400).json({ error: 'teamMemberNames, teamMemberSurnames, teamMemberSeniority and teamMemberStartDate are required' });
+    if (!dto.teamMemberNames || !dto.teamMemberSurnames || !dto.teamMemberStartDate || !dto.tierBandId)
+      return res.status(400).json({ error: 'teamMemberNames, teamMemberSurnames, teamMemberStartDate and tierBandId are required' });
 
-    // Get current user ID from auth middleware
-    const userId = (req as any).user?.userId || null;
+    const tierBand = await prisma.tierBand.findUnique({ where: { tierBandId: dto.tierBandId } });
+    if (!tierBand) return res.status(400).json({ error: 'Invalid tierBandId' });
+
+    const createdBy = req.user?.email ?? 'unknown';
+    const userId = req.user?.dsUserId ?? null;
     const now = new Date();
 
-    // Build full TeamMember object with auto-populated audit fields
     const teamMemberData: Prisma.TeamMemberUncheckedCreateInput = {
       teamMemberNames: dto.teamMemberNames,
       teamMemberSurnames: dto.teamMemberSurnames,
-      teamMemberSeniority: dto.teamMemberSeniority,
+      teamMemberSeniority: tierBand.tierBandDescription,
       teamMemberStartDate: typeof dto.teamMemberStartDate === 'string' ? new Date(dto.teamMemberStartDate) : dto.teamMemberStartDate,
       teamMemberKnownAs: dto.teamMemberKnownAs,
+      teamMemberFullLegalName: dto.teamMemberFullLegalName ?? null,
       workdayId: dto.workdayId ?? null,
       teamMemberCreatedBy: userId,
       teamMemberCreatedDate: now,
@@ -210,11 +260,21 @@ router.post('/', requirePermission('TeamMembers', 'create'), async (req: Request
       teamMemberLastUpdatedDate: now,
       teamMemberPrimaryRole: dto.teamMemberPrimaryRole,
       countryId: dto.countryId,
-      tierBandId: dto.tierBandId ?? null,
+      tierBandId: dto.tierBandId,
     };
 
     const created = await createTeamMember(teamMemberData);
-    const resultDto: TeamMemberDTO = created as TeamMemberDTO;
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_team_members',
+      entityId: String(created.teamMemberId),
+      createdBy,
+      oldValues: null,
+      newValues: created,
+      comment: `Team member ${created.teamMemberNames} ${created.teamMemberSurnames} created`,
+    });
+
+    const resultDto: TeamMemberDTO = created as unknown as TeamMemberDTO;
     res.status(201).json(resultDto);
   } catch (err) {
     error(err);
@@ -223,32 +283,38 @@ router.post('/', requirePermission('TeamMembers', 'create'), async (req: Request
 });
 
 // PUT /team-members/:id
-router.put('/:id', requirePermission('TeamMembers', 'create'), async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('TeamMembers', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const dto = req.body as UpdateTeamMemberDTO;
 
-    // Get current user ID from auth middleware
-    const userId = (req as any).user?.userId || null;
+    const before = await getTeamMemberById(id);
+    if (!before) return res.status(404).json({ error: 'Team member not found' });
+
+    const createdBy = req.user?.email ?? 'unknown';
+    const userId = req.user?.dsUserId ?? null;
     const now = new Date();
 
-    // Add auto-populated audit fields - only include fields that are actually provided
     const updateData: Prisma.TeamMemberUncheckedUpdateInput = {
       teamMemberLastUpdatedBy: userId,
       teamMemberLastUpdatedDate: now,
     };
 
-    // Only add fields that are actually provided in the DTO
     if (dto.teamMemberNames !== undefined) updateData.teamMemberNames = dto.teamMemberNames;
     if (dto.teamMemberSurnames !== undefined) updateData.teamMemberSurnames = dto.teamMemberSurnames;
     if (dto.teamMemberKnownAs !== undefined) updateData.teamMemberKnownAs = dto.teamMemberKnownAs;
-    if (dto.teamMemberSeniority !== undefined) updateData.teamMemberSeniority = dto.teamMemberSeniority;
+    if (dto.teamMemberFullLegalName !== undefined) updateData.teamMemberFullLegalName = dto.teamMemberFullLegalName;
     if (dto.teamMemberPrimaryRole !== undefined) updateData.teamMemberPrimaryRole = dto.teamMemberPrimaryRole;
     if (dto.countryId !== undefined) updateData.countryId = dto.countryId;
-    if (dto.tierBandId !== undefined) updateData.tierBandId = dto.tierBandId;
     if (dto.workdayId !== undefined) updateData.workdayId = dto.workdayId;
+    if (dto.tierBandId !== undefined) {
+      const tierBand = await prisma.tierBand.findUnique({ where: { tierBandId: dto.tierBandId } });
+      if (!tierBand) return res.status(400).json({ error: 'Invalid tierBandId' });
+      updateData.tierBandId = dto.tierBandId;
+      updateData.teamMemberSeniority = tierBand.tierBandDescription;
+    }
     if (dto.teamMemberStartDate !== undefined) {
       updateData.teamMemberStartDate = typeof dto.teamMemberStartDate === 'string'
         ? new Date(dto.teamMemberStartDate)
@@ -265,7 +331,16 @@ router.put('/:id', requirePermission('TeamMembers', 'create'), async (req: Reque
     const updated = await updateTeamMember(id, updateData);
     if (!updated) return res.status(404).json({ error: 'Team member not found' });
 
-    const resultDto: TeamMemberDTO = updated as TeamMemberDTO;
+    await auditOrchestrator.log({
+      entityName: 'tbl_team_members',
+      entityId: String(id),
+      createdBy,
+      oldValues: before,
+      newValues: updated,
+      comment: `Team member ${updated.teamMemberNames} ${updated.teamMemberSurnames} updated`,
+    });
+
+    const resultDto: TeamMemberDTO = updated as unknown as TeamMemberDTO;
     res.json(resultDto);
   } catch (err) {
     error(err);
@@ -274,12 +349,27 @@ router.put('/:id', requirePermission('TeamMembers', 'create'), async (req: Reque
 });
 
 // DELETE /team-members/:id
-router.delete('/:id', requirePermission('TeamMembers', 'delete'), async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('TeamMembers', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
+    const before = await getTeamMemberById(id);
+    if (!before) return res.status(404).json({ error: 'Team member not found' });
+
+    const createdBy = req.user?.email ?? 'unknown';
+
     await deleteTeamMember(id);
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_team_members',
+      entityId: String(id),
+      createdBy,
+      oldValues: before,
+      newValues: null,
+      comment: `Team member ${before.teamMemberNames} ${before.teamMemberSurnames} deleted`,
+    });
+
     res.status(204).send();
   } catch (err) {
     error(err);

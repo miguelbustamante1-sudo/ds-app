@@ -2,6 +2,7 @@ import { prisma } from '../../../db/prisma';
 import { Prisma } from '@prisma/client';
 import { notificationOrchestrator } from '../../notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../notifications/repository';
+import { getProjectManagersForTeamMember } from '../../teamMember';
 import { formatDateDDMMYYYY } from './FormatDateDDMMYYYY';
 
 export async function declineTimeOff(
@@ -53,11 +54,11 @@ export async function declineTimeOff(
     });
   });
 
-  // Step 4: Send notification to supervisor (outside transaction — best effort)
+  // Step 4: Send notification to supervisor and PMs (outside transaction — best effort)
   try {
     if (!timeOff.teamMemberId) return;
 
-    // Find the supervisor for this team member
+    // Find the active supervisor for this team member
     const today = new Date();
     const supervisorAssignment = await prisma.supervisorAssignment.findFirst({
       where: {
@@ -71,12 +72,20 @@ export async function declineTimeOff(
       select: { supervisorId: true },
     });
 
-    if (!supervisorAssignment?.supervisorId) return;
+    // Resolve PM teamMemberIds for this team member
+    const pmTeamMemberIds = await getProjectManagersForTeamMember(timeOff.teamMemberId);
 
-    // Resolve supervisor's userId
-    const supervisorUserIds = await getUserIdsByTeamMemberIds([supervisorAssignment.supervisorId]);
-    const supervisorUserId = supervisorUserIds[0];
-    if (supervisorUserId === undefined) return;
+    // Batch-resolve all teamMemberIds (supervisor + PMs) to userIds in a single call
+    const allTeamMemberIds = [
+      ...(supervisorAssignment?.supervisorId ? [supervisorAssignment.supervisorId] : []),
+      ...pmTeamMemberIds,
+    ];
+
+    if (allTeamMemberIds.length === 0) return;
+
+    const resolvedUserIds = await getUserIdsByTeamMemberIds(allTeamMemberIds);
+    const uniqueUserIds = [...new Set(resolvedUserIds)];
+    if (uniqueUserIds.length === 0) return;
 
     const employeeName = timeOff.teamMember?.teamMemberKnownAs
       || `${timeOff.teamMember?.teamMemberNames ?? ''} ${timeOff.teamMember?.teamMemberSurnames ?? ''}`.trim()
@@ -98,9 +107,9 @@ export async function declineTimeOff(
         sourceId: timeOffId,
         sourceEntity: 'TimeOff',
       },
-      recipients: [{ userId: supervisorUserId, actionType: 'readonly' }],
+      recipients: uniqueUserIds.map((uid) => ({ userId: uid, actionType: 'readonly' })),
     });
   } catch (notifErr) {
-    console.error('[TimeOff] Failed to send decline notification to supervisor:', notifErr);
+    console.error('[TimeOff] Failed to send decline notification:', notifErr);
   }
 }

@@ -8,6 +8,7 @@ import {
   getFilteredRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
+  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
@@ -34,6 +35,8 @@ import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
+import { DataGridPagination } from '@/components/ui/data-grid-pagination';
+import { formatUTCDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
@@ -42,11 +45,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const formatDate = (date: Date | string | null) => {
   if (!date) return '-';
-  try {
-    return new Date(date).toLocaleDateString();
-  } catch {
-    return String(date);
-  }
+  return formatUTCDate(String(date));
 };
 
 const formatTeamMemberDisplay = (
@@ -98,7 +97,7 @@ export function SupervisorAssignmentsPage() {
         accessorFn: (row) => formatTeamMemberDisplay(row.supervisor),
         header: ({ column }) => <DataGridColumnHeader column={column} title="Supervisor" />,
         cell: ({ row }) => formatTeamMemberDisplay(row.original.supervisor),
-        filterFn: (row, id, value: string[]) => {
+        filterFn: (row, _id, value: string[]) => {
           if (!value.length) return true;
           return value.includes(row.original.supervisor?.teamMemberId?.toString() ?? '');
         },
@@ -110,7 +109,7 @@ export function SupervisorAssignmentsPage() {
         accessorFn: (row) => formatTeamMemberDisplay(row.teamMember),
         header: ({ column }) => <DataGridColumnHeader column={column} title="Team Member" />,
         cell: ({ row }) => formatTeamMemberDisplay(row.original.teamMember),
-        filterFn: (row, id, value: string[]) => {
+        filterFn: (row, _id, value: string[]) => {
           if (!value.length) return true;
           return value.includes(row.original.teamMember?.teamMemberId?.toString() ?? '');
         },
@@ -165,6 +164,7 @@ export function SupervisorAssignmentsPage() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
@@ -298,6 +298,7 @@ export function SupervisorAssignmentsPage() {
           }}
         >
           <DataGridTable />
+          <DataGridPagination sizes={[10, 25, 50]} />
         </DataGrid>
       </DataGridContainer>
 

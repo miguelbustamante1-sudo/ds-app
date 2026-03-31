@@ -4,7 +4,7 @@
  */
 
 import type { TimeOffValidationInput, ValidationError } from './types';
-import { loadValidationContext, loadElSalvadorVacationContext } from './dataLoader';
+import { loadValidationContext, loadElSalvadorVacationContext, loadGuatemalaVacationExceptionContext } from './dataLoader';
 import { validateRequiredFields } from './rules/requiredFields.rule';
 import { validateDateRange } from './rules/dateRange.rule';
 import { validateCategoryCountry } from './rules/categoryCountry.rule';
@@ -12,9 +12,11 @@ import { validateAttritionDate } from './rules/attritionDate.rule';
 import { validateNoOverlap } from './rules/overlapPrevention.rule';
 import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
+import { validateGuatemalaVacationException } from './rules/guatemalaVacationException.rule';
 import { validateDaysBefore } from './rules/daysBefore.rule';
 import { validateWorkdayBalance } from './rules/workdayBalance.rule';
 import { validateSwappedHolidayNotInRange, validateReplacementDayNotInRange } from './rules/holidaySwap.rule';
+import { validateMaxDays } from './rules/maxDays.rule';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 import { TimeOffValidationErrors } from './errors';
 
@@ -94,13 +96,25 @@ export async function validateTimeOff(
     errors.push(svResult.error);
   }
 
-  // Rule 7: Workday balance (Vacation / Personal Day only)
+  // Rule 6b: Guatemala Vacation Exception (< 5 days limit per anniversary year)
+  const gtExceptionContext = await loadGuatemalaVacationExceptionContext(input);
+  const gtExceptionResult = validateGuatemalaVacationException(gtExceptionContext);
+  if (!gtExceptionResult.valid && gtExceptionResult.error) {
+    errors.push(gtExceptionResult.error);
+  }
+
+  // Rule 7: Max days per request
   const { totalDays } = await calculateTimeOffDaysForTeamMember(
     input.teamMemberId,
     input.categoryId,
     input.timeOffStartDate,
     input.timeOffEndDate
   );
+  const maxDaysResult = validateMaxDays(totalDays, context);
+  if (!maxDaysResult.valid && maxDaysResult.error) {
+    errors.push(maxDaysResult.error);
+  }
+
   // Rule 8: Holiday Swap conflict rules
   const swappedHolidayResult = validateSwappedHolidayNotInRange(input, context);
   if (!swappedHolidayResult.valid && swappedHolidayResult.error) {
@@ -112,6 +126,7 @@ export async function validateTimeOff(
     errors.push(replacementDayResult.error);
   }
 
+  // Rule 9: Workday balance (Vacation / Personal Day only)
   const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
   if (!balanceResult.valid && balanceResult.error) {
     errors.push(balanceResult.error);

@@ -16,7 +16,7 @@ export async function getAllTeamMemberProjects() {
   return await prisma.projectAssignment.findMany({
     include: {
       teamMember: true,
-      project: true,
+      project: { include: { client: { include: { contacts: true } } } },
       clientContact: true,
     },
     orderBy: { projectAssignmentId: 'asc' },
@@ -29,9 +29,26 @@ export async function getTeamMemberProjectById(id: number): Promise<ProjectAssig
   });
 }
 
-export async function getTeamMemberProjectsByTeamMember(teamMemberId: number): Promise<ProjectAssignment[]> {
+export async function getTeamMemberProjectsByTeamMember(
+  teamMemberId: number,
+  active?: boolean,
+) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return await prisma.projectAssignment.findMany({
-    where: { teamMemberId },
+    where: {
+      teamMemberId,
+      ...(active === true
+        ? {
+            OR: [
+              { projectAssignmentEndDate: null },
+              { projectAssignmentEndDate: { gte: today } },
+            ],
+          }
+        : {}),
+    },
+    include: { project: { include: { client: { include: { contacts: true } } } }, clientContact: true },
     orderBy: { projectAssignmentId: 'asc' },
   });
 }

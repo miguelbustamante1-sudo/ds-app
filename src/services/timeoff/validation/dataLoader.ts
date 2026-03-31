@@ -7,7 +7,10 @@ import { prisma } from '../../../db/prisma';
 import type { TimeOffValidationInput, TimeOffValidationContext } from './types';
 import { DEFAULTS } from './types';
 import type { ElSalvadorVacationContext } from './rules/elSalvadorVacation.rule';
+import type { GuatemalaVacationExceptionContext } from './rules/guatemalaVacationException.rule';
 import { getWorkdayBalance } from '../components/GetWorkdayBalance';
+import { computeAnniversaryWindow } from '../utils/anniversaryYear';
+import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 
 const CANCELLED_STATUS_NAME = 'cancelled';
 
@@ -35,13 +38,14 @@ export async function loadValidationContext(
       countryId: effectiveCountryId,
       categoryCountryStatus: 1,
     },
-    select: { categoryId: true, categoryCountryDaysBefore: true },
+    select: { categoryId: true, categoryCountryDaysBefore: true, categoryCountryMaxDays: true },
   });
   const allowedCategoryIds = allowedCategories.map((c) => c.categoryId);
 
   // Resolve categoryCountryDaysBefore for the requested category (0 when not found / not applicable)
   const matchedCategoryCountry = allowedCategories.find((c) => c.categoryId === input.categoryId);
   const categoryCountryDaysBefore = matchedCategoryCountry?.categoryCountryDaysBefore ?? 0;
+  const categoryCountryMaxDays = matchedCategoryCountry?.categoryCountryMaxDays ?? 0;
 
   // Load category name for use in validation error messages
   const categoryRecord = await prisma.timeOffCategory.findUnique({
@@ -93,7 +97,7 @@ export async function loadValidationContext(
       })
     : [];
 
-  const workdayBalance = await getWorkdayBalance(input.teamMemberId);
+  const workdayBalance = await getWorkdayBalance(input.teamMemberId, input.timeOffId);
 
   return {
     teamMember,
@@ -109,6 +113,7 @@ export async function loadValidationContext(
     })),
     overlappingTimeOffs,
     categoryCountryDaysBefore,
+    categoryCountryMaxDays,
     categoryName,
     workdayBalance,
   };
@@ -240,5 +245,129 @@ export async function loadElSalvadorVacationContext(
     requestedDays,
     existingVacationDaysThisYear,
     currentYear,
+  };
+}
+
+const GT_COUNTRY_ISO = 'GT';
+
+/**
+ * Loads Guatemala vacation exception context for the < 5 days rule.
+ * Returns a context with isGuatemalaVacation: false when not applicable.
+ */
+export async function loadGuatemalaVacationExceptionContext(
+  input: TimeOffValidationInput
+): Promise<GuatemalaVacationExceptionContext> {
+  const NOT_APPLICABLE: GuatemalaVacationExceptionContext = {
+    isGuatemalaVacation: false,
+    requestedDays: 0,
+    usedExceptionDaysInWindow: 0,
+    anniversaryYearStart: new Date(),
+    anniversaryYearEnd: new Date(),
+  };
+
+  // 1. Load team member with country ISO and start date
+  const teamMember = await prisma.teamMember.findUnique({
+    where: { teamMemberId: input.teamMemberId },
+    select: {
+      teamMemberStartDate: true,
+      country: { select: { countryIso: true } },
+    },
+  });
+
+  if (!teamMember) return NOT_APPLICABLE;
+
+  const countryIso = teamMember.country?.countryIso?.toUpperCase() ?? null;
+
+  // 2. Load category name
+  const category = await prisma.timeOffCategory.findUnique({
+    where: { categoryId: input.categoryId },
+    select: { categoryName: true },
+  });
+  const categoryName = category?.categoryName?.trim().toLowerCase() ?? null;
+
+  // 3. Only applies to GT + Vacation
+  if (countryIso !== GT_COUNTRY_ISO || categoryName !== VACATION_CATEGORY_NAME.toLowerCase()) {
+    return NOT_APPLICABLE;
+  }
+
+  // 4. Resolve cancelled and rejected status IDs
+  const [cancelledStatus, rejectedStatus] = await Promise.all([
+    prisma.timeOffStatus.findFirst({
+      where: { statusName: { equals: CANCELLED_STATUS_NAME, mode: 'insensitive' } },
+      select: { statusId: true },
+    }),
+    prisma.timeOffStatus.findFirst({
+      where: { statusName: { equals: 'rejected', mode: 'insensitive' } },
+      select: { statusId: true },
+    }),
+  ]);
+
+  const excludedStatusIds = [
+    ...(cancelledStatus ? [cancelledStatus.statusId] : []),
+    ...(rejectedStatus ? [rejectedStatus.statusId] : []),
+  ];
+
+  // 5. Calculate anniversary window
+  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
+    teamMember.teamMemberStartDate
+  );
+
+  // 6. Get the vacation category ID
+  const vacationCategory = await prisma.timeOffCategory.findFirst({
+    where: { categoryName: { equals: VACATION_CATEGORY_NAME, mode: 'insensitive' } },
+    select: { categoryId: true },
+  });
+
+  if (!vacationCategory) {
+    return {
+      isGuatemalaVacation: true,
+      requestedDays: 0,
+      usedExceptionDaysInWindow: 0,
+      anniversaryYearStart,
+      anniversaryYearEnd,
+    };
+  }
+
+  // 7. Build exclusion conditions
+  const andConditions: object[] = [
+    ...(excludedStatusIds.length > 0 ? [{ NOT: { statusId: { in: excludedStatusIds } } }] : []),
+    ...(input.timeOffId ? [{ NOT: { timeOffId: input.timeOffId } }] : []),
+  ];
+
+  // 8. Query active exception vacation time-offs within the anniversary window
+  const existingExceptions = await prisma.timeOff.findMany({
+    where: {
+      teamMemberId: input.teamMemberId,
+      categoryId: vacationCategory.categoryId,
+      timeOffActive: 1,
+      timeOffIsException: true,
+      timeOffStartDate: {
+        gte: anniversaryYearStart,
+        lte: anniversaryYearEnd,
+      },
+      ...(andConditions.length > 0 && { AND: andConditions }),
+    },
+    select: { timeOffDays: true },
+  });
+
+  const usedExceptionDaysInWindow = existingExceptions.reduce(
+    (sum, t) => sum + Number(t.timeOffDays),
+    0
+  );
+
+  // 9. Calculate requested workdays
+  const { totalDays: requestedDays } = await calculateTimeOffDaysForTeamMember(
+    input.teamMemberId,
+    input.categoryId,
+    input.timeOffStartDate,
+    input.timeOffEndDate
+  );
+
+  return {
+    isGuatemalaVacation: true,
+    requestedDays,
+    usedExceptionDaysInWindow,
+    anniversaryYearStart,
+    anniversaryYearEnd,
   };
 }

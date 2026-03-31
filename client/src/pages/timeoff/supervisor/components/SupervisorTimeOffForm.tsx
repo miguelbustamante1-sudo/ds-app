@@ -8,7 +8,7 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
-import type { ActiveSwapSummaryDTO } from '@shared/dto/HolidaySwap';
+import { HolidayProvider } from '../../context/HolidayContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +30,8 @@ import {
 import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
+import { validateGTVacationException } from '../../utils/guatemalaExceptionValidation';
+import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../../utils/workdayBalanceValidation';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -57,21 +59,30 @@ interface SupervisorTimeOffFormProps {
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
   loading: boolean;
   categoryMode?: CategoryMode;
+  workdayBalance?: { vacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
 }
 
-export function SupervisorTimeOffForm({
+export function SupervisorTimeOffForm(props: SupervisorTimeOffFormProps) {
+  return (
+    <HolidayProvider countryId={props.teamMember?.countryId} countryIso={props.teamMember?.countryIso}>
+      <SupervisorTimeOffFormInner {...props} />
+    </HolidayProvider>
+  );
+}
+
+function SupervisorTimeOffFormInner({
   teamMember,
   existingTimeOffs,
   onSubmit,
   loading,
   categoryMode,
+  workdayBalance,
 }: SupervisorTimeOffFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [activeSwaps, setActiveSwaps] = useState<ActiveSwapSummaryDTO[]>([]);
   const { toast } = useToast();
 
   const {
@@ -103,6 +114,7 @@ export function SupervisorTimeOffForm({
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
   const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const maxDays = selectedCategory?.categoryCountryMaxDays ?? 0;
 
   // Get team member's end date for attrition validation
   const teamMemberEndDate = teamMember?.teamMemberEndDate
@@ -141,28 +153,6 @@ export function SupervisorTimeOffForm({
           setCancelledStatusId(cancelledStatus.statusId);
         }
 
-        // Load target TM's active (acknowledged) swaps for holiday substitution
-        try {
-          const swapsData = await apiGet<import('@shared/dto/HolidaySwap').HolidaySwapDTO[]>(
-            `/api/holiday-swaps/team/${teamMember.teamMemberId}`
-          );
-          const acknowledged = swapsData
-            .filter((s) => s.active && s.statusName.toLowerCase().trim() === 'acknowledged')
-            .map((s) => ({
-              holidaySwapId: s.holidaySwapId,
-              holidayId: s.holidayId,
-              holidayName: s.holidayName,
-              originalDate: typeof s.originalDate === 'string'
-                ? s.originalDate
-                : (s.originalDate as Date).toISOString(),
-              replacementDate: typeof s.replacementDate === 'string'
-                ? s.replacementDate
-                : (s.replacementDate as Date).toISOString(),
-            }));
-          setActiveSwaps(acknowledged);
-        } catch {
-          setActiveSwaps([]);
-        }
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';
         toast({
@@ -225,11 +215,9 @@ export function SupervisorTimeOffForm({
     holidayDatesForCalendar,
   } = useHolidayAwareness({
     countryIso: teamMember?.countryIso,
-    countryId: teamMember?.countryId,
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
-    activeSwaps,
   });
 
   // Clear end date when start date moves past it (non-fixed categories only)
@@ -283,8 +271,8 @@ export function SupervisorTimeOffForm({
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
-  // SV 15-day mode: applies when SV + Vacation + 0 days used this year
-  const isSV15DayMode = isSVVacation && existingVacationDays === 0;
+  // SV 15-day mode: applies whenever SV + Vacation
+  const isSV15DayMode = isSVVacation;
 
   // Auto-calculate end date for SV 15-day mode (start + 14 = 15 inclusive calendar days)
   useEffect(() => {
@@ -337,6 +325,30 @@ export function SupervisorTimeOffForm({
     selectedCategory?.categoryName ?? ''
   );
 
+  // Max days per request validation
+  const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
+
+  // GT vacation exception soft warnings (advisory — does not block save)
+  const gtExceptionWarning = selectedCategory && hintDays > 0
+    ? validateGTVacationException(
+        teamMember?.countryIso,
+        selectedCategory.categoryName,
+        hintDays,
+        workdayBalance?.exceptionDaysRemaining ?? 5
+      )
+    : null;
+
+  // Balance validation — for GT vacation, add accrued days (1.25/month since 2025-12-31)
+  // Advisory only for supervisors — does not block canSave
+  const isGTVacation = teamMember?.countryIso === 'GT' && selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
+  const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
+  const balanceForValidation = workdayBalance && gtAccruedDays > 0
+    ? { ...workdayBalance, vacation: workdayBalance.vacation + gtAccruedDays }
+    : workdayBalance ?? null;
+  const balanceValidation = selectedCategory && hintDays > 0 && workdayBalance
+    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
+    : { valid: true, errorMessage: null, available: 0 };
+
   // Save button enabled state - block when overlap exists, exceeds attrition date, start date is weekend, or SV vacation invalid
   const canSave =
     teamMember &&
@@ -349,6 +361,7 @@ export function SupervisorTimeOffForm({
     !isStartDateWeekend &&
     !isStartDateHoliday &&
     svValidation.valid &&
+    !exceedsMaxDays &&
     !!comment?.trim() &&
     !loading;
 
@@ -424,7 +437,6 @@ export function SupervisorTimeOffForm({
           <SVVacationSplitMode
             anchorStartDate={startDate}
             countryIso={teamMember.countryIso}
-            countryId={teamMember.countryId}
             userEndDate={teamMemberEndDate}
             comment={comment ?? ''}
             submitting={submitting}
@@ -599,6 +611,19 @@ export function SupervisorTimeOffForm({
               {hintDays} day{hintDays !== 1 ? 's' : ''}
             </p>
           )}
+          {maxDays > 0 && (
+            <p className="text-muted-foreground">
+              Max. {maxDays} day{maxDays !== 1 ? 's' : ''} per request
+            </p>
+          )}
+          {exceedsMaxDays && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {hintDays} days.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         {/* Holiday Awareness Alerts */}
@@ -696,6 +721,39 @@ export function SupervisorTimeOffForm({
                 <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
               )}
             </AlertDescription>
+          </Alert>
+        )}
+
+        {/* GT Vacation Exception Warnings (advisory only — backend is the authoritative block) */}
+        {gtExceptionWarning?.showExceptionNotice && !gtExceptionWarning.showLimitWarning && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              This request (fewer than 5 days) will count as an exception. The member has {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining this anniversary year.
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtExceptionWarning?.showFourDayRecommendation && (
+          <Alert>
+            <AlertDescription>
+              Adding 1 more day (5 total) would avoid using exception days from the annual allowance.
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtExceptionWarning?.showLimitWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              This member only has {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining. This request of {gtExceptionWarning.requestedDays} day{gtExceptionWarning.requestedDays !== 1 ? 's' : ''} would exceed the annual exception limit — this vacation cannot be registered as an exception.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Workday Balance Warning (advisory — supervisor is not blocked) */}
+        {!balanceValidation.valid && balanceValidation.errorMessage && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
           </Alert>
         )}
           </>

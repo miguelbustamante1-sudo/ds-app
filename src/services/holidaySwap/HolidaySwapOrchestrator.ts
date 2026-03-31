@@ -2,6 +2,7 @@ import { prisma } from '../../db/prisma';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import type {
   HolidaySwapDTO,
+  HolidaySwapDetailDTO,
   CreateHolidaySwapDTO,
   ReviewHolidaySwapDTO,
   CancelHolidaySwapDTO,
@@ -16,6 +17,7 @@ import { notifySwapCancelled } from './components/NotifySwapCancelled';
 import { getMySwaps } from './queries/getMySwaps';
 import { getSwapsForSupervisor } from '../teamMember/queries/getSwapsForSupervisor';
 import { verifySupervisorRelationship } from '../timeoff/supervisor/queries';
+import { getReports } from '../teamMember/queries/getReports';
 
 const ENTITY_NAME = 'hsw_holiday_swap';
 
@@ -347,6 +349,81 @@ export class HolidaySwapOrchestrator {
     }).catch(() => {});
 
     return toDTO(updated, swap.holiday.holidayName, updated.status.statusName);
+  }
+
+  /** Get a single swap detail with role-aware actions (GET /api/holiday-swaps/:id) */
+  async getSwapDetail(
+    swapId: number,
+    requestingTeamMemberId: number
+  ): Promise<HolidaySwapDetailDTO> {
+    // 1. Load swap with related records
+    const swap = await prisma.holidaySwap.findUnique({
+      where: { holidaySwapId: swapId },
+      include: {
+        teamMember: { select: { teamMemberId: true, teamMemberNames: true, teamMemberSurnames: true } },
+        holiday: { select: { holidayName: true } },
+        status: { select: { statusName: true } },
+      },
+    });
+
+    if (!swap) {
+      const err = new Error('Holiday swap not found.');
+      (err as unknown as Record<string, unknown>).statusCode = 404;
+      throw err;
+    }
+
+    // 2. Determine role
+    let role: 'employee' | 'supervisor';
+    if (swap.teamMemberId === requestingTeamMemberId) {
+      role = 'employee';
+    } else {
+      const reports = await getReports(requestingTeamMemberId, true);
+      const isUnderSupervisor = reports.some((r) => r.teamMemberId === swap.teamMemberId);
+      if (!isUnderSupervisor) {
+        const err = new Error('Access denied.');
+        (err as unknown as Record<string, unknown>).statusCode = 403;
+        throw err;
+      }
+      role = 'supervisor';
+    }
+
+    // 3. Compute available actions
+    const statusIds = await loadStatusIds();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const originalDate = new Date(swap.originalDate);
+    originalDate.setHours(0, 0, 0, 0);
+    const originalDateInFuture = originalDate > today;
+
+    let availableActions: Array<'cancel' | 'approve' | 'reject'> = [];
+    if (role === 'employee') {
+      const isCancellable =
+        (swap.statusId === statusIds.pending || swap.statusId === statusIds.approved) &&
+        originalDateInFuture;
+      if (isCancellable) availableActions = ['cancel'];
+    } else {
+      if (swap.statusId === statusIds.pending) {
+        availableActions = ['approve', 'reject'];
+      }
+    }
+
+    return {
+      holidaySwapId: swap.holidaySwapId,
+      teamMemberId: swap.teamMemberId,
+      teamMemberName: `${swap.teamMember.teamMemberNames} ${swap.teamMember.teamMemberSurnames}`,
+      holidayId: swap.holidayId,
+      holidayName: swap.holiday.holidayName,
+      originalDate: swap.originalDate.toISOString(),
+      replacementDate: swap.replacementDate.toISOString(),
+      statusId: swap.statusId,
+      statusName: swap.status.statusName,
+      active: swap.active,
+      createdBy: swap.createdBy,
+      createdAt: swap.createdAt ? swap.createdAt.toISOString() : null,
+      updatedAt: swap.updatedAt ? swap.updatedAt.toISOString() : null,
+      role,
+      availableActions,
+    };
   }
 }
 

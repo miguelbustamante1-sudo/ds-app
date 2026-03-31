@@ -21,6 +21,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TimeOffManagementGridProps {
   timeOffs: TimeOffWithTeamMemberDTO[];
@@ -76,12 +83,28 @@ export function TimeOffManagementGrid({
     { id: 'timeOffStartDate', desc: true }
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
 
-  // Filter out cancelled time-offs unless showCancelled is true
+  // Derive unique non-cancelled statuses from the data (exclude statusId 4 = Cancelled)
+  const availableStatuses = useMemo(() => {
+    const seen = new Map<number, string>();
+    for (const t of timeOffs) {
+      if (t.statusId !== null && t.statusId !== 4) {
+        seen.set(t.statusId, t.statusName);
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ statusId: id, statusName: name }));
+  }, [timeOffs]);
+
+  // Apply status + cancelled filters
   const filteredTimeOffs = useMemo(() => {
-    if (showCancelled) return timeOffs;
-    return timeOffs.filter(t => !t.statusName.toLowerCase().includes('cancelled'));
-  }, [timeOffs, showCancelled]);
+    return timeOffs.filter((t) => {
+      const isCancelled = t.statusId === 4;
+      if (isCancelled) return showCancelled;
+      if (selectedStatusId === null) return true;
+      return t.statusId === selectedStatusId;
+    });
+  }, [timeOffs, showCancelled, selectedStatusId]);
 
   const columns = useMemo<ColumnDef<TimeOffWithTeamMemberDTO>[]>(
     () => [
@@ -252,6 +275,25 @@ export function TimeOffManagementGrid({
             onChange={(e) => table.getColumn('teamMemberFullName')?.setFilterValue(e.target.value)}
             className="h-9 w-[200px]"
           />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="status-filter" className="text-sm text-muted-foreground">Status</Label>
+          <Select
+            value={selectedStatusId === null ? 'all' : String(selectedStatusId)}
+            onValueChange={(val) => setSelectedStatusId(val === 'all' ? null : Number(val))}
+          >
+            <SelectTrigger id="status-filter" className="h-9 w-[180px]">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {availableStatuses.map((s) => (
+                <SelectItem key={s.statusId} value={String(s.statusId)}>
+                  {s.statusName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

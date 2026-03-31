@@ -16,6 +16,7 @@ import { getAllCountries } from './db/countries';
 import { error } from './logger';
 import { processAttritionTimeOffs } from './services/timeoff/attrition/processAttrition';
 import { processCountdownNotifications } from './services/timeoff/countdownNotifications/processCountdownNotifications';
+import { backfillTimeOffDays } from './services/timeoff/backfill/backfillTimeOffDays';
 
 import type { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -82,6 +83,10 @@ async function refreshSchemaCheck() {
 // Run immediately and then every 5 minutes
 refreshSchemaCheck();
 setInterval(refreshSchemaCheck, 5 * 60 * 1000);
+
+// Backfill job: recalculate timeOffDays for any record where it is null or 0.
+// Runs once on startup to fix bulk-uploaded records that are missing day counts.
+backfillTimeOffDays();
 
 // Attrition job: cancel future time-offs for team members who have reached their end date.
 // Runs once on startup (to catch any missed days) and then every 24 hours.

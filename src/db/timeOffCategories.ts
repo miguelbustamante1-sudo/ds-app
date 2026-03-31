@@ -117,6 +117,7 @@ export async function getCategoriesByCountry(countryIso: string): Promise<Catego
         categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
         categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
         categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
+        categoryCountryMaxDays: cc.categoryCountryMaxDays,
       }))
   );
 }
@@ -130,13 +131,23 @@ export async function getCategoriesByCountry(countryIso: string): Promise<Catego
 export async function getCategoriesByTeamMemberId(
   teamMemberId: number
 ): Promise<CategoryByCountryDTO[] | null> {
-  // Get team member with their country
+  // Get team member with their country and workday ID
   const teamMember = await prisma.teamMember.findUnique({
     where: { teamMemberId },
-    select: { countryId: true },
+    select: { countryId: true, workdayId: true },
   });
 
   if (!teamMember) return null;
+
+  // Resolve gender from WorkdayInfo (null means unknown — treat as 'Both')
+  let gender: string | null = null;
+  if (teamMember.workdayId) {
+    const workdayInfo = await prisma.workdayInfo.findUnique({
+      where: { wdid: teamMember.workdayId },
+      select: { gender: true },
+    });
+    gender = workdayInfo?.gender ?? null;
+  }
 
   // Use team member's country or default to Guatemala
   const effectiveCountryId = teamMember.countryId ?? DEFAULT_COUNTRY_ID;
@@ -158,18 +169,24 @@ export async function getCategoriesByTeamMemberId(
     },
   });
 
-  // Transform to CategoryByCountryDTO
-  return categoryCountries.map((cc) => ({
-    categoryId: cc.category.categoryId,
-    categoryName: cc.category.categoryName,
-    categoryByCountryId: cc.categoryCountryId,
-    countryId: cc.country.countryId,
-    countryName: cc.country.countryName,
-    countryIso: cc.country.countryIso ?? '',
-    categoryCountryAllowHalfDay: cc.categoryCountryAllowHalfDay,
-    categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
-    categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
-    categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
-    categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
-  }));
+  // Transform to CategoryByCountryDTO and filter by gender
+  return categoryCountries
+    .filter((cc) => {
+      const categoryGender = cc.category.categoryGender;
+      return categoryGender === 'Both' || gender === null || categoryGender === gender;
+    })
+    .map((cc) => ({
+      categoryId: cc.category.categoryId,
+      categoryName: cc.category.categoryName,
+      categoryByCountryId: cc.categoryCountryId,
+      countryId: cc.country.countryId,
+      countryName: cc.country.countryName,
+      countryIso: cc.country.countryIso ?? '',
+      categoryCountryAllowHalfDay: cc.categoryCountryAllowHalfDay,
+      categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
+      categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
+      categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
+      categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
+      categoryCountryMaxDays: cc.categoryCountryMaxDays,
+    }));
 }

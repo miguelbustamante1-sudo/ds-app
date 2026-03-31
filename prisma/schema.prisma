@@ -40,6 +40,8 @@ model Project {
   projectCreatedBy   String?             @map("pro_created_by") @db.VarChar(250)
   clientId           Int?                @map("cli_id") @db.Integer
   client             Client?             @relation(fields: [clientId], references: [Id])
+  projectManagerId   Int?                @map("tms_id_pm") @db.Integer
+  projectManager     TeamMember?         @relation(fields: [projectManagerId], references: [teamMemberId])
   projectAssignments ProjectAssignment[]
   endorsements       Endorsement[]
 
@@ -85,6 +87,7 @@ model TeamMember {
   teamMemberCreatedDate             DateTime?              @map("tms_credat") @db.Date
   teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
   teamMemberLastUpdatedDate         DateTime?              @map("tms_last_upddat") @db.Date
+  teamMemberFullLegalName           String?                @map("tms_full_legal_name") @db.VarChar(1000)
   createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
   country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
   primaryRole                       Role?                  @relation(fields: [teamMemberPrimaryRole], references: [roleId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
@@ -95,6 +98,9 @@ model TeamMember {
   projectAssignments                ProjectAssignment[]
   supervisorAssignmentsAsSupervisor SupervisorAssignment[] @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
   supervisorAssignments             SupervisorAssignment[] @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
+  managedProjects                   Project[]
+  benchAssignments                  Bench[]        @relation("BenchTeamMember")
+  supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -140,6 +146,7 @@ model TimeOff {
   categoryId             Int?               @map("tot_id")
   timeOffActive          Int                @default(1) @map("tto_active")
   timeOffIsProjected     Boolean            @default(false) @map("tto_is_projected")
+  timeOffIsException     Boolean            @default(false) @map("tto_is_exception")
   statusId               Int?               @map("sta_id")
   changeLogs             TimeOffChangeLog[]
   category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tms_time_off_tot")
@@ -221,6 +228,7 @@ model SupervisorAssignment {
 model TimeOffCategory {
   categoryId        Int               @id @default(autoincrement()) @map("tot_id") @db.Integer
   categoryName      String            @map("tot_name") @db.VarChar(100)
+  categoryGender    String            @default("Both") @map("tot_gender") @db.VarChar(100)
   timeOffs          TimeOff[]
   categoryCountries CategoryCountry[]
 
@@ -240,6 +248,7 @@ model CategoryCountry {
   categoryCountryFixedDays       Decimal?        @map("ttc_fixed_days") @db.Decimal
   categoryCountryIsCalendar      Boolean         @default(false) @map("ttc_is_calendar")
   categoryCountryDaysBefore      Int             @default(0) @map("ttc_days_before")
+  categoryCountryMaxDays         Int             @default(0) @map("ttc_max_days")
   category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_ttc_time_off_types")
   country                        Country         @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_ttc_cou_countries")
 
@@ -635,6 +644,7 @@ model FunctionalArea {
   countryId          Int?     @map("cou_id")
   country            Country?           @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
   projectAssignments ProjectAssignment[]
+  benchAssignments   Bench[]
 
   @@map("far_functional_areas")
   @@schema("ds")
@@ -684,4 +694,28 @@ model WorkdayInfo {
 
   @@map("win_workday_info")
   @@schema("es")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Bench {
+  id               Int            @id @default(autoincrement()) @map("ben_id") @db.Integer
+  teamMemberId     Int            @map("tms_id") @db.Integer
+  functionalAreaId Int            @map("far_id") @db.Integer
+  supervisorId     Int?           @map("tms_id_supervisor") @db.Integer
+  allocation       Decimal        @map("ben_allocation") @db.Decimal
+  startDate        DateTime       @map("ben_start_date") @db.Date
+  endDate          DateTime?      @map("ben_end_date") @db.Date
+  createdAt        DateTime?      @map("ben_created_at") @db.Timestamptz(6)
+  createdBy        String?        @map("ben_created_by") @db.VarChar(450)
+  updatedBy        String?        @map("ben_updated_by") @db.VarChar(450)
+  updatedAt        DateTime?      @map("ben_updated_at") @db.Timestamp(6)
+  teamMember       TeamMember     @relation("BenchTeamMember", fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_ben_tms")
+  supervisor       TeamMember?    @relation("BenchSupervisor", fields: [supervisorId], references: [teamMemberId], onDelete: Restrict, map: "fk_ben_tms_supervisor")
+  functionalArea   FunctionalArea @relation(fields: [functionalAreaId], references: [Id], onDelete: Restrict, map: "fk_ben_far")
+
+  @@index([teamMemberId], map: "idx_ben_tms_id")
+  @@index([supervisorId], map: "idx_ben_tms_id_supervisor")
+  @@index([functionalAreaId], map: "idx_ben_far_id")
+  @@map("ben_bench")
+  @@schema("ds")
 }

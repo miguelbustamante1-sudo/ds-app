@@ -30,6 +30,10 @@ interface RawTeamMemberReport {
     projectId: number;
     projectName: string;
     projectAssignmentAllocation: number;
+    projectAssignmentStartDate: string | null;
+    projectAssignmentEndDate: string | null;
+    clientName: string | null;
+    clientContacts: string[] | null;
   }>;
 }
 
@@ -109,7 +113,16 @@ export async function getReports(
           json_build_object(
             'projectId',                   p.pro_id,
             'projectName',                 p.pro_name,
-            'projectAssignmentAllocation', tmp.tmp_allocation
+            'projectAssignmentAllocation', tmp.tmp_allocation,
+            'projectAssignmentStartDate',  tmp.tmp_start_date,
+            'projectAssignmentEndDate',    tmp.tmp_end_date,
+            'clientName',     cli.cli_name,
+            'clientContacts', COALESCE(
+              (SELECT json_agg(cc.cco_name ORDER BY cc.cco_id)
+               FROM ds.cco_client_contact cc
+               WHERE cc.cli_id = cli.cli_id AND cc.cco_active = true),
+              '[]'::json
+            )
           )
         ) FILTER (WHERE p.pro_id IS NOT NULL),
         '[]'::json
@@ -125,6 +138,8 @@ export async function getReports(
     LEFT JOIN ds.pro_projects p
       ON  p.pro_id = tmp.pro_id
       AND p.pro_active = true
+    LEFT JOIN ds.cli_clients cli
+      ON  cli.cli_id = p.cli_id
     GROUP BY
       tm.tms_id,
       tm.wdid,
@@ -150,6 +165,10 @@ export async function getReports(
           projectId: Number(p.projectId),
           projectName: p.projectName,
           projectAssignmentAllocation: Number(p.projectAssignmentAllocation),
+          projectAssignmentStartDate: p.projectAssignmentStartDate ? new Date(p.projectAssignmentStartDate) : null,
+          projectAssignmentEndDate: p.projectAssignmentEndDate ? new Date(p.projectAssignmentEndDate) : null,
+          clientName: p.clientName ?? null,
+          clientContacts: Array.isArray(p.clientContacts) ? p.clientContacts : [],
         }))
       : [];
 
@@ -159,9 +178,7 @@ export async function getReports(
       teamMemberNames: row.team_member_names,
       teamMemberSurnames: row.team_member_surnames,
       teamMemberKnownAs: row.team_member_known_as,
-      teamMemberFullName: row.team_member_known_as
-        ? `${row.team_member_known_as} ${row.team_member_surnames}`
-        : `${row.team_member_names} ${row.team_member_surnames}`,
+      teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
       primaryRoleName: row.primary_role_name,

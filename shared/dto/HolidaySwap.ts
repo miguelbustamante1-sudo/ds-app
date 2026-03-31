@@ -37,3 +37,21 @@ export interface ActiveSwapSummaryDTO {
   originalDate: string; // ISO date string (UTC midnight)
   replacementDate: string; // ISO date string (UTC midnight)
 }
+
+export interface HolidaySwapDetailDTO {
+  holidaySwapId: number;
+  teamMemberId: number;
+  teamMemberName: string; // teamMemberNames + ' ' + teamMemberSurnames
+  holidayId: number;
+  holidayName: string;
+  originalDate: string; // ISO date string (UTC midnight)
+  replacementDate: string; // ISO date string (UTC midnight)
+  statusId: number;
+  statusName: string;
+  active: boolean;
+  createdBy: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  role: 'employee' | 'supervisor';
+  availableActions: Array<'cancel' | 'approve' | 'reject'>;
+}

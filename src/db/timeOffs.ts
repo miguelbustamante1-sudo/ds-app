@@ -56,7 +56,8 @@ export async function createTimeOff(
   categoryId: number | null,
   statusId: number | null = null,
   timeOffDays: number = 0,
-  timeOffOriginalId: number | null = null
+  timeOffOriginalId: number | null = null,
+  timeOffIsException: boolean = false
 ): Promise<TimeOff> {
   return await prisma.timeOff.create({
     data: {
@@ -69,6 +70,7 @@ export async function createTimeOff(
       timeOffCreatedDate: timeOffCreatedDate ? (typeof timeOffCreatedDate === 'string' ? new Date(timeOffCreatedDate) : timeOffCreatedDate) : null,
       categoryId,
       statusId,
+      timeOffIsException,
     },
   });
 }
@@ -85,7 +87,8 @@ export async function updateTimeOff(
   timeOffLastUpdatedDate: Date | string | null,
   categoryId: number | null,
   statusId: number | null = null,
-  timeOffDays?: number
+  timeOffDays?: number,
+  timeOffIsException?: boolean
 ): Promise<TimeOff | null> {
   return await prisma.timeOff.update({
     where: { timeOffId: id },
@@ -94,6 +97,7 @@ export async function updateTimeOff(
       timeOffStartDate: typeof timeOffStartDate === 'string' ? new Date(timeOffStartDate) : timeOffStartDate,
       timeOffEndDate: typeof timeOffEndDate === 'string' ? new Date(timeOffEndDate) : timeOffEndDate,
       ...(timeOffDays !== undefined && { timeOffDays }),
+      ...(timeOffIsException !== undefined && { timeOffIsException }),
       timeOffLastUpdatedBy,
       timeOffLastUpdatedDate: timeOffLastUpdatedDate ? (typeof timeOffLastUpdatedDate === 'string' ? new Date(timeOffLastUpdatedDate) : timeOffLastUpdatedDate) : null,
       categoryId,

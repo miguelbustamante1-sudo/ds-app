@@ -34,6 +34,7 @@ export * from './FunctionalArea';
 // Communication DTOs
 export * from './Notification';
 
+export * from './Bench';
 export * from './HolidaySwap';
 export * from './PendingRequest';
 export * from './TierBand';

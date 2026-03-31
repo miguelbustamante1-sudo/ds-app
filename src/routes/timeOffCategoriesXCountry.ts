@@ -44,6 +44,7 @@ router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), asyn
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
     categoryCountryDaysBefore,
+    categoryCountryMaxDays,
   } = req.body;
   const item = await db.create(
     Number(categoryId),
@@ -53,7 +54,8 @@ router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), asyn
     categoryCountryIsFixedDuration ?? false,
     categoryCountryFixedDays ?? null,
     categoryCountryIsCalendar ?? false,
-    categoryCountryDaysBefore ?? 0
+    categoryCountryDaysBefore ?? 0,
+    categoryCountryMaxDays ?? 0
   );
   res.status(201).json(flattenItem(item));
 });
@@ -69,6 +71,7 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
     categoryCountryDaysBefore,
+    categoryCountryMaxDays,
   } = req.body;
   const item = await db.update(
     id,
@@ -79,7 +82,8 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
     categoryCountryIsFixedDuration,
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
-    categoryCountryDaysBefore
+    categoryCountryDaysBefore,
+    categoryCountryMaxDays
   );
   if (!item) return res.status(404).json({ error: 'Not found' });
   res.json(flattenItem(item));

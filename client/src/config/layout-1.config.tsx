@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowLeftRight,
   Award,
   Badge,
   BarChart2,
@@ -58,7 +59,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Dashboard',
     icon: LayoutGrid,
     children: [
-      { title: 'Home', path: '/' },
+      { title: 'Time Off', path: '/' },
     ],
   },
   { heading: 'User' },
@@ -70,7 +71,7 @@ export const MENU_SIDEBAR: MenuConfig = [
   {
     title: 'Profile',
     icon: UserCircle,
-    disabled: true,
+    path: '/my-profile',
   },
   { heading: 'Self Service' },
   {
@@ -112,7 +113,19 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Pending Requests',
     icon: Inbox,
     path: '/my-team/pending',
-    permission: 'HolidaySwaps',
+    permission: 'PendingRequests',
+  },
+  {
+    title: 'Bench Move',
+    icon: ArrowLeftRight,
+    path: '/bench-move',
+    permission: 'BenchMove',
+  },
+  {
+    title: 'End Bench',
+    icon: UserCheck,
+    path: '/end-bench',
+    permission: 'BenchMove',
   },
   { heading: 'Reports' },
   {

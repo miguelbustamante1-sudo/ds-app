@@ -213,6 +213,7 @@ export function TeamMembersPage() {
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingTeamMember(undefined);
+    teamMembers.loadItems();
   };
 
   if (!canRead('TeamMembers')) {

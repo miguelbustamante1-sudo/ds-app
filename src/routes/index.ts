@@ -33,6 +33,7 @@ import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
 import holidaySwapRouter from './holidaySwap.routes';
 import pendingRequestsRouter from './pendingRequests.routes';
+import benchRouter from './bench.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -71,6 +72,7 @@ export default function registerRoutes() {
   router.use('/functional-areas', functionalAreasRouter);
   router.use('/holiday-swaps', holidaySwapRouter);
   router.use('/team/pending-requests', pendingRequestsRouter);
+  router.use('/bench-move', benchRouter);
 
   return router;
 }

@@ -11,6 +11,7 @@
 import { notificationOrchestrator } from '../../../notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../../notifications/repository';
 import { getSupervisorsForCountdownNotification } from '../../../teamMember/queries/getSupervisorsForCountdownNotification';
+import { getProjectManagersForTeamMember } from '../../../teamMember/queries/getProjectManagersForTeamMember';
 import { formatDateDDMMYYYY } from '../../components/FormatDateDDMMYYYY';
 
 export interface NotifyCountdownTimeOffParams {
@@ -34,8 +35,14 @@ export async function notifyCountdownTimeOff(params: NotifyCountdownTimeOffParam
   const supervisorDTOs = await getSupervisorsForCountdownNotification(params.teamMemberId);
   const supervisorUserIds = supervisorDTOs.map((s) => s.userId);
 
+  // Step 2b: Resolve Project Manager userIds
+  const pmTeamMemberIds = await getProjectManagersForTeamMember(params.teamMemberId);
+  const pmUserIds = pmTeamMemberIds.length > 0
+    ? await getUserIdsByTeamMemberIds(pmTeamMemberIds)
+    : [];
+
   // Step 3: Merge + deduplicate all recipient userIds
-  const allUserIds = [...new Set([...memberUserIds, ...supervisorUserIds])];
+  const allUserIds = [...new Set([...memberUserIds, ...supervisorUserIds, ...pmUserIds])];
 
   // If there are no recipients at all, nothing to send
   if (allUserIds.length === 0) return;

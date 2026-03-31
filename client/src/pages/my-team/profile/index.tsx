@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Toolbar,
@@ -9,15 +9,49 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, User, Briefcase, MapPin, Calendar, Users, CalendarDays, Building2 } from 'lucide-react';
+import { ArrowLeft, User, Briefcase, MapPin, Calendar, Users, CalendarDays, Building2, XCircle } from 'lucide-react';
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
+import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
+import { DataGridTable } from '@/components/ui/data-grid-table';
+import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { useToast } from '@/hooks/use-toast';
 import { useTeamMemberProfile } from '@/hooks/useTeamMemberProfile';
-import { useTeamMemberTimeOffBreakdown } from '@/hooks/useSupervisorTimeOff';
-import { formatUTCDate } from '@/lib/utils';
+import { useTeamMemberTimeOffs, useSupervisorTimeOffOperations } from '@/hooks/useSupervisorTimeOff';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import { apiGet } from '@/lib/api';
 import { HolidaySwapsSection } from './components/HolidaySwapsSection';
+import { ProjectsSection } from '@/pages/my-profile/components/ProjectsSection';
+import { CancelTimeOffDialog } from '@/pages/timeoff/supervisor/components/CancelTimeOffDialog';
+import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
+
+function canCancelTimeOff(timeOff: TimeOffWithDetailsDTO): boolean {
+  const statusLower = timeOff.statusName.toLowerCase();
+  if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return false;
+  const required = Math.max(timeOff.categoryCountryDaysBefore ?? 0, 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = parseUTCDateAsLocal(String(timeOff.timeOffStartDate));
+  startDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((startDate.getTime() - today.getTime()) / 86_400_000);
+  return diffDays > required;
+}
+
+function getStatusVariant(statusName: string): 'success' | 'secondary' | 'destructive' | 'outline' {
+  const s = statusName.toLowerCase();
+  if (s.includes('approved') || s.includes('acknowledged')) return 'success';
+  if (s.includes('tentative') || s.includes('pending')) return 'secondary';
+  if (s.includes('cancelled') || s.includes('rejected')) return 'destructive';
+  return 'outline';
+}
 
 export function TeamMemberProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -28,11 +62,26 @@ export function TeamMemberProfilePage() {
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
-  const { breakdown, loading: loadingBreakdown, loadBreakdown } = useTeamMemberTimeOffBreakdown({
+  const { timeOffs, loading: loadingTimeOffs, loadTimeOffs } = useTeamMemberTimeOffs({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
-  const currentYear = new Date().getFullYear();
+  const operations = useSupervisorTimeOffOperations({
+    onSuccess: (msg) => toast({ title: 'Success', description: msg }),
+    onError: (err) => toast({ title: 'Error', description: err, variant: 'destructive' }),
+  });
+
+  const [showAllTimeOffs, setShowAllTimeOffs] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'timeOffStartDate', desc: false }]);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
+
+  const handleCancelConfirm = async (timeOffId: number, comment: string) => {
+    await operations.cancelTimeOff(timeOffId, comment);
+    if (id) loadTimeOffs(parseInt(id, 10));
+  };
+
   const [approvedStatusId, setApprovedStatusId] = useState<number | null>(null);
   const [rejectedStatusId, setRejectedStatusId] = useState<number | null>(null);
 
@@ -51,9 +100,100 @@ export function TeamMemberProfilePage() {
     if (id) {
       const teamMemberId = parseInt(id, 10);
       loadProfile(teamMemberId);
-      loadBreakdown(teamMemberId);
+      loadTimeOffs(teamMemberId);
     }
   }, [id]);
+
+  const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
+    () => [
+      {
+        accessorKey: 'categoryName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Category" />,
+        size: 150,
+        meta: { headerTitle: 'Category', skeleton: <Skeleton className="h-4 w-24" /> },
+      },
+      {
+        accessorKey: 'timeOffStartDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.timeOffStartDate),
+        size: 120,
+        meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'timeOffEndDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.timeOffEndDate),
+        size: 120,
+        meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'timeOffDays',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Days" />,
+        size: 70,
+        meta: { headerTitle: 'Days', skeleton: <Skeleton className="h-4 w-8" /> },
+      },
+      {
+        accessorKey: 'statusName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => (
+          <Badge variant={getStatusVariant(row.original.statusName)}>
+            {row.original.statusName}
+          </Badge>
+        ),
+        size: 130,
+        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          if (!canCancelTimeOff(row.original)) return null;
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTimeOff(row.original);
+                setCancelDialogOpen(true);
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+          );
+        },
+        size: 110,
+        meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+    ],
+    []
+  );
+
+  const filteredTimeOffs = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return timeOffs.filter((t) => {
+      const isCancelled = t.statusName.toLowerCase().includes('cancelled');
+      if (isCancelled && !showCancelled) return false;
+      if (!showAllTimeOffs) {
+        const end = parseUTCDateAsLocal(String(t.timeOffEndDate));
+        end.setHours(0, 0, 0, 0);
+        if (end < today) return false;
+      }
+      return true;
+    });
+  }, [timeOffs, showAllTimeOffs, showCancelled]);
+
+  const table = useReactTable({
+    data: filteredTimeOffs,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   const handleBack = () => {
     navigate('/my-team');
@@ -174,6 +314,9 @@ export function TeamMemberProfilePage() {
             </dl>
           </CardContent>
         </Card>
+
+        {/* Current Projects */}
+        <ProjectsSection projects={profile.currentProjects} />
 
         {/* Location */}
         <Card>
@@ -337,55 +480,66 @@ export function TeamMemberProfilePage() {
           rejectedStatusId={rejectedStatusId}
         />
 
-        {/* Time Off Summary */}
+        {/* Time Off */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
-              Time Off Summary ({currentYear})
+              Time Off
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            {loadingBreakdown ? (
-              <div className="space-y-3">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-all-member"
+                  checked={showAllTimeOffs}
+                  onCheckedChange={(checked) => setShowAllTimeOffs(checked === true)}
+                />
+                <Label htmlFor="show-all-member" className="text-sm font-medium leading-none">
+                  Show past
+                </Label>
               </div>
-            ) : breakdown ? (
-              <div className="space-y-4">
-                {/* Total summary */}
-                <div className="flex items-center justify-between border-b pb-3">
-                  <span className="text-sm font-medium">Total Time Off</span>
-                  <span className="text-2xl font-bold">{breakdown.totalDays} days</span>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-cancelled-member"
+                  checked={showCancelled}
+                  onCheckedChange={(checked) => setShowCancelled(checked === true)}
+                />
+                <Label htmlFor="show-cancelled-member" className="text-sm font-medium leading-none">
+                  Show cancelled
+                </Label>
+              </div>
+            </div>
 
-                {/* Breakdown by category */}
-                {breakdown.breakdown.length > 0 ? (
-                  <div className="space-y-3">
-                    {breakdown.breakdown.map((category) => (
-                      <div key={category.categoryId} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>{category.categoryName}</span>
-                          <span className="font-medium">{category.totalDays} days</span>
-                        </div>
-                        <Progress
-                          value={breakdown.totalDays > 0 ? (category.totalDays / breakdown.totalDays) * 100 : 0}
-                          className="h-2"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No time off recorded this year</p>
-                )}
+            {loadingTimeOffs ? (
+              <div className="space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Unable to load time off data</p>
+              <DataGridContainer>
+                <DataGrid
+                  table={table}
+                  recordCount={filteredTimeOffs.length}
+                  tableLayout={{ headerBackground: true, headerBorder: true, rowBorder: true }}
+                >
+                  <DataGridTable />
+                </DataGrid>
+              </DataGridContainer>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <CancelTimeOffDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        timeOff={selectedTimeOff}
+        onConfirm={handleCancelConfirm}
+        loading={operations.loading}
+      />
     </div>
   );
 }

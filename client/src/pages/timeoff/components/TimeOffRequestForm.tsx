@@ -7,7 +7,7 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
-import { useActiveSwaps } from '../holiday-swaps/hooks/useActiveSwaps';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,7 +34,8 @@ import {
 } from '../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
-import { validateWorkdayBalance } from '../utils/workdayBalanceValidation';
+import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
+import { validateGTVacationException } from '../utils/guatemalaExceptionValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -58,16 +59,14 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
-  workdayBalance: { vacation: number; personalDays: number } | null;
+  workdayBalance: { vacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
 }
 
 export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
-  const { activeSwaps, loadActiveSwaps } = useActiveSwaps();
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
-  const [userCountryId, setUserCountryId] = useState<number | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isSplitMode, setIsSplitMode] = useState(false);
@@ -102,6 +101,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
   const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const maxDays = selectedCategory?.categoryCountryMaxDays ?? 0;
 
   // Load categories (filtered by user's country), statuses, and user profile on mount
   useEffect(() => {
@@ -126,7 +126,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
         }
         setUserCountryIso(profile.countryIso);
-        setUserCountryId(profile.countryId);
       } catch (error) {
         toast({
           title: 'Error',
@@ -138,8 +137,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
       }
     }
     loadData();
-    loadActiveSwaps();
-  }, [toast, loadActiveSwaps]);
+  }, [toast]);
 
   useTimeOffFormDates({
     categoryId,
@@ -159,11 +157,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     holidayDatesForCalendar,
   } = useHolidayAwareness({
     countryIso: userCountryIso,
-    countryId: userCountryId,
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
-    activeSwaps,
   });
 
   // Validation: Date range
@@ -201,9 +197,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4)
     : 0;
 
-  // SV 15-day mode: applies when SV + Vacation + 0 days used this year.
+  // SV 15-day mode: applies whenever SV + Vacation.
   // Must NOT use isFixedDuration — see requirements.
-  const isSV15DayMode = isSVVacation && existingVacationDays === 0;
+  const isSV15DayMode = isSVVacation;
 
   // Auto-calculate end date for SV 15-day mode (start + 14 = 15 inclusive calendar days)
   useEffect(() => {
@@ -242,10 +238,28 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     selectedCategory?.categoryName ?? ''
   );
 
-  // Workday balance validation
+  // Workday balance validation — for GT vacation, add accrued days (1.25/month since 2025-12-31)
+  const isGTVacation = userCountryIso === 'GT' && selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
+  const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
+  const balanceForValidation = workdayBalance && gtAccruedDays > 0
+    ? { ...workdayBalance, vacation: workdayBalance.vacation + gtAccruedDays }
+    : workdayBalance;
   const balanceValidation = selectedCategory && hintDays > 0
-    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, workdayBalance)
+    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
+
+  // Max days per request validation
+  const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
+
+  // GT vacation exception soft warnings (advisory — does not block save)
+  const gtExceptionWarning = selectedCategory && hintDays > 0
+    ? validateGTVacationException(
+        userCountryIso,
+        selectedCategory.categoryName,
+        hintDays,
+        workdayBalance?.exceptionDaysRemaining ?? 5
+      )
+    : null;
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
@@ -260,6 +274,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     svValidation.valid &&
     daysBeforeValidation.valid &&
     balanceValidation.valid &&
+    !exceedsMaxDays &&
     !!comment?.trim() &&
     !submitting;
 
@@ -363,7 +378,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           <SVVacationSplitMode
             anchorStartDate={startDate}
             countryIso={userCountryIso}
-            countryId={userCountryId}
             userEndDate={userEndDate}
             comment={comment ?? ''}
             submitting={submitting}
@@ -494,6 +508,19 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               {hintDays} day{hintDays !== 1 ? 's' : ''}
             </p>
           )}
+          {maxDays > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Max. {maxDays} day{maxDays !== 1 ? 's' : ''} per request
+            </p>
+          )}
+          {exceedsMaxDays && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {hintDays} days.
+              </AlertDescription>
+            </Alert>
+          )}
           {errors.endDate && (
             <p className="text-sm text-destructive">{errors.endDate.message}</p>
           )}
@@ -603,6 +630,31 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* GT Vacation Exception Warnings (advisory only — backend is the authoritative block) */}
+        {gtExceptionWarning?.showExceptionNotice && !gtExceptionWarning.showLimitWarning && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              This request (fewer than 5 days) will count as an exception. You have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining this anniversary year.
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtExceptionWarning?.showFourDayRecommendation && (
+          <Alert>
+            <AlertDescription>
+              Adding 1 more day (5 total) would avoid using exception days from your annual allowance.
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtExceptionWarning?.showLimitWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You only have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining. This request of {gtExceptionWarning.requestedDays} day{gtExceptionWarning.requestedDays !== 1 ? 's' : ''} would exceed your annual exception limit — you cannot register this vacation as an exception.
+            </AlertDescription>
           </Alert>
         )}
           </>

@@ -1,6 +1,6 @@
 # Time Off — User Manual
 
-> **Version 1.1 · March 2026**
+> **Version 1.2 · March 2026**
 > This manual covers the Time Off module from two perspectives: **Team Member** and **Supervisor**. Read the section that applies to you, or both if you hold both roles.
 
 ---
@@ -45,14 +45,19 @@ Navigate to **Time Off → My Time Off** from the main menu. This is your person
 
 ### 1.1 Checking your available days
 
-Before you request anything, check your balance. On the My Time Off page you will see cards showing:
+Before you request anything, check your balance. On the My Time Off page you will see badges showing your available days. What is displayed depends on your country:
 
-- **Vacation days available**
-- **Personal days available**
+| Country | Badges shown |
+|---|---|
+| **El Salvador and others** | Vacation Days · Personal Days |
+| **Guatemala (GT)** | Vacation Days · Exception Days (X / 5) |
+| **Mexico (MX)** | Time Off Days |
 
 These numbers come directly from Workday and reflect your current balance after all active (non-cancelled) requests are counted. The balance **decreases** when a request is created and **returns** when a request is cancelled.
 
 > You cannot request more days than your current balance allows.
+
+> **Guatemala — accrued vacation days:** If your country is Guatemala, the system automatically adds accrued vacation days to your balance when validating a vacation request. You earn **1.25 vacation days per completed calendar month** starting from December 31, 2025. For example, if your Workday balance shows 5 days and you are making a request in March 2026 (two completed months: January and February), your effective balance for validation is 5 + 2.5 = 7.5 days. The Workday badge always shows the raw balance; the accrual adjustment is applied silently during form validation.
 
 ### 1.2 Creating a request
 
@@ -66,7 +71,7 @@ These numbers come directly from Workday and reflect your current balance after 
 
 The system immediately validates several rules (see Section 1.4). If any rule is violated, you will see an error message explaining why.
 
-> **Holiday highlighting:** Public holidays in your country are shown in amber in the date picker. Hovering over or selecting a range that includes holidays will trigger an informational alert (see Section 1.4, Rule 6).
+> **Holiday highlighting:** Public holidays in your country are shown in amber in the date picker. Hovering over or selecting a range that includes holidays will trigger an informational alert (see Section 1.4, Rule 7).
 
 Once accepted, the request is created with status **Tentative**. Your balance is deducted right away.
 
@@ -76,7 +81,7 @@ Once accepted, the request is created with status **Tentative**. Your balance is
 2. The request appears on your list with status **Tentative**.
 3. No further action is needed from you at this point — the ball is in your supervisor's court to communicate the decision, but the request is already registered.
 
-> **Note:** When a supervisor creates a request *on your behalf*, the flow is slightly different — you will receive a notification asking you to acknowledge or decline. See Section 1.5 for details.
+> **Note:** When a supervisor creates a request *on your behalf*, the flow is slightly different — you will receive a notification asking you to acknowledge or decline. See Section 1.6 for details.
 
 ### 1.4 Rules you must follow when requesting
 
@@ -109,6 +114,8 @@ You cannot have two active requests covering the same dates. Cancelled requests 
 **Rule 5 — Sufficient balance**
 Your vacation and personal day requests are validated against your Workday balance **before you can submit**. If the number of days you have selected exceeds your available balance, the form shows an error and the Save button is disabled. You cannot submit a request you do not have balance for.
 
+> **Guatemala only:** For vacation requests, accrued days (1.25/month since Dec 31, 2025) are added to your raw Workday balance when computing the available amount. See Section 1.1 for details.
+
 ---
 
 **Rule 6 — Respect your end date**
@@ -124,7 +131,12 @@ The system is aware of public holidays in your country and shows them in amber i
 
 ---
 
-**Rule 8 — El Salvador only: Vacation 7/8/15 rule**
+**Rule 8 — Maximum days per request**
+Some categories have a per-request day cap configured by the company. When such a cap exists, the form shows a hint: *"Max. X days per request."* If the number of days you have selected exceeds this cap, an error alert appears and the Save button is disabled. Split the request into shorter periods or choose different dates.
+
+---
+
+**Rule 9 — El Salvador only: Vacation 7/8/15 rule**
 If your country is El Salvador and you are requesting Vacation, a special rule applies:
 
 - You may only request **7**, **8**, or **15** calendar days per request.
@@ -134,13 +146,25 @@ If your country is El Salvador and you are requesting Vacation, a special rule a
 
 The form displays a status panel showing how many vacation days you have already used this year and which day options are available to you.
 
-**15-day mode (0 days used):** When you have not yet taken any vacation this year and select the Vacation category, the form enters 15-day mode automatically. The end date is calculated for you (start date + 14 = 15 calendar days) and the end date picker is disabled. You can submit as a single 15-day block, or you can choose to **split** the request into two separate periods — see Section 1.5.
+**15-day mode:** Whenever you select the Vacation category as an El Salvador team member, the form enters 15-day mode automatically. The end date is calculated for you (start date + 14 = 15 calendar days) and the end date picker is disabled. The SV policy panel shows your used days and which options (7, 8, or 15) remain available. You can submit as a single block, or you can choose to **split** the request into two separate periods — see Section 1.5.
+
+---
+
+**Rule 10 — Guatemala only: Vacation exception rule**
+If your country is Guatemala and you are requesting fewer than **5 vacation days**, the request counts as an **exception** against your annual exception allowance.
+
+- Each team member has **5 exception days** per anniversary year.
+- When you select fewer than 5 days, the form shows an advisory notice listing how many exception days you have remaining.
+- If you select exactly **4 days**, the form also suggests adding 1 more day (5 total) to avoid using exception days.
+- If you have fewer remaining exception days than the number of days you are requesting (and the request is under 5 days), you will see a warning and the backend will block the submission.
+
+> This rule applies to vacation only and is country-specific. The frontend warnings are advisory — the backend always enforces the hard limit.
 
 ---
 
 ### 1.5 El Salvador only: Splitting a vacation into two periods
 
-When you are in 15-day mode (Vacation category, 0 days used this year, country = El Salvador), the form shows two action buttons: **Save** and **Split**. If you want to take your 15 days across two separate blocks of time rather than one continuous period, click **Split**.
+When you select the Vacation category as an El Salvador team member, the form always shows two action buttons: **Save** and **Split**. The Split option is only meaningful when you have your full 15 days remaining (0 days used this year). If you want to take your 15 days across two separate blocks of time rather than one continuous period, click **Split**.
 
 [screenshot here]
 
@@ -239,12 +263,18 @@ The supervisor view gives you an overview of:
 ### 2.2 Creating a request on behalf of a team member
 
 1. From the supervisor view, select the team member.
-2. Fill out the request form: category, start date, end date.
+2. Fill out the request form: category, start date, end date, and a required comment.
 3. Submit.
 
-The request is created as **Tentative**. The team member receives a notification and must acknowledge or decline it (see Part 1, Section 1.5).
+The request is created as **Tentative**. The team member receives a notification and must acknowledge or decline it (see Part 1, Section 1.6).
 
 > You will see an advisory warning if the request violates the advance-notice period — but as a supervisor, you are not blocked by this rule. Use this override responsibly and communicate clearly with your team member.
+
+> **Balance warnings:** If the team member's Workday balance is insufficient for the request, the form shows a warning, but you are **not blocked** from submitting. Balance validation is advisory-only for supervisors.
+
+> **El Salvador team members:** When creating a vacation request for an El Salvador team member, the form behaves identically to the team member's own form — including 15-day auto-calculation and the **Split** button. You can use Split to create two separate vacation periods on behalf of the team member in a single action (see Part 1, Section 1.5 for split mechanics).
+
+> **Guatemala team members:** The form displays advisory warnings about the vacation exception rule (requests under 5 days) and the exception day balance. These warnings are informational — you are not blocked, but the backend will still enforce the hard limit.
 
 ### 2.3 Editing a team member's request
 
@@ -258,7 +288,7 @@ Cancellation is not restricted by the advance-notice deadline for supervisors. U
 
 ### 2.5 Viewing a team member's balance
 
-From the team member's profile within the supervisor view, you can see their current Workday balance: how many vacation days and personal days they have remaining.
+When you select a team member, their current Workday balance is shown as badges at the top of the request area. The displayed badges depend on the team member's country — see Section 1.1 for the country-specific breakdown. For Guatemala team members, the exception days badge shows how many short-vacation exception days remain this anniversary year.
 
 ### 2.6 Viewing the full management grid
 
@@ -361,7 +391,7 @@ A: The start date of a request cannot fall on a public holiday. The date is disa
 ---
 
 **Q: I am in El Salvador and I see a "Split" button. What does it do?**
-A: The Split button appears when you have not used any vacation days yet this year and you select the Vacation category. Instead of taking all 15 days in one continuous block, splitting lets you schedule two separate periods — one of 7 days and one of 8 days (in either order, with a gap between them if you like). See Section 1.5 for detailed instructions.
+A: The Split button appears whenever you select the Vacation category as an El Salvador team member. Instead of taking all 15 days in one continuous block, splitting lets you schedule two separate periods — one of 7 days and one of 8 days (in either order, with a gap between them if you like). Splitting is only possible when you have the full 15 days remaining (0 days used this year). See Section 1.5 for detailed instructions.
 
 ---
 
@@ -370,8 +400,18 @@ A: Yes. A split vacation always creates two independent time-off requests, each 
 
 ---
 
+**Q: I am in Guatemala and I see a notice about "exception days." What does that mean?**
+A: In Guatemala, vacation requests of fewer than 5 days are counted as exceptions against your annual exception allowance (5 days per anniversary year). The form shows an advisory notice when your request is under 5 days, tells you how many exception days you have remaining, and suggests adding 1 more day if you selected exactly 4 (reaching 5 avoids using exception days). If your request would exceed your remaining exception allowance, the backend will block the submission even if the form allows you to proceed.
+
+---
+
+**Q: I am in Guatemala and my balance seems higher than what Workday shows. Why?**
+A: Guatemala vacation balance includes automatically accrued days — 1.25 days per completed calendar month since December 31, 2025. The badges on the page show your raw Workday balance, but the form adds the accrued days silently when checking whether you have enough balance. The Workday badge will update after the accrual is officially recorded in Workday.
+
+---
+
 **Q: The Save button is disabled but I have filled in all the fields. What might be wrong?**
-A: Several validations can block submission. Check for any alert messages in the form — they explain the specific problem. Common causes include: insufficient Workday balance, the start date is too close to today (advance notice rule), the start date falls on a weekend or public holiday, the dates overlap an existing request, or the comment field is empty.
+A: Several validations can block submission. Check for any alert messages in the form — they explain the specific problem. Common causes include: insufficient Workday balance, the start date is too close to today (advance notice rule), the start date falls on a weekend or public holiday, the dates overlap an existing request, the selected range exceeds the category's maximum days per request, or the comment field is empty.
 
 ---
 
@@ -383,7 +423,7 @@ A: Several validations can block submission. Check for any alert messages in the
 |---|---|---|
 | Check my balance | My Time Off → top of page | — |
 | Submit a request | My Time Off → form | Enough balance, advance notice met, comment required |
-| Submit a split vacation (El Salvador) | My Time Off → form → Split button | Vacation category, 0 days used this year; comment required |
+| Submit a split vacation (El Salvador) | My Time Off → form → Split button | Vacation category, 0 days used this year (15 remaining); comment required |
 | Acknowledge/decline a supervisor request | My Time Off → open the Tentative request | Request must be in Tentative status |
 | Edit my request | My Time Off → open request → Edit | Request must be Tentative or Acknowledged |
 | Cancel my request | My Time Off → open request → Cancel | Must be before notice deadline |
@@ -394,7 +434,8 @@ A: Several validations can block submission. Check for any alert messages in the
 | I want to... | Where to go | Prerequisite |
 |---|---|---|
 | See team overview | Time Off → Supervisor | — |
-| Create a request for someone | Supervisor view → select member → form | Member must be active |
+| Create a request for someone | Supervisor view → select member → form | Member must be active; comment required |
+| Create a split vacation for SV member | Supervisor view → select SV member → form → Split button | Vacation category, 0 days used this year; comment required |
 | Edit a team member's request | Supervisor view → open request → Edit | Request must be Tentative or Acknowledged |
 | Cancel a team member's request | Supervisor view → open request → Cancel | Must provide a comment |
 | Check a member's balance | Supervisor view → select member → balance | — |

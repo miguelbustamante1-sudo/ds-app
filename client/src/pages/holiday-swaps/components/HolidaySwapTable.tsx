@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   getCoreRowModel,
@@ -49,6 +50,8 @@ function canCancel(swap: HolidaySwapDTO): boolean {
 }
 
 export function HolidaySwapTable({ swaps, loading, onCancel }: HolidaySwapTableProps) {
+  const navigate = useNavigate();
+
   const columns = useMemo<ColumnDef<HolidaySwapDTO>[]>(
     () => [
       {
@@ -101,20 +104,30 @@ export function HolidaySwapTable({ swaps, loading, onCancel }: HolidaySwapTableP
       {
         id: 'actions',
         header: () => null,
-        cell: ({ row }) =>
-          canCancel(row.original) ? (
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onCancel(row.original)}
+              onClick={() => navigate(`/holiday-swaps/${row.original.holidaySwapId}`)}
             >
-              Cancel
+              View
             </Button>
-          ) : null,
+            {canCancel(row.original) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCancel(row.original)}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        ),
         enableSorting: false,
       },
     ],
-    [onCancel]
+    [onCancel, navigate]
   );
 
   const table = useReactTable({

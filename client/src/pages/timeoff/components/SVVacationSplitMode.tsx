@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { calculateCalendarDays } from '../utils/elSalvadorVacationValidation';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
+import { useHolidayContext } from '../context/HolidayContext';
 
 export interface SplitPeriod {
   startDate: Date;
@@ -18,7 +19,6 @@ export interface SplitPeriod {
 interface SVVacationSplitModeProps {
   anchorStartDate: Date;
   countryIso: string | null;
-  countryId: number | null;
   userEndDate: Date | null;
   /** The shared comment from the main form — used to gate the Save Split button. */
   comment: string;
@@ -30,7 +30,6 @@ interface SVVacationSplitModeProps {
 export function SVVacationSplitMode({
   anchorStartDate,
   countryIso,
-  countryId,
   userEndDate,
   comment,
   submitting,
@@ -43,13 +42,15 @@ export function SVVacationSplitMode({
   const [periodBStartDate, setPeriodBStartDate] = useState<Date | undefined>(undefined);
   const [periodBEndDate, setPeriodBEndDate] = useState<Date | undefined>(undefined);
 
+  // Shared holiday context — both periods are in the same country.
+  const { isHoliday } = useHolidayContext();
+
   // When Period A = 7 days, Period B must be 8 (and vice versa)
   const periodBRequiredDays = periodADays === 7 ? 8 : periodADays === 8 ? 7 : 0;
 
-  // Holiday awareness for Period A (fetches once per countryId)
+  // Holiday awareness for Period A
   const periodAHolidays = useHolidayAwareness({
     countryIso,
-    countryId,
     startDate: anchorStartDate,
     endDate: periodAEndDate,
     categoryName: 'Vacation',
@@ -58,7 +59,6 @@ export function SVVacationSplitMode({
   // Holiday awareness for Period B (same country, different date range)
   const periodBHolidays = useHolidayAwareness({
     countryIso,
-    countryId,
     startDate: periodBStartDate,
     endDate: periodBEndDate,
     categoryName: 'Vacation',
@@ -173,6 +173,7 @@ export function SVVacationSplitMode({
                 disabled={(date) => {
                   if (date < anchorStartDate) return true;
                   if (userEndDate && date > userEndDate) return true;
+                  if (isHoliday(date)) return true;
                   return false;
                 }}
                 modifiers={{ holiday: periodAHolidays.holidayDatesForCalendar }}
@@ -253,9 +254,9 @@ export function SVVacationSplitMode({
                 }
                 disabled={(date) => {
                   if (!periodAEndDate) return true;
-                  // Must start strictly after Period 1 end
                   if (date <= periodAEndDate) return true;
                   if (userEndDate && date > userEndDate) return true;
+                  if (isHoliday(date)) return true;
                   return false;
                 }}
                 modifiers={{ holiday: periodBHolidays.holidayDatesForCalendar }}

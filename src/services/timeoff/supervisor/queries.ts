@@ -94,9 +94,7 @@ export async function getTeamMembersBySupervisor(
     teamMemberNames: row.team_member_names,
     teamMemberSurnames: row.team_member_surnames,
     teamMemberKnownAs: row.team_member_known_as,
-    teamMemberFullName: row.team_member_known_as
-      ? `${row.team_member_known_as} ${row.team_member_surnames}`
-      : `${row.team_member_names} ${row.team_member_surnames}`,
+    teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
     teamMemberSeniority: row.team_member_seniority,
     primaryRoleName: row.primary_role_name,
     countryId: row.country_id,
@@ -250,10 +248,7 @@ export async function getTeamTimeOffCurrentMonth(
     )
     SELECT
       tof.tms_id AS team_member_id,
-      CASE
-        WHEN tm.tms_known_as IS NOT NULL THEN tm.tms_known_as || ' ' || tm.tms_surnames
-        ELSE tm.tms_names || ' ' || tm.tms_surnames
-      END AS team_member_full_name,
+      tm.tms_names || ' ' || tm.tms_surnames AS team_member_full_name,
       tof.tto_stadat AS time_off_start_date,
       tof.tto_enddat AS time_off_end_date,
       tof.tto_days AS time_off_days,
@@ -442,10 +437,7 @@ export async function getAllTeamTimeOffs(
     SELECT
       tof.tto_id AS time_off_id,
       tof.tms_id AS team_member_id,
-      CASE
-        WHEN tm.tms_known_as IS NOT NULL THEN tm.tms_known_as || ' ' || tm.tms_surnames
-        ELSE tm.tms_names || ' ' || tm.tms_surnames
-      END AS team_member_full_name,
+      tm.tms_names || ' ' || tm.tms_surnames AS team_member_full_name,
       tm.wdid AS workday_id,
       tm.tms_enddat AS team_member_end_date,
       c.cou_iso AS country_iso,

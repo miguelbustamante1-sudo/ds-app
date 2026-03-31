@@ -56,6 +56,8 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: item.project?.projectName ?? null,
       clientContactName: item.clientContact?.name ?? null,
+      clientName: item.project?.client?.Name ?? null,
+      clientContacts: item.project?.client?.contacts.map((c) => ({ id: c.id, name: c.name })) ?? [],
     }));
     res.json(dtos);
   } catch (err) {
@@ -63,14 +65,37 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
   }
 });
 
-// GET /team-member-projects/team-member/:tms_id
+// GET /team-member-projects/team-member/:tms_id?active=true
 router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const tmsId = Number(req.params.tms_id);
     if (Number.isNaN(tmsId)) return res.status(400).json({ error: 'Invalid team member id' });
 
-    const items = await getTeamMemberProjectsByTeamMember(tmsId);
-    res.json(items);
+    const active = req.query.active === 'true' ? true : undefined;
+    const items = await getTeamMemberProjectsByTeamMember(tmsId, active);
+    const dtos: ProjectAssignmentWithDetailsDTO[] = items.map((item) => ({
+      projectAssignmentId: item.projectAssignmentId,
+      teamMemberId: item.teamMemberId,
+      projectId: item.projectId,
+      projectAssignmentStartDate: item.projectAssignmentStartDate,
+      projectAssignmentEndDate: item.projectAssignmentEndDate,
+      projectAssignmentBillRate: item.projectAssignmentBillRate ? Number(item.projectAssignmentBillRate) : null,
+      projectAssignmentBillRateCurrency: item.projectAssignmentBillRateCurrency,
+      projectAssignmentCreatedBy: item.projectAssignmentCreatedBy,
+      projectAssignmentCreatedDate: item.projectAssignmentCreatedDate,
+      projectAssignmentLastUpdatedBy: item.projectAssignmentLastUpdatedBy,
+      projectAssignmentLastUpdatedDate: item.projectAssignmentLastUpdatedDate,
+      projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
+      projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
+      clientContactId: item.clientContactId ?? null,
+      teamMemberName: null,
+      teamMemberSeniority: null,
+      projectName: item.project?.projectName ?? null,
+      clientContactName: item.clientContact?.name ?? null,
+      clientName: item.project?.client?.Name ?? null,
+      clientContacts: item.project?.client?.contacts.map((c) => ({ id: c.id, name: c.name })) ?? [],
+    }));
+    res.json(dtos);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch team member projects' });
   }
@@ -104,6 +129,8 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
       projectName: null,
       clientContactName: item.clientContact?.name ?? null,
+      clientName: null,
+      clientContacts: [],
     }));
     res.json(dtos);
   } catch (err) {

@@ -39,4 +39,5 @@ export interface CategoryByCountryDTO {
   categoryCountryFixedDays: number | null;
   categoryCountryIsCalendar: boolean;
   categoryCountryDaysBefore: number;
+  categoryCountryMaxDays: number;
 }

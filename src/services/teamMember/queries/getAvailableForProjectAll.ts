@@ -32,6 +32,10 @@ interface RawRow {
     projectId: number;
     projectName: string;
     projectAssignmentAllocation: number;
+    projectAssignmentStartDate: string | null;
+    projectAssignmentEndDate: string | null;
+    clientName: string | null;
+    clientContacts: string[] | null;
   }>;
 }
 
@@ -96,6 +100,10 @@ export async function getAvailableForProjectAll(
           projectId: Number(p.projectId),
           projectName: p.projectName,
           projectAssignmentAllocation: Number(p.projectAssignmentAllocation),
+          projectAssignmentStartDate: null,
+          projectAssignmentEndDate: null,
+          clientName: null,
+          clientContacts: [],
         }))
       : [];
 
@@ -107,9 +115,7 @@ export async function getAvailableForProjectAll(
       teamMemberNames: row.team_member_names,
       teamMemberSurnames: row.team_member_surnames,
       teamMemberKnownAs: row.team_member_known_as,
-      teamMemberFullName: row.team_member_known_as
-        ? `${row.team_member_known_as} ${row.team_member_surnames}`
-        : `${row.team_member_names} ${row.team_member_surnames}`,
+      teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
       primaryRoleName: row.primary_role_name,

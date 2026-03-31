@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiGet, ApiError } from '@/lib/api';
 import { useMyTimeOffOperations } from '@/hooks/useMyTimeOffOperations';
 import { useMyWorkdayBalance } from '@/hooks/useMyWorkdayBalance';
+import { HolidayProvider } from './context/HolidayContext';
 import { MyTimeOffList } from './components/MyTimeOffList';
 import { TimeOffRequestForm } from './components/TimeOffRequestForm';
 import { CancelMyTimeOffDialog } from './components/CancelMyTimeOffDialog';
@@ -21,6 +22,8 @@ export function MyTimeOffPage() {
 
   const [timeOffs, setTimeOffs] = useState<TimeOffWithDetailsDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [countryIso, setCountryIso] = useState<string | null>(null);
+  const [countryId, setCountryId] = useState<number | null>(null);
   const { toast } = useToast();
   const { balance, loading: balanceLoading, refetchBalance } = useMyWorkdayBalance();
 
@@ -55,6 +58,15 @@ export function MyTimeOffPage() {
   useEffect(() => {
     loadTimeOffs();
   }, [loadTimeOffs]);
+
+  useEffect(() => {
+    apiGet<{ countryIso: string; countryId: number }>('/api/team-members/me')
+      .then((profile) => {
+        setCountryIso(profile.countryIso);
+        setCountryId(profile.countryId);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSuccess = useCallback(() => {
     loadTimeOffs();
@@ -95,6 +107,7 @@ export function MyTimeOffPage() {
   );
 
   return (
+    <HolidayProvider countryId={countryId} countryIso={countryIso}>
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
@@ -111,6 +124,7 @@ export function MyTimeOffPage() {
             loading={loading}
             balance={balance}
             balanceLoading={balanceLoading}
+            countryIso={countryIso}
             onEditClick={handleEditClick}
             onCancelClick={handleCancelClick}
             onRowClick={handleRowClick}
@@ -147,5 +161,6 @@ export function MyTimeOffPage() {
         workdayBalance={balance}
       />
     </div>
+    </HolidayProvider>
   );
 }

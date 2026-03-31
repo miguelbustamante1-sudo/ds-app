@@ -91,9 +91,11 @@ export async function getDsUserByEmail(email: string): Promise<{ userId: number;
  */
 export interface MyTeamMemberProfile {
   teamMemberId: number;
+  teamMemberStartDate: Date;
   teamMemberEndDate: Date | null;
   countryId: number | null;
   countryIso: string | null;
+  gender: string | null;
 }
 
 /**
@@ -105,8 +107,10 @@ export async function getMyTeamMemberProfile(teamMemberId: number): Promise<MyTe
     where: { teamMemberId },
     select: {
       teamMemberId: true,
+      teamMemberStartDate: true,
       teamMemberEndDate: true,
       countryId: true,
+      workdayId: true,
       country: {
         select: {
           countryIso: true,
@@ -115,12 +119,23 @@ export async function getMyTeamMemberProfile(teamMemberId: number): Promise<MyTe
     },
   });
 
-  return teamMember
-    ? {
-        teamMemberId: teamMember.teamMemberId,
-        teamMemberEndDate: teamMember.teamMemberEndDate,
-        countryId: teamMember.countryId,
-        countryIso: teamMember.country?.countryIso ?? null,
-      }
-    : null;
+  if (!teamMember) return null;
+
+  let gender: string | null = null;
+  if (teamMember.workdayId) {
+    const workdayInfo = await prisma.workdayInfo.findUnique({
+      where: { wdid: teamMember.workdayId },
+      select: { gender: true },
+    });
+    gender = workdayInfo?.gender ?? null;
+  }
+
+  return {
+    teamMemberId: teamMember.teamMemberId,
+    teamMemberStartDate: teamMember.teamMemberStartDate,
+    teamMemberEndDate: teamMember.teamMemberEndDate,
+    countryId: teamMember.countryId,
+    countryIso: teamMember.country?.countryIso ?? null,
+    gender,
+  };
 }

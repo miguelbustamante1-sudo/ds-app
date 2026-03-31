@@ -11,7 +11,7 @@
 
 -- 1. Time Off Statuses
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (1, 'Tentative') ON CONFLICT (sta_id) DO NOTHING;
-INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (2, 'Acknoledge') ON CONFLICT (sta_id) DO NOTHING;
+INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (2, 'Acknowledge') ON CONFLICT (sta_id) DO NOTHING;
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (3, 'Taken') ON CONFLICT (sta_id) DO NOTHING;
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (4, 'Cancelled') ON CONFLICT (sta_id) DO NOTHING;
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (5, 'Rejected') ON CONFLICT (sta_id) DO NOTHING;
@@ -24,7 +24,7 @@ INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('1', 'E
 INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('2', 'Guatemala', '1', 'GT') ON CONFLICT (cou_id) DO NOTHING;
 INSERT INTO ds.cou_countries (cou_id, cou_name, reg_id, cou_iso) VALUES ('3', 'Mexico', '1', 'MX') ON CONFLICT (cou_id) DO NOTHING;
 
--- 5. Time Off Categories
+-- 4. Time Off Categories
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (1, 'Bench') ON CONFLICT (tot_id) DO NOTHING;
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (2, 'Bereavement') ON CONFLICT (tot_id) DO NOTHING;
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (3, 'Budget Constraint') ON CONFLICT (tot_id) DO NOTHING;
@@ -42,7 +42,7 @@ INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (14, 'Vacation') ON 
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (15, 'JANP') ON CONFLICT (tot_id) DO NOTHING;
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name) VALUES (16, 'Personal Time Off') ON CONFLICT (tot_id) DO NOTHING;
 
--- 6. Category x Country mappings
+-- 5. Category x Country mappings
 INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days, ttc_allow_half_day, ttc_is_calendar) VALUES ('1', '1', '1', 'f', NULL, 'f', 'f') ON CONFLICT (tot_id, cou_id) DO NOTHING;
 INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days, ttc_allow_half_day, ttc_is_calendar) VALUES ('3', '1', '1', 'f', NULL, 'f', 'f') ON CONFLICT (tot_id, cou_id) DO NOTHING;
 INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days, ttc_allow_half_day, ttc_is_calendar) VALUES ('4', '1', '1', 'f', NULL, 'f', 'f') ON CONFLICT (tot_id, cou_id) DO NOTHING;
@@ -81,27 +81,25 @@ INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fix
 INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days, ttc_allow_half_day, ttc_is_calendar) VALUES ('5', '2', '0', 'f', NULL, 'f', 'f') ON CONFLICT (tot_id, cou_id) DO NOTHING;
 INSERT INTO ds.ttc_type_of_to_by_country (tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days, ttc_allow_half_day, ttc_is_calendar) VALUES ('5', '3', '0', 'f', NULL, 'f', 'f') ON CONFLICT (tot_id, cou_id) DO NOTHING;
 
--- 7. Roles
--- Add roles
+-- 6. Roles
 INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description)
 VALUES (1, 'admin', 'admin') ON CONFLICT (rol_id) DO NOTHING;
 
--- 7.1 Team Member (the dev user)
--- Change the name to yours
+-- 6.1 Team Member (the dev user)
 INSERT INTO ds.tbl_team_members (tms_id, tms_names, tms_surnames, tms_stadat, cou_id, tms_seniority, tms_primary_role)
 VALUES (1, 'Dev', 'User', CURRENT_DATE, 1, 'Senior', 1) ON CONFLICT (tms_id) DO NOTHING;
 
--- 8. Application User (links to team member)
--- IMPORTANT: Change the email to match DEV_USERNAME in .env.local
+-- 7. Application User (links to team member)
+-- Email is injected automatically from DEV_USERNAME in .env.local by setup-local-db.sh
 INSERT INTO ds.tbl_users (usr_id, usr_name, usr_email, usr_role, usr_stadat, tms_id)
-VALUES (1, 'Dev User', 'email.com', 'employee', CURRENT_DATE, 1) ON CONFLICT (usr_id) DO NOTHING;
+VALUES (1, 'Dev User', :'dev_email', 'employee', CURRENT_DATE, 1) ON CONFLICT (usr_id) DO NOTHING;
 
--- 9. Auth User (used by dev login)
--- IMPORTANT: Change the email to match DEV_USERNAME in .env.local
+-- 8. Auth User (used by dev login)
+-- Email is injected automatically from DEV_USERNAME in .env.local by setup-local-db.sh
 INSERT INTO sec.auth_users (id, onelogin_id, email, first_name, last_name, roles, created_at, updated_at)
-VALUES (1, 'dev-1', 'email.com', 'Dev', 'User', ARRAY['user', 'admin'], now(), now()) ON CONFLICT (id) DO NOTHING;
+VALUES (1, 'dev-1', :'dev_email', 'Dev', 'User', ARRAY['user', 'admin'], now(), now()) ON CONFLICT (id) DO NOTHING;
 
--- 10. Security Roles and User Role assignment
+-- 9. Security Roles and User Role assignment
 INSERT INTO sec.rol_roles (rol_id, rol_name, rol_description, created_at) VALUES (1, 'admin', 'Administrator', now()) ON CONFLICT (rol_id) DO NOTHING;
 INSERT INTO sec.rol_roles (rol_id, rol_name, rol_description, created_at) VALUES (2, 'user', 'Standard user', now()) ON CONFLICT (rol_id) DO NOTHING;
 
@@ -127,6 +125,7 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('1
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('18', 'SupervisorTimeOff', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('19', 'RBACOptions', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('20', 'Notifications', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES ('21', 'BenchMove', NOW()) ON CONFLICT (opt_id) DO NOTHING;
 
 
 -- Only insert permissions if the table is empty (no unique constraint to use ON CONFLICT)
@@ -166,5 +165,7 @@ BEGIN
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorTimeOff', 't', 't', 't', NULL, NOW(), '18', '2');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('RBACOptions', 't', 't', 't', NULL, NOW(), '19', '2');
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Notifications', 't', 't', 't', 'CRUD', NOW(), '20', '1');
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BenchMove', 't', 't', 'f', NULL, NOW(), '21', '1');
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BenchMove', 't', 't', 'f', NULL, NOW(), '21', '2');
   END IF;
 END $$;

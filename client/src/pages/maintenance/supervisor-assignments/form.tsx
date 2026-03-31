@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import type {
   SupervisorAssignmentDTO,
   CreateSupervisorAssignmentDTO,
@@ -17,13 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
 
@@ -60,7 +54,7 @@ export function SupervisorAssignmentFormDialog({
     register,
     handleSubmit,
     reset,
-    setValue,
+    control,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<SupervisorAssignmentFormData>({
@@ -181,52 +175,56 @@ export function SupervisorAssignmentFormDialog({
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="supervisorId">
+              <Label>
                 Supervisor <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={watchedSupervisorId}
-                onValueChange={(value) => setValue('supervisorId', value)}
-                disabled={loadingTeamMembers}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingTeamMembers ? 'Loading...' : 'Select a supervisor'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map((tm) => (
-                    <SelectItem key={tm.teamMemberId} value={tm.teamMemberId.toString()}>
-                      {formatTeamMemberOption(tm)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" {...register('supervisorId', { required: 'Supervisor is required' })} />
+              <Controller
+                name="supervisorId"
+                control={control}
+                rules={{ required: 'Supervisor is required' }}
+                render={({ field }) => (
+                  <ComboBox
+                    options={teamMembers.map((tm): ComboBoxOption => ({
+                      value: tm.teamMemberId.toString(),
+                      label: formatTeamMemberOption(tm),
+                    }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder={loadingTeamMembers ? 'Loading...' : 'Select a supervisor'}
+                    searchPlaceholder="Search supervisors..."
+                    emptyMessage="No supervisors found."
+                    disabled={loadingTeamMembers}
+                  />
+                )}
+              />
               {errors.supervisorId && (
                 <p className="text-sm text-destructive">{errors.supervisorId.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="teamMemberId">
+              <Label>
                 Team Member <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={watchedTeamMemberId}
-                onValueChange={(value) => setValue('teamMemberId', value)}
-                disabled={loadingTeamMembers}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingTeamMembers ? 'Loading...' : 'Select a team member'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map((tm) => (
-                    <SelectItem key={tm.teamMemberId} value={tm.teamMemberId.toString()}>
-                      {formatTeamMemberOption(tm)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" {...register('teamMemberId', { required: 'Team member is required' })} />
+              <Controller
+                name="teamMemberId"
+                control={control}
+                rules={{ required: 'Team member is required' }}
+                render={({ field }) => (
+                  <ComboBox
+                    options={teamMembers.map((tm): ComboBoxOption => ({
+                      value: tm.teamMemberId.toString(),
+                      label: formatTeamMemberOption(tm),
+                    }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder={loadingTeamMembers ? 'Loading...' : 'Select a team member'}
+                    searchPlaceholder="Search team members..."
+                    emptyMessage="No team members found."
+                    disabled={loadingTeamMembers}
+                  />
+                )}
+              />
               {errors.teamMemberId && (
                 <p className="text-sm text-destructive">{errors.teamMemberId.message}</p>
               )}

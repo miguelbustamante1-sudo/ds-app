@@ -167,6 +167,40 @@ router.get(
   }
 );
 
+/** GET /api/holiday-swaps/:id — single swap detail with role + available actions */
+router.get(
+  '/:id',
+  requirePermission('HolidaySwaps', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const teamMemberId = req.user?.teamMemberId;
+      if (!teamMemberId) {
+        res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
+        return;
+      }
+      const swapId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(swapId)) {
+        res.status(400).json({ error: 'Invalid swap ID.' });
+        return;
+      }
+      const detail = await holidaySwapOrchestrator.getSwapDetail(swapId, teamMemberId);
+      res.json(detail);
+    } catch (err: unknown) {
+      const statusCode = (err as Record<string, unknown>).statusCode;
+      if (statusCode === 404) {
+        res.status(404).json({ error: 'Holiday swap not found.' });
+        return;
+      }
+      if (statusCode === 403) {
+        res.status(403).json({ error: 'Access denied.' });
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
 /** PATCH /api/holiday-swaps/:id/review — supervisor approves or rejects */
 router.patch(
   '/:id/review',

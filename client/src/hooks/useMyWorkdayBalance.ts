@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '@/lib/api';
 
-interface WorkdayBalance {
+export interface WorkdayBalance {
   vacation: number;
   personalDays: number;
+  exceptionDaysUsed: number;
+  exceptionDaysRemaining: number;
 }
 
 export function useMyWorkdayBalance() {

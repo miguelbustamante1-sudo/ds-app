@@ -27,8 +27,9 @@ export interface TimeOffValidationContext {
   allowedCategoryIds: number[];
   blockingStatusIds: number[];
   categoryCountryDaysBefore: number;
+  categoryCountryMaxDays: number;
   categoryName: string;
-  workdayBalance: { vacation: number; personalDays: number };
+  workdayBalance: { vacation: number; personalDays: number; exceptionDaysUsed: number; exceptionDaysRemaining: number };
   activeSwaps: Array<{
     holidaySwapId: number;
     holidayName: string;

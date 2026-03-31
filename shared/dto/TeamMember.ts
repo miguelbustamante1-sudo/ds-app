@@ -18,6 +18,7 @@ export interface TeamMemberDTO {
   teamMemberSeniority: string;
   teamMemberPrimaryRole: number | null;
   tierBandId: number | null;
+  teamMemberFullLegalName: string | null;
   teamMemberCreatedBy: number | null;
   teamMemberCreatedDate: Date | null;
   teamMemberLastUpdatedBy: number | null;
@@ -40,11 +41,11 @@ export interface CreateTeamMemberDTO {
   teamMemberSurnames: string;
   teamMemberKnownAs: string | null;
   teamMemberStartDate: Date | string;
-  teamMemberSeniority: string;
   countryId: number | null;
   teamMemberPrimaryRole: number | null;
-  tierBandId: number | null;
+  tierBandId: number;
   workdayId: string | null;
+  teamMemberFullLegalName: string | null;
 }
 
 /**
@@ -60,11 +61,11 @@ export interface UpdateTeamMemberDTO {
   teamMemberKnownAs?: string | null;
   teamMemberStartDate?: Date | string;
   teamMemberEndDate?: Date | string | null;
-  teamMemberSeniority?: string;
   countryId?: number | null;
   teamMemberPrimaryRole?: number | null;
-  tierBandId?: number | null;
+  tierBandId?: number;
   workdayId?: string | null;
+  teamMemberFullLegalName?: string | null;
 }
 
 /**

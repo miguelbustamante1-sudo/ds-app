@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import {
@@ -21,13 +20,15 @@ import { SupervisorTimeOffList } from './components/SupervisorTimeOffList';
 import { SupervisorTimeOffForm } from './components/SupervisorTimeOffForm';
 import { CancelTimeOffDialog } from './components/CancelTimeOffDialog';
 import { EditSupervisorTimeOffDialog } from './components/EditSupervisorTimeOffDialog';
+import { TimeOffDetailPanel } from './components/TimeOffDetailPanel';
 
 export function SupervisorTimeOffPage() {
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Team members state
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
+  // Selected time off for detail panel
+  const [selectedTimeOffId, setSelectedTimeOffId] = useState<number | null>(null);
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [timeOffToCancel, setTimeOffToCancel] = useState<TimeOffWithDetailsDTO | null>(null);
@@ -59,6 +60,7 @@ export function SupervisorTimeOffPage() {
 
   // Load time-offs and balance when team member is selected
   useEffect(() => {
+    setSelectedTimeOffId(null);
     if (selectedTeamMember) {
       timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
       balanceHook.loadBalance(selectedTeamMember.teamMemberId);
@@ -74,8 +76,8 @@ export function SupervisorTimeOffPage() {
   }, []);
 
   const handleRowClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
-    navigate(`/timeoff-detail/${timeOff.timeOffId}`);
-  }, [navigate]);
+    setSelectedTimeOffId((prev) => prev === timeOff.timeOffId ? null : timeOff.timeOffId);
+  }, []);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setTimeOffToEdit(timeOff);
@@ -149,6 +151,8 @@ export function SupervisorTimeOffPage() {
               vacation={balanceHook.balance?.vacation ?? 0}
               personalDays={balanceHook.balance?.personalDays ?? 0}
               loading={balanceHook.loading}
+              countryIso={selectedTeamMember.countryIso}
+              exceptionDaysRemaining={balanceHook.balance?.exceptionDaysRemaining}
             />
           </div>
         )}
@@ -164,6 +168,7 @@ export function SupervisorTimeOffPage() {
               onSubmit={handleCreateTimeOff}
               loading={operationsHook.loading}
               categoryMode="all"
+              workdayBalance={balanceHook.balance}
             />
             <SupervisorTimeOffList
               timeOffs={timeOffsHook.timeOffs}
@@ -172,7 +177,21 @@ export function SupervisorTimeOffPage() {
               onCancelClick={handleCancelClick}
               onRowClick={handleRowClick}
               categoryMode="all"
+              selectedTimeOffId={selectedTimeOffId}
             />
+            {selectedTimeOffId && (
+              <div className="bg-card rounded-lg border p-4">
+                <h3 className="text-base font-semibold mb-4">Time Off Detail #{selectedTimeOffId}</h3>
+                <TimeOffDetailPanel
+                  timeOffId={selectedTimeOffId}
+                  onActionComplete={() => {
+                    if (selectedTeamMember) {
+                      timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-card rounded-lg border p-8 text-center text-muted-foreground">

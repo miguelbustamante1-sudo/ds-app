@@ -63,9 +63,22 @@ docker compose -f "$COMPOSE_FILE" --profile setup run --rm db-setup
 # ---- Step 3: Seed the database ----
 SEED_FILE="$SCRIPT_DIR/seed.sql"
 if [ -f "$SEED_FILE" ]; then
+
+  # Read and validate DEV_USERNAME from .env.local
+  DEV_USERNAME=$(grep -E "^DEV_USERNAME=" "$ENV_LOCAL" | cut -d= -f2 | tr -d ' ')
+  if [ -z "$DEV_USERNAME" ] || [ "$DEV_USERNAME" = "email.com" ] || [ "$DEV_USERNAME" = "your@email.com" ]; then
+    echo ""
+    echo "Error: DEV_USERNAME is not set or still has the placeholder value in .env.local"
+    echo "Set DEV_USERNAME (and VITE_DEV_USERNAME) to your email address, then run setup again."
+    exit 1
+  fi
+
   echo ""
-  echo "Seeding the database..."
-  docker compose -f "$COMPOSE_FILE" exec -T postgres-local psql -U postgres -d ds_app_local -f /dev/stdin < "$SEED_FILE" 2>&1 || true
+  echo "Seeding the database (dev user: $DEV_USERNAME)..."
+  docker compose -f "$COMPOSE_FILE" exec -T postgres-local \
+    psql -U postgres -d ds_app_local \
+    -v dev_email="$DEV_USERNAME" \
+    -f /dev/stdin < "$SEED_FILE" 2>&1 || true
   echo "Seed complete (duplicate rows are skipped on re-runs)."
 fi
 

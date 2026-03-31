@@ -121,6 +121,7 @@ export interface TimeOffDetailDTO {
   teamMemberName: string;
   role: 'owner' | 'supervisor';
   availableActions: ('acknowledge' | 'decline' | 'cancel')[];
+  creationComment: string | null;
   changeLogs: {
     changeLogId: number;
     changeLogComment: string;

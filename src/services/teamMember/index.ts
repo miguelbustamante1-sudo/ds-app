@@ -6,3 +6,8 @@ export { getSupervisorsForCountdownNotification } from './queries/getSupervisors
 export { getProfileForSupervisor } from './queries/getProfileForSupervisor';
 export { getReportsForPendingRequests } from './queries/getReportsForPendingRequests';
 export type { PendingRequestsTeamMember } from './queries/getReportsForPendingRequests';
+export { getProjectManagersForTeamMember } from './queries/getProjectManagersForTeamMember';
+export { getMyOwnProfile } from './queries/getMyOwnProfile';
+export { getSupervisorList } from './queries/getSupervisorList';
+export type { SupervisorListItemDTO } from './queries/getSupervisorList';
+export { getSupervisorChain } from './queries/getSupervisorChain';

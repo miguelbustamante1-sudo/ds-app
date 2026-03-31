@@ -30,15 +30,14 @@ That's it — Node.js is **not** required on your machine. Everything runs insid
 
 ## Before You Start: Configure Your Email
 
-The local setup requires your email to be set **consistently** in three places. **All three must use the exact same email address**, otherwise dev login will fail.
+The local setup requires your email to be set in **two places in `.env.local`**. The setup script reads it from there automatically — you never need to edit `seed.sql`.
 
 | Where | What to set | Why |
 | ----- | ----------- | --- |
-| `.env.local` — `DEV_USERNAME` | Your email | The server checks this when you log in |
+| `.env.local` — `DEV_USERNAME` | Your email | The server checks this when you log in; also used to seed your dev user into the database |
 | `.env.local` — `VITE_DEV_USERNAME` | Same email | Pre-fills the login form in the browser |
-| `scripts/seed.sql` — steps 8 and 9 | Same email | Inserts your user into `sec.auth_users` and `ds.tbl_team_members` so the DB recognizes you |
 
-**Pick your email first, then set it in all three places before running anything.**
+**Both values must be the same email address.** The setup script will fail early with a clear message if either is missing or still set to the placeholder.
 
 ## 1. Clone the Repository
 
@@ -70,13 +69,7 @@ The repository includes a `.env.local` file with defaults for local development.
 
 > **Note:** The `DATABASE_URL`, `DB_HOST`, and `DB_PORT` values in `.env.local` are for reference only. When running in containers, the `docker-compose.local.yml` overrides these to use the internal network (`postgres-local:5432`).
 
-## 3. Update the Seed Data
-
-Open `scripts/seed.sql` and update the email in **steps 8 and 9** to match the `DEV_USERNAME` you set in `.env.local`. This email must exist in both `sec.auth_users` and `ds.tbl_team_members` for dev login to work.
-
-The seed script is **idempotent** — running it multiple times won't create duplicates.
-
-## 4. Run the Setup Script
+## 3. Run the Setup Script
 
 ```bash
 bash scripts/setup-local-db.sh
@@ -85,13 +78,13 @@ bash scripts/setup-local-db.sh
 This single command does everything:
 1. Starts a local PostgreSQL 16 container and creates the required schemas (`ds`, `sec`, `com`)
 2. Runs `prisma db push` to create all tables based on `prisma/schema.prisma`
-3. Seeds the database with reference data and a dev user (`scripts/seed.sql`)
+3. Seeds the database with reference data and your dev user — email is read automatically from `DEV_USERNAME` in `.env.local`
 4. Builds the app using `Dockerfile.local` (compiles server + client)
 5. Starts the application container
 
 Once complete, the app is available at **http://localhost:3000**.
 
-## 5. Log In with Dev Login
+## 4. Log In with Dev Login
 
 1. Open **http://localhost:3000** in your browser
 2. On the sign-in page, click **"Dev Login"**
@@ -101,7 +94,7 @@ Once complete, the app is available at **http://localhost:3000**.
 
 > **Note:** The "Sign in with OneLogin" button won't work locally since it requires OneLogin SSO configuration.
 
-## 6. Useful Commands
+## 5. Useful Commands
 
 | Command | Description |
 | ------- | ----------- |
@@ -120,5 +113,5 @@ Once complete, the app is available at **http://localhost:3000**.
 - **Port 5433 already in use:** Another Postgres instance may be running. Stop it or change the port mapping in `docker-compose.local.yml`.
 - **App container exits immediately:** Check the logs with `docker compose -f docker-compose.local.yml logs app`.
 - **`prisma db push` fails:** Make sure the Postgres container is healthy. Run the setup script again.
-- **Dev login says "Test user not found":** Your email must match in all three places — `DEV_USERNAME` in `.env.local`, `VITE_DEV_USERNAME` in `.env.local`, and steps 8/9 in `scripts/seed.sql`. See the "Configure Your Email" section above.
+- **Dev login says "Test user not found":** `DEV_USERNAME` and `VITE_DEV_USERNAME` in `.env.local` must be the same email address. Re-run `bash scripts/setup-local-db.sh` after correcting them so the database is re-seeded.
 - **Code changes not reflected:** The app runs a compiled build inside a container. After code changes, rebuild with `docker compose -f docker-compose.local.yml up -d --build app`.

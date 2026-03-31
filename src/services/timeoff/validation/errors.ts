@@ -106,4 +106,22 @@ export const TimeOffValidationErrors = {
     message: `Your replacement day ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} is a personal holiday and cannot be included in a Time Off request.`,
     metadata: { date },
   }),
+
+  EXCEEDS_MAX_DAYS: (categoryName: string, requestedDays: number, maxDays: number): ValidationError => ({
+    code: 'EXCEEDS_MAX_DAYS',
+    message: `${categoryName} requests cannot exceed ${maxDays} day${maxDays !== 1 ? 's' : ''}. You requested ${requestedDays}.`,
+    metadata: { categoryName, requestedDays, maxDays },
+  }),
+
+  // Guatemala Vacation Exception (< 5 days limit)
+  GT_VACATION_EXCEPTION_LIMIT_REACHED: (
+    usedDays: number,
+    requestedDays: number,
+    windowStart: Date,
+    windowEnd: Date
+  ): ValidationError => ({
+    code: 'GT_VACATION_EXCEPTION_LIMIT_REACHED',
+    message: `You have used ${usedDays} of your 5 exception days this anniversary year (${windowStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} → ${windowEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}). This request of ${requestedDays} day${requestedDays !== 1 ? 's' : ''} would exceed the limit.`,
+    metadata: { usedDays, requestedDays, maxDays: 5, windowStart, windowEnd },
+  }),
 } as const;

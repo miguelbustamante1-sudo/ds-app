@@ -13,6 +13,10 @@ export interface TeamMemberReportProjectDTO {
   projectId: number;
   projectName: string;
   projectAssignmentAllocation: number;
+  projectAssignmentStartDate: Date | null;
+  projectAssignmentEndDate: Date | null;
+  clientName: string | null;
+  clientContacts: string[];
 }
 
 /**

@@ -30,7 +30,7 @@ interface TeamMemberFormData {
   teamMemberNames: string;
   teamMemberSurnames: string;
   teamMemberKnownAs: string;
-  teamMemberSeniority: string;
+  teamMemberFullLegalName: string;
   teamMemberStartDate: string;
   teamMemberEndDate: string;
   countryId: string;
@@ -76,7 +76,7 @@ export function TeamMemberFormDialog({
       teamMemberNames: '',
       teamMemberSurnames: '',
       teamMemberKnownAs: '',
-      teamMemberSeniority: '',
+      teamMemberFullLegalName: '',
       teamMemberStartDate: '',
       teamMemberEndDate: '',
       countryId: '',
@@ -85,6 +85,9 @@ export function TeamMemberFormDialog({
       workdayId: '',
     },
   });
+
+  // Register tierBandId for validation (controlled by ComboBox via setValue)
+  register('tierBandId', { required: 'Tier band is required' });
 
   const watchedCountryId = watch('countryId');
   const watchedPrimaryRole = watch('teamMemberPrimaryRole');
@@ -140,7 +143,7 @@ export function TeamMemberFormDialog({
           teamMemberNames: teamMember.teamMemberNames,
           teamMemberSurnames: teamMember.teamMemberSurnames,
           teamMemberKnownAs: teamMember.teamMemberKnownAs || '',
-          teamMemberSeniority: teamMember.teamMemberSeniority,
+          teamMemberFullLegalName: teamMember.teamMemberFullLegalName || '',
           teamMemberStartDate: startDate,
           teamMemberEndDate: endDate,
           countryId: teamMember.countryId?.toString() || '',
@@ -153,7 +156,7 @@ export function TeamMemberFormDialog({
           teamMemberNames: '',
           teamMemberSurnames: '',
           teamMemberKnownAs: '',
-          teamMemberSeniority: '',
+          teamMemberFullLegalName: '',
           teamMemberStartDate: '',
           teamMemberEndDate: '',
           countryId: '',
@@ -172,12 +175,12 @@ export function TeamMemberFormDialog({
           teamMemberNames: data.teamMemberNames.trim(),
           teamMemberSurnames: data.teamMemberSurnames.trim(),
           teamMemberKnownAs: data.teamMemberKnownAs.trim() || null,
-          teamMemberSeniority: data.teamMemberSeniority.trim(),
+          teamMemberFullLegalName: data.teamMemberFullLegalName.trim() || null,
           teamMemberStartDate: data.teamMemberStartDate,
           teamMemberEndDate: data.teamMemberEndDate || null,
           countryId: data.countryId ? Number(data.countryId) : null,
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
-          tierBandId: data.tierBandId ? Number(data.tierBandId) : null,
+          tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
         };
         await apiPut<TeamMemberDTO, UpdateTeamMemberDTO>(`/api/team-members/${teamMember.teamMemberId}`, payload);
@@ -190,11 +193,11 @@ export function TeamMemberFormDialog({
           teamMemberNames: data.teamMemberNames.trim(),
           teamMemberSurnames: data.teamMemberSurnames.trim(),
           teamMemberKnownAs: data.teamMemberKnownAs.trim() || null,
-          teamMemberSeniority: data.teamMemberSeniority.trim(),
+          teamMemberFullLegalName: data.teamMemberFullLegalName.trim() || null,
           teamMemberStartDate: data.teamMemberStartDate,
           countryId: data.countryId ? Number(data.countryId) : null,
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
-          tierBandId: data.tierBandId ? Number(data.tierBandId) : null,
+          tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
         };
         await apiPost<TeamMemberDTO, CreateTeamMemberDTO>('/api/team-members', payload);
@@ -338,38 +341,32 @@ export function TeamMemberFormDialog({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="teamMemberSeniority">
-                  Seniority <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="teamMemberSeniority"
-                  placeholder="e.g., Senior, Junior, Lead"
-                  {...register('teamMemberSeniority', {
-                    required: 'Seniority is required',
-                  })}
-                />
-                {errors.teamMemberSeniority && (
-                  <p className="text-sm text-destructive">{errors.teamMemberSeniority.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="teamMemberFullLegalName">Full Legal Name</Label>
+              <Input
+                id="teamMemberFullLegalName"
+                placeholder="e.g., Jonathan Michael Doe (Optional)"
+                {...register('teamMemberFullLegalName')}
+              />
+              <p className="text-sm text-muted-foreground">
+                Full legal name as it appears on official documents
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="teamMemberStartDate">
-                  Start Date <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="teamMemberStartDate"
-                  type="date"
-                  {...register('teamMemberStartDate', {
-                    required: 'Start date is required',
-                  })}
-                />
-                {errors.teamMemberStartDate && (
-                  <p className="text-sm text-destructive">{errors.teamMemberStartDate.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="teamMemberStartDate">
+                Start Date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="teamMemberStartDate"
+                type="date"
+                {...register('teamMemberStartDate', {
+                  required: 'Start date is required',
+                })}
+              />
+              {errors.teamMemberStartDate && (
+                <p className="text-sm text-destructive">{errors.teamMemberStartDate.message}</p>
+              )}
             </div>
 
             {isEditing && (
@@ -416,16 +413,21 @@ export function TeamMemberFormDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tierBandId">Tier Band</Label>
+                <Label htmlFor="tierBandId">
+                  Tier Band <span className="text-destructive">*</span>
+                </Label>
                 <ComboBox
                   options={tierBandOptions}
                   value={watchedTierBandId}
-                  onValueChange={(value) => setValue('tierBandId', value)}
+                  onValueChange={(value) => setValue('tierBandId', value, { shouldValidate: true })}
                   placeholder="Select a tier band..."
                   searchPlaceholder="Search tier bands..."
                   emptyMessage="No tier bands found."
                   disabled={loadingTierBands}
                 />
+                {errors.tierBandId && (
+                  <p className="text-sm text-destructive">{errors.tierBandId.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">

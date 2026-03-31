@@ -1,6 +1,7 @@
 import { prisma } from '../../../db/prisma';
 import { notificationOrchestrator } from '../../notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../notifications/repository';
+import { getProjectManagersForTeamMember } from '../../teamMember';
 import { formatDateDDMMYYYY } from './FormatDateDDMMYYYY';
 
 export async function notifySupervisorNewRequest(params: {
@@ -25,14 +26,24 @@ export async function notifySupervisorNewRequest(params: {
     select: { supervisorId: true },
   });
 
-  if (!supervisorAssignment?.supervisorId) return;
+  // Step 2: Resolve all PM teamMemberIds for this team member
+  const pmTeamMemberIds = await getProjectManagersForTeamMember(params.teamMemberId);
 
-  // Step 2: Resolve the supervisor's userId
-  const supervisorUserIds = await getUserIdsByTeamMemberIds([supervisorAssignment.supervisorId]);
-  const supervisorUserId = supervisorUserIds[0];
-  if (supervisorUserId === undefined) return;
+  // Step 3: Batch-resolve all teamMemberIds (supervisor + PMs) to userIds in a single call
+  const allTeamMemberIds = [
+    ...(supervisorAssignment?.supervisorId ? [supervisorAssignment.supervisorId] : []),
+    ...pmTeamMemberIds,
+  ];
 
-  // Step 3: Create the notification
+  if (allTeamMemberIds.length === 0) return;
+
+  const resolvedUserIds = await getUserIdsByTeamMemberIds(allTeamMemberIds);
+
+  // Step 4: Deduplicate
+  const uniqueUserIds = [...new Set(resolvedUserIds)];
+  if (uniqueUserIds.length === 0) return;
+
+  // Step 5: Create a single notification for all recipients
   await notificationOrchestrator.create({
     categoryName: 'Inbox',
     itemType: 'item-3',
@@ -47,6 +58,6 @@ export async function notifySupervisorNewRequest(params: {
       sourceId: params.timeOffId,
       sourceEntity: 'TimeOff',
     },
-    recipients: [{ userId: supervisorUserId, actionType: 'readonly' }],
+    recipients: uniqueUserIds.map((userId) => ({ userId, actionType: 'readonly' })),
   });
 }

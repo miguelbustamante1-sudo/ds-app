@@ -56,4 +56,6 @@ export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   teamMemberSeniority: string | null;
   projectName: string | null;
   clientContactName: string | null;
+  clientName: string | null;
+  clientContacts: { id: number; name: string }[];
 }
