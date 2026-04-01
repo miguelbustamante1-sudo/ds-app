@@ -19,11 +19,12 @@ export interface ElSalvadorVacationContext {
   isElSalvadorVacation: boolean;
   requestedDays: number;
   existingVacationDaysThisYear: number;
+  accruedVacationDays: number;
   currentYear: number;
 }
 
 const ALLOWED_DAYS = [7, 8, 15] as const;
-const MAX_ANNUAL_DAYS = 15;
+const LEGAL_MIN_DAYS = 15;
 
 export function validateElSalvadorVacation(
   svContext: ElSalvadorVacationContext | null
@@ -33,13 +34,16 @@ export function validateElSalvadorVacation(
     return { valid: true };
   }
 
-  const { requestedDays, existingVacationDaysThisYear } = svContext;
+  const { requestedDays, existingVacationDaysThisYear, accruedVacationDays } = svContext;
 
-  // Check if limit already reached (15+ days used)
-  if (existingVacationDaysThisYear >= MAX_ANNUAL_DAYS) {
+  // Annual cap is the higher of the legal minimum (15) and what's accrued in win_vacation
+  const maxAnnualDays = Math.max(LEGAL_MIN_DAYS, accruedVacationDays);
+
+  // Check if limit already reached
+  if (existingVacationDaysThisYear >= maxAnnualDays) {
     return {
       valid: false,
-      error: TimeOffValidationErrors.SV_VACATION_LIMIT_REACHED(existingVacationDaysThisYear),
+      error: TimeOffValidationErrors.SV_VACATION_LIMIT_REACHED(existingVacationDaysThisYear, maxAnnualDays),
     };
   }
 
@@ -68,10 +72,10 @@ export function validateElSalvadorVacation(
 
   // Check if total would exceed limit
   const totalDays = existingVacationDaysThisYear + requestedDays;
-  if (totalDays > MAX_ANNUAL_DAYS) {
+  if (totalDays > maxAnnualDays) {
     return {
       valid: false,
-      error: TimeOffValidationErrors.SV_VACATION_LIMIT_REACHED(existingVacationDaysThisYear),
+      error: TimeOffValidationErrors.SV_VACATION_LIMIT_REACHED(existingVacationDaysThisYear, maxAnnualDays),
     };
   }
 

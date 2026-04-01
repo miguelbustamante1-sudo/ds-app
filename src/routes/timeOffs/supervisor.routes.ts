@@ -28,6 +28,9 @@ import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
 import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
+import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+
+const SPLIT_STATUS_ID = 6;
 
 const router = express.Router();
 
@@ -374,7 +377,20 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
 
     const now = new Date();
 
-    const [createdA, createdB] = await prisma.$transaction(async (tx) => {
+    const [originRecord, createdA, createdB] = await prisma.$transaction(async (tx) => {
+      const origin = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodA.startDate),
+          timeOffEndDate: new Date(periodB.endDate),
+          timeOffDays: daysA + daysB,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: SPLIT_STATUS_ID,
+          timeOffIsException: false,
+        },
+      });
       const a = await tx.timeOff.create({
         data: {
           teamMemberId,
@@ -386,6 +402,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           categoryId,
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionA,
+          timeOffOriginalId: origin.timeOffId,
         },
       });
       const b = await tx.timeOff.create({
@@ -399,9 +416,10 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           categoryId,
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionB,
+          timeOffOriginalId: origin.timeOffId,
         },
       });
-      return [a, b] as const;
+      return [origin, a, b] as const;
     });
 
     const logComment = comment?.trim() || 'SV vacation split request created by supervisor';
@@ -423,6 +441,33 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       }),
     ]);
 
+    const authReq = req as ResolvedAuthRequest;
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(originRecord.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: originRecord as unknown as Record<string, unknown>,
+      comment: 'Split origin record created — represents the original 15-day SV vacation replaced by a split',
+    });
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(createdA.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: createdA as unknown as Record<string, unknown>,
+      comment: `Split Period A created — linked to split origin ${originRecord.timeOffId}`,
+    });
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(createdB.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: createdB as unknown as Record<string, unknown>,
+      comment: `Split Period B created — linked to split origin ${originRecord.timeOffId}`,
+    });
+
     try {
       const employeeUserIds = await getUserIdsByTeamMemberIds([teamMemberId]);
       const employeeUserId = employeeUserIds[0];
@@ -434,7 +479,6 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       const categoryLabel = category?.categoryName ?? 'time-off';
 
       if (employeeUserId !== undefined) {
-        const authReq = req as ResolvedAuthRequest;
         const supervisorName = authReq.user?.firstName
           ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
           : 'Your supervisor';
@@ -461,7 +505,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       console.error('[TimeOff] Failed to create notification on supervisor split create:', notifErr);
     }
 
-    res.status(201).json({ periodA: createdA, periodB: createdB });
+    res.status(201).json({ origin: originRecord, periodA: createdA, periodB: createdB });
   } catch (err) {
     console.error('[TimeOff] Error creating supervisor split vacation:', err);
     res.status(500).json({ error: 'Failed to create split vacation requests' });
@@ -643,6 +687,10 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
 
     if (timeOff.statusId === 5) { // Rejected
       return res.status(400).json({ error: 'Cannot edit a rejected time-off request' });
+    }
+
+    if (timeOff.statusId === SPLIT_STATUS_ID) {
+      return res.status(400).json({ error: 'Cannot edit a split origin record' });
     }
 
     const validationResult = await validateTimeOff({

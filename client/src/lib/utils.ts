@@ -37,6 +37,6 @@ export function parseUTCDateAsLocal(dateInput: string | Date): Date {
  * @param formatStr - date-fns format string (default: 'MMM dd, yyyy')
  * @returns Formatted date string
  */
-export function formatUTCDate(dateInput: string | Date, formatStr: string = 'MMM dd, yyyy'): string {
+export function formatUTCDate(dateInput: string | Date, formatStr: string = 'dd-MMM-yyyy'): string {
   return format(parseUTCDateAsLocal(dateInput), formatStr);
 }

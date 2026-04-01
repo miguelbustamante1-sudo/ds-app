@@ -19,7 +19,8 @@ import { parseUTCDateAsLocal } from '@/lib/utils';
 const SV_COUNTRY_ISO = 'SV';
 export const VACATION_CATEGORY_NAME = 'Vacation';
 const ALLOWED_DAYS = [7, 8, 15] as const;
-const MAX_ANNUAL_DAYS = 15;
+const LEGAL_MIN_DAYS = 15;
+const SPLIT_STATUS_ID = 6;
 
 // Types
 export interface SVVacationValidationResult {
@@ -79,6 +80,11 @@ export function getExistingVacationDaysThisYear(
         return false;
       }
 
+      // Exclude split parent records (their days are counted via the child records)
+      if (timeOff.statusId === SPLIT_STATUS_ID) {
+        return false;
+      }
+
       // Exclude self if editing
       if (currentTimeOffId && timeOff.timeOffId === currentTimeOffId) {
         return false;
@@ -103,8 +109,8 @@ export function getExistingVacationDaysThisYear(
 /**
  * Determines which day options are allowed based on existing vacation days used
  */
-function getAllowedDayOptions(existingDays: number): number[] {
-  if (existingDays >= MAX_ANNUAL_DAYS) {
+function getAllowedDayOptions(existingDays: number, maxAnnualDays: number): number[] {
+  if (existingDays >= maxAnnualDays) {
     return []; // No options available
   }
   if (existingDays === 7) {
@@ -122,18 +128,21 @@ function getAllowedDayOptions(existingDays: number): number[] {
  *
  * @param requestedDays - Number of days being requested
  * @param existingDays - Number of vacation days already used this year
+ * @param accruedVacationDays - Total vacation days accrued (from win_vacation); defaults to 15
  */
 export function validateSVVacation(
   requestedDays: number,
-  existingDays: number
+  existingDays: number,
+  accruedVacationDays: number = LEGAL_MIN_DAYS
 ): SVVacationValidationResult {
-  const allowedDayOptions = getAllowedDayOptions(existingDays);
+  const maxAnnualDays = Math.max(LEGAL_MIN_DAYS, accruedVacationDays);
+  const allowedDayOptions = getAllowedDayOptions(existingDays, maxAnnualDays);
 
-  // Check if limit already reached (15+ days used)
-  if (existingDays >= MAX_ANNUAL_DAYS) {
+  // Check if limit already reached
+  if (existingDays >= maxAnnualDays) {
     return {
       valid: false,
-      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is 15 days. No additional vacation can be requested.`,
+      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is ${maxAnnualDays} days. No additional vacation can be requested.`,
       allowedDayOptions,
       existingDays,
     };
@@ -170,10 +179,10 @@ export function validateSVVacation(
 
   // Check if total would exceed limit
   const totalDays = existingDays + requestedDays;
-  if (totalDays > MAX_ANNUAL_DAYS) {
+  if (totalDays > maxAnnualDays) {
     return {
       valid: false,
-      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is 15 days. No additional vacation can be requested.`,
+      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is ${maxAnnualDays} days. No additional vacation can be requested.`,
       allowedDayOptions,
       existingDays,
     };

@@ -75,7 +75,7 @@ export async function getTeamTimeOffByMonthRange(
       COALESCE(SUM(tof.tto_days), 0)::int AS total_days
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
-    WHERE tof.sta_id <> 4
+    WHERE tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND tof.tto_stadat >= ${effectiveStartDate}
       AND tof.tto_stadat <= ${effectiveEndDate}
     GROUP BY TO_CHAR(tof.tto_stadat, 'YYYY-MM')

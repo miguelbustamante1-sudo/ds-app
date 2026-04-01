@@ -1,6 +1,8 @@
 import { prisma } from '../../../db/prisma';
 import type { HolidaySwap, Holiday } from '@prisma/client';
 
+const SPLIT_STATUS_ID = 6;
+
 export interface CancellationValidationResult {
   valid: boolean;
   errorCode?: string;
@@ -33,8 +35,8 @@ export async function validateCancellation(
   });
 
   const excludeCancelled = cancelledStatus
-    ? { NOT: { statusId: cancelledStatus.statusId } }
-    : {};
+    ? { NOT: { statusId: { in: [cancelledStatus.statusId, SPLIT_STATUS_ID] } } }
+    : { NOT: { statusId: SPLIT_STATUS_ID } };
 
   // 2. Any active TimeOff created after swap approval whose range includes replacementDate
   const conflictingOnReplacement = await prisma.timeOff.findMany({

@@ -67,10 +67,10 @@ export const TimeOffValidationErrors = {
     metadata: { requestedDays, existingDays: 8, requiredDays: 7 },
   }),
 
-  SV_VACATION_LIMIT_REACHED: (existingDays: number): ValidationError => ({
+  SV_VACATION_LIMIT_REACHED: (existingDays: number, maxAnnualDays: number): ValidationError => ({
     code: 'SV_VACATION_LIMIT_REACHED',
-    message: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is 15 days. No additional vacation can be requested.`,
-    metadata: { existingDays, maxAnnualDays: 15 },
+    message: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is ${maxAnnualDays} days. No additional vacation can be requested.`,
+    metadata: { existingDays, maxAnnualDays },
   }),
 
   INSUFFICIENT_VACATION_BALANCE: (requested: number, available: number): ValidationError => ({

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FolderKanban, Building2, User } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
@@ -15,14 +15,12 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
   );
 
   return (
-    <Card className="md:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="md:col-span-2 lg:col-span-4">
+      <CardContent>
+        <CardTitle className="flex items-center gap-2 mb-4">
           <FolderKanban className="h-4 w-4" />
           Current Projects
         </CardTitle>
-      </CardHeader>
-      <CardContent>
         {projects.length === 0 ? (
           <p className="text-sm text-muted-foreground">No active project assignments.</p>
         ) : (

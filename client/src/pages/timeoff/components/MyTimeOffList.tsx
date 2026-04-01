@@ -72,6 +72,7 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, coun
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [showCancelled, setShowCancelled] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -177,9 +178,13 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, coun
   const data = timeOffs ?? [];
 
   const filteredData = useMemo(() => {
-    if (showCancelled) return data;
-    return data.filter(t => !t.statusName.toLowerCase().includes('cancelled'));
-  }, [data, showCancelled]);
+    return data.filter(t => {
+      const statusLower = t.statusName.toLowerCase();
+      if (!showCancelled && statusLower.includes('cancelled')) return false;
+      if (!showSplit && statusLower === 'split') return false;
+      return true;
+    });
+  }, [data, showCancelled, showSplit]);
 
   const table = useReactTable({
     data: filteredData,
@@ -242,6 +247,19 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, coun
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             Show cancelled
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="show-split-my"
+            checked={showSplit}
+            onCheckedChange={(checked) => setShowSplit(checked === true)}
+          />
+          <Label
+            htmlFor="show-split-my"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Show split
           </Label>
         </div>
       </div>

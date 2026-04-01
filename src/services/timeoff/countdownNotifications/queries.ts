@@ -18,7 +18,7 @@ export interface CountdownTimeOffDTO {
   teamMemberSurnames: string;
 }
 
-const EXCLUDED_STATUS_NAMES = ['rejected', 'cancelled'];
+const EXCLUDED_STATUS_NAMES = ['rejected', 'cancelled', 'split'];
 
 /**
  * Returns all active, non-rejected/cancelled time offs whose start date

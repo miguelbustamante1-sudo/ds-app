@@ -23,6 +23,9 @@ import { verifySupervisorRelationship, getTeamMemberTimeOffBreakdown } from '../
 import { validateCancellationDaysBefore } from '../../services/timeoff/components/ValidateCancellationDaysBefore';
 import { prisma } from '../../db/prisma';
 import type { TimeOffDetailDTO } from '../../../shared/dto/TimeOff';
+import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+
+const SPLIT_STATUS_ID = 6;
 
 const router = express.Router();
 
@@ -725,8 +728,21 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
 
     const now = new Date();
 
-    // Atomic save — both periods succeed or both are rolled back
-    const [createdA, createdB] = await prisma.$transaction(async (tx) => {
+    // Atomic save — origin + both periods succeed or all are rolled back
+    const [originRecord, createdA, createdB] = await prisma.$transaction(async (tx) => {
+      const origin = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodA.startDate),
+          timeOffEndDate: new Date(periodB.endDate),
+          timeOffDays: daysA + daysB,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: SPLIT_STATUS_ID,
+          timeOffIsException: false,
+        },
+      });
       const a = await tx.timeOff.create({
         data: {
           teamMemberId,
@@ -738,6 +754,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           categoryId,
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionA,
+          timeOffOriginalId: origin.timeOffId,
         },
       });
       const b = await tx.timeOff.create({
@@ -751,9 +768,10 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           categoryId,
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionB,
+          timeOffOriginalId: origin.timeOffId,
         },
       });
-      return [a, b] as const;
+      return [origin, a, b] as const;
     });
 
     const logComment = comment?.trim() || 'SV vacation split request created';
@@ -777,6 +795,31 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
 
     // Notify supervisor and adjust balance (best-effort — failure does not block creation)
     const authReq = req as ResolvedAuthRequest;
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(originRecord.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: originRecord as unknown as Record<string, unknown>,
+      comment: 'Split origin record created — represents the original 15-day SV vacation replaced by a split',
+    });
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(createdA.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: createdA as unknown as Record<string, unknown>,
+      comment: `Split Period A created — linked to split origin ${originRecord.timeOffId}`,
+    });
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(createdB.timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: createdB as unknown as Record<string, unknown>,
+      comment: `Split Period B created — linked to split origin ${originRecord.timeOffId}`,
+    });
     const employeeName = authReq.user?.firstName
       ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
       : 'A team member';
@@ -801,7 +844,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       console.error('[TimeOff] Failed to notify supervisor on split create:', notifErr);
     }
 
-    res.status(201).json({ periodA: createdA, periodB: createdB });
+    res.status(201).json({ origin: originRecord, periodA: createdA, periodB: createdB });
   } catch (err) {
     console.error('[TimeOff] Error creating split vacation:', err);
     res.status(500).json({ error: 'Failed to create split vacation requests' });

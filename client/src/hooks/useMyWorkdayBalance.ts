@@ -3,6 +3,7 @@ import { apiGet } from '@/lib/api';
 
 export interface WorkdayBalance {
   vacation: number;
+  rawVacation: number;
   personalDays: number;
   exceptionDaysUsed: number;
   exceptionDaysRemaining: number;

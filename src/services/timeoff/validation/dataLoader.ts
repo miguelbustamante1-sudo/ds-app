@@ -13,6 +13,7 @@ import { computeAnniversaryWindow } from '../utils/anniversaryYear';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 
 const CANCELLED_STATUS_NAME = 'cancelled';
+const SPLIT_STATUS_ID = 6;
 
 /**
  * Loads all validation context from the database
@@ -59,7 +60,10 @@ export async function loadValidationContext(
     select: { statusId: true, statusName: true },
   });
   const blockingStatusIds = allStatuses
-    .filter((s) => s.statusName.trim().toLowerCase() !== CANCELLED_STATUS_NAME)
+    .filter((s) => {
+      const name = s.statusName.trim().toLowerCase();
+      return name !== CANCELLED_STATUS_NAME && s.statusId !== SPLIT_STATUS_ID;
+    })
     .map((s) => s.statusId);
 
   // 5. Load potential overlapping time offs for same team member
@@ -142,11 +146,12 @@ function calculateCalendarDays(startDate: Date, endDate: Date): number {
 export async function loadElSalvadorVacationContext(
   input: TimeOffValidationInput
 ): Promise<ElSalvadorVacationContext | null> {
-  // 1. Load team member with country ISO
+  // 1. Load team member with country ISO and workday info for accrued vacation
   const teamMember = await prisma.teamMember.findUnique({
     where: { teamMemberId: input.teamMemberId },
     select: {
       teamMemberId: true,
+      workdayId: true,
       country: {
         select: { countryIso: true },
       },
@@ -175,19 +180,32 @@ export async function loadElSalvadorVacationContext(
       isElSalvadorVacation: false,
       requestedDays: 0,
       existingVacationDaysThisYear: 0,
+      accruedVacationDays: 0,
       currentYear: new Date().getFullYear(),
     };
   }
 
-  // 4. Calculate requested days from date range
+  // 4. Load accrued vacation days from win_workday_info
+  let accruedVacationDays = 15; // fallback to legal minimum
+  if (teamMember.workdayId) {
+    const workdayInfo = await prisma.workdayInfo.findUnique({
+      where: { wdid: teamMember.workdayId },
+      select: { vacation: true },
+    });
+    if (workdayInfo?.vacation != null) {
+      accruedVacationDays = Math.max(15, Number(workdayInfo.vacation));
+    }
+  }
+
+  // 5. Calculate requested days from date range
   const requestedDays = calculateCalendarDays(input.timeOffStartDate, input.timeOffEndDate);
 
-  // 5. Get current year boundaries
+  // 6. Get current year boundaries
   const currentYear = new Date().getFullYear();
   const yearStart = new Date(currentYear, 0, 1); // Jan 1
   const yearEnd = new Date(currentYear, 11, 31); // Dec 31
 
-  // 6. Get the Vacation category ID
+  // 7. Get the Vacation category ID
   const vacationCategory = await prisma.timeOffCategory.findFirst({
     where: {
       categoryName: { equals: VACATION_CATEGORY_NAME, mode: 'insensitive' },
@@ -200,21 +218,24 @@ export async function loadElSalvadorVacationContext(
       isElSalvadorVacation: true,
       requestedDays,
       existingVacationDaysThisYear: 0,
+      accruedVacationDays,
       currentYear,
     };
   }
 
-  // 7. Get cancelled status ID to exclude
+  // 8. Get cancelled status ID to exclude
   const cancelledStatus = await prisma.timeOffStatus.findFirst({
     where: { statusName: { equals: CANCELLED_STATUS_NAME, mode: 'insensitive' } },
     select: { statusId: true },
   });
 
-  // 8. Query existing vacation time-offs for current year
+  // 9. Query existing vacation time-offs for current year
   // Build AND conditions for exclusions
   const andConditions: object[] = [];
   if (cancelledStatus) {
-    andConditions.push({ NOT: { statusId: cancelledStatus.statusId } });
+    andConditions.push({ NOT: { statusId: { in: [cancelledStatus.statusId, SPLIT_STATUS_ID] } } });
+  } else {
+    andConditions.push({ NOT: { statusId: SPLIT_STATUS_ID } });
   }
   if (input.timeOffId) {
     andConditions.push({ NOT: { timeOffId: input.timeOffId } });
@@ -234,7 +255,7 @@ export async function loadElSalvadorVacationContext(
     select: { timeOffDays: true },
   });
 
-  // 9. Sum existing vacation days
+  // 10. Sum existing vacation days
   const existingVacationDaysThisYear = existingVacations.reduce(
     (sum, v) => sum + Number(v.timeOffDays),
     0
@@ -244,6 +265,7 @@ export async function loadElSalvadorVacationContext(
     isElSalvadorVacation: true,
     requestedDays,
     existingVacationDaysThisYear,
+    accruedVacationDays,
     currentYear,
   };
 }
@@ -303,6 +325,7 @@ export async function loadGuatemalaVacationExceptionContext(
   ]);
 
   const excludedStatusIds = [
+    SPLIT_STATUS_ID,
     ...(cancelledStatus ? [cancelledStatus.statusId] : []),
     ...(rejectedStatus ? [rejectedStatus.statusId] : []),
   ];

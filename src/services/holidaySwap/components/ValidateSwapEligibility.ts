@@ -1,5 +1,7 @@
 import { prisma } from '../../../db/prisma';
 
+const SPLIT_STATUS_ID = 6;
+
 export interface SwapEligibilityInput {
   teamMemberId: number;
   countryId: number;
@@ -70,7 +72,7 @@ export async function validateSwapEligibility(
       timeOffActive: 1,
       timeOffStartDate: { lte: holidayDate },
       timeOffEndDate: { gte: holidayDate },
-      ...(cancelledStatus ? { NOT: { statusId: cancelledStatus.statusId } } : {}),
+      ...(cancelledStatus ? { NOT: { statusId: { in: [cancelledStatus.statusId, SPLIT_STATUS_ID] } } } : { NOT: { statusId: SPLIT_STATUS_ID } }),
     },
   });
 

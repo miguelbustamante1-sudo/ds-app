@@ -6,7 +6,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -208,11 +208,13 @@ export function TeamMemberProfilePage() {
             <Skeleton className="h-4 w-64 mt-2" />
           </ToolbarHeading>
         </Toolbar>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
-          <Skeleton className="h-64 md:col-span-2" />
-          <Skeleton className="h-64 md:col-span-2" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64 md:col-span-2 lg:col-span-4" />
+          <Skeleton className="h-64 md:col-span-2 lg:col-span-4" />
         </div>
       </div>
     );
@@ -262,16 +264,14 @@ export function TeamMemberProfilePage() {
         </ToolbarHeading>
       </Toolbar>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {/* Personal Information */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <User className="h-4 w-4" />
               Personal Information
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
@@ -295,13 +295,11 @@ export function TeamMemberProfilePage() {
 
         {/* Work Information */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Briefcase className="h-4 w-4" />
               Work Information
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Seniority</dt>
@@ -320,13 +318,11 @@ export function TeamMemberProfilePage() {
 
         {/* Location */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <MapPin className="h-4 w-4" />
               Location
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Country</dt>
@@ -345,13 +341,11 @@ export function TeamMemberProfilePage() {
 
         {/* Supervision Details */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Users className="h-4 w-4" />
               Supervision Details
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Report Type</dt>
@@ -391,14 +385,12 @@ export function TeamMemberProfilePage() {
         </Card>
 
         {/* Workday Information */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Building2 className="h-4 w-4" />
               Workday Information
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             {!profile.workdayId ? (
               <p className="text-sm text-muted-foreground">No Workday ID linked to this team member</p>
             ) : (
@@ -481,14 +473,12 @@ export function TeamMemberProfilePage() {
         />
 
         {/* Time Off */}
-        <Card className="md:col-span-2">
-          <CardHeader>
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardContent className="space-y-4">
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
               Time Off
             </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="flex items-center gap-6">
               <div className="flex items-center space-x-2">
                 <Checkbox

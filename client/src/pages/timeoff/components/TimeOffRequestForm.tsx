@@ -222,7 +222,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   }, [categoryId]);
 
   const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays)
+    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
   // Days hint: respects isCalendar flag (calendar days vs workdays only)

@@ -74,6 +74,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
   const [globalFilter, setGlobalFilter] = useState('');
   const [showCancelled, setShowCancelled] = useState(false);
   const [showPast, setShowPast] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
 
   const filteredTimeOffs = useMemo(() => {
     const today = new Date();
@@ -103,8 +104,12 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
       result = result.filter((t) => !t.statusName.toLowerCase().includes('cancelled'));
     }
 
+    if (!showSplit) {
+      result = result.filter((t) => t.statusName.toLowerCase() !== 'split');
+    }
+
     return result;
-  }, [timeOffs, showCancelled, showPast, categoryMode]);
+  }, [timeOffs, showCancelled, showPast, showSplit, categoryMode]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -276,6 +281,19 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Show cancelled
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-split-supervisor"
+                checked={showSplit}
+                onCheckedChange={(checked) => setShowSplit(checked === true)}
+              />
+              <Label
+                htmlFor="show-split-supervisor"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Show split
               </Label>
             </div>
           </div>

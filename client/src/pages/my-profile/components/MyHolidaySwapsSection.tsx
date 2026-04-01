@@ -7,7 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -136,18 +136,18 @@ export function MyHolidaySwapsSection() {
 
   return (
     <>
-      <Card className="md:col-span-2">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <CalendarArrowDown className="h-4 w-4" />
-            Holiday Swaps
-          </CardTitle>
-          <Button size="sm" onClick={() => setRequestDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Request Swap
-          </Button>
-        </CardHeader>
+      <Card className="md:col-span-2 lg:col-span-4">
         <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarArrowDown className="h-4 w-4" />
+              Holiday Swaps
+            </CardTitle>
+            <Button size="sm" onClick={() => setRequestDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Request Swap
+            </Button>
+          </div>
           {loading ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-full" />

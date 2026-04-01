@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { warn, error } from '../../../logger';
 
 const CANCELLED_STATUS_NAME = 'cancelled';
+const SPLIT_STATUS_ID = 6;
 
 export async function processAttritionTimeOffs(): Promise<void> {
   const today = new Date();
@@ -57,7 +58,7 @@ export async function processAttritionTimeOffs(): Promise<void> {
           teamMemberId: member.teamMemberId,
           timeOffActive: 1,
           timeOffStartDate: { gt: today },
-          NOT: { statusId: cancelledStatusId },
+          NOT: { statusId: { in: [cancelledStatusId, SPLIT_STATUS_ID] } },
         },
         select: {
           timeOffId: true,

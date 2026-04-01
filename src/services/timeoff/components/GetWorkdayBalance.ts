@@ -4,12 +4,14 @@ import { computeAnniversaryWindow } from '../utils/anniversaryYear';
 
 export interface WorkdayBalanceResult {
   vacation: number;
+  rawVacation: number;             // Total accrued vacation days from win_vacation (before subtracting used)
   personalDays: number;
   exceptionDaysUsed: number;       // GT only; 0 for all other countries
   exceptionDaysRemaining: number;  // GT only; 5 - used, min 0
 }
 
 const REJECTED_STATUS_ID = 5;
+const SPLIT_STATUS_ID = 6;
 const GT_COUNTRY_ISO = 'GT';
 const MAX_EXCEPTION_DAYS = 5;
 
@@ -32,12 +34,12 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
   });
 
   if (!member || !member.workdayId) {
-    return { vacation: 0, personalDays: 0, exceptionDaysUsed: 0, exceptionDaysRemaining: MAX_EXCEPTION_DAYS };
+    return { vacation: 0, rawVacation: 0, personalDays: 0, exceptionDaysUsed: 0, exceptionDaysRemaining: MAX_EXCEPTION_DAYS };
   }
 
   const info = await getWorkdayInfoById(member.workdayId);
   if (!info) {
-    return { vacation: 0, personalDays: 0, exceptionDaysUsed: 0, exceptionDaysRemaining: MAX_EXCEPTION_DAYS };
+    return { vacation: 0, rawVacation: 0, personalDays: 0, exceptionDaysUsed: 0, exceptionDaysRemaining: MAX_EXCEPTION_DAYS };
   }
 
   const rawVacation = info.vacation !== null ? Number(info.vacation) : 0;
@@ -50,7 +52,7 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
   });
   const cancelledId = cancelledStatus?.statusId;
 
-  const excludedIds = [REJECTED_STATUS_ID, ...(cancelledId ? [cancelledId] : [])];
+  const excludedIds = [REJECTED_STATUS_ID, SPLIT_STATUS_ID, ...(cancelledId ? [cancelledId] : [])];
 
   // Sum used days by category for active requests
   const activeTimeOffs = await prisma.timeOff.findMany({
@@ -118,6 +120,7 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
 
   return {
     vacation: Math.max(0, rawVacation - usedVacation),
+    rawVacation,
     personalDays: Math.max(0, rawPersonalDays - usedPersonalDays),
     exceptionDaysUsed,
     exceptionDaysRemaining: Math.max(0, MAX_EXCEPTION_DAYS - exceptionDaysUsed),

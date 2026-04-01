@@ -187,7 +187,7 @@ export async function getTeamTimeOffByMonth(
       COALESCE(SUM(tof.tto_days), 0)::int AS total_days
     FROM ds.tbl_tms_time_off tof
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
-    WHERE tof.sta_id <> 4
+    WHERE tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND EXTRACT(YEAR FROM tof.tto_stadat) = ${targetYear}
     GROUP BY EXTRACT(MONTH FROM tof.tto_stadat)
     ORDER BY month_number
@@ -257,7 +257,7 @@ export async function getTeamTimeOffCurrentMonth(
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
     INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
-    WHERE tof.sta_id <> 4
+    WHERE tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND (
         (EXTRACT(YEAR FROM tof.tto_stadat) = ${currentYear} AND EXTRACT(MONTH FROM tof.tto_stadat) = ${currentMonth})
         OR (EXTRACT(YEAR FROM tof.tto_enddat) = ${currentYear} AND EXTRACT(MONTH FROM tof.tto_enddat) = ${currentMonth})
@@ -327,7 +327,7 @@ export async function getTeamYearlySummary(
       COALESCE(SUM(tof.tto_days), 0)::int AS total_days
     FROM team_hierarchy th
     LEFT JOIN ds.tbl_tms_time_off tof ON tof.tms_id = th.team_member_id
-      AND tof.sta_id <> 4
+      AND tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND EXTRACT(YEAR FROM tof.tto_stadat) = ${targetYear}
     GROUP BY th.team_member_id
   `;
@@ -365,7 +365,7 @@ export async function getTeamMemberTimeOffBreakdown(
     FROM ds.tbl_tms_time_off tof
     INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
     WHERE tof.tms_id = ${teamMemberId}
-      AND tof.sta_id <> 4
+      AND tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND EXTRACT(YEAR FROM tof.tto_stadat) = ${targetYear}
     GROUP BY cat.tot_id, cat.tot_name
     ORDER BY total_days DESC
@@ -526,7 +526,7 @@ export async function getTeamTimeOffByCountry(
     INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
-    WHERE tof.sta_id <> 4
+    WHERE tof.sta_id NOT IN (4, 6) -- 4 = Cancelled, 6 = Split
       AND tof.tto_stadat >= ${effectiveStartDate}
       AND tof.tto_stadat <= ${effectiveEndDate}
     GROUP BY c.cou_name, c.cou_iso

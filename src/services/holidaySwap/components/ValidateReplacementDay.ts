@@ -1,6 +1,8 @@
 import { prisma } from '../../../db/prisma';
 import type { SwapEligibilityResult } from './ValidateSwapEligibility';
 
+const SPLIT_STATUS_ID = 6;
+
 export interface ReplacementDayInput {
   teamMemberId: number;
   countryId: number;
@@ -114,7 +116,7 @@ export async function validateReplacementDay(
       timeOffActive: 1,
       timeOffStartDate: { lte: proposed },
       timeOffEndDate: { gte: proposed },
-      ...(cancelledStatus ? { NOT: { statusId: cancelledStatus.statusId } } : {}),
+      ...(cancelledStatus ? { NOT: { statusId: { in: [cancelledStatus.statusId, SPLIT_STATUS_ID] } } } : { NOT: { statusId: SPLIT_STATUS_ID } }),
     },
   });
 
