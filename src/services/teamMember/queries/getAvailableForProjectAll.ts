@@ -118,6 +118,7 @@ export async function getAvailableForProjectAll(
       teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
+      teamMemberStartDate: null,
       primaryRoleName: row.primary_role_name,
       countryId: row.country_id != null ? Number(row.country_id) : null,
       countryName: row.country_name,
@@ -125,6 +126,7 @@ export async function getAvailableForProjectAll(
       countryCurrencySymbol: row.country_currency_symbol,
       // These fields are supervisor-hierarchy concepts; not applicable here
       reportType: 'Direct' as const,
+      reportLevel: 0,
       supervisorAssignmentStartDate: new Date(0),
       supervisorAssignmentEndDate: null,
       currentProjects: projects,

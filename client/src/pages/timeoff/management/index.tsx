@@ -53,6 +53,7 @@ function toSupervisedTeamMember(timeOff: TimeOffWithTeamMemberDTO): SupervisedTe
     countryName: null,
     countryIso: timeOff.countryIso,
     reportType: 'Direct',
+    reportLevel: timeOff.reportLevel,
     supervisorAssignmentStartDate: new Date(),
     supervisorAssignmentEndDate: null,
     teamMemberEndDate: timeOff.teamMemberEndDate,
@@ -127,9 +128,9 @@ export function TimeOffManagementPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>Time Off Management</ToolbarPageTitle>
+          <ToolbarPageTitle>Time Off Review</ToolbarPageTitle>
           <ToolbarDescription>
-            View and manage all time off requests for your team members
+            Review the time off of your org
           </ToolbarDescription>
         </ToolbarHeading>
       </Toolbar>

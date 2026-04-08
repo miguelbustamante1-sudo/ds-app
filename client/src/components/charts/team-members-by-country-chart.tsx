@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
@@ -70,11 +69,9 @@ export function TeamMembersByCountryChart() {
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>My Team by Country</CardTitle>
-          <CardDescription>My team distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription className="mb-4">My team distribution across countries</CardDescription>
           <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
@@ -84,11 +81,9 @@ export function TeamMembersByCountryChart() {
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>My Team by Country</CardTitle>
-          <CardDescription>My team distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription className="mb-4">My team distribution across countries</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             Failed to load data: {error}
           </div>
@@ -100,11 +95,9 @@ export function TeamMembersByCountryChart() {
   if (chartData.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>My Team by Country</CardTitle>
-          <CardDescription>My team distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>My Team by Country</CardTitle>
+          <CardDescription className="mb-4">My team distribution across countries</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             No data available
           </div>
@@ -115,11 +108,9 @@ export function TeamMembersByCountryChart() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>My Team by Country</CardTitle>
-        <CardDescription>My team distribution across countries</CardDescription>
-      </CardHeader>
       <CardContent>
+        <CardTitle>My Team by Country</CardTitle>
+        <CardDescription className="mb-4">My team distribution across countries</CardDescription>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <BarChart
             data={chartData}

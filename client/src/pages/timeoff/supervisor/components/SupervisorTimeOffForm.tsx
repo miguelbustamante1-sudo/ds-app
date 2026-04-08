@@ -263,13 +263,16 @@ function SupervisorTimeOffFormInner({
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
 
+  const svMemberStartDate = teamMember?.teamMemberStartDate
+    ? parseUTCDateAsLocal(teamMember.teamMemberStartDate as unknown as string)
+    : null;
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4, svMemberStartDate, undefined, startDate ?? undefined)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays)
-    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+    ? validateSVVacation(requestedDays, existingVacationDays, undefined, svMemberStartDate)
+    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0, nextAnniversaryDate: null };
 
   // SV 15-day mode: applies whenever SV + Vacation
   const isSV15DayMode = isSVVacation;
@@ -446,7 +449,7 @@ function SupervisorTimeOffFormInner({
         ) : (
           <>
             {/* Date Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               {/* Start Date */}
               <div className="space-y-2">
                 <Label>
@@ -703,22 +706,31 @@ function SupervisorTimeOffFormInner({
           <Alert variant={svValidation.valid ? 'info' : 'destructive'}>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-2">El Salvador Vacation Policy (7/8/15 Day Rule)</p>
+              <p className="font-medium mb-2">El Salvador Vacation Policy</p>
               <p className="text-sm mb-2">
                 Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of 15 days
               </p>
-              {svValidation.allowedDayOptions.length > 0 && (
-                <p className="text-sm mb-2">
-                  Allowed request options: <span className="font-medium">{svValidation.allowedDayOptions.join(', ')} days</span>
-                </p>
-              )}
               {requestedDays > 0 && (
                 <p className="text-sm mb-2">
                   Current request: <span className="font-medium">{requestedDays} days</span>
                 </p>
               )}
+              {existingVacationDays === 0 && (
+                <p className="text-sm mb-2">
+                  To take vacation in two separate periods, select a start date and use the{' '}
+                  <span className="font-medium">Split</span> option. In split mode, you will only
+                  select the end date of the first period — the second period start date must be a
+                  future date, and its end date will be auto-calculated based on the remaining days
+                  (e.g. if period 1 is 7 days, period 2 will be fixed at 8 days).
+                </p>
+              )}
               {svValidation.errorMessage && (
-                <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
+                <p className="text-sm font-medium mt-2">
+                  {svValidation.errorMessage}
+                  {svValidation.nextAnniversaryDate && (
+                    <> You will be able to request vacation again from <span className="font-medium">{formatUTCDate(svValidation.nextAnniversaryDate.toISOString(), 'dd-MMM-yyyy')}</span>.</>
+                  )}
+                </p>
               )}
             </AlertDescription>
           </Alert>

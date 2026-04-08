@@ -20,6 +20,7 @@ export interface ProjectAssignmentDTO {
   projectAssignmentAllocation: number | null;
   projectAssignmentDeleted: boolean;
   clientContactId: number | null;
+  intercompanyBillRate: number | null;
 }
 
 /**
@@ -34,6 +35,7 @@ export interface CreateProjectAssignmentDTO {
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
+  intercompanyBillRate?: number | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export interface UpdateProjectAssignmentDTO {
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
+  intercompanyBillRate?: number | null;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { formatUTCDate } from '@/lib/utils';
 import type { ProjectAssignmentWithDetailsDTO } from '@shared/dto';
@@ -27,10 +27,8 @@ export function ProjectAssignmentsBlock({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Project Assignments</CardTitle>
-      </CardHeader>
       <CardContent>
+        <CardTitle className="mb-4">Project Assignments</CardTitle>
         {projects.length === 0 ? (
           <p className="text-sm text-muted-foreground">No active project assignments found.</p>
         ) : (

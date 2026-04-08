@@ -15,7 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -151,8 +150,8 @@ export function TimeOffActivityFeed() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardContent>
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <CardTitle className="text-base">Recent Time Off Activity</CardTitle>
@@ -166,15 +165,13 @@ export function TimeOffActivityFeed() {
           </button>
         </div>
         {isSupervisor && (
-          <Tabs value={scope} onValueChange={(v) => setScope(v as ActivityScope)} className="mt-2">
+          <Tabs value={scope} onValueChange={(v) => setScope(v as ActivityScope)} className="mb-3">
             <TabsList variant="line">
               <TabsTrigger value="mine">Mine</TabsTrigger>
               <TabsTrigger value="team">My Team</TabsTrigger>
             </TabsList>
           </Tabs>
         )}
-      </CardHeader>
-      <CardContent className="pt-0">
         {loading && (
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -103,13 +103,11 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
       <div className="grid gap-4 md:grid-cols-2">
         {/* Request Details */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 text-base mb-4">
               <Calendar className="h-4 w-4" />
               Request Details
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-3">
               <div>
                 <dt className="text-xs font-medium text-muted-foreground">Category</dt>
@@ -142,13 +140,11 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
 
         {/* Status */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 text-base mb-4">
               <User className="h-4 w-4" />
               Status
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-3">
               <div>
                 <dt className="text-xs font-medium text-muted-foreground">Team Member</dt>
@@ -170,10 +166,8 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
       {/* Actions */}
       {canCancelAction && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Actions</CardTitle>
-          </CardHeader>
           <CardContent>
+            <CardTitle className="text-base mb-4">Actions</CardTitle>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -192,10 +186,8 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
       {/* Changelog */}
       {detail.changeLogs.length > 0 && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Changelog</CardTitle>
-          </CardHeader>
           <CardContent>
+            <CardTitle className="text-base mb-4">Changelog</CardTitle>
             <div className="space-y-3">
               {detail.changeLogs.map((log) => (
                 <div

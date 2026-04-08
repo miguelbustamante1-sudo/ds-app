@@ -231,5 +231,6 @@ export interface TimeOffWithTeamMemberDTO {
   categoryName: string;
   statusId: number | null;
   statusName: string;
+  reportLevel: number;
   changeLogCount: number;
 }

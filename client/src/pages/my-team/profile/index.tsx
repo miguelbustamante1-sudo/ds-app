@@ -313,9 +313,6 @@ export function TeamMemberProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Current Projects */}
-        <ProjectsSection projects={profile.currentProjects} />
-
         {/* Location */}
         <Card>
           <CardContent>
@@ -383,6 +380,9 @@ export function TeamMemberProfilePage() {
             </dl>
           </CardContent>
         </Card>
+
+        {/* Current Projects */}
+        <ProjectsSection projects={profile.currentProjects} />
 
         {/* Workday Information */}
         <Card className="md:col-span-2 lg:col-span-4">

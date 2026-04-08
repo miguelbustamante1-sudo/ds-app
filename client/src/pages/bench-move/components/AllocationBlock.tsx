@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComboBox } from '@/components/ui/combobox';
@@ -38,10 +38,8 @@ export function AllocationBlock({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Bench Allocation</CardTitle>
-      </CardHeader>
       <CardContent>
+        <CardTitle className="mb-4">Bench Allocation</CardTitle>
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>

@@ -50,6 +50,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
+      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
@@ -88,6 +89,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
+      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
       teamMemberName: null,
       teamMemberSeniority: null,
       projectName: item.project?.projectName ?? null,
@@ -123,6 +125,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
+      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
@@ -261,10 +264,11 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { newStartDate, newBillRate, newCurrency } = req.body as {
+    const { newStartDate, newBillRate, newCurrency, newIntercompanyBillRate } = req.body as {
       newStartDate?: string;
       newBillRate?: number;
       newCurrency?: string;
+      newIntercompanyBillRate?: number | null;
     };
 
     if (!newStartDate || newBillRate === undefined || !newCurrency) {
@@ -298,6 +302,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
       projectAssignmentLastUpdatedBy: dsUserId,
       projectAssignmentLastUpdatedDate: now,
       projectAssignmentDeleted: false,
+      intercompanyBillRate: newIntercompanyBillRate !== undefined ? newIntercompanyBillRate : currentAssignment.intercompanyBillRate,
     };
 
     const { closed, created } = await closeAndCreateAssignment(id, closeEndDate, newRecord, dsUserId, now);

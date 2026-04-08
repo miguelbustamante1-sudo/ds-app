@@ -25,7 +25,9 @@ export interface SupervisedTeamMemberDTO {
   countryName: string | null;
   countryIso: string | null;
   reportType: ReportType;
+  reportLevel: number;
   supervisorAssignmentStartDate: Date;
   supervisorAssignmentEndDate: Date | null;
   teamMemberEndDate: Date | null;
+  teamMemberStartDate: Date | null;
 }

@@ -32,12 +32,14 @@ export interface TeamMemberReportDTO {
   teamMemberFullName: string;               // knownAs + surnames, or names + surnames
   teamMemberSeniority: string;
   teamMemberEndDate: Date | null;
+  teamMemberStartDate: Date | null;
   primaryRoleName: string | null;
   countryId: number | null;
   countryName: string | null;
   countryIso: string | null;
   countryCurrencySymbol: string | null;     // needed for bill-rate currency pre-fill
   reportType: ReportType;
+  reportLevel: number;
   supervisorAssignmentStartDate: Date;
   supervisorAssignmentEndDate: Date | null;
   currentProjects: TeamMemberReportProjectDTO[];

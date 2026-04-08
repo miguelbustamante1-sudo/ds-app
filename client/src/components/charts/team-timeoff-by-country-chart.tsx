@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
@@ -73,11 +72,9 @@ export function TeamTimeOffByCountryChart({ startDate, endDate }: TeamTimeOffByC
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Country</CardTitle>
-          <CardDescription>Time off distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Country</CardTitle>
+          <CardDescription className="mb-4">Time off distribution across countries</CardDescription>
           <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
@@ -87,11 +84,9 @@ export function TeamTimeOffByCountryChart({ startDate, endDate }: TeamTimeOffByC
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Country</CardTitle>
-          <CardDescription>Time off distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Country</CardTitle>
+          <CardDescription className="mb-4">Time off distribution across countries</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             Failed to load data: {error}
           </div>
@@ -103,11 +98,9 @@ export function TeamTimeOffByCountryChart({ startDate, endDate }: TeamTimeOffByC
   if (chartData.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Country</CardTitle>
-          <CardDescription>Time off distribution across countries</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Country</CardTitle>
+          <CardDescription className="mb-4">Time off distribution across countries</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             No data available
           </div>
@@ -118,11 +111,9 @@ export function TeamTimeOffByCountryChart({ startDate, endDate }: TeamTimeOffByC
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Team Time Off by Country</CardTitle>
-        <CardDescription>Time off distribution across countries</CardDescription>
-      </CardHeader>
       <CardContent>
+        <CardTitle>Team Time Off by Country</CardTitle>
+        <CardDescription className="mb-4">Time off distribution across countries</CardDescription>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <BarChart
             data={chartData}

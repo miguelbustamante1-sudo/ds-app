@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { XCircle, Pencil } from 'lucide-react';
+import { XCircle, Pencil, X } from 'lucide-react';
 import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import type { TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
 import {
@@ -7,6 +7,8 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getPaginationRowModel,
   SortingState,
   ColumnFiltersState,
@@ -15,19 +17,13 @@ import {
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
+import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface TimeOffManagementGridProps {
   timeOffs: TimeOffWithTeamMemberDTO[];
@@ -83,28 +79,35 @@ export function TimeOffManagementGrid({
     { id: 'timeOffStartDate', desc: true }
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
 
-  // Derive unique non-cancelled statuses from the data (exclude statusId 4 = Cancelled)
-  const availableStatuses = useMemo(() => {
-    const seen = new Map<number, string>();
+  // Pre-filter by showCancelled (parent-controlled toggle, not a column filter)
+  const filteredTimeOffs = useMemo(() => {
+    if (showCancelled) return timeOffs;
+    return timeOffs.filter((t) => t.statusId !== 4);
+  }, [timeOffs, showCancelled]);
+
+  // Derive filter options for DataGridColumnFilter
+  const statusOptions = useMemo(() => {
+    const seen = new Map<string, string>();
     for (const t of timeOffs) {
-      if (t.statusId !== null && t.statusId !== 4) {
-        seen.set(t.statusId, t.statusName);
-      }
+      if (t.statusName) seen.set(t.statusName, t.statusName);
     }
-    return Array.from(seen.entries()).map(([id, name]) => ({ statusId: id, statusName: name }));
+    return Array.from(seen, ([value, label]) => ({ value, label }));
   }, [timeOffs]);
 
-  // Apply status + cancelled filters
-  const filteredTimeOffs = useMemo(() => {
-    return timeOffs.filter((t) => {
-      const isCancelled = t.statusId === 4;
-      if (isCancelled) return showCancelled;
-      if (selectedStatusId === null) return true;
-      return t.statusId === selectedStatusId;
-    });
-  }, [timeOffs, showCancelled, selectedStatusId]);
+  const categoryOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const t of timeOffs) {
+      if (t.categoryId !== null) seen.set(t.categoryName, t.categoryName);
+    }
+    return Array.from(seen, ([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [timeOffs]);
+
+  const levelOptions = useMemo(() => {
+    const unique = [...new Set(timeOffs.map((t) => t.reportLevel))].sort((a, b) => a - b);
+    return unique.map((level) => ({ value: String(level), label: `Level ${level}` }));
+  }, [timeOffs]);
 
   const columns = useMemo<ColumnDef<TimeOffWithTeamMemberDTO>[]>(
     () => [
@@ -128,8 +131,25 @@ export function TimeOffManagementGrid({
         meta: { headerTitle: 'Team Member', skeleton: <Skeleton className="h-4 w-28" /> },
       },
       {
+        accessorKey: 'reportLevel',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Report Level" />,
+        cell: ({ row }) => (
+          <Badge variant="secondary">Level {row.original.reportLevel}</Badge>
+        ),
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(String(row.original.reportLevel));
+        },
+        size: 120,
+        meta: { headerTitle: 'Report Level', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
         accessorKey: 'categoryName',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Category" />,
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(row.original.categoryName);
+        },
         size: 150,
         meta: { headerTitle: 'Category', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -164,6 +184,10 @@ export function TimeOffManagementGrid({
             {row.original.statusName}
           </Badge>
         ),
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(row.original.statusName);
+        },
         size: 120,
         meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
@@ -238,6 +262,8 @@ export function TimeOffManagementGrid({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
   if (loading) {
@@ -252,49 +278,63 @@ export function TimeOffManagementGrid({
     );
   }
 
+  const isFiltered = columnFilters.length > 0;
+
   return (
     <div className="space-y-4">
       {/* Column Filters */}
-      <div className="flex flex-wrap gap-4 items-end">
-        <div className="space-y-1">
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-col gap-1">
           <Label htmlFor="wdid-filter" className="text-sm text-muted-foreground">WDID</Label>
           <Input
             id="wdid-filter"
             placeholder="Filter by WDID..."
             value={(table.getColumn('workdayId')?.getFilterValue() as string) ?? ''}
             onChange={(e) => table.getColumn('workdayId')?.setFilterValue(e.target.value)}
-            className="h-9 w-[180px]"
+            className="h-8 w-[180px]"
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label htmlFor="name-filter" className="text-sm text-muted-foreground">Team Member</Label>
           <Input
             id="name-filter"
             placeholder="Filter by name..."
             value={(table.getColumn('teamMemberFullName')?.getFilterValue() as string) ?? ''}
             onChange={(e) => table.getColumn('teamMemberFullName')?.setFilterValue(e.target.value)}
-            className="h-9 w-[200px]"
+            className="h-8 w-[200px]"
           />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="status-filter" className="text-sm text-muted-foreground">Status</Label>
-          <Select
-            value={selectedStatusId === null ? 'all' : String(selectedStatusId)}
-            onValueChange={(val) => setSelectedStatusId(val === 'all' ? null : Number(val))}
-          >
-            <SelectTrigger id="status-filter" className="h-9 w-[180px]">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {availableStatuses.map((s) => (
-                <SelectItem key={s.statusId} value={String(s.statusId)}>
-                  {s.statusName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col justify-end gap-1 self-end">
+          <DataGridColumnFilter
+            column={table.getColumn('categoryName')}
+            title="Category"
+            options={categoryOptions}
+          />
         </div>
+        <div className="flex flex-col justify-end gap-1 self-end">
+          <DataGridColumnFilter
+            column={table.getColumn('statusName')}
+            title="Status"
+            options={statusOptions}
+          />
+        </div>
+        <div className="flex flex-col justify-end gap-1 self-end">
+          <DataGridColumnFilter
+            column={table.getColumn('reportLevel')}
+            title="Report Level"
+            options={levelOptions}
+          />
+        </div>
+        {isFiltered && (
+          <Button
+            variant="ghost"
+            onClick={() => table.resetColumnFilters()}
+            className="h-8 px-2 lg:px-3 self-end"
+          >
+            Reset
+            <X className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Data Grid */}

@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, CalendarDays } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useToast } from '@/hooks/use-toast';
 import { useMyTeamMembers, useTeamYearlySummary } from '@/hooks/useSupervisorTimeOff';
 
@@ -37,6 +38,7 @@ export function MyTeamPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [levelFilter, setLevelFilter] = useState<number[]>([]);
 
   const { teamMembers, loading: loadingMembers, loadTeamMembers } = useMyTeamMembers({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
@@ -61,6 +63,21 @@ export function MyTeamPage() {
       yearlyTimeOffDays: summaryMap.get(member.teamMemberId) ?? 0,
     }));
   }, [teamMembers, summaries]);
+
+  // Unique sorted levels for the filter buttons
+  const availableLevels = useMemo(
+    () => [...new Set(teamMembersWithTimeOff.map((m) => m.reportLevel))].sort((a, b) => a - b),
+    [teamMembersWithTimeOff]
+  );
+
+  // Apply level filter on top of the merged data
+  const filteredByLevel = useMemo(
+    () =>
+      levelFilter.length === 0
+        ? teamMembersWithTimeOff
+        : teamMembersWithTimeOff.filter((m) => levelFilter.includes(m.reportLevel)),
+    [teamMembersWithTimeOff, levelFilter]
+  );
 
   const handleRowClick = (teamMember: TeamMemberWithTimeOff) => {
     navigate(`/my-team/${teamMember.teamMemberId}`);
@@ -115,15 +132,15 @@ export function MyTeamPage() {
         meta: { headerTitle: 'Country', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
-        accessorKey: 'reportType',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Report Type" />,
+        accessorKey: 'reportLevel',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Report Level" />,
         cell: ({ row }) => (
-          <Badge variant={row.original.reportType === 'Direct' ? 'primary' : 'secondary'}>
-            {row.original.reportType}
+          <Badge variant="secondary">
+            Level {row.original.reportLevel}
           </Badge>
         ),
         size: 120,
-        meta: { headerTitle: 'Report Type', skeleton: <Skeleton className="h-4 w-16" /> },
+        meta: { headerTitle: 'Report Level', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         accessorKey: 'yearlyTimeOffDays',
@@ -143,7 +160,7 @@ export function MyTeamPage() {
   );
 
   const table = useReactTable({
-    data: teamMembersWithTimeOff,
+    data: filteredByLevel,
     columns,
     state: {
       sorting,
@@ -188,14 +205,29 @@ export function MyTeamPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search team members..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search team members..."
+                  value={globalFilter}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {availableLevels.length > 1 && (
+                <ToggleGroup
+                  type="multiple"
+                  value={levelFilter.map(String)}
+                  onValueChange={(vals) => setLevelFilter(vals.map(Number))}
+                >
+                  {availableLevels.map((level) => (
+                    <ToggleGroupItem key={level} value={String(level)}>
+                      Level {level}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
             </div>
 
             <DataGridContainer>

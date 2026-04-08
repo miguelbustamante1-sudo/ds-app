@@ -44,6 +44,7 @@ interface TimeOffStatus {
 
 interface MyTeamMemberProfile {
   teamMemberId: number;
+  teamMemberStartDate: string | null;
   teamMemberEndDate: string | null;
   countryId: number | null;
   countryIso: string | null;
@@ -59,13 +60,14 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
-  workdayBalance: { vacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
+  workdayBalance: { vacation: number; rawVacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
 }
 
 export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
+  const [userStartDate, setUserStartDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -124,6 +126,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
         const profile = await apiGet<MyTeamMemberProfile>('/api/team-members/me');
         if (profile.teamMemberEndDate) {
           setUserEndDate(parseUTCDateAsLocal(profile.teamMemberEndDate));
+        }
+        if (profile.teamMemberStartDate) {
+          setUserStartDate(parseUTCDateAsLocal(profile.teamMemberStartDate));
         }
         setUserCountryIso(profile.countryIso);
       } catch (error) {
@@ -194,7 +199,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     : 0;
 
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4)
+    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, userStartDate, undefined, startDate ?? undefined)
     : 0;
 
   // SV 15-day mode: applies whenever SV + Vacation.
@@ -222,8 +227,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   }, [categoryId]);
 
   const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15)
-    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
+    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15, userStartDate)
+    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0, nextAnniversaryDate: null };
 
   // Days hint: respects isCalendar flag (calendar days vs workdays only)
   const hintDays = startDate && endDate && isDateRangeValid
@@ -604,22 +609,31 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           <Alert variant={svValidation.valid ? 'info' : 'destructive'}>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-2">El Salvador Vacation Policy (7/8/15 Day Rule)</p>
+              <p className="font-medium mb-2">El Salvador Vacation Policy</p>
               <p className="text-sm mb-2">
-                Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of 15 days
+                Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of {Math.max(15, workdayBalance?.rawVacation ?? 15)} days
               </p>
-              {svValidation.allowedDayOptions.length > 0 && (
-                <p className="text-sm mb-2">
-                  Allowed request options: <span className="font-medium">{svValidation.allowedDayOptions.join(', ')} days</span>
-                </p>
-              )}
               {requestedDays > 0 && (
                 <p className="text-sm mb-2">
                   Current request: <span className="font-medium">{requestedDays} days</span>
                 </p>
               )}
+              {existingVacationDays === 0 && (
+                <p className="text-sm mb-2">
+                  To take your vacation in two separate periods, select a start date and use the{' '}
+                  <span className="font-medium">Split</span> option. In split mode, you will only
+                  select the end date of the first period — the second period start date must be a
+                  future date, and its end date will be auto-calculated based on the remaining days
+                  (e.g. if period 1 is 7 days, period 2 will be fixed at 8 days).
+                </p>
+              )}
               {svValidation.errorMessage && (
-                <p className="text-sm font-medium text-destructive mt-2">{svValidation.errorMessage}</p>
+                <p className="text-sm font-medium mt-2">
+                  {svValidation.errorMessage}
+                  {svValidation.nextAnniversaryDate && (
+                    <> You will be able to request vacation again from <span className="font-medium">{formatUTCDate(svValidation.nextAnniversaryDate.toISOString(), 'dd-MMM-yyyy')}</span>.</>
+                  )}
+                </p>
               )}
             </AlertDescription>
           </Alert>

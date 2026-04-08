@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   getCoreRowModel,
+  getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnFiltersState,
   type PaginationState,
+  type SortingState,
 } from '@tanstack/react-table';
-import { Clock } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import {
   Toolbar,
   ToolbarHeading,
@@ -19,7 +25,9 @@ import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
+import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/auth/auth-provider';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -29,6 +37,15 @@ import { useTimeOffActivity, type ActivityScope } from './hooks/useTimeOffActivi
 import { classifyChange } from './utils/classifyChange';
 
 const EM_DASH = '—';
+
+const CHANGE_TYPE_OPTIONS = [
+  { label: 'Created',       value: 'created' },
+  { label: 'Approved',      value: 'approved' },
+  { label: 'Declined',      value: 'declined' },
+  { label: 'Cancelled',     value: 'cancelled' },
+  { label: 'Dates Changed', value: 'dates-changed' },
+  { label: 'Modified',      value: 'modified' },
+];
 
 function fmtDate(val: string | null | undefined): string {
   if (!val) return EM_DASH;
@@ -62,6 +79,8 @@ export function TimeOffActivityPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { canRead } = usePermissions();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const isSupervisor = canRead('SupervisorTimeOff');
   const scope = (searchParams.get('scope') === 'team' && isSupervisor ? 'team' : 'mine') as ActivityScope;
@@ -69,6 +88,24 @@ export function TimeOffActivityPage() {
   const { data, total, page, setPage, pageSize, loading } = useTimeOffActivity(scope);
 
   const pagination: PaginationState = { pageIndex: page, pageSize };
+
+  const categoryOptions = useMemo(() => {
+    const unique = new Set<string>();
+    data.forEach((row) => {
+      const val = row.currentCategory ?? row.newCategory ?? row.origCategory;
+      if (val) unique.add(val);
+    });
+    return Array.from(unique).sort().map((v) => ({ label: v, value: v }));
+  }, [data]);
+
+  const statusOptions = useMemo(() => {
+    const unique = new Set<string>();
+    data.forEach((row) => {
+      if (row.newStatus)  unique.add(row.newStatus);
+      if (row.origStatus) unique.add(row.origStatus);
+    });
+    return Array.from(unique).sort().map((v) => ({ label: v, value: v }));
+  }, [data]);
 
   const columns = useMemo<ColumnDef<TimeOffActivityLogEntryDTO>[]>(
     () => [
@@ -90,23 +127,35 @@ export function TimeOffActivityPage() {
         : []),
       {
         id: 'category',
+        accessorFn: (row) => row.currentCategory ?? row.newCategory ?? row.origCategory ?? '',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Category" />,
         cell: ({ row }) => row.original.currentCategory ?? row.original.newCategory ?? row.original.origCategory ?? EM_DASH,
+        filterFn: (row, _, filterValues: string[]) => {
+          if (!filterValues.length) return true;
+          const val = row.original.currentCategory ?? row.original.newCategory ?? row.original.origCategory ?? '';
+          return filterValues.includes(val);
+        },
         size: 140,
         meta: { headerTitle: 'Category', skeleton: <Skeleton className="h-4 w-24" /> },
       },
       {
         id: 'changeType',
+        accessorFn: (row) => classifyChange(row),
         header: ({ column }) => <DataGridColumnHeader column={column} title="Change" />,
         cell: ({ row }) => {
           const type = classifyChange(row.original);
           return <Badge variant={changeTypeBadgeVariant(type)}>{changeTypeLabel(type)}</Badge>;
+        },
+        filterFn: (row, _, filterValues: string[]) => {
+          if (!filterValues.length) return true;
+          return filterValues.includes(classifyChange(row.original));
         },
         size: 130,
         meta: { headerTitle: 'Change', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         id: 'status',
+        accessorFn: (row) => row.newStatus ?? row.origStatus ?? '',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
         cell: ({ row }) => {
           const { origStatus, newStatus } = row.original;
@@ -120,6 +169,11 @@ export function TimeOffActivityPage() {
             </span>
           );
         },
+        filterFn: (row, _, filterValues: string[]) => {
+          if (!filterValues.length) return true;
+          const val = row.original.newStatus ?? row.original.origStatus ?? '';
+          return filterValues.includes(val);
+        },
         size: 200,
         meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-32" /> },
       },
@@ -128,7 +182,6 @@ export function TimeOffActivityPage() {
         header: ({ column }) => <DataGridColumnHeader column={column} title="Dates" />,
         cell: ({ row }) => {
           const { currentStartDate, currentEndDate, origStartDate, origEndDate, newStartDate, newEndDate } = row.original;
-          // Always show current dates; if dates changed in this log entry, show the transition
           const currentRange = (currentStartDate ?? newStartDate)
             ? `${fmtDate(currentStartDate ?? newStartDate)} – ${fmtDate(currentEndDate ?? newEndDate)}`
             : null;
@@ -147,6 +200,7 @@ export function TimeOffActivityPage() {
           return currentRange;
         },
         size: 280,
+        enableSorting: false,
         meta: { headerTitle: 'Dates', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
@@ -163,16 +217,25 @@ export function TimeOffActivityPage() {
   const table = useReactTable({
     data,
     columns,
-    state: { pagination },
+    state: { pagination, sorting, columnFilters },
     pageCount: Math.ceil(total / pageSize),
     manualPagination: true,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     onPaginationChange: (updater) => {
       const next = typeof updater === 'function' ? updater(pagination) : updater;
       setPage(next.pageIndex);
     },
   });
+
+  const isFiltered = columnFilters.length > 0;
+  const filteredCount = table.getFilteredRowModel().rows.length;
 
   const handleRowClick = (entry: TimeOffActivityLogEntryDTO) => {
     const params = new URLSearchParams({ from: '/timeoff-activity', scope });
@@ -222,9 +285,40 @@ export function TimeOffActivityPage() {
 
         {!loading && (
           <>
+            <div className="flex items-center gap-2">
+              <DataGridColumnFilter
+                column={table.getColumn('category')}
+                title="Category"
+                options={categoryOptions}
+              />
+              <DataGridColumnFilter
+                column={table.getColumn('changeType')}
+                title="Change"
+                options={CHANGE_TYPE_OPTIONS}
+              />
+              <DataGridColumnFilter
+                column={table.getColumn('status')}
+                title="Status"
+                options={statusOptions}
+              />
+              {isFiltered && (
+                <Button
+                  variant="ghost"
+                  onClick={() => table.resetColumnFilters()}
+                  className="h-8 px-2 lg:px-3"
+                >
+                  Reset
+                  <X className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
             <p className="text-sm text-muted-foreground">
-              {total.toLocaleString()} record{total !== 1 ? 's' : ''} found
+              {isFiltered
+                ? `${filteredCount.toLocaleString()} of ${total.toLocaleString()} record${total !== 1 ? 's' : ''} (filtered)`
+                : `${total.toLocaleString()} record${total !== 1 ? 's' : ''} found`}
             </p>
+
             <DataGridContainer>
               <DataGrid
                 table={table}

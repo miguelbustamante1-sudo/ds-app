@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,11 +24,9 @@ export function TeamTimeOffCurrentMonthCard() {
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
-          <CardDescription>Time off scheduled for this month</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
+          <CardDescription className="mb-4">Time off scheduled for this month</CardDescription>
           <Skeleton className="h-[200px] w-full" />
         </CardContent>
       </Card>
@@ -39,11 +36,9 @@ export function TeamTimeOffCurrentMonthCard() {
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
-          <CardDescription>Time off scheduled for this month</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
+          <CardDescription className="mb-4">Time off scheduled for this month</CardDescription>
           <div className="flex h-[200px] items-center justify-center text-muted-foreground">
             Failed to load data: {error}
           </div>
@@ -55,11 +50,9 @@ export function TeamTimeOffCurrentMonthCard() {
   if (!data) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
-          <CardDescription>Time off scheduled for this month</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
+          <CardDescription className="mb-4">Time off scheduled for this month</CardDescription>
           <div className="flex h-[200px] items-center justify-center text-muted-foreground">
             No data available
           </div>
@@ -70,11 +63,9 @@ export function TeamTimeOffCurrentMonthCard() {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
-        <CardDescription>Time off scheduled for this month</CardDescription>
-      </CardHeader>
       <CardContent>
+        <CardTitle>Team Time Off - {currentMonthName}</CardTitle>
+        <CardDescription className="mb-4">Time off scheduled for this month</CardDescription>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-3 rounded-lg border p-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">

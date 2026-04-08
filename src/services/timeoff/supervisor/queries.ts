@@ -22,9 +22,11 @@ interface RawSupervisedMember {
   country_name: string | null;
   country_iso: string | null;
   report_type: string;
+  report_level: number;
   supervisor_assignment_start_date: Date;
   supervisor_assignment_end_date: Date | null;
   team_member_end_date: Date | null;
+  team_member_start_date: Date;
 }
 
 /**
@@ -78,9 +80,11 @@ export async function getTeamMembersBySupervisor(
       c.cou_name AS country_name,
       c.cou_iso AS country_iso,
       th.report_type,
+      th.depth AS report_level,
       th.supervisor_assignment_start_date,
       th.supervisor_assignment_end_date,
-      tm.tms_enddat AS team_member_end_date
+      tm.tms_enddat AS team_member_end_date,
+      tm.tms_stadat AS team_member_start_date
     FROM team_hierarchy th
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = th.team_member_id
     LEFT JOIN ds.tbl_roles r ON r.rol_id = tm.tms_primary_role
@@ -101,9 +105,11 @@ export async function getTeamMembersBySupervisor(
     countryName: row.country_name,
     countryIso: row.country_iso,
     reportType: row.report_type as ReportType,
+    reportLevel: Number(row.report_level),
     supervisorAssignmentStartDate: row.supervisor_assignment_start_date,
     supervisorAssignmentEndDate: row.supervisor_assignment_end_date,
     teamMemberEndDate: row.team_member_end_date,
+    teamMemberStartDate: row.team_member_start_date,
   }));
 }
 
@@ -404,6 +410,7 @@ interface RawAllTeamTimeOff {
   category_name: string;
   status_id: number | null;
   status_name: string;
+  report_level: number;
   change_log_count: number;
 }
 
@@ -419,7 +426,7 @@ export async function getAllTeamTimeOffs(
   const results = await prisma.$queryRaw<RawAllTeamTimeOff[]>`
     WITH RECURSIVE team_hierarchy AS (
       -- Base case: Direct reports
-      SELECT sa.tms_id AS team_member_id
+      SELECT sa.tms_id AS team_member_id, 1 AS depth
       FROM ds.tbl_tms_x_supervisor sa
       WHERE sa.sup_id = ${supervisorTeamMemberId}
         AND sa.txs_stadat <= ${today}
@@ -428,11 +435,18 @@ export async function getAllTeamTimeOffs(
       UNION ALL
 
       -- Recursive case: Indirect reports
-      SELECT sa.tms_id AS team_member_id
+      SELECT sa.tms_id AS team_member_id, th.depth + 1 AS depth
       FROM ds.tbl_tms_x_supervisor sa
       INNER JOIN team_hierarchy th ON sa.sup_id = th.team_member_id
       WHERE sa.txs_stadat <= ${today}
         AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${today})
+    ),
+    ranked_hierarchy AS (
+      SELECT DISTINCT ON (team_member_id)
+        team_member_id,
+        depth
+      FROM team_hierarchy
+      ORDER BY team_member_id, depth ASC
     )
     SELECT
       tof.tto_id AS time_off_id,
@@ -448,9 +462,10 @@ export async function getAllTeamTimeOffs(
       cat.tot_name AS category_name,
       tof.sta_id AS status_id,
       sta.sta_name AS status_name,
+      rh.depth AS report_level,
       (SELECT COUNT(*)::int FROM ds.toc_timeoff_changelog cl WHERE cl.tto_id = tof.tto_id) AS change_log_count
     FROM ds.tbl_tms_time_off tof
-    INNER JOIN team_hierarchy th ON tof.tms_id = th.team_member_id
+    INNER JOIN ranked_hierarchy rh ON tof.tms_id = rh.team_member_id
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = tof.tms_id
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     INNER JOIN ds.tot_time_off_types cat ON cat.tot_id = tof.tot_id
@@ -472,6 +487,7 @@ export async function getAllTeamTimeOffs(
     categoryName: row.category_name,
     statusId: row.status_id,
     statusName: row.status_name,
+    reportLevel: Number(row.report_level),
     changeLogCount: Number(row.change_log_count),
   }));
 }

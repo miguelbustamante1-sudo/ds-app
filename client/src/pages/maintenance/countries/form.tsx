@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import type { CountryDTO, CreateCountryDTO, UpdateCountryDTO } from '@shared/dto';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import type { CountryDTO, CreateCountryDTO, UpdateCountryDTO, RegionDTO } from '@shared/dto';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
-import { apiPost, apiPut } from '@/lib/api';
+import { apiGet, apiPost, apiPut } from '@/lib/api';
 
 interface CountryFormData {
   countryName: string;
@@ -37,11 +38,14 @@ export function CountryFormDialog({
 }: CountryFormDialogProps) {
   const { toast } = useToast();
   const isEditing = !!country;
+  const [regions, setRegions] = useState<RegionDTO[]>([]);
+  const [loadingRegions, setLoadingRegions] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CountryFormData>({
     defaultValues: {
@@ -51,6 +55,18 @@ export function CountryFormDialog({
       currencySymbol: '',
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      setLoadingRegions(true);
+      apiGet<RegionDTO[]>('/api/regions')
+        .then((data) => setRegions(data))
+        .catch(() =>
+          toast({ title: 'Error', description: 'Failed to load regions', variant: 'destructive' })
+        )
+        .finally(() => setLoadingRegions(false));
+    }
+  }, [open, toast]);
 
   useEffect(() => {
     if (open) {
@@ -82,10 +98,7 @@ export function CountryFormDialog({
           currencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPut<CountryDTO, UpdateCountryDTO>(`/api/countries/${country.countryId}`, payload);
-        toast({
-          title: 'Success',
-          description: 'Country updated successfully',
-        });
+        toast({ title: 'Success', description: 'Country updated successfully' });
       } else {
         const payload: CreateCountryDTO = {
           countryName: data.countryName.trim(),
@@ -94,10 +107,7 @@ export function CountryFormDialog({
           currencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPost<CountryDTO, CreateCountryDTO>('/api/countries', payload);
-        toast({
-          title: 'Success',
-          description: 'Country created successfully',
-        });
+        toast({ title: 'Success', description: 'Country created successfully' });
       }
 
       onSuccess();
@@ -109,6 +119,11 @@ export function CountryFormDialog({
       });
     }
   };
+
+  const regionOptions: ComboBoxOption[] = regions.map((r) => ({
+    value: r.regionId.toString(),
+    label: r.regionName,
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,23 +160,24 @@ export function CountryFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="regionId">Region ID</Label>
-              <Input
-                id="regionId"
-                type="number"
-                placeholder="Optional"
-                {...register('regionId', {
-                  pattern: {
-                    value: /^\d+$/,
-                    message: 'Region ID must be a number',
-                  },
-                })}
+              <Label>Region</Label>
+              <Controller
+                name="regionId"
+                control={control}
+                render={({ field }) => (
+                  <ComboBox
+                    options={regionOptions}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder={loadingRegions ? 'Loading...' : 'Select a region (optional)'}
+                    searchPlaceholder="Search regions..."
+                    emptyMessage="No regions found."
+                    disabled={loadingRegions}
+                  />
+                )}
               />
-              {errors.regionId && (
-                <p className="text-sm text-destructive">{errors.regionId.message}</p>
-              )}
               <p className="text-sm text-muted-foreground">
-                Leave empty if the country is not associated with a region
+                Select a region or click the selected item again to clear
               </p>
             </div>
 
@@ -181,9 +197,7 @@ export function CountryFormDialog({
               {errors.countryIso && (
                 <p className="text-sm text-destructive">{errors.countryIso.message}</p>
               )}
-              <p className="text-sm text-muted-foreground">
-                Optional 2-letter ISO country code
-              </p>
+              <p className="text-sm text-muted-foreground">Optional 2-letter ISO country code</p>
             </div>
 
             <div className="space-y-2">
@@ -217,7 +231,7 @@ export function CountryFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || loadingRegions}>
               {isSubmitting ? 'Saving...' : isEditing ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

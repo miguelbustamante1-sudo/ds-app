@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiPatch } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -26,6 +26,7 @@ interface FormData {
   newStartDate: string;
   newBillRate: string;
   newCurrency: string;
+  newIntercompanyBillRate: string;
 }
 
 export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: Props) {
@@ -44,6 +45,7 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
         newStartDate: '',
         newBillRate: assignment.projectAssignmentBillRate?.toString() ?? '',
         newCurrency: assignment.projectAssignmentBillRateCurrency ?? '',
+        newIntercompanyBillRate: assignment.intercompanyBillRate?.toString() ?? '',
       });
     }
   }, [open, assignment, reset]);
@@ -61,6 +63,7 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
         newStartDate: data.newStartDate,
         newBillRate: Number(data.newBillRate),
         newCurrency: data.newCurrency.toUpperCase(),
+        newIntercompanyBillRate: data.newIntercompanyBillRate ? Number(data.newIntercompanyBillRate) : null,
       });
       toast({ title: 'Success', description: 'Bill rate updated successfully.' });
       onSuccess();
@@ -94,8 +97,8 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
                   required: 'New start date is required',
                   validate: (val) => {
                     if (!assignment?.projectAssignmentStartDate) return true;
-                    const newDate = new Date(val);
-                    const currentDate = new Date(assignment.projectAssignmentStartDate);
+                    const newDate = parseUTCDateAsLocal(val);
+                    const currentDate = parseUTCDateAsLocal(String(assignment.projectAssignmentStartDate));
                     return newDate > currentDate || 'Date must be strictly after the current start date';
                   },
                 })}
@@ -141,6 +144,22 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
               />
               {errors.newCurrency && (
                 <p className="text-sm text-destructive">{errors.newCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newIntercompanyBillRate">Intercompany Bill Rate</Label>
+              <Input
+                id="newIntercompanyBillRate"
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('newIntercompanyBillRate', {
+                  min: { value: 0, message: 'Rate must be 0 or greater' },
+                })}
+              />
+              {errors.newIntercompanyBillRate && (
+                <p className="text-sm text-destructive">{errors.newIntercompanyBillRate.message}</p>
               )}
             </div>
           </div>

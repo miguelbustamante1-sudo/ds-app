@@ -15,6 +15,36 @@
 import type { TimeOffWithDetailsDTO } from '../../../../../shared/dto/TimeOff';
 import { parseUTCDateAsLocal } from '@/lib/utils';
 
+/**
+ * Computes the anniversary year window for SV vacation tracking.
+ * Mirrors the backend computeAnniversaryWindow() logic.
+ */
+function computeSVAnniversaryWindow(
+  teamMemberStartDate: Date,
+  today: Date = new Date()
+): { windowStart: Date; windowEnd: Date } {
+  const currentYear = today.getFullYear();
+  const month = teamMemberStartDate.getUTCMonth();
+  const day = teamMemberStartDate.getUTCDate();
+
+  const thisYearAnniversary = new Date(Date.UTC(currentYear, month, day));
+
+  const windowStart =
+    today >= thisYearAnniversary
+      ? thisYearAnniversary
+      : new Date(Date.UTC(currentYear - 1, month, day));
+
+  const windowEnd = new Date(
+    Date.UTC(
+      windowStart.getUTCFullYear() + 1,
+      windowStart.getUTCMonth(),
+      windowStart.getUTCDate() - 1
+    )
+  );
+
+  return { windowStart, windowEnd };
+}
+
 // Constants
 const SV_COUNTRY_ISO = 'SV';
 export const VACATION_CATEGORY_NAME = 'Vacation';
@@ -28,6 +58,7 @@ export interface SVVacationValidationResult {
   errorMessage: string | null;
   allowedDayOptions: number[];
   existingDays: number;
+  nextAnniversaryDate: Date | null;
 }
 
 /**
@@ -59,19 +90,37 @@ export function calculateCalendarDays(startDate: Date, endDate: Date): number {
 }
 
 /**
- * Calculates existing vacation days used in the current calendar year.
+ * Calculates existing vacation days used in the anniversary year that contains referenceDate.
  * Excludes cancelled time offs and optionally excludes a specific time off (for edit mode).
  *
  * @param timeOffs - List of existing time off requests
  * @param cancelledStatusId - Status ID for cancelled time offs (to exclude)
+ * @param teamMemberStartDate - Employment start date used to compute the anniversary window
  * @param currentTimeOffId - Optional ID of time off being edited (to exclude from calculation)
+ * @param referenceDate - Date used to determine which anniversary window to evaluate (defaults to today)
  */
 export function getExistingVacationDaysThisYear(
   timeOffs: TimeOffWithDetailsDTO[],
   cancelledStatusId: number | null,
-  currentTimeOffId?: number
+  teamMemberStartDate: Date | null,
+  currentTimeOffId?: number,
+  referenceDate?: Date
 ): number {
-  const currentYear = new Date().getFullYear();
+  const today = referenceDate ?? new Date();
+
+  let windowStart: Date;
+  let windowEnd: Date;
+
+  if (teamMemberStartDate) {
+    const window = computeSVAnniversaryWindow(teamMemberStartDate, today);
+    windowStart = window.windowStart;
+    windowEnd = window.windowEnd;
+  } else {
+    // Fallback to calendar year when start date is unavailable
+    const currentYear = today.getFullYear();
+    windowStart = new Date(Date.UTC(currentYear, 0, 1));
+    windowEnd = new Date(Date.UTC(currentYear, 11, 31));
+  }
 
   return timeOffs
     .filter((timeOff) => {
@@ -95,9 +144,9 @@ export function getExistingVacationDaysThisYear(
         return false;
       }
 
-      // Only count time offs starting in current year
+      // Only count time offs starting within the anniversary window
       const startDate = parseUTCDateAsLocal(timeOff.timeOffStartDate);
-      if (startDate.getFullYear() !== currentYear) {
+      if (startDate < windowStart || startDate > windowEnd) {
         return false;
       }
 
@@ -127,24 +176,34 @@ function getAllowedDayOptions(existingDays: number, maxAnnualDays: number): numb
  * Validates an El Salvador vacation request based on the 7/8/15 day constraint
  *
  * @param requestedDays - Number of days being requested
- * @param existingDays - Number of vacation days already used this year
+ * @param existingDays - Number of vacation days already used this anniversary year
  * @param accruedVacationDays - Total vacation days accrued (from win_vacation); defaults to 15
+ * @param teamMemberStartDate - Employment start date used to compute the next anniversary date
  */
 export function validateSVVacation(
   requestedDays: number,
   existingDays: number,
-  accruedVacationDays: number = LEGAL_MIN_DAYS
+  accruedVacationDays: number = LEGAL_MIN_DAYS,
+  teamMemberStartDate: Date | null = null
 ): SVVacationValidationResult {
   const maxAnnualDays = Math.max(LEGAL_MIN_DAYS, accruedVacationDays);
   const allowedDayOptions = getAllowedDayOptions(existingDays, maxAnnualDays);
+
+  const nextAnniversaryDate = teamMemberStartDate
+    ? (() => {
+        const { windowEnd } = computeSVAnniversaryWindow(teamMemberStartDate);
+        return new Date(Date.UTC(windowEnd.getUTCFullYear(), windowEnd.getUTCMonth(), windowEnd.getUTCDate() + 1));
+      })()
+    : null;
 
   // Check if limit already reached
   if (existingDays >= maxAnnualDays) {
     return {
       valid: false,
-      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is ${maxAnnualDays} days. No additional vacation can be requested.`,
+      errorMessage: `You have used all ${existingDays} vacation days for this anniversary year.`,
       allowedDayOptions,
       existingDays,
+      nextAnniversaryDate,
     };
   }
 
@@ -155,6 +214,7 @@ export function validateSVVacation(
       errorMessage: `For El Salvador vacation, you can only request 7, 8, or 15 days. You requested ${requestedDays} days.`,
       allowedDayOptions,
       existingDays,
+      nextAnniversaryDate: null,
     };
   }
 
@@ -165,6 +225,7 @@ export function validateSVVacation(
       errorMessage: `You already have 7 vacation days this year. To complete your 15-day annual allowance, you must request exactly 8 days.`,
       allowedDayOptions,
       existingDays,
+      nextAnniversaryDate: null,
     };
   }
 
@@ -174,6 +235,7 @@ export function validateSVVacation(
       errorMessage: `You already have 8 vacation days this year. To complete your 15-day annual allowance, you must request exactly 7 days.`,
       allowedDayOptions,
       existingDays,
+      nextAnniversaryDate: null,
     };
   }
 
@@ -182,9 +244,10 @@ export function validateSVVacation(
   if (totalDays > maxAnnualDays) {
     return {
       valid: false,
-      errorMessage: `You have already used ${existingDays} vacation days this year. The maximum annual vacation allowance for El Salvador is ${maxAnnualDays} days. No additional vacation can be requested.`,
+      errorMessage: `You have used all ${existingDays} vacation days for this anniversary year.`,
       allowedDayOptions,
       existingDays,
+      nextAnniversaryDate,
     };
   }
 
@@ -193,5 +256,6 @@ export function validateSVVacation(
     errorMessage: null,
     allowedDayOptions,
     existingDays,
+    nextAnniversaryDate: null,
   };
 }

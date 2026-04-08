@@ -92,34 +92,34 @@ export function SupervisorTimeOffPage() {
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
-      // Refresh time-offs list
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+        balanceHook.loadBalance(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, balanceHook]
   );
 
   const handleConfirmEdit = useCallback(
     async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
       await operationsHook.updateTimeOff(timeOffId, data);
-      // Refresh time-offs list
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+        balanceHook.loadBalance(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, balanceHook]
   );
 
   const handleCreateTimeOff = useCallback(
     async (data: CreateSupervisorTimeOffDTO) => {
       await operationsHook.createTimeOff(data);
-      // Refresh time-offs list
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+        balanceHook.loadBalance(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, balanceHook]
   );
 
   return (

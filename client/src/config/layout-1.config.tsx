@@ -98,7 +98,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'SupervisorTimeOff',
   },
   {
-    title: 'Time Off Management',
+    title: 'Time Off Review',
     icon: CalendarCheck,
     path: '/time-off-management',
     permission: 'SupervisorTimeOff',
@@ -125,7 +125,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'End Bench',
     icon: UserCheck,
     path: '/end-bench',
-    permission: 'BenchMove',
+    permission: 'BenchRemove',
   },
   { heading: 'Reports' },
   {

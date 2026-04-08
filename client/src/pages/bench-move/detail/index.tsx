@@ -6,7 +6,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -136,13 +136,11 @@ export function BenchMoveDetailPage() {
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         {/* Bench Details */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Briefcase className="h-4 w-4" />
               Bench Details
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Team Member</dt>
@@ -168,13 +166,11 @@ export function BenchMoveDetailPage() {
 
         {/* Status */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Activity className="h-4 w-4" />
               Status
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Status</dt>

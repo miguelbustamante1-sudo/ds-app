@@ -9,7 +9,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -419,10 +419,8 @@ export function EndorsementDetailPage() {
 
       {/* General Information Card */}
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>General Information</CardTitle>
-        </CardHeader>
         <CardContent>
+          <CardTitle className="mb-4">General Information</CardTitle>
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
             {/* First Name */}
@@ -650,10 +648,8 @@ export function EndorsementDetailPage() {
 
       {/* Bonuses Card */}
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Bonuses</CardTitle>
-        </CardHeader>
         <CardContent>
+          <CardTitle className="mb-4">Bonuses</CardTitle>
           <BonusDetailTable
             bonuses={bonuses}
             subcategories={subcategories}

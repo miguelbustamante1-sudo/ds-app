@@ -146,11 +146,12 @@ function calculateCalendarDays(startDate: Date, endDate: Date): number {
 export async function loadElSalvadorVacationContext(
   input: TimeOffValidationInput
 ): Promise<ElSalvadorVacationContext | null> {
-  // 1. Load team member with country ISO and workday info for accrued vacation
+  // 1. Load team member with country ISO, start date, and workday info for accrued vacation
   const teamMember = await prisma.teamMember.findUnique({
     where: { teamMemberId: input.teamMemberId },
     select: {
       teamMemberId: true,
+      teamMemberStartDate: true,
       workdayId: true,
       country: {
         select: { countryIso: true },
@@ -200,10 +201,10 @@ export async function loadElSalvadorVacationContext(
   // 5. Calculate requested days from date range
   const requestedDays = calculateCalendarDays(input.timeOffStartDate, input.timeOffEndDate);
 
-  // 6. Get current year boundaries
-  const currentYear = new Date().getFullYear();
-  const yearStart = new Date(currentYear, 0, 1); // Jan 1
-  const yearEnd = new Date(currentYear, 11, 31); // Dec 31
+  // 6. Get anniversary year boundaries (same logic as Guatemala)
+  const { anniversaryYearStart: yearStart, anniversaryYearEnd: yearEnd } =
+    computeAnniversaryWindow(teamMember.teamMemberStartDate);
+  const currentYear = yearStart.getUTCFullYear();
 
   // 7. Get the Vacation category ID
   const vacationCategory = await prisma.timeOffCategory.findFirst({

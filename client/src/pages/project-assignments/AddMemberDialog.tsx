@@ -17,6 +17,7 @@ import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost } from '@/lib/api';
 import { ApiError } from '@/lib/api';
+import { parseUTCDateAsLocal } from '@/lib/utils';
 import { MemberComboBox } from './components/MemberComboBox';
 import { ContactComboBox } from './components/ContactComboBox';
 
@@ -34,6 +35,7 @@ interface FormData {
   projectAssignmentEndDate: string;
   projectAssignmentBillRate: string;
   projectAssignmentBillRateCurrency: string;
+  intercompanyBillRate: string;
   projectAssignmentAllocation: string;
   functionalAreaId: string;
   clientContactId: string;
@@ -68,6 +70,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
       projectAssignmentEndDate: '',
       projectAssignmentBillRate: '',
       projectAssignmentBillRateCurrency: '',
+      intercompanyBillRate: '',
       projectAssignmentAllocation: '',
       functionalAreaId: '',
       clientContactId: '',
@@ -113,6 +116,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
         projectAssignmentEndDate: data.projectAssignmentEndDate || null,
         projectAssignmentBillRate: Number(data.projectAssignmentBillRate),
         projectAssignmentBillRateCurrency: data.projectAssignmentBillRateCurrency.toUpperCase(),
+        intercompanyBillRate: data.intercompanyBillRate ? Number(data.intercompanyBillRate) : null,
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
         functionalAreaId: Number(data.functionalAreaId),
         clientContactId: data.clientContactId ? Number(data.clientContactId) : null,
@@ -199,7 +203,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
                 {...register('projectAssignmentEndDate', {
                   validate: (val, formValues) => {
                     if (!val) return true;
-                    return new Date(val) > new Date(formValues.projectAssignmentStartDate) || 'End date must be after start date';
+                    return parseUTCDateAsLocal(val) > parseUTCDateAsLocal(formValues.projectAssignmentStartDate) || 'End date must be after start date';
                   },
                 })}
               />
@@ -244,6 +248,23 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
               />
               {errors.projectAssignmentBillRateCurrency && (
                 <p className="text-sm text-destructive">{errors.projectAssignmentBillRateCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="intercompanyBillRate">Intercompany Bill Rate</Label>
+              <Input
+                id="intercompanyBillRate"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g., 45.00"
+                {...register('intercompanyBillRate', {
+                  min: { value: 0, message: 'Rate must be 0 or greater' },
+                })}
+              />
+              {errors.intercompanyBillRate && (
+                <p className="text-sm text-destructive">{errors.intercompanyBillRate.message}</p>
               )}
             </div>
 

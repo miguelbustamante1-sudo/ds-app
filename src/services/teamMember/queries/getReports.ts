@@ -18,12 +18,14 @@ interface RawTeamMemberReport {
   team_member_known_as: string | null;
   team_member_seniority: string;
   team_member_end_date: Date | null;
+  team_member_start_date: Date;
   primary_role_name: string | null;
   country_id: number | null;
   country_name: string | null;
   country_iso: string | null;
   country_currency_symbol: string | null;
   report_type: string;
+  report_level: number;
   supervisor_assignment_start_date: Date;
   supervisor_assignment_end_date: Date | null;
   current_projects: Array<{
@@ -88,7 +90,8 @@ export async function getReports(
         team_member_id,
         txs_stadat,
         txs_enddat,
-        report_type
+        report_type,
+        depth
       FROM team_hierarchy
       ORDER BY team_member_id, depth ASC
     )
@@ -100,12 +103,14 @@ export async function getReports(
       tm.tms_known_as                                                   AS team_member_known_as,
       tm.tms_seniority                                                  AS team_member_seniority,
       tm.tms_enddat                                                     AS team_member_end_date,
+      tm.tms_stadat                                                     AS team_member_start_date,
       r.rol_name                                                        AS primary_role_name,
       c.cou_id                                                          AS country_id,
       c.cou_name                                                        AS country_name,
       c.cou_iso                                                         AS country_iso,
       c.cou_currency_symbol                                             AS country_currency_symbol,
       rh.report_type,
+      rh.depth                                                          AS report_level,
       rh.txs_stadat                                                     AS supervisor_assignment_start_date,
       rh.txs_enddat                                                     AS supervisor_assignment_end_date,
       COALESCE(
@@ -148,12 +153,14 @@ export async function getReports(
       tm.tms_known_as,
       tm.tms_seniority,
       tm.tms_enddat,
+      tm.tms_stadat,
       r.rol_name,
       c.cou_id,
       c.cou_name,
       c.cou_iso,
       c.cou_currency_symbol,
       rh.report_type,
+      rh.depth,
       rh.txs_stadat,
       rh.txs_enddat
     ORDER BY tm.tms_surnames, tm.tms_names
@@ -181,12 +188,14 @@ export async function getReports(
       teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
+      teamMemberStartDate: row.team_member_start_date,
       primaryRoleName: row.primary_role_name,
       countryId: row.country_id != null ? Number(row.country_id) : null,
       countryName: row.country_name,
       countryIso: row.country_iso,
       countryCurrencySymbol: row.country_currency_symbol,
       reportType: row.report_type as ReportType,
+      reportLevel: Number(row.report_level),
       supervisorAssignmentStartDate: row.supervisor_assignment_start_date,
       supervisorAssignmentEndDate: row.supervisor_assignment_end_date,
       currentProjects: projects,

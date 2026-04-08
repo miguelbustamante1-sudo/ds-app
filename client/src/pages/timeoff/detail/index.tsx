@@ -6,7 +6,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -272,13 +272,11 @@ export function TimeOffDetailPage() {
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         {/* Request Details */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <Calendar className="h-4 w-4" />
               Request Details
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Category</dt>
@@ -305,13 +303,11 @@ export function TimeOffDetailPage() {
 
         {/* Status & Team Member */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
               <User className="h-4 w-4" />
               Status
             </CardTitle>
-          </CardHeader>
-          <CardContent>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Team Member</dt>
@@ -336,10 +332,8 @@ export function TimeOffDetailPage() {
         {/* Actions */}
         {(canAcknowledge || canDecline || canCancel) && (
           <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
             <CardContent>
+              <CardTitle className="mb-4">Actions</CardTitle>
               <div className="flex flex-wrap gap-3">
                 {canAcknowledge && (
                   <Button
@@ -378,10 +372,8 @@ export function TimeOffDetailPage() {
         {/* Changelog */}
         {detail.changeLogs.length > 0 && (
           <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Changelog</CardTitle>
-            </CardHeader>
             <CardContent>
+              <CardTitle className="mb-4">Changelog</CardTitle>
               <div className="space-y-4">
                 {detail.changeLogs.map((log) => (
                   <div

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ComboBox } from '@/components/ui/combobox';
 import type { SupervisorChainDTO } from '@shared/dto';
@@ -27,10 +27,8 @@ export function HierarchyBlock({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Reporting Hierarchy</CardTitle>
-      </CardHeader>
       <CardContent>
+        <CardTitle className="mb-4">Reporting Hierarchy</CardTitle>
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>L1 — Direct Supervisor</Label>

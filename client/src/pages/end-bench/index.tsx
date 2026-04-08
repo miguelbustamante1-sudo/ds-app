@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ComboBox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -118,10 +118,8 @@ export function EndBenchPage() {
               <>
                 {/* Read-only bench record card */}
                 <Card className="max-w-lg">
-                  <CardHeader>
-                    <CardTitle>Active Bench Record</CardTitle>
-                  </CardHeader>
                   <CardContent>
+                    <CardTitle className="mb-4">Active Bench Record</CardTitle>
                     <dl className="space-y-3">
                       <div>
                         <dt className="text-sm font-medium text-muted-foreground">Supervisor</dt>

@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
@@ -70,11 +69,9 @@ export function TeamTimeOffByMonthChart({ startDate, endDate }: TeamTimeOffByMon
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Month</CardTitle>
-          <CardDescription>Total days off per month for your team</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Month</CardTitle>
+          <CardDescription className="mb-4">Total days off per month for your team</CardDescription>
           <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
@@ -84,11 +81,9 @@ export function TeamTimeOffByMonthChart({ startDate, endDate }: TeamTimeOffByMon
   if (error) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Month</CardTitle>
-          <CardDescription>Total days off per month for your team</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Month</CardTitle>
+          <CardDescription className="mb-4">Total days off per month for your team</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             Failed to load data: {error}
           </div>
@@ -100,11 +95,9 @@ export function TeamTimeOffByMonthChart({ startDate, endDate }: TeamTimeOffByMon
   if (chartData.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Team Time Off by Month</CardTitle>
-          <CardDescription>Total days off per month for your team</CardDescription>
-        </CardHeader>
         <CardContent>
+          <CardTitle>Team Time Off by Month</CardTitle>
+          <CardDescription className="mb-4">Total days off per month for your team</CardDescription>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
             No team members found
           </div>
@@ -115,11 +108,9 @@ export function TeamTimeOffByMonthChart({ startDate, endDate }: TeamTimeOffByMon
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Team Time Off by Month</CardTitle>
-        <CardDescription>Total days off per month for your team</CardDescription>
-      </CardHeader>
       <CardContent>
+        <CardTitle>Team Time Off by Month</CardTitle>
+        <CardDescription className="mb-4">Total days off per month for your team</CardDescription>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <BarChart
             data={chartData}

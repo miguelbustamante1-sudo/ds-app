@@ -8,7 +8,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -130,10 +130,8 @@ export function HiringDetailPage() {
 
       {/* ── Endorsement Info (read-only) ─────────────────────────────────────── */}
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Endorsement Information</CardTitle>
-        </CardHeader>
         <CardContent>
+          <CardTitle className="mb-4">Endorsement Information</CardTitle>
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
               {Array.from({ length: 9 }).map((_, i) => (
@@ -224,10 +222,8 @@ export function HiringDetailPage() {
 
       {/* ── Editable Hiring Fields ───────────────────────────────────────────── */}
       <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Hiring Details</CardTitle>
-        </CardHeader>
         <CardContent>
+          <CardTitle className="mb-4">Hiring Details</CardTitle>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             {/* Start Date */}
             <div className="space-y-2">
