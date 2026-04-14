@@ -67,17 +67,20 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'My Team',
     icon: Users,
     path: '/my-team',
+    permission: 'MyTeam',
   },
   {
     title: 'Profile',
     icon: UserCircle,
     path: '/my-profile',
+    permission: 'MyProfile',
   },
   { heading: 'Self Service' },
   {
     title: 'My Time Off',
     icon: CalendarCheck,
     path: '/my-time-off',
+    permission: 'MyTimeOff',
   },
   {
     title: 'Holiday Swaps',
@@ -89,6 +92,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Time Off Activity',
     icon: Clock,
     path: '/timeoff-activity',
+    permission: 'TimeOffActivity',
   },
   { heading: 'Actions' },
   {
@@ -151,6 +155,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Notification Center',
     icon: Inbox,
     path: '/notification-center',
+    permission: 'NotificationCenter',
   },
   { heading: 'BSA', role: 'bsa' },
   {

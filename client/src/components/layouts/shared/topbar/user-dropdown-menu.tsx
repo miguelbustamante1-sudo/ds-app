@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/auth/auth-provider';
+import { PermissionGate } from '@/components/PermissionGate';
 
 export function UserDropdownMenu({ trigger }: { trigger: ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -49,14 +50,15 @@ export function UserDropdownMenu({ trigger }: { trigger: ReactNode }) {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild>
-          <Link to="/my-profile" className="flex items-center gap-2">
-            <UserCircle />
-            My Profile
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
+        <PermissionGate resource="MyProfile">
+          <DropdownMenuItem asChild>
+            <Link to="/my-profile" className="flex items-center gap-2">
+              <UserCircle />
+              My Profile
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </PermissionGate>
 
         <DropdownMenuItem
           className="flex items-center gap-2"
