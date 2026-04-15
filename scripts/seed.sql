@@ -156,6 +156,9 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (23
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (24, 'MyTimeOff',                NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (25, 'TimeOffActivity',          NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (26, 'NotificationCenter',       NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (27, 'PersistenceTemplates',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (28, 'PersistenceDataTypes',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (29, 'PersistenceTables',        NOW()) ON CONFLICT (opt_id) DO NOTHING;
 
 -- 9. RBAC Permissions
 -- Only insert if the table is empty (no unique constraint to use ON CONFLICT)
@@ -221,12 +224,20 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTimeOff'        AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTimeOff',        true, true, false, NULL, NOW(), 24, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TimeOffActivity'  AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffActivity',  true, true, false, NULL, NOW(), 25, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'NotificationCenter' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('NotificationCenter', true, true, false, NULL, NOW(), 26, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTemplates' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTemplates',   true, true, true, NULL,  NOW(), 27, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceDataTypes' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceDataTypes',   true, true, true, NULL,  NOW(), 28, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTables' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTables',         true, true, true, NULL,  NOW(), 29, 1); END IF;
+
   -- user (rol_id=2)
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTeam'           AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTeam',           true, true, false, NULL, NOW(), 22, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyProfile'        AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyProfile',        true, true, false, NULL, NOW(), 23, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTimeOff'        AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTimeOff',        true, true, false, NULL, NOW(), 24, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TimeOffActivity'  AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffActivity',  true, true, false, NULL, NOW(), 25, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'NotificationCenter' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('NotificationCenter', true, true, false, NULL, NOW(), 26, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTemplates' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTemplates',   true, true, true, NULL,  NOW(), 27, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceDataTypes' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceDataTypes',   true, true, true, NULL,  NOW(), 28, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTables' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTables',         true, true, true, NULL,  NOW(), 29, 2); END IF;
+
 END $$;
 
 -- ============================================================
@@ -251,5 +262,39 @@ VALUES (1, 'Dev User', :'dev_email', 'employee', CURRENT_DATE, 1) ON CONFLICT (u
 INSERT INTO sec.auth_users (id, onelogin_id, email, first_name, last_name, roles, created_at, updated_at)
 VALUES (1, 'dev-1', :'dev_email', 'Dev', 'User', ARRAY['user', 'admin'], now(), now()) ON CONFLICT (id) DO NOTHING;
 
--- Assign dev user to admin security role
-INSERT INTO sec.uro_user_roles (usr_id, rol_id) VALUES (1, 1) ON CONFLICT (usr_id, rol_id) DO NOTHING;
+-- 10. Persistence Data Types seed data
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (1, 'integer', '^[+-]?\d+$', '42')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (2, 'bigint', '^[+-]?\d+$', '9876543210')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (3, 'numeric', '^[+-]?\d+(\.\d+)?$', '3.14')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (4, 'character varying', '^[\s\S]*$', 'hello world')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (5, 'text', '^[\s\S]*$', 'any long text')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (6, 'boolean', '^(true|false|1|0|t|yes|on|no|off)$', 'true')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (7, 'date', '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', '2025-03-25 00:00:00')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (8, 'timestamp with time zone', '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\+\-]\d{2}$', '2025-03-25 10:00:00+00')
+ON CONFLICT (pdt_index) DO NOTHING;
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (9, 'uuid', '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
+ON CONFLICT (pdt_index) DO NOTHING;

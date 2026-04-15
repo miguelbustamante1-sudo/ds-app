@@ -36,6 +36,7 @@ import {
   LifeBuoy,
   MessageSquare,
   Monitor,
+  MonitorUp,
   Network,
   Users as PeopleIcon,
   Plug,
@@ -51,6 +52,7 @@ import {
   ShieldCheck,
   Umbrella,
   Zap,
+  Hammer,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -130,6 +132,18 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: UserCheck,
     path: '/end-bench',
     permission: 'BenchRemove',
+  },
+  {
+    title: 'Template Builder',
+    icon: Hammer,
+    path: '/template-builder',
+    permission: 'PersistenceTables',
+  },
+  {
+    title: 'Data Import',
+    icon: MonitorUp,
+    path: '/data-import',
+    permission: 'PersistenceTables',
   },
   { heading: 'Reports' },
   {

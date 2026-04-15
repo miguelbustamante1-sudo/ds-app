@@ -45,3 +45,8 @@ export * from './DynamicReport';
 export * from './Permission';
 export * from './SecurityRole';
 export * from './Option';
+
+// Persistence DTOs
+export * from './PersistenceTemplate';
+export * from './PersistenceTable';
+export * from './PersistenceJob';

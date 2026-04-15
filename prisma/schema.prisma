@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["ds", "sec", "com", "es"]
+  schemas  = ["ds", "sec", "com", "es", "di"]
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -672,6 +672,99 @@ model HolidaySwap {
   @@index([statusId], map: "idx_hsw_sta_id")
   @@map("hsw_holiday_swap")
   @@schema("ds")
+}
+
+enum ErrorHandlingStrategy {
+  STOP_ON_FIRST_ERROR_AND_ROLLBACK
+  STOP_ON_FIRST_ERROR_AND_COMMIT
+
+  @@schema("di")
+}
+
+enum DuplicatesHandlingStrategy {
+  INSERT
+  REPLACE
+
+  @@schema("di")
+}
+
+model PersistenceTemplate {
+  id                         Int                         @id @default(autoincrement()) @map("pte_id") @db.Integer
+  name                       String                      @map("pte_name") @db.VarChar(200)
+  description                String?                     @map("pte_description") @db.Text
+  enabled                    Boolean                     @default(true) @map("pte_enabled")
+  errorHandlingStrategy      ErrorHandlingStrategy       @default(STOP_ON_FIRST_ERROR_AND_ROLLBACK) @map("pte_error_handling_strategy")
+  duplicatesHandlingStrategy DuplicatesHandlingStrategy  @default(INSERT) @map("pte_duplicates_handling_strategy")
+  targetTable                String?                     @map("pte_target_table") @db.VarChar(200)
+  createdBy                  String                      @map("pte_created_by") @db.VarChar(255)
+  createdAt                  DateTime                    @default(now()) @map("pte_created_at") @db.Timestamptz(6)
+  updatedBy                  String?                     @map("pte_updated_by") @db.VarChar(255)
+  updatedAt                  DateTime?                   @map("pte_updated_at") @db.Timestamptz(6)
+  columns                    PersistenceTemplateColumn[]
+  persistenceJobs            PersistenceJob[]
+
+  @@map("pte_persistence_templates")
+  @@schema("di")
+}
+
+model PersistenceTemplateColumn {
+  id         Int                  @id @default(autoincrement()) @map("ptc_id") @db.Integer
+  templateId Int                  @map("pte_id")
+  index      Int                  @map("ptc_index")
+  name       String               @map("ptc_name") @db.VarChar(200)
+  type       String?              @map("ptc_type") @db.VarChar(100)
+  length     Int?                 @map("ptc_length")
+  allowNull  Boolean              @default(true) @map("ptc_allow_null")
+  comment    String?              @map("ptc_comment") @db.Text
+  template   PersistenceTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade, map: "fk_ptc_pte")
+
+  @@index([templateId], map: "idx_ptc_pte_id")
+  @@map("ptc_persistence_template_columns")
+  @@schema("di")
+}
+
+enum PersistenceJobStatus {
+  NEW
+  WAITING
+  RUNNING
+  SUCCESSFUL
+  FAILED
+  CANCELED
+
+  @@schema("di")
+}
+
+model PersistenceJob {
+  id                    Int                  @id @default(autoincrement()) @map("pjo_id") @db.Integer
+  status                PersistenceJobStatus @default(NEW) @map("pjo_status")
+  fileInputName         String               @map("pjo_file_input_name") @db.VarChar(500)
+  fileStoragePath       String               @map("pjo_file_storage_path") @db.VarChar(1000)
+  fileLinesCount        Int                  @default(0) @map("pjo_file_lines_count")
+  fileLinesInserted     Int                  @default(0) @map("pjo_file_lines_inserted")
+  fileErrorLine         Int                  @default(0) @map("pjo_file_error_line")
+  fileErrorMessage      String?              @map("pjo_file_error_message") @db.Text
+  persistenceTemplateId Int                  @map("pte_id") @db.Integer
+  createdBy             String               @map("pjo_created_by") @db.VarChar(255)
+  createdAt             DateTime             @default(now()) @map("pjo_created_at") @db.Timestamptz(6)
+  updatedBy             String?              @map("pjo_updated_by") @db.VarChar(255)
+  updatedAt             DateTime?            @map("pjo_updated_at") @db.Timestamptz(6)
+  template              PersistenceTemplate  @relation(fields: [persistenceTemplateId], references: [id], onDelete: Restrict, map: "fk_pjo_pte")
+
+  @@index([persistenceTemplateId], map: "idx_pjo_pte_id")
+  @@index([status], map: "idx_pjo_status")
+  @@map("pjo_persistence_jobs")
+  @@schema("di")
+}
+
+model PersistenceDataType {
+  id                Int     @id @default(autoincrement()) @map("pdt_id") @db.Integer
+  index             Int     @unique @map("pdt_index")
+  name              String  @map("pdt_name") @db.VarChar(100)
+  regularExpression String? @map("pdt_regular_expression") @db.VarChar(500)
+  example           String? @map("pdt_example") @db.VarChar(200)
+
+  @@map("pdt_persistence_data_types")
+  @@schema("di")
 }
 
 model WorkdayInfo {

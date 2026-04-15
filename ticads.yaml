@@ -1,0 +1,578 @@
+openapi: 3.0.4
+info:
+  title: TICADS
+  version: 1.7.0
+servers:
+  - url: http://localhost:3000/api/
+tags:
+  - name: template-builder
+    description: Template Builder
+  - name: data-import
+    description: Data import
+paths:
+  /persistence-template/:
+    post:
+      tags:
+        - template-builder
+      summary: Create persistence template
+      operationId: createPersistenceTemplate
+      requestBody:
+        description: Create a new Persistence Template
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersistenceTemplateBody'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersistenceTemplate'
+    get:
+      tags:
+        - template-builder
+      summary: Get all persistence templates
+      operationId: getAllPersistenceTemplate
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: The number of items to return per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersistenceTemplate'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-template/{id}:
+    put:
+      tags:
+        - template-builder
+      summary: Update persistence template
+      operationId: updatePersistenceTemplate
+      parameters:
+        - name: id
+          in: path
+          description: Persistence template id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Update a Persistence Template
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersistenceTemplateBody'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersistenceTemplate'
+    delete:
+      tags:
+        - template-builder
+      summary: Delete persistence template
+      operationId: deletePersistenceTemplate
+      parameters:
+        - name: id
+          in: path
+          description: Persistence template id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+    get:
+      tags:
+        - template-builder
+      summary: Get persistence template
+      operationId: getPersistenceTemplate
+      parameters:
+        - name: id
+          in: path
+          description: Persistence template id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/PersistenceTemplate'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-data-type/:
+    get:
+      tags:
+        - template-builder
+      summary: Get all data types supported by persistence
+      operationId: getAllDataTypesForPersistence
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: The number of items to return per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersistenceDataType'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-table/:
+    get:
+      tags:
+        - template-builder
+      summary: Get all tables and columns available for persistence templates.
+      operationId: getAllPersistenceTable
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: The number of items to return per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersistenceTable'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-job/:
+    post:
+      tags:
+        - data-import
+      summary: Create a Persistence Job based on Persistence Template
+      operationId: createPersistenceJob
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve.
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: The number of items to return per page.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      requestBody:
+        description: Create a Persistence Job
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PersistenceJobBody'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersistenceJob'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-job/{id}:
+    get:
+      tags:
+        - data-import
+      summary: Get a Persistence Job
+      operationId: getPersistenceJobById
+      parameters:
+        - name: id
+          in: path
+          description: Persistence Job
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersistenceJob'
+        '400':
+          description: Invalid status value
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /persistence-job/cancel/{id}:
+    post:
+      tags:
+        - data-import
+      summary: Update persistence Job
+      operationId: putPersistenceJob
+      parameters:
+        - name: id
+          in: path
+          description: Persistence Job
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersistenceJobUpdate"
+        '400':
+          description: Invalid status value
+components:
+  schemas:
+    PersistenceTemplateBody:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type: string
+          example: basic-template-1
+        description:
+          type: string
+          example: This is basic template 1
+        targetTable:
+          type: string
+          example: ds.hol_holiday
+          description: Target table name, including namespace.
+        enabled:
+          type: boolean
+          description: if true is enabled otherwise false
+        errorHandlingStrategy:
+          type: string
+          default: STOP_ON_FIRST_ERROR_AND_ROLLBACK
+          description: Strategy for STOP_ON_FIRST_ERROR_AND_ROLLBACK
+          enum:
+            - STOP_ON_FIRST_ERROR_AND_COMMIT
+            - STOP_ON_FIRST_ERROR_AND_ROLLBACK
+        duplicatesHandlingStrategy:
+          type: string
+          default: INSERT
+          description: Strategy for importing data when a duplicate is found.  Available INSERT and REPLACE
+          enum:
+            - INSERT
+            - REPLACE
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersistenceTemplateColumnBody"
+    PersistenceTemplateColumn:
+      required:
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        index:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: id
+        type:
+          type: string
+          example: integer
+        length:
+          type: integer
+          example: 255
+        allowNull:
+          type: boolean
+          example: false
+        comment:
+          type: string
+          description: Comment here
+    PersistenceTemplateColumnBody:
+      required:
+        - name
+      type: object
+      properties:
+        index:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: id
+        type:
+          type: string
+          example: integer
+        length:
+          type: integer
+          example: 255
+        allowNull:
+          type: boolean
+          example: false
+        comment:
+          type: string
+          description: Comment here
+    PersistenceTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: basic-template-1
+        description:
+          type: string
+          example: This is basic template 1
+        targetTable:
+          type: string
+          example: ds.hol_holiday
+          description: Target table name, including namespace.
+        enabled:
+          type: boolean
+          description: if true is enabled otherwise false
+        errorHandlingStrategy:
+          type: string
+          default: STOP_ON_FIRST_ERROR_AND_ROLLBACK
+          description: Strategy for STOP_ON_FIRST_ERROR_AND_ROLLBACK
+          enum:
+            - STOP_ON_FIRST_ERROR_AND_COMMIT
+            - STOP_ON_FIRST_ERROR_AND_ROLLBACK
+        duplicatesHandlingStrategy:
+          type: string
+          default: INSERT
+          description: Strategy for importing data when a duplicate is found.  Available INSERT and REPLACE
+          enum:
+            - INSERT
+            - REPLACE
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersistenceTemplateColumn"
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+    PersistenceDataType:
+      type: object
+      properties:
+        index:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: INTEGER
+        regularExpression:
+          type: string
+          example: "[0-9]+"
+        example:
+          type: string
+          example: "45468698"
+    PersistenceTable:
+      required:
+        - name
+      type: object
+      properties:
+        schema:
+          type: string
+          example: ds
+        name:
+          type: string
+          example: hol_holiday
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersistenceTableColumn"
+    PersistenceTableColumn:
+      required:
+        - name
+      type: object
+      properties:
+        index:
+          type: integer
+          example: 1
+          description: column position
+        name:
+          type: string
+          example: id
+        type:
+          type: string
+          example: integer
+        length:
+          type: integer
+          example: 255
+        allowNull:
+          type: boolean
+          example: false
+        numericPrecision:
+          type: integer
+          example: 15
+        numericScale:
+          type: integer
+          example: 2
+        default:
+          type: object
+          example: -1
+    PersistenceJobBody:
+      required:
+        - name
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+          description: Input file
+        persistenceTemplateId:
+          type: integer
+          example: 1
+    PersistenceJob:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        status:
+          type: string
+          enum:
+            - NEW
+            - WAITING
+            - RUNNING
+            - SUCCESSFUL
+            - FAILED
+            - CANCELED
+        fileInputName:
+          type: string
+          example: input.csv
+        fileStoragePath:
+          type: string
+          example: job-123-input.csv
+        fileLinesCount:
+          type: integer
+          example: 100
+        fileLinesInserted:
+          type: integer
+          example: 0
+        fileErrorLine:
+          type: integer
+          example: 0
+        fileErrorMessage:
+          type: string
+          example: ""
+        persistenceTemplateId:
+          type: integer
+          example: 10
+        createdBy:
+          type: string
+          example: jj@example.com
+        createdAt:
+          type: object
+          example: 2026-03-31 20:52:00.122+00
+        updateBy:
+          type: string
+          example: jj@example.com
+        updateAt:
+          type: object
+          example: 2026-03-31 20:52:00.122+00
+        template:
+          $ref: "#/components/schemas/PersistenceTemplate"
+    PersistenceJobUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        status:
+          type: string
+          example: CANCELED
+          enum:
+            - ERROR
+            - CANCELED

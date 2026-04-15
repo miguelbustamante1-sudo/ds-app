@@ -34,6 +34,10 @@ import functionalAreasRouter from './functionalArea';
 import holidaySwapRouter from './holidaySwap.routes';
 import pendingRequestsRouter from './pendingRequests.routes';
 import benchRouter from './bench.routes';
+import persistenceTemplateRouter from './persistenceTemplate.routes';
+import persistenceDataTypeRouter from './persistenceDataType.routes';
+import persistenceTableRouter from './persistenceTable.routes';
+import persistenceJobRouter from './persistenceJob.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -73,6 +77,10 @@ export default function registerRoutes() {
   router.use('/holiday-swaps', holidaySwapRouter);
   router.use('/team/pending-requests', pendingRequestsRouter);
   router.use('/bench-move', benchRouter);
+  router.use('/persistence-template', persistenceTemplateRouter);
+  router.use('/persistence-data-type', persistenceDataTypeRouter);
+  router.use('/persistence-table', persistenceTableRouter);
+  router.use('/persistence-job', persistenceJobRouter);
 
   return router;
 }

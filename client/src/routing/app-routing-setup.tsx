@@ -50,6 +50,10 @@ import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
 import { OptionsPage } from '@/pages/security/options';
 import { PermissionsPage } from '@/pages/security/permissions';
+import { TemplateBuilderPage } from '@/pages/template-builder';
+import { DataImportPage } from '@/pages/data-import';
+import { DataImportDetailPage } from '@/pages/data-import/detail';
+import { DataImportNewPage } from '@/pages/data-import/new';
 
 export function AppRoutingSetup() {
   return (
@@ -113,6 +117,12 @@ export function AppRoutingSetup() {
         <Route path="/security/roles" element={<RolesPage />} />
         <Route path="/security/options" element={<OptionsPage />} />
         <Route path="/security/permissions" element={<PermissionsPage />} />
+        {/* Persistence Templates */}
+        <Route path="/template-builder" element={<TemplateBuilderPage />} />
+        {/* Data Import - Persistence Jobs */}
+        <Route path="/data-import" element={<DataImportPage />} />
+        <Route path="/data-import/new" element={<DataImportNewPage />} />
+        <Route path="/data-import/:id" element={<DataImportDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
