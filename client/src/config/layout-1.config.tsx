@@ -107,7 +107,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Time Off Review',
     icon: CalendarCheck,
     path: '/time-off-management',
-    permission: 'SupervisorTimeOff',
+    permission: 'TimeOffReview',
   },
   {
     title: 'Project Assignments',
