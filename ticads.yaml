@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: TICADS
-  version: 1.7.0
+  version: 1.9.0
 servers:
   - url: http://localhost:3000/api/
 tags:
@@ -284,6 +284,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - data-import
+      summary: Delete a Persistence Job
+      operationId: deletePersistenceJobById
+      parameters:
+        - name: id
+          in: path
+          description: Persistence Job
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '404':
+          description: Resource not found
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /persistence-job/cancel/{id}:
     post:
       tags:
@@ -340,6 +363,10 @@ components:
           enum:
             - INSERT
             - REPLACE
+        hasCsvHeader:
+          type: boolean
+          default: false
+          description: True if CSV file has header row otherwise is false
         columns:
           type: array
           items:
@@ -371,6 +398,12 @@ components:
         comment:
           type: string
           description: Comment here
+        csvColumnName:
+          type: string
+          example: "name"
+        csvColumnIndex:
+          type: integer
+          example: 1
     PersistenceTemplateColumnBody:
       required:
         - name
@@ -394,6 +427,12 @@ components:
         comment:
           type: string
           description: Comment here
+        csvColumnName:
+          type: string
+          example: "name"
+        csvColumnIndex:
+          type: integer
+          example: 1
     PersistenceTemplate:
       type: object
       properties:
@@ -428,6 +467,10 @@ components:
           enum:
             - INSERT
             - REPLACE
+        hasCsvHeader:
+          type: boolean
+          default: false
+          description: True if CSV file has header row otherwise is false
         columns:
           type: array
           items:

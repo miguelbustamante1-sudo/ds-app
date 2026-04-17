@@ -28,11 +28,13 @@ export interface DataType {
 }
 
 export interface TemplateColumn {
-  index:     number;
-  name:      string;
-  type:      string | null;
-  length:    number | null;
-  allowNull: boolean;
+  index:          number;
+  name:           string;
+  type:           string | null;
+  length:         number | null;
+  allowNull:      boolean;
+  csvColumnName:  string | null;
+  csvColumnIndex: number;
 }
 
 export interface CellError {
@@ -79,6 +81,7 @@ export class CsvValidationService {
     dataTypes:        DataType[],
     jobId:            number,
     stopOnFirstError: boolean = false,
+    hasCsvHeader:     boolean = true,
   ): CsvValidationResult {
     const prefix  = `[CsvValidation][job=${jobId}]`;
     const text    = csvBuffer.toString('utf-8');
@@ -91,31 +94,49 @@ export class CsvValidationService {
       dataTypeMap.set(dt.name.toLowerCase(), re);
     }
 
-    // Sort columns by stored index (preserves user-defined order), then assign
-    // sequential 0-based csvOffset so cell lookup is always positionally correct.
-    const columns = [...templateColumns]
-      .sort((a, b) => a.index - b.index)
-      .map((col, position) => ({ ...col, csvOffset: position }));
-
     const headerErrors: string[] = [];
     const cellErrors:   CellError[] = [];
     // Tracks which column names have already triggered an "unknown type" warning
     const warnedColumns = new Set<string>();
 
-    // -- Header row ------------------------------------------------------------
+    // -- Header row (always the first raw line) --------------------------------
     const headerRow   = rawRows[0] ?? '';
     const headerCells = this.splitCsvRow(headerRow);
 
-    console.log(`${prefix} Header: [${headerCells.join(' | ')}]`);
+    console.log(`${prefix} hasCsvHeader=${hasCsvHeader} Header: [${headerCells.join(' | ')}]`);
 
-    if (headerCells.length < columns.length) {
-      headerErrors.push(
-        `CSV has ${headerCells.length} column(s) but template expects ${columns.length}`,
+    // Resolve each template column's 0-based CSV cell offset.
+    // hasCsvHeader=true  -> match by csvColumnName against the header row.
+    // hasCsvHeader=false -> use csvColumnIndex directly (0-based positional).
+    let columns: (TemplateColumn & { csvOffset: number })[];
+
+    if (hasCsvHeader) {
+      // Build a map: lowercase header text -> position
+      const headerPositionMap = new Map<string, number>(
+        headerCells.map((h, i) => [h.trim().toLowerCase(), i]),
       );
+      columns = templateColumns
+        .filter((col) => col.csvColumnName && col.csvColumnName.trim() !== '')
+        .map((col) => {
+          const pos = headerPositionMap.get(col.csvColumnName!.trim().toLowerCase());
+          if (pos === undefined) {
+            headerErrors.push(`Template column "${col.name}": CSV header "${col.csvColumnName}" not found in file`);
+          }
+          return { ...col, csvOffset: pos ?? -1 };
+        })
+        .filter((col) => col.csvOffset !== -1);
+    } else {
+      // hasCsvHeader=false: no header line consumed - all lines are data rows.
+      // Use csvColumnIndex as the direct cell offset.
+      columns = templateColumns
+        .filter((col) => col.csvColumnIndex != null && col.csvColumnIndex !== -1)
+        .map((col) => ({ ...col, csvOffset: col.csvColumnIndex }));
     }
 
     // -- Data rows -------------------------------------------------------------
-    const dataRows = rawRows.slice(1).filter((r) => r.trim().length > 0);
+    // When hasCsvHeader=true the first line is the header; skip it.
+    // When hasCsvHeader=false every line is a data row.
+    const dataRows = (hasCsvHeader ? rawRows.slice(1) : rawRows).filter((r) => r.trim().length > 0);
     let rowsChecked = 0;
 
     console.log(`${prefix} Total of rows: ${dataRows.length}`);
@@ -129,6 +150,7 @@ export class CsvValidationService {
       // console.log(`${prefix} Row ${rowNumber}: [${cells.join(' | ')}]`);
 
       for (const col of columns) {
+        if (col.csvOffset < 0 || col.csvOffset >= cells.length) continue;
         const cellValue = (cells[col.csvOffset] ?? '').trim();
 
         // -- allowNull check -------------------------------------------------

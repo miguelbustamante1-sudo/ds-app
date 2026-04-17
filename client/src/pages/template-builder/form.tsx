@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import type { PersistenceTemplateDTO } from '@shared/dto/PersistenceTemplate';
 import { ErrorHandlingStrategy, DuplicatesHandlingStrategy } from '@shared/dto/PersistenceTemplate';
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   createPersistenceTemplate,
@@ -58,12 +58,19 @@ function formatDefault(value: unknown): string {
 
 // --- Types -------------------------------------------------------------------
 
+/** Extends the table-metadata column with the CSV mapping fields. */
+interface ColumnRow extends PersistenceTableColumn {
+  csvColumnName: string | null;
+  csvColumnIndex: number;
+}
+
 interface PersistenceTemplateFormData {
   name: string;
   description: string;
-  targetTable: string;
+  hasCsvHeader: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
+  targetTable: string;
 }
 
 interface PersistenceTemplateFormDialogProps {
@@ -86,12 +93,16 @@ export function PersistenceTemplateFormDialog({
 
   const [tables, setTables] = useState<PersistenceTable[]>([]);
   const [tablesLoading, setTablesLoading] = useState(false);
-  const [columns, setColumns] = useState<PersistenceTableColumn[]>([]);
+  const [columns, setColumns] = useState<ColumnRow[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingTable, setPendingTable] = useState<string | null>(null);
-  // When editing, columns are loaded from the saved record; skip the first
-  // selectedTable -> columns sync so we don't overwrite them before `tables` loads.
-  const [columnsFromTemplate, setColumnsFromTemplate] = useState(false);
+  // When editing, columns are seeded from the saved record. This ref stays true
+  // until the user explicitly picks a different table, preventing the async
+  // tables-load from wiping the restored columns on every re-run of the effect.
+  const columnsFromTemplate = useRef(false);
+  const [initialCsvHeader, setInitialCsvHeader] = useState<boolean | null>(null);
+  // Guards the hasCsvHeader effect so it skips the fire caused by reset() on open.
+  const csvHeaderReady = useRef(false);
 
   const {
     register,
@@ -103,9 +114,10 @@ export function PersistenceTemplateFormDialog({
     defaultValues: {
       name: '',
       description: '',
-      targetTable: '',
+      hasCsvHeader: false,
       errorHandlingStrategy: ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
       duplicatesHandlingStrategy: DuplicatesHandlingStrategy.INSERT,
+      targetTable: '',
     },
   });
 
@@ -113,6 +125,7 @@ export function PersistenceTemplateFormDialog({
   const selectedTable = useWatch({ control, name: 'targetTable' });
   const errorHandlingValue = useWatch({ control, name: 'errorHandlingStrategy' });
   const duplicatesHandlingValue = useWatch({ control, name: 'duplicatesHandlingStrategy' });
+  const hasCsvHeaderValue = useWatch({ control, name: 'hasCsvHeader' });
 
   // Load all tables once when dialog opens
   useEffect(() => {
@@ -133,6 +146,7 @@ export function PersistenceTemplateFormDialog({
 
   /** Called when the Select fires a new value. */
   const handleTableChange = (newValue: string, fieldOnChange: (v: string) => void) => {
+    columnsFromTemplate.current = false;
     if (columns.length > 0) {
       // Columns already loaded - ask for confirmation first
       setPendingTable(newValue);
@@ -162,9 +176,8 @@ export function PersistenceTemplateFormDialog({
   // Skip the first sync when columns were loaded from a saved template record
   // (tables may not be loaded yet, which would wipe the saved columns).
   useEffect(() => {
-    if (columnsFromTemplate) {
-      // The columns were just restored from the template - clear the flag and skip.
-      setColumnsFromTemplate(false);
+    if (columnsFromTemplate.current) {
+      // Columns were seeded from the template - skip until the user picks a new table.
       return;
     }
     if (!selectedTable) {
@@ -173,25 +186,33 @@ export function PersistenceTemplateFormDialog({
     }
     const [schema, name] = selectedTable.split('.');
     const found = tables.find((t) => t.schema === schema && t.name === name);
-    setColumns(found?.columns ?? []);
+    setColumns(
+      (found?.columns ?? []).map((c) => ({ ...c, csvColumnName: null, csvColumnIndex: -1 })),
+    );
   }, [selectedTable, tables]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset form when dialog opens or editing record changes
   useEffect(() => {
     if (open) {
+      // Reset guard so hasCsvHeader effect skips the fire from reset() below.
+      csvHeaderReady.current = false;
       if (template) {
+        const savedCsvHeader = template.hasCsvHeader ?? false;
+        setInitialCsvHeader(savedCsvHeader);
         reset({
           name: template.name,
           description: template.description ?? '',
-          targetTable: template.targetTable ?? '',
+          hasCsvHeader: savedCsvHeader,
           errorHandlingStrategy:
             template.errorHandlingStrategy ?? ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
           duplicatesHandlingStrategy:
             template.duplicatesHandlingStrategy ?? DuplicatesHandlingStrategy.INSERT,
+          targetTable: template.targetTable ?? '',
         });
         // Populate columns from the saved template record and raise the guard
-        // flag so the selectedTable watcher skips the next sync cycle.
-        setColumnsFromTemplate(true);
+        // so the selectedTable watcher never overwrites them until the user
+        // explicitly picks a new table.
+        columnsFromTemplate.current = true;
         setColumns(
           template.columns.map((c) => ({
             index: c.index,
@@ -202,20 +223,37 @@ export function PersistenceTemplateFormDialog({
             numericPrecision: null,
             numericScale: null,
             default: null,
+            csvColumnName: c.csvColumnName ?? null,
+            csvColumnIndex: c.csvColumnIndex ?? -1,
           })),
         );
       } else {
+        columnsFromTemplate.current = false;
+        setInitialCsvHeader(null);
         reset({
           name: '',
           description: '',
-          targetTable: '',
+          hasCsvHeader: false,
           errorHandlingStrategy: ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
           duplicatesHandlingStrategy: DuplicatesHandlingStrategy.INSERT,
+          targetTable: '',
         });
         setColumns([]);
       }
     }
   }, [open, template, reset]);
+
+  // When hasCsvHeader changes (after initialization), reset CSV mapping fields.
+  // csvHeaderReady guards against the first fire triggered by reset() on open.
+  useEffect(() => {
+    if (!csvHeaderReady.current) {
+      csvHeaderReady.current = true;
+      return;
+    }
+    setColumns((prev) =>
+      prev.map((c) => ({ ...c, csvColumnName: null, csvColumnIndex: -1 })),
+    );
+  }, [hasCsvHeaderValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = async (data: PersistenceTemplateFormData) => {
     // Map current columns state -> API input shape.
@@ -228,6 +266,8 @@ export function PersistenceTemplateFormDialog({
       type: col.type ?? null,
       length: col.length ?? null,
       allowNull: col.allowNull,
+      csvColumnName: data.hasCsvHeader ? (col.csvColumnName ?? null) : null,
+      csvColumnIndex: data.hasCsvHeader ? -1 : (col.csvColumnIndex ?? -1),
     }));
 
     try {
@@ -235,9 +275,10 @@ export function PersistenceTemplateFormDialog({
         await updatePersistenceTemplate(template.id, {
           name: data.name.trim(),
           description: data.description.trim() || null,
-          targetTable: data.targetTable || null,
+          hasCsvHeader: data.hasCsvHeader,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
+          targetTable: data.targetTable || null,
           updatedBy: 'ui',
           columns: columnPayload,
         });
@@ -246,9 +287,10 @@ export function PersistenceTemplateFormDialog({
         await createPersistenceTemplate({
           name: data.name.trim(),
           description: data.description.trim() || null,
-          targetTable: data.targetTable || null,
+          hasCsvHeader: data.hasCsvHeader,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
+          targetTable: data.targetTable || null,
           createdBy: 'ui',
           columns: columnPayload,
         });
@@ -308,109 +350,48 @@ export function PersistenceTemplateFormDialog({
               />
             </div>
 
-            {/* Target Table - Select dropdown */}
+            {/* Includes CSV Header */}
             <div className="space-y-2">
-              <Label htmlFor="targetTable">Target Table</Label>
+              <Label>Includes CSV Header</Label>
               <Controller
-                name="targetTable"
+                name="hasCsvHeader"
                 control={control}
                 render={({ field }) => (
-                  <>
-                    <Select
-                      value={field.value}
-                      onValueChange={(v) => handleTableChange(v, field.onChange)}
-                      disabled={tablesLoading}
-                    >
-                      <SelectTrigger id="targetTable">
-                        <SelectValue
-                          placeholder={tablesLoading ? 'Loading tables…' : 'Select a table'}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tables.map((t) => {
-                          const value = `${t.schema}.${t.name}`;
-                          return (
-                            <SelectItem key={value} value={value}>
-                              {value}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-
-                    {/* Confirmation dialog - reload columns? */}
-                    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                      <DialogContent className="max-w-sm">
-                        <DialogHeader>
-                          <DialogTitle>Reload Columns?</DialogTitle>
-                          <DialogDescription>
-                            Changing the target table will reload the columns list. Any manual
-                            changes will be lost. Do you want to continue?
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={handleConfirmCancel}>
-                            Cancel
-                          </Button>
-                          <Button onClick={() => handleConfirmAccept(field.onChange)}>
-                            Accept
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </>
+                  <RadioGroup
+                    value={field.value ? 'yes' : 'no'}
+                    onValueChange={(v) => field.onChange(v === 'yes')}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="yes" id="csvHeaderYes" />
+                      <Label htmlFor="csvHeaderYes" className="font-normal cursor-pointer">
+                        Yes
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="no" id="csvHeaderNo" />
+                      <Label htmlFor="csvHeaderNo" className="font-normal cursor-pointer">
+                        No
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 )}
               />
-            </div>
-
-            {/* Columns preview table */}
-            {columns.length > 0 && (
-              <div className="space-y-2">
-                <Label>Columns</Label>
-                <div className="rounded-md border overflow-auto max-h-56">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">#</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Datatype</TableHead>
-                        <TableHead>Length</TableHead>
-                        <TableHead>Allow Null</TableHead>
-                        <TableHead className="w-36">Default</TableHead>
-                        <TableHead className="w-10" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {columns.map((col) => (
-                        <TableRow key={col.index}>
-                          <TableCell className="text-muted-foreground">{col.index}</TableCell>
-                          <TableCell className="font-medium">{col.name}</TableCell>
-                          <TableCell>{col.type}</TableCell>
-                          <TableCell>{formatLength(col)}</TableCell>
-                          <TableCell>{col.allowNull ? 'Yes' : 'No'}</TableCell>
-                          <TableCell className="text-muted-foreground w-36 max-w-[9rem] break-words whitespace-normal">
-                            {formatDefault(col.default)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() =>
-                                setColumns((prev) => prev.filter((c) => c.index !== col.index))
-                              }
-                            >
-                              <Trash2 size={15} />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              <p className="text-xs text-muted-foreground">
+                {hasCsvHeaderValue
+                  ? 'When including CSV header, columns will be matched by Column Name.'
+                  : 'When CSV has no header, columns will be matched by Column Index.'}
+              </p>
+              {initialCsvHeader !== null && hasCsvHeaderValue !== initialCsvHeader && (
+                <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 p-3 text-yellow-800">
+                  <AlertTriangle className="mt-0.5 shrink-0" size={15} />
+                  <p className="text-xs">
+                    CSV column references in the Columns section should be reviewed and updated to
+                    match the new header setting before saving.
+                  </p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Error Handling */}
             <div className="space-y-2">
@@ -491,6 +472,155 @@ export function PersistenceTemplateFormDialog({
                 </p>
               )}
             </div>
+
+            {/* Target Table - Select dropdown */}
+            <div className="space-y-2">
+              <Label htmlFor="targetTable">Target Table</Label>
+              <Controller
+                name="targetTable"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => handleTableChange(v, field.onChange)}
+                      disabled={tablesLoading}
+                    >
+                      <SelectTrigger id="targetTable">
+                        <SelectValue
+                          placeholder={tablesLoading ? 'Loading tables…' : 'Select a table'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tables.map((t) => {
+                          const value = `${t.schema}.${t.name}`;
+                          return (
+                            <SelectItem key={value} value={value}>
+                              {value}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Confirmation dialog - reload columns? */}
+                    <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                      <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>Reload Columns?</DialogTitle>
+                          <DialogDescription>
+                            Changing the target table will reload the columns list. Any manual
+                            changes will be lost. Do you want to continue?
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={handleConfirmCancel}>
+                            Cancel
+                          </Button>
+                          <Button onClick={() => handleConfirmAccept(field.onChange)}>
+                            Accept
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+              />
+            </div>
+
+            {/* Columns preview table */}
+            {columns.length > 0 && (
+              <div className="space-y-2">
+                <Label>Columns</Label>
+                {!hasCsvHeaderValue && (
+                  <p className="text-xs text-blue-600">
+                    Data mapping begins at Index 0, while Index -1 identifies columns that remain unassigned to CSV fields.
+                  </p>
+                )}
+                <div className="rounded-md border overflow-auto max-h-56">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10">#</TableHead>
+                        <TableHead className="w-32 max-w-[8rem]">Name</TableHead>
+                        <TableHead>Datatype</TableHead>
+                        <TableHead>Length</TableHead>
+                        <TableHead>Allow Null</TableHead>
+                        <TableHead className="w-20 max-w-[5rem]">Default</TableHead>
+                        <TableHead className="w-36">
+                          {hasCsvHeaderValue ? 'CSV Column Name' : 'CSV Column Index'}
+                        </TableHead>
+                        <TableHead className="w-8 p-0" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {columns.map((col, colPos) => (
+                        <TableRow key={col.index}>
+                          <TableCell className="text-muted-foreground">{colPos}</TableCell>
+                          <TableCell className="font-medium w-32 max-w-[8rem] break-words whitespace-normal">{col.name}</TableCell>
+                          <TableCell>{col.type}</TableCell>
+                          <TableCell>{formatLength(col)}</TableCell>
+                          <TableCell>{col.allowNull ? 'Yes' : 'No'}</TableCell>
+                          <TableCell className="text-muted-foreground w-20 max-w-[5rem] break-words whitespace-normal">
+                            {formatDefault(col.default)}
+                          </TableCell>
+                          <TableCell className="w-36">
+                            {hasCsvHeaderValue ? (
+                              <Input
+                                type="text"
+                                className="h-7 text-xs px-2"
+                                placeholder="Column name"
+                                value={col.csvColumnName ?? ''}
+                                onChange={(e) =>
+                                  setColumns((prev) =>
+                                    prev.map((c) =>
+                                      c.index === col.index
+                                        ? { ...c, csvColumnName: e.target.value || null }
+                                        : c,
+                                    ),
+                                  )
+                                }
+                              />
+                            ) : (
+                              <Input
+                                type="number"
+                                className="h-7 text-xs px-2"
+                                placeholder="-1"
+                                value={col.csvColumnIndex}
+                                onChange={(e) => {
+                                  const parsed = parseInt(e.target.value, 10);
+                                  setColumns((prev) =>
+                                    prev.map((c) =>
+                                      c.index === col.index
+                                        ? { ...c, csvColumnIndex: isNaN(parsed) ? -1 : parsed }
+                                        : c,
+                                    ),
+                                  );
+                                }}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="w-8 p-0 text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                              onClick={() =>
+                                setColumns((prev) => prev.filter((c) => c.index !== col.index))
+                              }
+                            >
+                              <Trash2 size={15} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
           </div>
 
           <DialogFooter>

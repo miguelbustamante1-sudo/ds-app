@@ -36,6 +36,7 @@ export interface PersistenceJobRecord {
     name:                       string;
     description:                string | null;
     enabled:                    boolean;
+    hasCsvHeader:               boolean;
     errorHandlingStrategy:      string;
     duplicatesHandlingStrategy: string;
     targetTable:                string | null;
@@ -44,13 +45,15 @@ export interface PersistenceJobRecord {
     updatedBy:                  string | null;
     updatedAt:                  Date | null;
     columns: Array<{
-      id:        number;
-      index:     number;
-      name:      string;
-      type:      string | null;
-      length:    number | null;
-      allowNull: boolean;
-      comment:   string | null;
+      id:             number;
+      index:          number;
+      name:           string;
+      type:           string | null;
+      length:         number | null;
+      allowNull:      boolean;
+      comment:        string | null;
+      csvColumnName:  string | null;
+      csvColumnIndex: number;
     }>;
   };
 }
@@ -97,12 +100,15 @@ export class PersistenceJobConflictError extends Error {
 
 // --- Helpers ------------------------------------------------------------------
 
-/** Count non-empty lines in a CSV buffer (excluding header). */
-export function countCsvLines(buffer: Buffer): number {
+/**
+ * Count non-empty data lines in a CSV buffer.
+ * When hasCsvHeader=true the first line is a header and is excluded from
+ * the count. When hasCsvHeader=false every line is a data row.
+ */
+export function countCsvLines(buffer: Buffer, hasCsvHeader: boolean): number {
   const text  = buffer.toString('utf-8');
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  // Subtract 1 to exclude the header row (min 0)
-  return Math.max(0, lines.length - 1);
+  return hasCsvHeader ? Math.max(0, lines.length - 1) : lines.length;
 }
 
 // --- Repository functions -----------------------------------------------------

@@ -206,6 +206,8 @@ export interface PersistenceTemplateColumnRecord {
   length: number | null;
   allowNull: boolean;
   comment: string | null;
+  csvColumnName: string | null;
+  csvColumnIndex: number;
 }
 
 export interface PersistenceTemplateRecord {
@@ -214,6 +216,7 @@ export interface PersistenceTemplateRecord {
   description: string | null;
   targetTable: string | null;
   enabled: boolean;
+  hasCsvHeader: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
   createdBy: string;
@@ -292,6 +295,7 @@ export async function updatePersistenceTemplate(
         description: input.description ?? null,
         targetTable: input.targetTable ?? null,
         enabled: input.enabled ?? true,
+        hasCsvHeader: input.hasCsvHeader ?? false,
         errorHandlingStrategy: input.errorHandlingStrategy ?? DEFAULT_ERROR_HANDLING_STRATEGY,
         duplicatesHandlingStrategy: input.duplicatesHandlingStrategy ?? DEFAULT_DUPLICATES_HANDLING_STRATEGY,
         updatedBy: input.updatedBy,
@@ -304,6 +308,8 @@ export async function updatePersistenceTemplate(
             length: col.length ?? null,
             allowNull: col.allowNull ?? true,
             comment: col.comment ?? null,
+            csvColumnName: col.csvColumnName ?? null,
+            csvColumnIndex: col.csvColumnIndex ?? -1,
           })),
         },
       },
@@ -391,6 +397,7 @@ export async function createPersistenceTemplate(
       description: input.description ?? null,
       targetTable: input.targetTable ?? null,
       enabled: input.enabled ?? true,
+      hasCsvHeader: input.hasCsvHeader ?? false,
       errorHandlingStrategy: input.errorHandlingStrategy ?? DEFAULT_ERROR_HANDLING_STRATEGY,
       duplicatesHandlingStrategy: input.duplicatesHandlingStrategy ?? DEFAULT_DUPLICATES_HANDLING_STRATEGY,
       createdBy: input.createdBy,
@@ -402,6 +409,8 @@ export async function createPersistenceTemplate(
           length: col.length ?? null,
           allowNull: col.allowNull ?? true,
           comment: col.comment ?? null,
+          csvColumnName: col.csvColumnName ?? null,
+          csvColumnIndex: col.csvColumnIndex ?? -1,
         })),
       },
     },

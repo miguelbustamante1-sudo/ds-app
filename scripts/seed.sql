@@ -298,3 +298,10 @@ ON CONFLICT (pdt_index) DO NOTHING;
 INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
 VALUES (9, 'uuid', '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
 ON CONFLICT (pdt_index) DO NOTHING;
+
+UPDATE di.pdt_persistence_data_types SET pdt_regular_expression = '^\d{4}-\d{2}-\d{2}$', pdt_example = '2025-03-25'
+WHERE pdt_index = 7 AND pdt_name = 'date';
+
+INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
+VALUES (10, 'timestamp without time zone', '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', '2025-03-25 10:00:00')
+ON CONFLICT (pdt_index) DO NOTHING;

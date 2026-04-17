@@ -96,6 +96,8 @@ interface CellError {
   row: number; // 0-based index into previewRows
   col: number; // 0-based column index
   message: string;
+  regularExpression: string | null;
+  example: string | null;
 }
 
 /**
@@ -114,6 +116,11 @@ function validateCsvPreview(
     dataTypes.map((dt) => [dt.name.toLowerCase(), dt]),
   );
 
+  // Build a map from CSV header name (lowercase) -> column index for header-mode.
+  const headerIndexMap = new Map<string, number>(
+    preview.headers.map((h, i) => [h.trim().toLowerCase(), i]),
+  );
+
   for (const col of template.columns) {
     if (!col.type) continue;
     const dt = dtMap.get(col.type.toLowerCase());
@@ -126,7 +133,20 @@ function validateCsvPreview(
       continue; // skip malformed regex
     }
 
-    const colIndex = col.index; // 0-based column index in the CSV
+    // Resolve the CSV column position based on the template's header mode.
+    let colIndex: number;
+    if (template.hasCsvHeader) {
+      // Match by csvColumnName against the CSV file's header row.
+      if (!col.csvColumnName || col.csvColumnName.trim() === '') continue;
+      const pos = headerIndexMap.get(col.csvColumnName.trim().toLowerCase());
+      if (pos === undefined) continue; // column not found in CSV headers
+      colIndex = pos;
+    } else {
+      // Match by csvColumnIndex (0-based position).
+      if (col.csvColumnIndex == null || col.csvColumnIndex === -1) continue;
+      colIndex = col.csvColumnIndex;
+    }
+
     const rowLimit = Math.min(preview.rows.length, CSV_PREVIEW_ROWS);
 
     for (let ri = 0; ri < rowLimit; ri++) {
@@ -140,6 +160,8 @@ function validateCsvPreview(
           row: ri,
           col: colIndex,
           message: `Row ${ri + 1}, col "${col.name}": "${cell}" does not match type "${col.type.toUpperCase()}"`,
+          regularExpression: dt.regularExpression,
+          example: dt.example,
         });
       }
     }
@@ -183,6 +205,22 @@ export function DataImportNewPage() {
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
+
+  // Toggle to hide CSV columns that have no matching template column.
+  // Default true: only matched columns are shown when the file first loads.
+  const [hideUnmapped, setHideUnmapped] = useState(true);
+
+  // Column detail modal
+  interface ColDetail {
+    name: string;
+    type: string | null;
+    length: number | null;
+    allowNull: boolean;
+    dtName: string | null;
+    dtRegex: string | null;
+    dtExample: string | null;
+  }
+  const [colDetail, setColDetail] = useState<ColDetail | null>(null);
 
   // -- Load templates on mount --------------------------------------------------
 
@@ -305,16 +343,64 @@ export function DataImportNewPage() {
     );
   }
 
-  const previewHeaders = csvPreview?.headers ?? [];
-  const previewRows    = csvPreview?.rows ?? [];
-
-  // Total columns = max(csv columns, template columns) so both are fully shown
+  // Total columns = max(csv columns, template span) so both are fully shown.
+  // When hasCsvHeader=No, template columns are placed by csvColumnIndex, so
+  // totalCols must cover the highest csvColumnIndex in use, not just the count.
   const selectedTemplate = selectedTemplateId
     ? templates.find((t) => String(t.id) === selectedTemplateId) ?? null
     : null;
-  const totalCols = Math.max(
-    previewHeaders.length,
-    selectedTemplate ? selectedTemplate.columns.length : 0,
+  const templateSpan = selectedTemplate
+    ? selectedTemplate.hasCsvHeader
+      ? selectedTemplate.columns.length
+      : Math.max(
+          0,
+          ...selectedTemplate.columns
+            .map((c) => (c.csvColumnIndex != null && c.csvColumnIndex !== -1 ? c.csvColumnIndex + 1 : 0)),
+        )
+    : 0;
+  const previewHeaders = csvPreview?.headers ?? [];
+  // When the template has no CSV header every line in the file is data.
+  // parseCsvPreview() always consumes line 0 as headers, so we prepend it
+  // back into the rows array so the first data row is not hidden.
+  const previewRows = csvPreview
+    ? (selectedTemplate && !selectedTemplate.hasCsvHeader
+        ? [previewHeaders, ...csvPreview.rows]
+        : csvPreview.rows)
+    : [];
+
+  const totalCols = Math.max(previewHeaders.length, templateSpan);
+
+  // When hideUnmapped is on, compute the set of column indices that have a
+  // matching template column, so we can skip the rest.
+  // A column index is "mapped" when the csvIndexMap would place a template
+  // column there. We recompute this here (same logic as inside the thead) so
+  // the body rows can also filter by the same set.
+  const mappedColIndices: Set<number> | null = (() => {
+    if (!hideUnmapped || !selectedTemplate) return null;
+    if (!selectedTemplate.hasCsvHeader) {
+      return new Set(
+        selectedTemplate.columns
+          .filter((c) => c.csvColumnIndex != null && c.csvColumnIndex !== -1)
+          .map((c) => c.csvColumnIndex as number),
+      );
+    }
+    // hasCsvHeader=Yes: map by name match
+    const headerPositionMap = new Map<string, number>(
+      previewHeaders.map((h, i) => [h.trim().toLowerCase(), i]),
+    );
+    const indices = new Set<number>();
+    for (const c of selectedTemplate.columns) {
+      if (c.csvColumnName && c.csvColumnName.trim() !== '') {
+        const pos = headerPositionMap.get(c.csvColumnName.trim().toLowerCase());
+        if (pos !== undefined) indices.add(pos);
+      }
+    }
+    return indices;
+  })();
+
+  // Indices of columns to actually render (all when mappedColIndices is null)
+  const visibleColIndices = Array.from({ length: totalCols }, (_, i) => i).filter(
+    (i) => mappedColIndices === null || mappedColIndices.has(i),
   );
 
   return (
@@ -431,10 +517,27 @@ export function DataImportNewPage() {
               )}
             </div>
 
-            {/* -- CSV preview table ------------------------------------------ */}
-            {csvPreview && previewHeaders.length > 0 && (
-              <div className="mt-4 flex flex-col gap-2">
-                {/* Summary + error navigation bar */}
+                {/* -- CSV preview table ------------------------------------------ */}
+                {csvPreview && previewHeaders.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {/* Static hint label */}
+                    <p className="text-xs text-muted-foreground">
+                      Click on a template column header to see more details about its data type.
+                    </p>
+                    {/* Toggle button for unmapped columns */}
+                    {selectedTemplate && (
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setHideUnmapped((v) => !v)}
+                        >
+                          {hideUnmapped ? 'Show unmatched columns' : 'Hide unmatched columns'}
+                        </Button>
+                      </div>
+                    )}
+                    {/* Summary + error navigation bar */}
                 {(() => {
                   const missingCols = selectedTemplate
                     ? Math.max(0, selectedTemplate.columns.length - previewHeaders.length)
@@ -485,24 +588,71 @@ export function DataImportNewPage() {
                 })()}
                 {/* Current error message */}
                 {cellErrors.length > 0 && cellErrors[errorIndex] && (
-                  <p className="text-xs text-destructive break-all">
-                    {cellErrors[errorIndex].message}
-                  </p>
+                  <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 space-y-0.5">
+                    <p className="text-xs text-destructive break-all font-medium">
+                      {cellErrors[errorIndex].message}
+                    </p>
+                    {cellErrors[errorIndex].regularExpression && (
+                      <p className="text-xs text-muted-foreground break-all">
+                        Expected format: <code className="font-mono">{cellErrors[errorIndex].regularExpression}</code>
+                      </p>
+                    )}
+                    {cellErrors[errorIndex].example && (
+                      <p className="text-xs text-muted-foreground">
+                        Example: <code className="font-mono">{cellErrors[errorIndex].example}</code>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {/* No-match info banner */}
+                {hideUnmapped && visibleColIndices.length === 0 && selectedTemplate && (
+                  <div className="flex items-start gap-2 rounded-md border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+                    <span>
+                      No columns matched between the CSV file and the selected template.
+                      Review the template column configuration or click{' '}
+                      <strong>"Show unmatched columns"</strong> to inspect all CSV columns.
+                    </span>
+                  </div>
                 )}
                 {/* Scrollable viewport for the table */}
+                {(!hideUnmapped || visibleColIndices.length > 0) && (
                 <div className="overflow-auto max-h-72 border border-border rounded-md">
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       {/* Row 1: template column names (informative) - spans ALL template cols */}
                       {selectedTemplate && (() => {
                         const sortedCols = [...selectedTemplate.columns].sort((a, b) => a.index - b.index);
+                        // When hasCsvHeader=No: map csvColumnIndex -> column (position-based).
+                        // When hasCsvHeader=Yes: map display position -> column by matching
+                        //   the CSV header name at that position to col.csvColumnName.
+                        let csvIndexMap: Map<number, typeof sortedCols[0]> | null = null;
+                        if (!selectedTemplate.hasCsvHeader) {
+                          csvIndexMap = new Map(
+                            selectedTemplate.columns
+                              .filter((c) => c.csvColumnIndex != null && c.csvColumnIndex !== -1)
+                              .map((c) => [c.csvColumnIndex as number, c]),
+                          );
+                        } else {
+                          // Build a map: CSV header name (lowercase) -> display position index
+                          const headerPositionMap = new Map<string, number>(
+                            previewHeaders.map((h, i) => [h.trim().toLowerCase(), i]),
+                          );
+                          csvIndexMap = new Map(
+                            selectedTemplate.columns
+                              .filter((c) => c.csvColumnName != null && c.csvColumnName.trim() !== '')
+                              .flatMap((c) => {
+                                const pos = headerPositionMap.get((c.csvColumnName as string).trim().toLowerCase());
+                                return pos !== undefined ? [[pos, c] as [number, typeof c]] : [];
+                              }),
+                          );
+                        }
                         return (
                           <tr className="bg-primary/10">
                             <th className="sticky top-0 z-10 bg-primary/10 border border-border px-2 py-1 text-left font-medium whitespace-nowrap text-primary" colSpan={1}>
                               Template columns
                             </th>
-                            {Array.from({ length: totalCols }, (_, i) => {
-                              const col = sortedCols[i];
+                            {visibleColIndices.map((i) => {
+                              const col = csvIndexMap ? csvIndexMap.get(i) : sortedCols[i];
                               const isMissing = i >= previewHeaders.length;
                               return (
                                 <th
@@ -510,10 +660,35 @@ export function DataImportNewPage() {
                                   className={[
                                     'sticky top-0 z-10 border border-border px-2 py-1 text-left font-medium whitespace-nowrap',
                                     isMissing ? 'bg-destructive/20 text-destructive' : 'bg-primary/10 text-primary',
+                                    col ? 'cursor-pointer hover:brightness-95' : '',
                                   ].join(' ')}
-                                  title={col ? `Template column: ${col.name}` : 'No matching template column'}
+                                  title={col ? `Click to see details for ${col.name}` : 'No matching template column'}
+                                  onClick={() => {
+                                    if (!col) return;
+                                    const dt = col.type
+                                      ? dataTypes.find((d) => d.name.toLowerCase() === col.type!.toLowerCase()) ?? null
+                                      : null;
+                                    setColDetail({
+                                      name: col.name,
+                                      type: col.type ?? null,
+                                      length: col.length ?? null,
+                                      allowNull: col.allowNull,
+                                      dtName: dt?.name ?? null,
+                                      dtRegex: dt?.regularExpression ?? null,
+                                      dtExample: dt?.example ?? null,
+                                    });
+                                  }}
                                 >
-                                  {col ? col.name : <span className="italic">-</span>}
+                                  {col ? (
+                                    <>
+                                      {col.name}
+                                      {col.type && (
+                                        <span className="font-normal opacity-70"> ({col.type})</span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="italic">-</span>
+                                  )}
                                 </th>
                               );
                             })}
@@ -525,9 +700,14 @@ export function DataImportNewPage() {
                         <th className="sticky top-0 z-10 bg-muted border border-border px-2 py-1 text-left font-medium whitespace-nowrap text-muted-foreground">
                           CSV headers
                         </th>
-                        {Array.from({ length: totalCols }, (_, i) => {
+                        {visibleColIndices.map((i) => {
                           const h = previewHeaders[i];
                           const isExtra = i >= (selectedTemplate?.columns.length ?? totalCols);
+                          const cellContent = selectedTemplate && !selectedTemplate.hasCsvHeader
+                            ? <span className="text-muted-foreground">{i}</span>
+                            : h != null
+                              ? (h || <span className="text-muted-foreground italic">(empty)</span>)
+                              : <span className="text-muted-foreground italic">-</span>;
                           return (
                             <th
                               key={i}
@@ -536,9 +716,7 @@ export function DataImportNewPage() {
                                 isExtra ? 'text-destructive' : '',
                               ].join(' ')}
                             >
-                              {h != null
-                                ? (h || <span className="text-muted-foreground italic">(empty)</span>)
-                                : <span className="text-muted-foreground italic">-</span>}
+                              {cellContent}
                             </th>
                           );
                         })}
@@ -550,7 +728,7 @@ export function DataImportNewPage() {
                           <td className="border border-border px-2 py-1 text-center text-muted-foreground select-none w-10">
                             {ri + 1}
                           </td>
-                          {previewHeaders.map((_, ci) => {
+                          {visibleColIndices.map((ci) => {
                             const isErr = cellErrors.some((e) => e.row === ri && e.col === ci);
                             const isFocused =
                               cellErrors[errorIndex]?.row === ri &&
@@ -574,6 +752,7 @@ export function DataImportNewPage() {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             )}
           </div>
@@ -590,6 +769,58 @@ export function DataImportNewPage() {
         </div>
 
       </div>
+
+      {/* -- Column detail modal --------------------------------------------- */}
+      <Dialog open={!!colDetail} onOpenChange={(open) => { if (!open) setColDetail(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Column Details</DialogTitle>
+          </DialogHeader>
+          {colDetail && (
+            <div className="space-y-3 py-2">
+              {/* Column info */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Name</p>
+                  <p className="font-medium">{colDetail.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Type</p>
+                  <p className="font-medium">{colDetail.type ?? <span className="italic text-muted-foreground">-</span>}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Length</p>
+                  <p className="font-medium">{colDetail.length != null ? colDetail.length : <span className="italic text-muted-foreground">-</span>}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Allow Null</p>
+                  <p className="font-medium">{colDetail.allowNull ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+              {/* Datatype info */}
+              {(colDetail.dtName || colDetail.dtRegex || colDetail.dtExample) && (
+                <div className="border-t pt-3 space-y-2">
+                  {colDetail.dtRegex && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Regular Expression</p>
+                      <code className="block text-xs font-mono bg-muted rounded px-2 py-1 break-all">{colDetail.dtRegex}</code>
+                    </div>
+                  )}
+                  {colDetail.dtExample && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Example</p>
+                      <code className="text-xs font-mono bg-muted rounded px-2 py-1">{colDetail.dtExample}</code>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setColDetail(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* -- Template picker modal -------------------------------------------- */}
       {(() => {
@@ -629,8 +860,19 @@ export function DataImportNewPage() {
                     <p className="text-sm text-muted-foreground">{draftTemplate.description}</p>
                   )}
 
-                  {/* Duplicate handling + Error handling + Target Table */}
-                  <div className="grid grid-cols-3 gap-4">
+                  {/* Duplicate handling + Error handling + Includes CSV Header + Target Table */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Includes CSV Header</Label>
+                      <p className="text-sm font-medium">
+                        {draftTemplate.hasCsvHeader ? 'Yes' : 'No'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {draftTemplate.hasCsvHeader
+                          ? 'Columns matched by CSV column name'
+                          : 'Columns matched by CSV column Index'}
+                      </p>
+                    </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wide">Duplicate Handling</Label>
                       <p className="text-sm font-medium">
@@ -673,18 +915,28 @@ export function DataImportNewPage() {
                             <th className="px-3 py-1.5 font-medium">Type</th>
                             <th className="px-3 py-1.5 font-medium">Length</th>
                             <th className="px-3 py-1.5 font-medium">Allow Null</th>
+                            <th className="px-3 py-1.5 font-medium">
+                              {draftTemplate.hasCsvHeader ? 'CSV Column Name' : 'CSV Column Index'}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {[...draftTemplate.columns]
                             .sort((a, b) => a.index - b.index)
-                            .map((col) => (
+                            .map((col, colPos) => (
                               <tr key={col.id} className="border-t">
-                                <td className="px-3 py-1.5 text-muted-foreground">{col.index + 1}</td>
+                                <td className="px-3 py-1.5 text-muted-foreground">{colPos}</td>
                                 <td className="px-3 py-1.5 font-medium">{col.name}</td>
                                 <td className="px-3 py-1.5 text-muted-foreground">{col.type ?? '-'}</td>
                                 <td className="px-3 py-1.5 text-muted-foreground">{col.length ?? '-'}</td>
                                 <td className="px-3 py-1.5 text-muted-foreground">{col.allowNull ? 'Yes' : 'No'}</td>
+                                <td className="px-3 py-1.5 text-muted-foreground">
+                                  {draftTemplate.hasCsvHeader
+                                    ? (col.csvColumnName ?? <span className="italic">-</span>)
+                                    : (col.csvColumnIndex != null && col.csvColumnIndex !== -1
+                                        ? col.csvColumnIndex
+                                        : <span className="italic">-</span>)}
+                                </td>
                               </tr>
                             ))}
                         </tbody>

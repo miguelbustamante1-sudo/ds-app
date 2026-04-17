@@ -30,6 +30,48 @@ import { error } from '../logger';
 
 const router = Router();
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates that CSV column references within a column list are unique.
+ *
+ * - hasCsvHeader=true  -> csvColumnName must be unique (nulls/empty strings exempt)
+ * - hasCsvHeader=false -> csvColumnIndex must be unique (-1 and missing values exempt)
+ *
+ * Returns an error message string when a violation is found, or null when valid.
+ */
+function validateCsvColumnUniqueness(
+  hasCsvHeader: boolean,
+  rawColumns: Array<Record<string, unknown>>,
+): string | null {
+  if (hasCsvHeader) {
+    const names = rawColumns
+      .map((c) => (typeof c['csvColumnName'] === 'string' ? c['csvColumnName'].trim() : ''))
+      .filter((n) => n !== '');
+    const seen = new Set<string>();
+    for (const n of names) {
+      if (seen.has(n)) {
+        return `Duplicate CSV Column Name '${n}'`;
+      }
+      seen.add(n);
+    }
+  } else {
+    const indices = rawColumns
+      .map((c) => (typeof c['csvColumnIndex'] === 'number' ? c['csvColumnIndex'] : -1))
+      .filter((i) => i !== -1);
+    const seen = new Set<number>();
+    for (const i of indices) {
+      if (seen.has(i)) {
+        return `Duplicate CSV Column Index '${i}'`;
+      }
+      seen.add(i);
+    }
+  }
+  return null;
+}
+
 // --- GET /persistence-template/ ----------------------------------------------
 // Returns a paginated list of persistence templates.
 // Query params: page (default 1, min 1), limit (default 10, min 1, max 100)
@@ -110,6 +152,7 @@ router.put(
       const body = (req as Request).body as {
         name?: unknown;
         description?: unknown;
+        hasCsvHeader?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
         errorHandlingStrategy?: unknown;
@@ -117,7 +160,7 @@ router.put(
         columns?: unknown;
       };
 
-      const { name, description, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -127,6 +170,11 @@ router.put(
 
       if (enabled !== undefined && typeof enabled !== 'boolean') {
         res.status(400).json({ error: '`enabled` must be a boolean when provided' });
+        return;
+      }
+
+      if (hasCsvHeader !== undefined && typeof hasCsvHeader !== 'boolean') {
+        res.status(400).json({ error: '`hasCsvHeader` must be a boolean when provided' });
         return;
       }
 
@@ -198,6 +246,15 @@ router.put(
         }
       }
 
+      const csvUniquenessError = validateCsvColumnUniqueness(
+        typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        rawColumns,
+      );
+      if (csvUniquenessError) {
+        res.status(400).json({ error: csvUniquenessError });
+        return;
+      }
+
       const mappedColumns: CreatePersistenceTemplateColumnInput[] = rawColumns.map((col, i) => ({
         index: typeof col['index'] === 'number' ? col['index'] : i,
         name: (col['name'] as string).trim(),
@@ -205,6 +262,8 @@ router.put(
         length: typeof col['length'] === 'number' ? col['length'] : null,
         allowNull: typeof col['allowNull'] === 'boolean' ? col['allowNull'] : true,
         comment: typeof col['comment'] === 'string' ? col['comment'] : null,
+        csvColumnName: typeof col['csvColumnName'] === 'string' ? col['csvColumnName'] : null,
+        csvColumnIndex: typeof col['csvColumnIndex'] === 'number' ? col['csvColumnIndex'] : -1,
       }));
 
       const updatedBy: string = req.user?.email ?? 'unknown';
@@ -212,6 +271,7 @@ router.put(
       const template = await persistenceTemplateService.update(id, {
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
+        hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
         errorHandlingStrategy:
@@ -254,6 +314,7 @@ router.post(
       const body = (req as Request).body as {
         name?: unknown;
         description?: unknown;
+        hasCsvHeader?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
         errorHandlingStrategy?: unknown;
@@ -261,7 +322,7 @@ router.post(
         columns?: unknown;
       };
 
-      const { name, description, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -271,6 +332,11 @@ router.post(
 
       if (enabled !== undefined && typeof enabled !== 'boolean') {
         res.status(400).json({ error: '`enabled` must be a boolean when provided' });
+        return;
+      }
+
+      if (hasCsvHeader !== undefined && typeof hasCsvHeader !== 'boolean') {
+        res.status(400).json({ error: '`hasCsvHeader` must be a boolean when provided' });
         return;
       }
 
@@ -343,6 +409,15 @@ router.post(
         }
       }
 
+      const csvUniquenessErrorPost = validateCsvColumnUniqueness(
+        typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        rawColumns,
+      );
+      if (csvUniquenessErrorPost) {
+        res.status(400).json({ error: csvUniquenessErrorPost });
+        return;
+      }
+
       // -- Map columns (camelCase per YAML spec) --------------------------------
       const mappedColumns: CreatePersistenceTemplateColumnInput[] = rawColumns.map((col, i) => ({
         index: typeof col['index'] === 'number' ? col['index'] : i,
@@ -351,6 +426,8 @@ router.post(
         length: typeof col['length'] === 'number' ? col['length'] : null,
         allowNull: typeof col['allowNull'] === 'boolean' ? col['allowNull'] : true,
         comment: typeof col['comment'] === 'string' ? col['comment'] : null,
+        csvColumnName: typeof col['csvColumnName'] === 'string' ? col['csvColumnName'] : null,
+        csvColumnIndex: typeof col['csvColumnIndex'] === 'number' ? col['csvColumnIndex'] : -1,
       }));
 
       // -- Create ---------------------------------------------------------------
@@ -359,6 +436,7 @@ router.post(
       const template = await persistenceTemplateService.create({
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
+        hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
         errorHandlingStrategy:

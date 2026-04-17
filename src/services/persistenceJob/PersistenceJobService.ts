@@ -73,7 +73,7 @@ export class PersistenceJobService {
     //    so we can check before even creating the job record.
     const templateRow = await prisma.persistenceTemplate.findUnique({
       where:  { id: persistenceTemplateId },
-      select: { targetTable: true },
+      select: { targetTable: true, hasCsvHeader: true },
     });
 
     if (templateRow?.targetTable) {
@@ -83,7 +83,7 @@ export class PersistenceJobService {
       }
     }
 
-    const fileLinesCount  = countCsvLines(csvBuffer);
+    const fileLinesCount  = countCsvLines(csvBuffer, templateRow?.hasCsvHeader ?? true);
     const fileStoragePath = `job-${Date.now()}-${originalFileName}`;
 
     const job = await this.repository.create({
@@ -122,6 +122,7 @@ export class PersistenceJobService {
           dataTypes,
           jobId,
           stopOnFirstError,
+          template.hasCsvHeader,
         );
 
         if (!validationResult.valid) {
@@ -161,6 +162,7 @@ export class PersistenceJobService {
           targetTable:                template.targetTable,
           columns:                    template.columns,
           csvBuffer,
+          hasCsvHeader:               template.hasCsvHeader,
           validationResult,
           errorHandlingStrategy:      template.errorHandlingStrategy,
           duplicatesHandlingStrategy: template.duplicatesHandlingStrategy,

@@ -33,10 +33,12 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 // --- Types --------------------------------------------------------------------
 
 export interface InsertColumn {
-  index:        number;
-  name:         string;   // DB column name
-  allowNull:    boolean;
-  isPrimaryKey?: boolean; // true when this column is part of the PK
+  index:          number;
+  name:           string;   // DB column name
+  allowNull:      boolean;
+  isPrimaryKey?:  boolean;  // true when this column is part of the PK
+  csvColumnName:  string | null;
+  csvColumnIndex: number;
 }
 
 export interface InsertOptions {
@@ -46,6 +48,8 @@ export interface InsertOptions {
   columns:                    InsertColumn[];
   /** Raw CSV buffer (header + data rows). */
   csvBuffer:                  Buffer;
+  /** Whether the CSV file contains a header row. */
+  hasCsvHeader:               boolean;
   /** Already-computed validation result (must be valid). */
   validationResult:           CsvValidationResult;
   errorHandlingStrategy:      string;
@@ -103,6 +107,7 @@ export class CsvInsertService {
       targetTable,
       columns,
       csvBuffer,
+      hasCsvHeader,
       errorHandlingStrategy,
       duplicatesHandlingStrategy,
       jobId,
@@ -110,13 +115,38 @@ export class CsvInsertService {
 
     const prefix = `[CsvInsert][job=${jobId}]`;
 
-    // Sort columns by index (same order as validation)
-    const orderedColumns = [...columns].sort((a, b) => a.index - b.index);
-
-    // Parse CSV data rows (skip header)
+    // Parse CSV lines
     const text     = csvBuffer.toString('utf-8');
     const allLines = text.split(/\r?\n/);
-    const dataRows = allLines.slice(1).filter((r) => r.trim().length > 0);
+
+    // Resolve each column's CSV cell offset.
+    // hasCsvHeader=true  -> match by csvColumnName against the header row.
+    // hasCsvHeader=false -> use csvColumnIndex directly.
+    const headerLine  = allLines[0] ?? '';
+    const headerCells = this.splitCsvRow(headerLine);
+
+    const headerPositionMap = hasCsvHeader
+      ? new Map<string, number>(headerCells.map((h, i) => [h.trim().toLowerCase(), i]))
+      : null;
+
+    const orderedColumns = [...columns]
+      .sort((a, b) => a.index - b.index)
+      .map((col) => {
+        let csvOffset: number;
+        if (hasCsvHeader) {
+          const pos = headerPositionMap!.get((col.csvColumnName ?? '').trim().toLowerCase());
+          csvOffset = pos !== undefined ? pos : -1;
+        } else {
+          csvOffset = col.csvColumnIndex != null && col.csvColumnIndex !== -1
+            ? col.csvColumnIndex
+            : -1;
+        }
+        return { ...col, csvOffset };
+      })
+      .filter((col) => col.csvOffset !== -1);
+
+    // Data rows: skip the header line when hasCsvHeader=true
+    const dataRows = (hasCsvHeader ? allLines.slice(1) : allLines).filter((r) => r.trim().length > 0);
 
     const colNames = orderedColumns.map((c) => c.name);
 
@@ -147,21 +177,22 @@ export class CsvInsertService {
     const buildSql = (values: (string | null)[]): string =>
       this.buildInsertSql(targetTable, colNames, values, duplicatesHandlingStrategy, pkCols);
 
+    type OrderedColumn = (typeof orderedColumns)[number];
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_ROLLBACK) {
-      return this.insertWithTransaction(dataRows, orderedColumns, buildSql, prefix, signal, checkCancel, pollEvery);
+      return this.insertWithTransaction(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
     }
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_COMMIT) {
-      return this.insertStopAndCommit(dataRows, orderedColumns, buildSql, prefix, signal, checkCancel, pollEvery);
+      return this.insertStopAndCommit(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
     }
     console.warn(`${prefix} Error handling is default`);
-    return this.insertContinueOnError(dataRows, orderedColumns, buildSql, prefix, signal, checkCancel, pollEvery);
+    return this.insertContinueOnError(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
   }
 
   // --- Transaction strategy (abort + rollback on first error) -----------------
 
   private async insertWithTransaction(
     dataRows:       string[],
-    columns:        InsertColumn[],
+    columns:        (InsertColumn & { csvOffset: number })[],
     buildSql:       (values: (string | null)[]) => string,
     prefix:         string,
     signal?:        AbortSignal,
@@ -179,8 +210,8 @@ export class CsvInsertService {
             if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at row ${i + 1} - rolling back transaction`); throw new Error('Job canceled - transaction rolled back'); }
           }
           const cells  = this.splitCsvRow(dataRows[i]!);
-          const values = columns.map((_, idx) => {
-            const raw = (cells[idx] ?? '').trim();
+          const values = columns.map((col) => {
+            const raw = (cells[col.csvOffset] ?? '').trim();
             return raw === '' ? null : raw;
           });
 
@@ -211,7 +242,7 @@ export class CsvInsertService {
 
   private async insertStopAndCommit(
     dataRows:     string[],
-    columns:      InsertColumn[],
+    columns:      (InsertColumn & { csvOffset: number })[],
     buildSql:     (values: (string | null)[]) => string,
     prefix:       string,
     signal?:      AbortSignal,
@@ -228,8 +259,8 @@ export class CsvInsertService {
       }
       const rowNumber = i + 1;
       const cells     = this.splitCsvRow(dataRows[i]!);
-      const values    = columns.map((_, idx) => {
-        const raw = (cells[idx] ?? '').trim();
+      const values    = columns.map((col) => {
+        const raw = (cells[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
@@ -256,7 +287,7 @@ export class CsvInsertService {
 
   private async insertContinueOnError(
     dataRows:     string[],
-    columns:      InsertColumn[],
+    columns:      (InsertColumn & { csvOffset: number })[],
     buildSql:     (values: (string | null)[]) => string,
     prefix:       string,
     signal?:      AbortSignal,
@@ -275,8 +306,8 @@ export class CsvInsertService {
       }
       const rowNumber = i + 1;
       const cells     = this.splitCsvRow(dataRows[i]!);
-      const values    = columns.map((_, idx) => {
-        const raw = (cells[idx] ?? '').trim();
+      const values    = columns.map((col) => {
+        const raw = (cells[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 

@@ -27,6 +27,8 @@ export interface CreatePersistenceTemplateColumnInput {
   length?: number | null;
   allowNull?: boolean;
   comment?: string | null;
+  csvColumnName?: string | null;
+  csvColumnIndex?: number;
 }
 
 // --- Template -----------------------------------------------------------------
@@ -36,6 +38,7 @@ export interface CreatePersistenceTemplateInput {
   description?: string | null;
   targetTable?: string | null;
   enabled?: boolean;
+  hasCsvHeader?: boolean;
   errorHandlingStrategy?: ErrorHandlingStrategy;
   duplicatesHandlingStrategy?: DuplicatesHandlingStrategy;
   createdBy: string;
@@ -47,6 +50,7 @@ export interface UpdatePersistenceTemplateInput {
   description?: string | null;
   targetTable?: string | null;
   enabled?: boolean;
+  hasCsvHeader?: boolean;
   errorHandlingStrategy?: ErrorHandlingStrategy;
   duplicatesHandlingStrategy?: DuplicatesHandlingStrategy;
   updatedBy: string;
@@ -64,6 +68,8 @@ export interface PersistenceTemplateColumnDTO {
   length: number | null;
   allowNull: boolean;
   comment: string | null;
+  csvColumnName: string | null;
+  csvColumnIndex: number;
 }
 
 export interface PersistenceTemplateDTO {
@@ -72,6 +78,7 @@ export interface PersistenceTemplateDTO {
   description: string | null;
   targetTable: string | null;
   enabled: boolean;
+  hasCsvHeader: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
   createdBy: string;
