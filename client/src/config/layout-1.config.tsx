@@ -110,6 +110,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'TimeOffReview',
   },
   {
+    title: 'Time Off Exception',
+    icon: Zap,
+    path: '/timeoff-exception',
+    permission: 'TimeOffException',
+  },
+  {
     title: 'Project Assignments',
     icon: FolderKanban,
     path: '/project-assignments',

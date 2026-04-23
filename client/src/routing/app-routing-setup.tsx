@@ -54,6 +54,7 @@ import { TemplateBuilderPage } from '@/pages/template-builder';
 import { DataImportPage } from '@/pages/data-import';
 import { DataImportDetailPage } from '@/pages/data-import/detail';
 import { DataImportNewPage } from '@/pages/data-import/new';
+import { TimeOffExceptionPage } from '@/pages/timeoff/exception';
 
 export function AppRoutingSetup() {
   return (
@@ -74,6 +75,7 @@ export function AppRoutingSetup() {
         <Route path="/my-team/:id" element={<TeamMemberProfilePage />} />
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
+        <Route path="/timeoff-exception" element={<TimeOffExceptionPage />} />
         <Route path="/time-off-management" element={<TimeOffManagementPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/notification-center" element={<NotificationCenterPage />} />
