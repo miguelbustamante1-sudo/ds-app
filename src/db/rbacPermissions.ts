@@ -51,24 +51,24 @@ export async function createRbacPermission(
 
 export async function updateRbacPermission(
   id: number,
-  permissionResource: string | null,
+  permissionResource: string | null | undefined,
   permissionRead: boolean,
   permissionWrite: boolean,
   permissionDelete: boolean,
-  permissionDescription: string | null,
-  optionId: number | null,
-  roleId: number | null
+  permissionDescription: string | null | undefined,
+  optionId: number | null | undefined,
+  roleId: number | null | undefined
 ): Promise<Permission | null> {
   return await prisma.permission.update({
     where: { permissionId: id },
     data: {
-      permissionResource,
+      ...(permissionResource !== undefined && { permissionResource }),
       permissionRead,
       permissionWrite,
       permissionDelete,
-      permissionDescription,
-      optionId,
-      roleId,
+      ...(permissionDescription !== undefined && { permissionDescription }),
+      ...(optionId !== undefined && { optionId }),
+      ...(roleId !== undefined && { roleId }),
       updatedAt: new Date(),
     },
   });

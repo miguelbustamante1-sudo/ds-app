@@ -7,7 +7,7 @@ export function AppLayout() {
   return (
     <>
       <Helmet>
-        <title>Digital Solutions BSA App</title>
+        <title>TICA DS App</title>
       </Helmet>
 
       <LayoutProvider>

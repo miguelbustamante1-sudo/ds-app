@@ -88,13 +88,13 @@ router.put('/:id', requirePermission('RBACPermissions', 'create'), async (req: R
 
     const updated = await updateRbacPermission(
       id,
-      per_resource ?? null,
+      per_resource !== undefined ? per_resource : undefined,
       typeof per_read === 'boolean' ? per_read : false,
       typeof per_write === 'boolean' ? per_write : false,
       typeof per_delete === 'boolean' ? per_delete : false,
-      typeof per_description === 'string' ? per_description : null,
-      typeof opt_id === 'number' ? opt_id : null,
-      typeof rol_id === 'number' ? rol_id : null
+      per_description !== undefined ? per_description : undefined,
+      opt_id !== undefined ? opt_id : undefined,
+      rol_id !== undefined ? rol_id : undefined
     );
 
     if (!updated) return res.status(404).json({ error: 'Permission not found' });

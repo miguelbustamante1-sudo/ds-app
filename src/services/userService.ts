@@ -2,6 +2,7 @@ import { TokenPayload } from './types';
 import { GoogleIdTokenPayload } from './googleOidcService';
 import { IapJwtPayload } from './iapJwtService';
 import authUserDb from '../db/authUsers';
+import { createRbacUserRole } from '../db/rbacUserRoles';
 
 // Using AuthUser from Prisma
 import type { AuthUser } from '@prisma/client';
@@ -62,6 +63,7 @@ class UserService {
         roles: ['user'], // Default role
       });
 
+      await createRbacUserRole(newUser.id, 4);
       console.log(`New user created from OneLogin: ${newUser.email}`);
       return newUser;
     } catch (error) {
@@ -110,6 +112,7 @@ class UserService {
         roles: ['user'],
       });
 
+      await createRbacUserRole(newUser.id, 4);
       console.log(`New user created from Google token: ${newUser.email}`);
       return newUser;
     } catch (error) {
@@ -152,6 +155,7 @@ class UserService {
         roles: ['user'],
       });
 
+      await createRbacUserRole(newUser.id, 4);
       console.log(`New user created from IAP: ${newUser.email}`);
       return newUser;
     } catch (error) {

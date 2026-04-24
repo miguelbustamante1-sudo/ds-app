@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
+import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -116,11 +117,17 @@ export function RunReportPage() {
   const columns: ColumnDef<Record<string, unknown>>[] = result?.data[0]
     ? Object.keys(result.data[0]).map((key) => ({
         accessorKey: key,
-        header: key,
+        header: ({ column }) => <DataGridColumnHeader column={column} title={key} />,
+        size: 160,
         cell: ({ getValue }) => {
           const val = getValue();
           if (val === null || val === undefined) return <span className="text-muted-foreground">—</span>;
-          return String(val);
+          const str = String(val);
+          return (
+            <span className="max-w-[160px] truncate block" title={str}>
+              {str}
+            </span>
+          );
         },
       }))
     : [];
