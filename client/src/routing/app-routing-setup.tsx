@@ -40,6 +40,7 @@ import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
 import { HolidaySwapsPage } from '@/pages/holiday-swaps';
 import { HolidaySwapDetailPage } from '@/pages/holiday-swaps/detail';
+import { SupervisorHolidaySwapsPage } from '@/pages/holiday-swaps/supervisor';
 import { BenchMovePage } from '@/pages/bench-move';
 import { BenchMoveDetailPage } from '@/pages/bench-move/detail';
 import { EndBenchPage } from '@/pages/end-bench';
@@ -55,6 +56,7 @@ import { DataImportPage } from '@/pages/data-import';
 import { DataImportDetailPage } from '@/pages/data-import/detail';
 import { DataImportNewPage } from '@/pages/data-import/new';
 import { TimeOffExceptionPage } from '@/pages/timeoff/exception';
+import { HolidaySwapExceptionPage } from '@/pages/holiday-swaps/exception';
 
 export function AppRoutingSetup() {
   return (
@@ -84,6 +86,8 @@ export function AppRoutingSetup() {
         <Route path="/timeoff-activity" element={<TimeOffActivityPage />} />
         <Route path="/holiday-swaps" element={<HolidaySwapsPage />} />
         <Route path="/holiday-swaps/:swapId" element={<HolidaySwapDetailPage />} />
+        <Route path="/supervisor-holiday-swaps" element={<SupervisorHolidaySwapsPage />} />
+        <Route path="/holiday-swap-exception" element={<HolidaySwapExceptionPage />} />
         <Route path="/bench-move" element={<BenchMovePage />} />
         <Route path="/bench-move/:benchId" element={<BenchMoveDetailPage />} />
         <Route path="/end-bench" element={<EndBenchPage />} />

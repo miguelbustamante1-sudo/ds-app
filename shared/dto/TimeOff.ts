@@ -120,7 +120,7 @@ export interface TimeOffDetailDTO {
   statusName: string;
   teamMemberName: string;
   role: 'owner' | 'supervisor';
-  availableActions: ('acknowledge' | 'decline' | 'cancel')[];
+  availableActions: ('acknowledge' | 'decline' | 'cancel' | 'supervisor_approve' | 'supervisor_reject')[];
   creationComment: string | null;
   changeLogs: {
     changeLogId: number;

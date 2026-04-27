@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 import { CalendarIcon, AlertTriangle } from 'lucide-react';
-import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
-import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
+import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { TeamMemberDTO } from '@shared/dto/TeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
@@ -19,7 +19,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn, parseUTCDateAsLocal, formatUTCDate } from '@/lib/utils';
 import { apiGet, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { VACATION_CATEGORY_NAME } from '../../utils/elSalvadorVacationValidation';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 
 const isWeekend = (date: Date): boolean => {
@@ -40,9 +39,12 @@ interface FormData {
 }
 
 interface ExceptionTimeOffFormProps {
-  teamMember: SupervisedTeamMemberDTO | null;
+  teamMember: TeamMemberDTO | null;
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
+  onUpdate?: (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => Promise<void>;
+  onCancelEdit?: () => void;
+  editingTimeOff?: TimeOffWithDetailsDTO | null;
   loading: boolean;
 }
 
@@ -58,8 +60,12 @@ function ExceptionTimeOffFormInner({
   teamMember,
   existingTimeOffs: _existingTimeOffs,
   onSubmit,
+  onUpdate,
+  onCancelEdit,
+  editingTimeOff,
   loading,
 }: ExceptionTimeOffFormProps) {
+  const isEditing = !!editingTimeOff;
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const { toast } = useToast();
@@ -102,6 +108,19 @@ function ExceptionTimeOffFormInner({
   }, [teamMember?.teamMemberId, reset]);
 
   useEffect(() => {
+    if (editingTimeOff) {
+      reset({
+        categoryId: editingTimeOff.categoryId?.toString() ?? '',
+        startDate: parseUTCDateAsLocal(editingTimeOff.timeOffStartDate),
+        endDate: parseUTCDateAsLocal(editingTimeOff.timeOffEndDate),
+        comment: '',
+      });
+    } else {
+      reset({ categoryId: '', startDate: undefined, endDate: undefined, comment: '' });
+    }
+  }, [editingTimeOff, reset]);
+
+  useEffect(() => {
     async function loadData() {
       if (!teamMember?.teamMemberId) return;
       try {
@@ -109,12 +128,7 @@ function ExceptionTimeOffFormInner({
         const categoriesData = await apiGet<CategoryByCountryDTO[]>(
           `/api/time-off-category/team-member/${teamMember.teamMemberId}`
         );
-        // Exclude vacation category — handled by the regular supervisor form
-        setCategories(
-          categoriesData.filter(
-            (c) => c.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()
-          )
-        );
+        setCategories(categoriesData);
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to load form data';
         toast({ title: 'Error', description: message, variant: 'destructive' });
@@ -181,17 +195,27 @@ function ExceptionTimeOffFormInner({
   const handleFormSubmit = useCallback(
     async (data: FormData) => {
       if (!teamMember || !data.startDate || !data.endDate) return;
-      const payload: CreateSupervisorTimeOffDTO = {
-        teamMemberId: teamMember.teamMemberId,
-        categoryId: Number(data.categoryId),
-        timeOffStartDate: data.startDate.toISOString(),
-        timeOffEndDate: data.endDate.toISOString(),
-        comment: data.comment || undefined,
-      };
-      await onSubmit(payload);
+      if (isEditing && editingTimeOff && onUpdate) {
+        const payload: UpdateSupervisorTimeOffDTO = {
+          categoryId: Number(data.categoryId),
+          timeOffStartDate: data.startDate.toISOString(),
+          timeOffEndDate: data.endDate.toISOString(),
+          comment: data.comment || undefined,
+        };
+        await onUpdate(editingTimeOff.timeOffId, payload);
+      } else {
+        const payload: CreateSupervisorTimeOffDTO = {
+          teamMemberId: teamMember.teamMemberId,
+          categoryId: Number(data.categoryId),
+          timeOffStartDate: data.startDate.toISOString(),
+          timeOffEndDate: data.endDate.toISOString(),
+          comment: data.comment || undefined,
+        };
+        await onSubmit(payload);
+      }
       reset();
     },
-    [teamMember, onSubmit, reset]
+    [teamMember, isEditing, editingTimeOff, onUpdate, onSubmit, reset]
   );
 
   if (!teamMember) {
@@ -208,9 +232,11 @@ function ExceptionTimeOffFormInner({
   return (
     <div className="bg-card rounded-lg border p-6">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold">Exception Time Off Entry</h3>
+        <h3 className="text-lg font-semibold">
+          {isEditing ? 'Edit Exception Entry' : 'Exception Time Off Entry'}
+        </h3>
         <p className="text-sm text-muted-foreground">
-          Creating entry for{' '}
+          {isEditing ? 'Editing entry for' : 'Creating entry for'}{' '}
           <span className="font-medium">
             {teamMember.teamMemberNames} {teamMember.teamMemberSurnames}
           </span>{' '}
@@ -394,9 +420,16 @@ function ExceptionTimeOffFormInner({
           )}
         </div>
 
-        <Button type="submit" disabled={!canSave}>
-          {loading ? 'Creating...' : 'Create Exception Entry'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button type="submit" disabled={!canSave}>
+            {loading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Exception Entry' : 'Create Exception Entry')}
+          </Button>
+          {isEditing && onCancelEdit && (
+            <Button type="button" variant="outline" onClick={onCancelEdit} disabled={loading}>
+              Cancel Edit
+            </Button>
+          )}
+        </div>
       </form>
     </div>
   );

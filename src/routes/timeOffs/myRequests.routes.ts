@@ -92,7 +92,7 @@ router.get('/detail/:timeOffId', requirePermission('TimeOffs', 'read'), resolveA
       if (role === 'owner') {
         availableActions = ['acknowledge', 'decline', 'cancel'];
       } else {
-        availableActions = ['cancel'];
+        availableActions = ['supervisor_approve', 'supervisor_reject', 'cancel'];
       }
     } else if (timeOff.statusId === 5) { // Rejected — only supervisor can cancel
       if (role === 'supervisor') {

@@ -84,6 +84,40 @@ export function useTimeOffDetail(options?: UseTimeOffDetailOptions) {
     }
   }, [options]);
 
+  const supervisorApproveTimeOff = useCallback(async (timeOffId: number, comment: string) => {
+    try {
+      setLoading(true);
+      await apiPatch<void, { comment: string }>(
+        `/api/time-offs/supervisor/${timeOffId}/acknowledge`,
+        { comment }
+      );
+      options?.onSuccess?.('Time-off approved successfully');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to approve time-off';
+      options?.onError?.(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  const supervisorRejectTimeOff = useCallback(async (timeOffId: number, comment: string) => {
+    try {
+      setLoading(true);
+      await apiPatch<void, { comment: string }>(
+        `/api/time-offs/supervisor/${timeOffId}/reject`,
+        { comment }
+      );
+      options?.onSuccess?.('Time-off rejected successfully');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to reject time-off';
+      options?.onError?.(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
   return {
     detail,
     loading,
@@ -92,5 +126,7 @@ export function useTimeOffDetail(options?: UseTimeOffDetailOptions) {
     acknowledgeTimeOff,
     declineTimeOff,
     cancelTimeOff,
+    supervisorApproveTimeOff,
+    supervisorRejectTimeOff,
   };
 }

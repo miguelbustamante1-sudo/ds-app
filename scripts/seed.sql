@@ -159,6 +159,7 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (26
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (27, 'PersistenceTemplates',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (28, 'PersistenceDataTypes',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (29, 'PersistenceTables',        NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (30, 'HolidaySwapException',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
 
 -- 9. RBAC Permissions
 -- Only insert if the table is empty (no unique constraint to use ON CONFLICT)
@@ -227,6 +228,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTemplates' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTemplates',   true, true, true, NULL,  NOW(), 27, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceDataTypes' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceDataTypes',   true, true, true, NULL,  NOW(), 28, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTables' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTables',         true, true, true, NULL,  NOW(), 29, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'HolidaySwapException' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('HolidaySwapException', true, true, false, NULL, NOW(), 30, 1); END IF;
 
   -- user (rol_id=2)
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTeam'           AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTeam',           true, true, false, NULL, NOW(), 22, 2); END IF;

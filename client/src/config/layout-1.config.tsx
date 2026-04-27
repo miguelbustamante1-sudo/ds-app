@@ -9,6 +9,7 @@ import {
   Book,
   Briefcase,
   Building,
+  CalendarArrowDown,
   CalendarCheck,
   Captions,
   CheckCircle,
@@ -104,16 +105,16 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'SupervisorTimeOff',
   },
   {
+    title: 'Team Holiday Swaps',
+    icon: CalendarCheck,
+    path: '/supervisor-holiday-swaps',
+    permission: 'SupervisorHolidaySwaps',
+  },
+  {
     title: 'Time Off Review',
     icon: CalendarCheck,
     path: '/time-off-management',
     permission: 'TimeOffReview',
-  },
-  {
-    title: 'Time Off Exception',
-    icon: Zap,
-    path: '/timeoff-exception',
-    permission: 'TimeOffException',
   },
   {
     title: 'Project Assignments',
@@ -191,6 +192,20 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/hiring',
     role: 'bsa',
     permission: 'Hiring',
+  },
+  {
+    title: 'Time Off Exception',
+    icon: Zap,
+    path: '/timeoff-exception',
+    role: 'bsa',
+    permission: 'TimeOffException',
+  },
+  {
+    title: 'Holiday Swap Exception',
+    icon: CalendarArrowDown,
+    path: '/holiday-swap-exception',
+    role: 'bsa',
+    permission: 'HolidaySwapException',
   },
   { heading: 'Security', role: 'admin' },
   {

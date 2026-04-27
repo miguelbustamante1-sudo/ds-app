@@ -187,6 +187,7 @@ export function SupervisorTimeOffPage() {
                   onActionComplete={() => {
                     if (selectedTeamMember) {
                       timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+                      balanceHook.loadBalance(selectedTeamMember.teamMemberId);
                     }
                   }}
                 />

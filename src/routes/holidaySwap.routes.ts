@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { requirePermission } from '../middleware/auth';
 import { holidaySwapOrchestrator } from '../services/holidaySwap/HolidaySwapOrchestrator';
-import type { CreateHolidaySwapDTO, ReviewHolidaySwapDTO, CancelHolidaySwapDTO } from '@shared/dto/HolidaySwap';
+import type { CreateHolidaySwapDTO, ReviewHolidaySwapDTO, CancelHolidaySwapDTO, UpdateHolidaySwapDTO } from '@shared/dto/HolidaySwap';
 import { getActiveSwapsForTM } from '../services/holidaySwap/queries/getActiveSwapsForTM';
 
 const router = Router();
@@ -162,6 +162,72 @@ router.get(
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 500;
+      res.status(status).json({ error: message });
+    }
+  }
+);
+
+/** PATCH /api/holiday-swaps/team/:id — supervisor updates a TM's swap */
+router.patch(
+  '/team/:id',
+  requirePermission('HolidaySwaps', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const supervisorTeamMemberId = req.user?.teamMemberId;
+      const updatedBy = req.user?.email ?? 'unknown';
+      if (!supervisorTeamMemberId) {
+        res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
+        return;
+      }
+      const swapId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(swapId)) {
+        res.status(400).json({ error: 'Invalid swap ID.' });
+        return;
+      }
+      const input: UpdateHolidaySwapDTO = req.body;
+      const swap = await holidaySwapOrchestrator.updateSwapForMember(
+        swapId,
+        supervisorTeamMemberId,
+        input,
+        updatedBy
+      );
+      res.json(swap);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      const status = message.includes('Access denied') ? 403 : 400;
+      res.status(status).json({ error: message });
+    }
+  }
+);
+
+/** PATCH /api/holiday-swaps/team/:id/cancel — supervisor cancels a TM's swap */
+router.patch(
+  '/team/:id/cancel',
+  requirePermission('HolidaySwaps', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const supervisorTeamMemberId = req.user?.teamMemberId;
+      const updatedBy = req.user?.email ?? 'unknown';
+      if (!supervisorTeamMemberId) {
+        res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
+        return;
+      }
+      const swapId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(swapId)) {
+        res.status(400).json({ error: 'Invalid swap ID.' });
+        return;
+      }
+      const input: CancelHolidaySwapDTO = req.body;
+      const swap = await holidaySwapOrchestrator.cancelSwapForMember(
+        swapId,
+        supervisorTeamMemberId,
+        updatedBy,
+        input
+      );
+      res.json(swap);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      const status = message.includes('Access denied') ? 403 : 400;
       res.status(status).json({ error: message });
     }
   }

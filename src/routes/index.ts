@@ -32,6 +32,7 @@ import clientContactsRouter from './clientContacts';
 import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
 import holidaySwapRouter from './holidaySwap.routes';
+import holidaySwapExceptionRouter from './holidaySwapException.routes';
 import pendingRequestsRouter from './pendingRequests.routes';
 import benchRouter from './bench.routes';
 import persistenceTemplateRouter from './persistenceTemplate.routes';
@@ -75,6 +76,7 @@ export default function registerRoutes() {
   router.use('/workday-info', workdayInfoRouter);
   router.use('/functional-areas', functionalAreasRouter);
   router.use('/holiday-swaps', holidaySwapRouter);
+  router.use('/holiday-swaps', holidaySwapExceptionRouter);
   router.use('/team/pending-requests', pendingRequestsRouter);
   router.use('/bench-move', benchRouter);
   router.use('/persistence-template', persistenceTemplateRouter);

@@ -29,6 +29,8 @@ import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDate
 import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
 import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+import { acknowledgeTimeOffBySupervisor } from '../../services/timeoff/components/AcknowledgeTimeOffBySupervisor';
+import { rejectTimeOffBySupervisor } from '../../services/timeoff/components/RejectTimeOffBySupervisor';
 
 const SPLIT_STATUS_ID = 6;
 
@@ -515,11 +517,22 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
 // PATCH /:timeOffId/acknowledge
 router.patch('/:timeOffId/acknowledge', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
   try {
-    const { teamMemberId: supervisorTeamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const authReq = req as ResolvedAuthRequest;
+    const { teamMemberId: supervisorTeamMemberId, resolvedUserId } = authReq;
+
+    if (!resolvedUserId) {
+      return res.status(401).json({ error: 'User ID could not be resolved' });
+    }
+    const userId = resolvedUserId;
 
     const timeOffId = Number(req.params.timeOffId);
     if (Number.isNaN(timeOffId)) {
       return res.status(400).json({ error: 'Invalid time-off id' });
+    }
+
+    const { comment } = req.body as { comment?: string };
+    if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
+      return res.status(400).json({ error: 'Comment is required for acknowledgement' });
     }
 
     const timeOff = await getTimeOffById(timeOffId);
@@ -544,29 +557,150 @@ router.patch('/:timeOffId/acknowledge', requirePermission('TimeOffs', 'create'),
       return res.status(400).json({ error: 'Time-off is already acknowledged' });
     }
 
-    const updated = await updateTimeOff(
+    await acknowledgeTimeOffBySupervisor({
       timeOffId,
-      timeOff.teamMemberId,
-      timeOff.timeOffStartDate,
-      timeOff.timeOffEndDate,
+      oldStatusId: timeOff.statusId ?? 1,
+      newStatusId: acknowledgedStatus.statusId!,
+      comment: comment.trim(),
       userId,
-      new Date().toISOString(),
-      timeOff.categoryId,
-      acknowledgedStatus.statusId
-    );
-
-    await createTimeOffChangeLog({
-      timeOffId,
-      comment: 'Acknowledged by supervisor',
-      oldValues: { statusId: timeOff.statusId },
-      newValues: { statusId: acknowledgedStatus.statusId },
-      createdByUserId: userId,
     });
 
-    res.json(updated);
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: { statusId: timeOff.statusId },
+      newValues: { statusId: acknowledgedStatus.statusId },
+      comment: 'Time-off approved by supervisor',
+    });
+
+    try {
+      const employeeUserIds = await getUserIdsByTeamMemberIds([timeOff.teamMemberId]);
+      const employeeUserId = employeeUserIds[0];
+      if (employeeUserId !== undefined) {
+        const supervisorName = authReq.user?.firstName
+          ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
+          : 'Your supervisor';
+        await notificationOrchestrator.create({
+          categoryName: 'Inbox',
+          itemType: 'item-3',
+          payload: {
+            userName: supervisorName,
+            avatar: '300-1.png',
+            badgeColor: 'online',
+            description: 'approved your time-off request',
+            link: `/timeoff-detail/${timeOffId}`,
+            day: 'Today',
+            info: `${formatDateDDMMYYYY(timeOff.timeOffStartDate.toISOString())} to ${formatDateDDMMYYYY(timeOff.timeOffEndDate.toISOString())}`,
+            sourceId: timeOffId,
+            sourceEntity: 'TimeOff',
+          },
+          recipients: [{ userId: employeeUserId, actionType: 'readonly' }],
+        });
+      }
+    } catch (notifErr) {
+      console.error('[TimeOff] Failed to send approve notification:', notifErr);
+    }
+
+    res.json({ success: true });
   } catch (err) {
     console.error('[TimeOff] Error acknowledging time-off:', err);
     res.status(500).json({ error: 'Failed to acknowledge time-off' });
+  }
+});
+
+// PATCH /:timeOffId/reject
+router.patch('/:timeOffId/reject', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const authReq = req as ResolvedAuthRequest;
+    const { teamMemberId: supervisorTeamMemberId, resolvedUserId } = authReq;
+
+    if (!resolvedUserId) {
+      return res.status(401).json({ error: 'User ID could not be resolved' });
+    }
+    const userId = resolvedUserId;
+
+    const timeOffId = Number(req.params.timeOffId);
+    if (Number.isNaN(timeOffId)) {
+      return res.status(400).json({ error: 'Invalid time-off id' });
+    }
+
+    const { comment } = req.body as { comment?: string };
+    if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
+      return res.status(400).json({ error: 'Comment is required for rejection' });
+    }
+
+    const timeOff = await getTimeOffById(timeOffId);
+    if (!timeOff) {
+      return res.status(404).json({ error: 'Time-off not found' });
+    }
+
+    if (!timeOff.teamMemberId) {
+      return res.status(400).json({ error: 'Time-off has no associated team member' });
+    }
+    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    if (!hasAuthority) {
+      return res.status(403).json({ error: 'Not authorized to reject this time-off' });
+    }
+
+    const rejectedStatus = await getStatusByName('rejected');
+    if (!rejectedStatus) {
+      return res.status(500).json({ error: 'Rejected status not found in system' });
+    }
+
+    if (timeOff.statusId === rejectedStatus.statusId) {
+      return res.status(400).json({ error: 'Time-off is already rejected' });
+    }
+
+    await rejectTimeOffBySupervisor({
+      timeOffId,
+      oldStatusId: timeOff.statusId ?? 1,
+      newStatusId: rejectedStatus.statusId!,
+      comment: comment.trim(),
+      userId,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: authReq.user?.email ?? 'unknown',
+      oldValues: { statusId: timeOff.statusId },
+      newValues: { statusId: rejectedStatus.statusId },
+      comment: 'Time-off rejected by supervisor',
+    });
+
+    try {
+      const employeeUserIds = await getUserIdsByTeamMemberIds([timeOff.teamMemberId]);
+      const employeeUserId = employeeUserIds[0];
+      if (employeeUserId !== undefined) {
+        const supervisorName = authReq.user?.firstName
+          ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
+          : 'Your supervisor';
+        await notificationOrchestrator.create({
+          categoryName: 'Inbox',
+          itemType: 'item-3',
+          payload: {
+            userName: supervisorName,
+            avatar: '300-1.png',
+            badgeColor: 'busy',
+            description: 'denied your time-off request',
+            link: `/timeoff-detail/${timeOffId}`,
+            day: 'Today',
+            info: `${formatDateDDMMYYYY(timeOff.timeOffStartDate.toISOString())} to ${formatDateDDMMYYYY(timeOff.timeOffEndDate.toISOString())}`,
+            sourceId: timeOffId,
+            sourceEntity: 'TimeOff',
+          },
+          recipients: [{ userId: employeeUserId, actionType: 'readonly' }],
+        });
+      }
+    } catch (notifErr) {
+      console.error('[TimeOff] Failed to send reject notification:', notifErr);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[TimeOff] Error rejecting time-off:', err);
+    res.status(500).json({ error: 'Failed to reject time-off' });
   }
 });
 

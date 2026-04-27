@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
-import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { TeamMemberDTO } from '@shared/dto/TeamMember';
+import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import {
   Toolbar,
   ToolbarDescription,
@@ -9,37 +9,48 @@ import {
 } from '@/components/ui/toolbar';
 import { useToast } from '@/hooks/use-toast';
 import {
-  useMyTeamMembers,
-  useTeamMemberTimeOffs,
-  useSupervisorTimeOffOperations,
-} from '@/hooks/useSupervisorTimeOff';
-import { TeamMembersDataGrid } from '../supervisor/components/TeamMembersDataGrid';
+  useExceptionTeamMemberTimeOffs,
+  useExceptionTimeOffOperations,
+} from '@/hooks/useExceptionTimeOff';
 import { SupervisorTimeOffList } from '../supervisor/components/SupervisorTimeOffList';
 import { CancelTimeOffDialog } from '../supervisor/components/CancelTimeOffDialog';
 import { ExceptionTimeOffForm } from './components/ExceptionTimeOffForm';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
+import { apiGet, ApiError } from '@/lib/api';
 
 export function TimeOffExceptionPage() {
   const { toast } = useToast();
 
-  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberDTO[]>([]);
+  const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberDTO | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [timeOffToCancel, setTimeOffToCancel] = useState<TimeOffWithDetailsDTO | null>(null);
+  const [editingTimeOff, setEditingTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
 
-  const teamMembersHook = useMyTeamMembers({
+  const timeOffsHook = useExceptionTeamMemberTimeOffs({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
-  const timeOffsHook = useTeamMemberTimeOffs({
-    onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
-  });
-
-  const operationsHook = useSupervisorTimeOffOperations({
+  const operationsHook = useExceptionTimeOffOperations({
     onSuccess: (message) => toast({ title: 'Success', description: message }),
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
   useEffect(() => {
-    teamMembersHook.loadTeamMembers();
+    async function loadAllTeamMembers() {
+      try {
+        setLoadingTeamMembers(true);
+        const data = await apiGet<TeamMemberDTO[]>('/api/team-members');
+        setTeamMembers(data);
+      } catch (error) {
+        const message = error instanceof ApiError ? error.message : 'Failed to load team members';
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+      } finally {
+        setLoadingTeamMembers(false);
+      }
+    }
+    loadAllTeamMembers();
   }, []);
 
   useEffect(() => {
@@ -50,8 +61,26 @@ export function TimeOffExceptionPage() {
     }
   }, [selectedTeamMember]);
 
-  const handleSelectTeamMember = useCallback((teamMember: TeamMemberReportDTO) => {
-    setSelectedTeamMember(teamMember);
+  const teamMemberOptions: ComboBoxOption[] = teamMembers.map((m) => ({
+    value: m.teamMemberId.toString(),
+    label: `${m.teamMemberNames} ${m.teamMemberSurnames} (${m.workdayId})`,
+  }));
+
+  const handleSelectTeamMember = useCallback(
+    (value: string) => {
+      const found = teamMembers.find((m) => m.teamMemberId.toString() === value) ?? null;
+      setSelectedTeamMember(found);
+    },
+    [teamMembers]
+  );
+
+  const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
+    setEditingTimeOff(timeOff);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingTimeOff(null);
   }, []);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
@@ -79,6 +108,17 @@ export function TimeOffExceptionPage() {
     [operationsHook, selectedTeamMember, timeOffsHook]
   );
 
+  const handleUpdateTimeOff = useCallback(
+    async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
+      await operationsHook.updateTimeOff(timeOffId, data);
+      setEditingTimeOff(null);
+      if (selectedTeamMember) {
+        timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+      }
+    },
+    [operationsHook, selectedTeamMember, timeOffsHook]
+  );
+
   return (
     <div className="container">
       <Toolbar>
@@ -92,11 +132,14 @@ export function TimeOffExceptionPage() {
 
       <div className="flex items-center gap-4 mt-6">
         <div className="w-72 shrink-0">
-          <TeamMembersDataGrid
-            teamMembers={teamMembersHook.teamMembers}
-            loading={teamMembersHook.loading}
-            selectedTeamMemberId={selectedTeamMember?.teamMemberId ?? null}
-            onSelectTeamMember={handleSelectTeamMember}
+          <ComboBox
+            options={teamMemberOptions}
+            value={selectedTeamMember?.teamMemberId.toString() ?? ''}
+            onValueChange={handleSelectTeamMember}
+            placeholder={loadingTeamMembers ? 'Loading...' : 'Select team member'}
+            searchPlaceholder="Search team members..."
+            emptyMessage="No team members found."
+            disabled={loadingTeamMembers}
           />
         </div>
         {selectedTeamMember && (
@@ -116,12 +159,15 @@ export function TimeOffExceptionPage() {
               teamMember={selectedTeamMember}
               existingTimeOffs={timeOffsHook.timeOffs}
               onSubmit={handleCreateTimeOff}
+              onUpdate={handleUpdateTimeOff}
+              onCancelEdit={handleCancelEdit}
+              editingTimeOff={editingTimeOff}
               loading={operationsHook.loading}
             />
             <SupervisorTimeOffList
               timeOffs={timeOffsHook.timeOffs}
               loading={timeOffsHook.loading}
-              onEditClick={() => {}}
+              onEditClick={handleEditClick}
               onCancelClick={handleCancelClick}
               onRowClick={() => {}}
               categoryMode="all"

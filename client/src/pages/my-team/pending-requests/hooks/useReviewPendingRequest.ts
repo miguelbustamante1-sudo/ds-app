@@ -18,7 +18,7 @@ export function useReviewPendingRequest(options: UseReviewPendingRequestOptions 
         if (request.type === 'HolidaySwap') {
           await apiPatch(`/api/holiday-swaps/${request.entityId}/review`, { statusId: acknowledgedStatusId });
         } else {
-          await apiPatch(`/api/time-offs/supervisor/${request.entityId}/acknowledge`, {});
+          await apiPatch(`/api/time-offs/supervisor/${request.entityId}/acknowledge`, { comment: 'Acknowledged by supervisor' });
         }
         options.onSuccess?.();
       } catch (err: unknown) {

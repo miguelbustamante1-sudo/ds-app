@@ -14,6 +14,7 @@ export interface TeamMemberDTO {
   teamMemberStartDate: Date;
   teamMemberEndDate: Date | null;
   countryId: number | null;
+  countryIso?: string | null;
   workdayId: string | null;
   teamMemberSeniority: string;
   teamMemberPrimaryRole: number | null;

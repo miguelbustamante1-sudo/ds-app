@@ -30,6 +30,17 @@ export interface CancelHolidaySwapDTO {
   comment?: string;
 }
 
+export interface UpdateHolidaySwapDTO {
+  holidayId: number;
+  replacementDate: Date | string;
+}
+
+export interface CreateExceptionHolidaySwapDTO {
+  holidayId: number;
+  replacementDate: Date | string;
+  onBehalfOf: number; // ds.tbl_users.usr_id of the selected supervisor
+}
+
 export interface ActiveSwapSummaryDTO {
   holidaySwapId: number;
   holidayId: number;

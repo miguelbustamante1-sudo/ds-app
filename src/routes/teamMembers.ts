@@ -6,6 +6,7 @@ import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountr
 import { getMyTeamMemberProfile } from '../db/users';
 import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
 import { getReports, getAvailableForProject, getAvailableForProjectAll, getProfileForSupervisor, getMyOwnProfile, getSupervisorList, getSupervisorChain } from '../services/teamMember';
+import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
 import { auditOrchestrator } from '../services/audit';
 import { prisma } from '../db/prisma';
 import { error } from '../logger';
@@ -36,6 +37,7 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       teamMemberLastUpdatedDate: item.teamMemberLastUpdatedDate,
       // Include relation fields
       countryName: item.country?.countryName ?? null,
+      countryIso: item.country?.countryIso ?? null,
       roleName: item.primaryRole?.roleName ?? null,
       tierBandDescription: item.tierBand?.tierBandDescription ?? null,
     }));
@@ -179,6 +181,17 @@ router.get('/supervisors', requirePermission('TeamMembers', 'read'), async (_req
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch supervisors' });
+  }
+});
+
+// GET /team-members/supervisors-with-user-id — supervisors including their ds.tbl_users.usr_id
+router.get('/supervisors-with-user-id', requirePermission('TeamMembers', 'read'), async (_req: Request, res: Response) => {
+  try {
+    const supervisors = await getSupervisorsWithUserId();
+    res.json(supervisors);
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch supervisors with user ID' });
   }
 });
 

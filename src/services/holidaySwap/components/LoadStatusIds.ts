@@ -5,6 +5,7 @@ export interface SwapStatusIds {
   approved: number;
   rejected: number;
   cancelled: number;
+  taken: number;
 }
 
 const STATUS_NAME_MAP: Record<keyof SwapStatusIds, string> = {
@@ -12,6 +13,7 @@ const STATUS_NAME_MAP: Record<keyof SwapStatusIds, string> = {
   approved: 'Acknowledged',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
+  taken: 'Taken',
 };
 
 export async function loadStatusIds(): Promise<SwapStatusIds> {
@@ -35,5 +37,6 @@ export async function loadStatusIds(): Promise<SwapStatusIds> {
     approved: resolve('approved'),
     rejected: resolve('rejected'),
     cancelled: resolve('cancelled'),
+    taken: resolve('taken'),
   };
 }

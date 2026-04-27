@@ -6,6 +6,7 @@ import type {
   CreateHolidaySwapDTO,
   ReviewHolidaySwapDTO,
   CancelHolidaySwapDTO,
+  UpdateHolidaySwapDTO,
 } from '@shared/dto/HolidaySwap';
 import { loadStatusIds } from './components/LoadStatusIds';
 import { validateSwapEligibility } from './components/ValidateSwapEligibility';
@@ -346,6 +347,179 @@ export class HolidaySwapOrchestrator {
       originalDate: formatDate(swap.originalDate),
       replacementDate: formatDate(swap.replacementDate),
       approved: isApproving,
+    }).catch(() => {});
+
+    return toDTO(updated, swap.holiday.holidayName, updated.status.statusName);
+  }
+
+  /** Supervisor updates a swap on behalf of a TM (PATCH /api/holiday-swaps/team/:id) */
+  async updateSwapForMember(
+    swapId: number,
+    supervisorTeamMemberId: number,
+    input: UpdateHolidaySwapDTO,
+    updatedBy: string
+  ): Promise<HolidaySwapDTO> {
+    const statusIds = await loadStatusIds();
+
+    // 1. Load swap
+    const swap = await prisma.holidaySwap.findUnique({
+      where: { holidaySwapId: swapId },
+      include: { holiday: true, status: true },
+    });
+    if (!swap) throw new Error('Holiday swap not found.');
+
+    // 2. Block if status is Taken, Cancelled, or Rejected
+    const nonEditableStatuses = [statusIds.taken, statusIds.cancelled, statusIds.rejected];
+    if (nonEditableStatuses.includes(swap.statusId)) {
+      throw new Error(`A swap with status "${swap.status.statusName}" cannot be edited.`);
+    }
+
+    // 3. Verify supervisor relationship
+    const isSupervisor = await verifySupervisorRelationship(supervisorTeamMemberId, swap.teamMemberId);
+    if (!isSupervisor) {
+      throw new Error('Access denied: you are not a supervisor of this team member.');
+    }
+
+    // 4. Load new holiday
+    const holiday = await prisma.holiday.findUnique({
+      where: { holidayId: input.holidayId },
+      select: { holidayId: true, countryId: true, holidayDate: true, holidayName: true },
+    });
+    if (!holiday) throw new Error('Holiday not found.');
+
+    // 5. Load TM for validations
+    const teamMember = await prisma.teamMember.findUnique({
+      where: { teamMemberId: swap.teamMemberId },
+      select: { teamMemberId: true, countryId: true },
+    });
+    if (!teamMember?.countryId) throw new Error('Team member country not found.');
+
+    // 6. Validate eligibility for the new holiday (skip if same holiday)
+    if (input.holidayId !== swap.holidayId) {
+      const eligibility = await validateSwapEligibility({
+        teamMemberId: swap.teamMemberId,
+        countryId: teamMember.countryId,
+        holiday: {
+          holidayId: holiday.holidayId,
+          countryId: holiday.countryId,
+          holidayDate: holiday.holidayDate,
+        },
+        submissionDate: new Date(),
+      });
+      if (!eligibility.valid) {
+        throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+      }
+    }
+
+    // 7. Validate replacement day
+    const replacementDate = new Date(input.replacementDate);
+    const replacement = await validateReplacementDay({
+      teamMemberId: swap.teamMemberId,
+      countryId: teamMember.countryId,
+      proposedDate: replacementDate,
+      originalHolidayDate: holiday.holidayDate,
+      existingSwapId: swapId,
+    });
+    if (!replacement.valid) {
+      throw new Error(replacement.errorMessage ?? 'Replacement day validation failed.');
+    }
+
+    // 8. Snapshot before
+    const before = { ...swap };
+
+    // 9. Update — reset to Tentative if was Acknowledged so it needs re-approval
+    const updated = await prisma.holidaySwap.update({
+      where: { holidaySwapId: swapId },
+      data: {
+        holidayId: holiday.holidayId,
+        originalDate: holiday.holidayDate,
+        replacementDate,
+        statusId: statusIds.pending,
+        active: true,
+        updatedBy,
+        updatedAt: new Date(),
+      },
+      include: { status: true },
+    });
+
+    // 10. Audit log
+    await auditOrchestrator.log({
+      entityName: ENTITY_NAME,
+      entityId: String(swapId),
+      createdBy: updatedBy,
+      oldValues: before as Record<string, unknown>,
+      newValues: updated as Record<string, unknown>,
+      comment: `Holiday swap updated by supervisor ${updatedBy}`,
+    });
+
+    return toDTO(updated, holiday.holidayName, updated.status.statusName);
+  }
+
+  /** Supervisor cancels a TM's swap (PATCH /api/holiday-swaps/team/:id/cancel) */
+  async cancelSwapForMember(
+    swapId: number,
+    supervisorTeamMemberId: number,
+    updatedBy: string,
+    input: CancelHolidaySwapDTO
+  ): Promise<HolidaySwapDTO> {
+    const statusIds = await loadStatusIds();
+
+    // 1. Load swap
+    const swap = await prisma.holidaySwap.findUnique({
+      where: { holidaySwapId: swapId },
+      include: { holiday: true, status: true },
+    });
+    if (!swap) throw new Error('Holiday swap not found.');
+
+    // 2. Block if already terminal
+    const nonCancellableStatuses = [statusIds.taken, statusIds.cancelled, statusIds.rejected];
+    if (nonCancellableStatuses.includes(swap.statusId)) {
+      throw new Error(`A swap with status "${swap.status.statusName}" cannot be cancelled.`);
+    }
+
+    // 3. Verify supervisor relationship
+    const isSupervisor = await verifySupervisorRelationship(supervisorTeamMemberId, swap.teamMemberId);
+    if (!isSupervisor) {
+      throw new Error('Access denied: you are not a supervisor of this team member.');
+    }
+
+    // 4. Validate cancellation (date and conflict checks)
+    const cancellationCheck = await validateCancellation(swap);
+    if (!cancellationCheck.valid) {
+      throw new Error(cancellationCheck.errorMessage ?? 'Cancellation validation failed.');
+    }
+
+    // 5. Snapshot before
+    const before = { ...swap };
+
+    // 6. Update
+    const updated = await prisma.holidaySwap.update({
+      where: { holidaySwapId: swapId },
+      data: {
+        statusId: statusIds.cancelled,
+        active: false,
+        updatedBy,
+        updatedAt: new Date(),
+      },
+      include: { status: true },
+    });
+
+    // 7. Audit log
+    await auditOrchestrator.log({
+      entityName: ENTITY_NAME,
+      entityId: String(swapId),
+      createdBy: updatedBy,
+      oldValues: before as Record<string, unknown>,
+      newValues: updated as Record<string, unknown>,
+      comment: `Holiday swap cancelled by supervisor ${updatedBy}${input.comment ? ': ' + input.comment : ''}`,
+    });
+
+    // 8. Notify TM (best-effort)
+    notifySwapCancelled({
+      teamMemberId: swap.teamMemberId,
+      swapId,
+      employeeName: updatedBy,
+      holidayName: swap.holiday.holidayName,
     }).catch(() => {});
 
     return toDTO(updated, swap.holiday.holidayName, updated.status.statusName);

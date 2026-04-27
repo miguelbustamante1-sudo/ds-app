@@ -69,6 +69,8 @@ export function TimeOffDetailPage() {
     acknowledgeTimeOff,
     declineTimeOff,
     cancelTimeOff,
+    supervisorApproveTimeOff,
+    supervisorRejectTimeOff,
   } = useTimeOffDetail({
     onSuccess: (message) => toast({ title: 'Success', description: message }),
     onError: (message) => toast({ title: 'Error', description: message, variant: 'destructive' }),
@@ -77,6 +79,8 @@ export function TimeOffDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [declineDialogOpen, setDeclineDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
 
@@ -144,6 +148,46 @@ export function TimeOffDetailPage() {
       await cancelTimeOff(timeOffId, comment.trim());
       setComment('');
       setCancelDialogOpen(false);
+      await loadDetail(timeOffId);
+    } catch {
+      // error handled by hook
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApproveConfirm = async () => {
+    if (!timeOffId) return;
+    if (!comment.trim()) {
+      setCommentError('A comment is required');
+      return;
+    }
+    try {
+      setActionLoading(true);
+      setCommentError(null);
+      await supervisorApproveTimeOff(timeOffId, comment.trim());
+      setComment('');
+      setApproveDialogOpen(false);
+      await loadDetail(timeOffId);
+    } catch {
+      // error handled by hook
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!timeOffId) return;
+    if (!comment.trim()) {
+      setCommentError('A comment explaining the reason is required');
+      return;
+    }
+    try {
+      setActionLoading(true);
+      setCommentError(null);
+      await supervisorRejectTimeOff(timeOffId, comment.trim());
+      setComment('');
+      setRejectDialogOpen(false);
       await loadDetail(timeOffId);
     } catch {
       // error handled by hook
@@ -250,6 +294,21 @@ export function TimeOffDetailPage() {
   const canAcknowledge = detail.availableActions.includes('acknowledge') && recipientId !== null;
   const canDecline = detail.availableActions.includes('decline') && recipientId !== null;
   const canCancel = detail.availableActions.includes('cancel');
+  const canSupervisorApprove = detail.availableActions.includes('supervisor_approve');
+  const canSupervisorReject = detail.availableActions.includes('supervisor_reject');
+
+  const allChangeLogs = [
+    ...(detail.creationComment
+      ? [{
+          changeLogId: -1,
+          changeLogComment: detail.creationComment,
+          changeLogCreatedBy: null,
+          changeLogCreatedDate: null,
+          createdByUserName: null,
+        }]
+      : []),
+    ...detail.changeLogs,
+  ];
 
   return (
     <div className="container">
@@ -330,11 +389,31 @@ export function TimeOffDetailPage() {
         </Card>
 
         {/* Actions */}
-        {(canAcknowledge || canDecline || canCancel) && (
+        {(canAcknowledge || canDecline || canCancel || canSupervisorApprove || canSupervisorReject) && (
           <Card className="md:col-span-2">
             <CardContent>
               <CardTitle className="mb-4">Actions</CardTitle>
               <div className="flex flex-wrap gap-3">
+                {canSupervisorApprove && (
+                  <Button
+                    onClick={() => setApproveDialogOpen(true)}
+                    disabled={actionLoading}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve
+                  </Button>
+                )}
+                {canSupervisorReject && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setRejectDialogOpen(true)}
+                    disabled={actionLoading}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Deny
+                  </Button>
+                )}
                 {canAcknowledge && (
                   <Button
                     onClick={handleAcknowledge}
@@ -370,12 +449,12 @@ export function TimeOffDetailPage() {
         )}
 
         {/* Changelog */}
-        {detail.changeLogs.length > 0 && (
+        {allChangeLogs.length > 0 && (
           <Card className="md:col-span-2">
             <CardContent>
               <CardTitle className="mb-4">Changelog</CardTitle>
               <div className="space-y-4">
-                {detail.changeLogs.map((log) => (
+                {allChangeLogs.map((log) => (
                   <div
                     key={String(log.changeLogId)}
                     className="flex gap-3 border-l-2 border-muted pl-4 py-1"
@@ -405,6 +484,84 @@ export function TimeOffDetailPage() {
           </Card>
         )}
       </div>
+
+      {/* Approve Dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={() => handleDialogClose(setApproveDialogOpen)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Approve Time Off Request</DialogTitle>
+            <DialogDescription>
+              Please add a comment for this approval.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="approve-comment">
+              Comment <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="approve-comment"
+              placeholder="Add a comment..."
+              value={comment}
+              onChange={(e) => {
+                setComment(e.target.value);
+                if (commentError) setCommentError(null);
+              }}
+              rows={3}
+              disabled={actionLoading}
+            />
+            {commentError && <p className="text-sm text-destructive">{commentError}</p>}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => handleDialogClose(setApproveDialogOpen)} disabled={actionLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApproveConfirm}
+              disabled={actionLoading || !comment.trim()}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {actionLoading ? 'Approving...' : 'Approve'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={() => handleDialogClose(setRejectDialogOpen)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deny Time Off Request</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deny this time-off request?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="reject-comment">
+              Reason <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="reject-comment"
+              placeholder="Please explain why you are denying this request..."
+              value={comment}
+              onChange={(e) => {
+                setComment(e.target.value);
+                if (commentError) setCommentError(null);
+              }}
+              rows={3}
+              disabled={actionLoading}
+            />
+            {commentError && <p className="text-sm text-destructive">{commentError}</p>}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => handleDialogClose(setRejectDialogOpen)} disabled={actionLoading}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRejectConfirm} disabled={actionLoading || !comment.trim()}>
+              {actionLoading ? 'Denying...' : 'Deny Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Decline Dialog */}
       <Dialog open={declineDialogOpen} onOpenChange={() => handleDialogClose(setDeclineDialogOpen)}>
