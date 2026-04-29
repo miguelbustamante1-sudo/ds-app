@@ -51,6 +51,8 @@ export interface CsvValidationResult {
   rowsChecked:  number;
 }
 
+import { decodeCsvBuffer } from './decodeCsvBuffer';
+
 // --- Service ------------------------------------------------------------------
 
 export class CsvValidationService {
@@ -84,7 +86,7 @@ export class CsvValidationService {
     hasCsvHeader:     boolean = true,
   ): CsvValidationResult {
     const prefix  = `[CsvValidation][job=${jobId}]`;
-    const text    = csvBuffer.toString('utf-8');
+    const text    = decodeCsvBuffer(csvBuffer);
     const rawRows = text.split(/\r?\n/);
 
     // Build a lookup map: lowercase type name -> compiled RegExp (or null)

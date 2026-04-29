@@ -27,6 +27,7 @@
 
 import { prisma } from '../../db/prisma';
 import type { CsvValidationResult } from './CsvValidationService';
+import { decodeCsvBuffer } from './decodeCsvBuffer';
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -116,7 +117,7 @@ export class CsvInsertService {
     const prefix = `[CsvInsert][job=${jobId}]`;
 
     // Parse CSV lines
-    const text     = csvBuffer.toString('utf-8');
+    const text     = decodeCsvBuffer(csvBuffer);
     const allLines = text.split(/\r?\n/);
 
     // Resolve each column's CSV cell offset.
@@ -224,7 +225,7 @@ export class CsvInsertService {
         }
       },
       {
-        timeout: 300 * 1000, // 300 seconds
+        timeout: 600 * 1000, // 600 seconds
         maxWait: 5000,       // How long to wait for a connection from the pool
       });
 

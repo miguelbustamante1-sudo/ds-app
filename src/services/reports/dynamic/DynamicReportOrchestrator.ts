@@ -63,6 +63,13 @@ export class DynamicReportOrchestrator {
     return executeSql(reportId, body.params ?? {}, page, pageSize);
   }
 
+  async download(
+    reportId: number,
+    body: ExecuteRequestDTO,
+  ): Promise<ExecuteResponseDTO> {
+    return executeSql(reportId, body.params ?? {}, 0, 50_000);
+  }
+
   async getOptions(
     reportId: number,
     paramName: string,

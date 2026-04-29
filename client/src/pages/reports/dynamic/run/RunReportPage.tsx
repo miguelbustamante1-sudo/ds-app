@@ -30,7 +30,7 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { getReport, executeReport } from '../api';
+import { getReport, executeReport, downloadReport } from '../api';
 import { ParameterForm } from './ParameterForm';
 import type { ReportDefinitionDTO, ExecuteResponseDTO } from '@shared/dto/DynamicReport';
 
@@ -98,7 +98,7 @@ export function RunReportPage() {
     if (!id || !result) return;
     setIsExporting(true);
     try {
-      const res = await executeReport(Number(id), lastParams, 0, 50_000);
+      const res = await downloadReport(Number(id), lastParams);
       const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(res.data);
       const wb = XLSX.utils.book_new();

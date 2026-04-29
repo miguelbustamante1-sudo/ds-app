@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, BookUser, Search } from 'lucide-react';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { SearchDialog } from '@/components/layouts/shared/dialogs/search/search-dialog';
 import { NotificationsSheet } from '@/components/layouts/shared/topbar/notifications-sheet';
 import { UserDropdownMenu } from '@/components/layouts/shared/topbar/user-dropdown-menu';
+import { PocDirectoryDialog } from '@/components/layouts/shared/dialogs/poc-directory-dialog';
 import { useAuth } from '@/auth/auth-provider';
 import { PermissionGate } from '@/components/PermissionGate';
 
@@ -27,6 +28,19 @@ export function Header() {
       <div className="container-fluid flex justify-end items-stretch lg:gap-4">
         {/* HeaderTopbar */}
         <div className="flex items-center gap-3">
+          <PocDirectoryDialog
+            trigger={
+              <Button
+                variant="ghost"
+                mode="icon"
+                shape="circle"
+                className="size-9 hover:bg-primary/10 hover:[&_svg]:text-primary"
+                title="POC Directory"
+              >
+                <BookUser className="size-4.5!" />
+              </Button>
+            }
+          />
           <SearchDialog
             trigger={
               <Button

@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '../../db/prisma';
+import { decodeCsvBuffer } from './decodeCsvBuffer';
 import {
   PersistenceJobStatus,
 } from '../../../shared/dto/PersistenceJob';
@@ -37,6 +38,7 @@ export interface PersistenceJobRecord {
     description:                string | null;
     enabled:                    boolean;
     hasCsvHeader:               boolean;
+    truncateBeforeImport:       boolean;
     errorHandlingStrategy:      string;
     duplicatesHandlingStrategy: string;
     targetTable:                string | null;
@@ -106,7 +108,7 @@ export class PersistenceJobConflictError extends Error {
  * the count. When hasCsvHeader=false every line is a data row.
  */
 export function countCsvLines(buffer: Buffer, hasCsvHeader: boolean): number {
-  const text  = buffer.toString('utf-8');
+  const text  = decodeCsvBuffer(buffer);
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   return hasCsvHeader ? Math.max(0, lines.length - 1) : lines.length;
 }

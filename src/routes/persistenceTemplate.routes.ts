@@ -153,6 +153,7 @@ router.put(
         name?: unknown;
         description?: unknown;
         hasCsvHeader?: unknown;
+        truncateBeforeImport?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
         errorHandlingStrategy?: unknown;
@@ -160,7 +161,7 @@ router.put(
         columns?: unknown;
       };
 
-      const { name, description, hasCsvHeader, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -175,6 +176,11 @@ router.put(
 
       if (hasCsvHeader !== undefined && typeof hasCsvHeader !== 'boolean') {
         res.status(400).json({ error: '`hasCsvHeader` must be a boolean when provided' });
+        return;
+      }
+
+      if (truncateBeforeImport !== undefined && typeof truncateBeforeImport !== 'boolean') {
+        res.status(400).json({ error: '`truncateBeforeImport` must be a boolean when provided' });
         return;
       }
 
@@ -272,6 +278,7 @@ router.put(
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
         hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        truncateBeforeImport: typeof truncateBeforeImport === 'boolean' ? truncateBeforeImport : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
         errorHandlingStrategy:
@@ -315,6 +322,7 @@ router.post(
         name?: unknown;
         description?: unknown;
         hasCsvHeader?: unknown;
+        truncateBeforeImport?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
         errorHandlingStrategy?: unknown;
@@ -322,7 +330,7 @@ router.post(
         columns?: unknown;
       };
 
-      const { name, description, hasCsvHeader, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -337,6 +345,11 @@ router.post(
 
       if (hasCsvHeader !== undefined && typeof hasCsvHeader !== 'boolean') {
         res.status(400).json({ error: '`hasCsvHeader` must be a boolean when provided' });
+        return;
+      }
+
+      if (truncateBeforeImport !== undefined && typeof truncateBeforeImport !== 'boolean') {
+        res.status(400).json({ error: '`truncateBeforeImport` must be a boolean when provided' });
         return;
       }
 
@@ -437,6 +450,7 @@ router.post(
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
         hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        truncateBeforeImport: typeof truncateBeforeImport === 'boolean' ? truncateBeforeImport : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
         errorHandlingStrategy:

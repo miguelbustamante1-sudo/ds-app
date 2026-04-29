@@ -45,6 +45,13 @@ export function executeReport(
   return apiPost(`/api/reports/dynamic/${id}/execute`, { params, page, pageSize });
 }
 
+export function downloadReport(
+  id: number,
+  params: Record<string, string | number | boolean | null>,
+): Promise<ExecuteResponseDTO> {
+  return apiPost(`/api/reports/dynamic/${id}/download`, { params });
+}
+
 export function getParamOptions(
   id: number,
   paramName: string,

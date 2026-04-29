@@ -68,6 +68,7 @@ interface PersistenceTemplateFormData {
   name: string;
   description: string;
   hasCsvHeader: boolean;
+  truncateBeforeImport: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
   targetTable: string;
@@ -115,6 +116,7 @@ export function PersistenceTemplateFormDialog({
       name: '',
       description: '',
       hasCsvHeader: false,
+      truncateBeforeImport: false,
       errorHandlingStrategy: ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
       duplicatesHandlingStrategy: DuplicatesHandlingStrategy.INSERT,
       targetTable: '',
@@ -203,6 +205,7 @@ export function PersistenceTemplateFormDialog({
           name: template.name,
           description: template.description ?? '',
           hasCsvHeader: savedCsvHeader,
+          truncateBeforeImport: template.truncateBeforeImport ?? false,
           errorHandlingStrategy:
             template.errorHandlingStrategy ?? ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
           duplicatesHandlingStrategy:
@@ -276,6 +279,7 @@ export function PersistenceTemplateFormDialog({
           name: data.name.trim(),
           description: data.description.trim() || null,
           hasCsvHeader: data.hasCsvHeader,
+          truncateBeforeImport: data.truncateBeforeImport,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
           targetTable: data.targetTable || null,
@@ -288,6 +292,7 @@ export function PersistenceTemplateFormDialog({
           name: data.name.trim(),
           description: data.description.trim() || null,
           hasCsvHeader: data.hasCsvHeader,
+          truncateBeforeImport: data.truncateBeforeImport,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
           targetTable: data.targetTable || null,
@@ -391,6 +396,38 @@ export function PersistenceTemplateFormDialog({
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Truncate Before Import */}
+            <div className="space-y-2">
+              <Label>Truncate Before Import</Label>
+              <Controller
+                name="truncateBeforeImport"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value ? 'yes' : 'no'}
+                    onValueChange={(v) => field.onChange(v === 'yes')}
+                    className="flex gap-6"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="yes" id="truncateYes" />
+                      <Label htmlFor="truncateYes" className="font-normal cursor-pointer">
+                        Yes
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="no" id="truncateNo" />
+                      <Label htmlFor="truncateNo" className="font-normal cursor-pointer">
+                        No
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                When enabled, the target table will be truncated before each import. This action cannot be undone even if the import fails.
+              </p>
             </div>
 
             {/* Error Handling */}

@@ -139,6 +139,25 @@ router.delete(
   },
 );
 
+// POST /api/reports/dynamic/:id/download — export full result set (up to 50 000 rows)
+router.post(
+  '/:id/download',
+  requirePermission('Reports', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
+
+      const body = req.body as ExecuteRequestDTO;
+      const result = await dynamicReportOrchestrator.download(id, body);
+      res.json(result);
+    } catch (err) {
+      console.error('[reports/dynamic] POST /:id/download Error:', err);
+      res.status(500).json({ error: 'Failed to export report' });
+    }
+  },
+);
+
 // POST /api/reports/dynamic/:id/execute — execute report
 router.post(
   '/:id/execute',

@@ -31,6 +31,7 @@ import { getPersistenceTemplates } from '@/services/persistenceTemplate';
 import { ERROR_HANDLING_DESCRIPTIONS, DUPLICATE_HANDLING_DESCRIPTIONS } from '@/config/persistenceStrategyDescriptions';
 import { createPersistenceJob } from '@/services/persistenceJob';
 import type { PersistenceTemplateDTO } from '@shared/dto/PersistenceTemplate';
+import { decodeCsvArrayBuffer } from '@/lib/decodeCsvFile';
 
 // --- CSV preview helpers ------------------------------------------------------
 
@@ -298,12 +299,12 @@ export function DataImportNewPage() {
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const text = ev.target?.result;
-      if (typeof text === 'string') {
-        setCsvPreview(parseCsvPreview(text));
+      const arrayBuffer = ev.target?.result;
+      if (arrayBuffer instanceof ArrayBuffer) {
+        setCsvPreview(parseCsvPreview(decodeCsvArrayBuffer(arrayBuffer)));
       }
     };
-    reader.readAsText(selected);
+    reader.readAsArrayBuffer(selected);
   };
 
   // -- Submit -------------------------------------------------------------------

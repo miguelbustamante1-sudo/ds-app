@@ -45,6 +45,10 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
   const rawVacation = info.vacation !== null ? Number(info.vacation) : 0;
   const rawPersonalDays = info.personalDays !== null ? Number(info.personalDays) : 0;
 
+  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
+    member.teamMemberStartDate
+  );
+
   // Resolve cancelled status ID dynamically
   const cancelledStatus = await prisma.timeOffStatus.findFirst({
     where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },
@@ -54,11 +58,13 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
 
   const excludedIds = [REJECTED_STATUS_ID, SPLIT_STATUS_ID, ...(cancelledId ? [cancelledId] : [])];
 
-  // Sum used days by category for active requests
+  // Sum used days by category — scoped to the current anniversary year so that
+  // time-offs beyond the next anniversary don't reduce the current balance.
   const activeTimeOffs = await prisma.timeOff.findMany({
     where: {
       teamMemberId,
       statusId: { notIn: excludedIds },
+      timeOffStartDate: { gte: anniversaryYearStart, lte: anniversaryYearEnd },
       ...(excludeTimeOffId ? { NOT: { timeOffId: excludeTimeOffId } } : {}),
     },
     select: {
@@ -85,10 +91,6 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
   let exceptionDaysUsed = 0;
 
   if (countryIso === GT_COUNTRY_ISO) {
-    const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
-      member.teamMemberStartDate
-    );
-
     const vacationCategory = await prisma.timeOffCategory.findFirst({
       where: { categoryName: { equals: 'Vacation', mode: 'insensitive' } },
       select: { categoryId: true },

@@ -694,6 +694,7 @@ model PersistenceTemplate {
   description                String?                     @map("pte_description") @db.Text
   enabled                    Boolean                     @default(true) @map("pte_enabled")
   hasCsvHeader               Boolean                     @default(false) @map("pte_has_csv_header")
+  truncateBeforeImport       Boolean                     @default(false) @map("pte_truncate_before_import")
   errorHandlingStrategy      ErrorHandlingStrategy       @default(STOP_ON_FIRST_ERROR_AND_ROLLBACK) @map("pte_error_handling_strategy")
   duplicatesHandlingStrategy DuplicatesHandlingStrategy  @default(INSERT) @map("pte_duplicates_handling_strategy")
   targetTable                String?                     @map("pte_target_table") @db.VarChar(200)

@@ -157,6 +157,15 @@ export class PersistenceJobService {
           updatedBy: createdBy,
         });
 
+        // 4.5 Truncate target table before import if the template flag is set.
+        // Runs outside any transaction intentionally — callers who configure
+        // truncateBeforeImport accept that the table is wiped regardless of
+        // whether the subsequent inserts succeed.
+        if (template.truncateBeforeImport) {
+          await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${template.targetTable}`);
+          console.log(`${prefix} Table ${template.targetTable} truncated before import`);
+        }
+
         // 5. Insert rows; pass checkCancel so the loop can self-terminate
         const insertResult = await csvInsertService.insert({
           targetTable:                template.targetTable,
