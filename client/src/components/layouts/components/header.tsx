@@ -1,4 +1,4 @@
-import { Bell, BookUser, Search } from 'lucide-react';
+import { Bell, BookUser, Bug, Search } from 'lucide-react';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
@@ -41,6 +41,21 @@ export function Header() {
               </Button>
             }
           />
+          <a
+            href="https://forms.monday.com/forms/5bf6f981f7dd8356c9ef24b4be40b97f?r=use1"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              variant="ghost"
+              mode="icon"
+              shape="circle"
+              className="size-9 hover:bg-primary/10 hover:[&_svg]:text-primary"
+              title="Report a Bug"
+            >
+              <Bug className="size-4.5!" />
+            </Button>
+          </a>
           <SearchDialog
             trigger={
               <Button

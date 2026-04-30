@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Response } from 'express';
 import { getTimeOffById, getMyTimeOffs, createTimeOff, updateTimeOff } from '../../db/timeOffs';
+import { getTimeOffChangeLog } from '../../services/timeoff/changelog';
+import type { ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
 import { requirePermission } from '../../middleware/auth';
 import { validateExceptionTimeOff } from '../../services/timeoff/validation/exceptionValidation';
 import { DEFAULTS } from '../../services/timeoff/validation';
@@ -16,6 +18,71 @@ import { computeTimeOffIsException } from '../../services/timeoff/components/Com
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 
 const router = express.Router();
+
+// GET /exception/:timeOffId/detail — read-only detail for exception admins, no hierarchy check
+router.get('/:timeOffId/detail', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const timeOffId = parseIdParam(req.params.timeOffId);
+    if (timeOffId === null) {
+      return res.status(400).json({ error: 'Invalid time-off id' });
+    }
+
+    const timeOff = await getTimeOffById(timeOffId);
+    if (!timeOff) {
+      return res.status(404).json({ error: 'Time-off not found' });
+    }
+
+    const [category, status, teamMember, changeLogs] = await Promise.all([
+      timeOff.categoryId
+        ? prisma.timeOffCategory.findUnique({ where: { categoryId: timeOff.categoryId }, select: { categoryName: true } })
+        : null,
+      timeOff.statusId
+        ? prisma.timeOffStatus.findUnique({ where: { statusId: timeOff.statusId }, select: { statusName: true } })
+        : null,
+      timeOff.teamMemberId
+        ? prisma.teamMember.findUnique({
+            where: { teamMemberId: timeOff.teamMemberId },
+            select: { teamMemberNames: true, teamMemberSurnames: true },
+          })
+        : null,
+      getTimeOffChangeLog(timeOffId),
+    ]);
+
+    const teamMemberName = teamMember
+      ? `${teamMember.teamMemberNames} ${teamMember.teamMemberSurnames}`.trim()
+      : 'Unknown';
+
+    const creationLog = changeLogs.find(
+      (log) => log.changeLogOldValues === null || (typeof log.changeLogOldValues === 'object' && Object.keys(log.changeLogOldValues as object).length === 0)
+    );
+    const regularLogs = changeLogs.filter((log) => log.changeLogId !== creationLog?.changeLogId);
+
+    const detail: ExceptionTimeOffDetailDTO = {
+      timeOffId: timeOff.timeOffId,
+      timeOffStartDate: timeOff.timeOffStartDate,
+      timeOffEndDate: timeOff.timeOffEndDate,
+      timeOffDays: Number(timeOff.timeOffDays),
+      categoryId: timeOff.categoryId,
+      categoryName: category?.categoryName ?? 'Unknown',
+      statusId: timeOff.statusId,
+      statusName: status?.statusName ?? 'Unknown',
+      teamMemberName,
+      creationComment: creationLog?.changeLogComment ?? null,
+      changeLogs: regularLogs.map((log) => ({
+        changeLogId: log.changeLogId,
+        changeLogComment: log.changeLogComment,
+        changeLogCreatedBy: log.changeLogCreatedBy,
+        changeLogCreatedDate: log.changeLogCreatedDate,
+        createdByUserName: log.createdByUserName ?? null,
+      })),
+    };
+
+    return res.json(detail);
+  } catch (err) {
+    console.error('[Exception] Error fetching time-off detail:', err);
+    res.status(500).json({ error: 'Failed to fetch time-off detail' });
+  }
+});
 
 // GET /exception/team-member/:teamMemberId
 router.get('/team-member/:teamMemberId', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (req, res: Response) => {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { apiGet, apiPatch, apiPost, ApiError } from '../lib/api';
-import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO, ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
 import type { TimeOff } from '@prisma/client';
 
 const API_BASE = '/api/time-offs/exception';
@@ -32,6 +32,33 @@ export function useExceptionTeamMemberTimeOffs(options?: UseExceptionTimeOffOpti
   }, []);
 
   return { timeOffs, loading, loadTimeOffs, clearTimeOffs };
+}
+
+export function useExceptionTimeOffDetail(options?: UseExceptionTimeOffOptions) {
+  const [detail, setDetail] = useState<ExceptionTimeOffDetailDTO | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<number | null>(null);
+
+  const loadDetail = useCallback(async (timeOffId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiGet<ExceptionTimeOffDetailDTO>(`${API_BASE}/${timeOffId}/detail`);
+      setDetail(data);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.status);
+        options?.onError?.(err.message);
+      } else {
+        setError(500);
+        options?.onError?.('Failed to load time-off detail');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  return { detail, loading, error, loadDetail };
 }
 
 export function useExceptionTimeOffOperations(options?: UseExceptionTimeOffOptions) {

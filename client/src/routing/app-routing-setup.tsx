@@ -56,6 +56,7 @@ import { DataImportPage } from '@/pages/data-import';
 import { DataImportDetailPage } from '@/pages/data-import/detail';
 import { DataImportNewPage } from '@/pages/data-import/new';
 import { TimeOffExceptionPage } from '@/pages/timeoff/exception';
+import { TimeOffExceptionDetailPage } from '@/pages/timeoff/exception/detail';
 import { HolidaySwapExceptionPage } from '@/pages/holiday-swaps/exception';
 
 export function AppRoutingSetup() {
@@ -78,6 +79,7 @@ export function AppRoutingSetup() {
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
         <Route path="/timeoff-exception" element={<TimeOffExceptionPage />} />
+        <Route path="/timeoff-exception-detail/:timeOffId" element={<TimeOffExceptionDetailPage />} />
         <Route path="/time-off-management" element={<TimeOffManagementPage />} />
         <Route path="/announcements" element={<AnnouncementsPage />} />
         <Route path="/notification-center" element={<NotificationCenterPage />} />

@@ -132,6 +132,29 @@ export interface TimeOffDetailDTO {
 }
 
 /**
+ * ExceptionTimeOffDetailDTO - Read-only detail for the exception admin view (no ownership/hierarchy check)
+ */
+export interface ExceptionTimeOffDetailDTO {
+  timeOffId: number;
+  timeOffStartDate: Date;
+  timeOffEndDate: Date;
+  timeOffDays: number;
+  categoryId: number | null;
+  categoryName: string;
+  statusId: number | null;
+  statusName: string;
+  teamMemberName: string;
+  creationComment: string | null;
+  changeLogs: {
+    changeLogId: number;
+    changeLogComment: string;
+    changeLogCreatedBy: number | null;
+    changeLogCreatedDate: Date | null;
+    createdByUserName: string | null;
+  }[];
+}
+
+/**
  * CancelMyTimeOffDTO - Data for cancelling own time off request
  */
 export interface CancelMyTimeOffDTO {

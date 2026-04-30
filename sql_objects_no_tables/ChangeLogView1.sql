@@ -21,13 +21,13 @@ SELECT
         FROM (
             SELECT DISTINCT key AS field_key
             FROM (
-                SELECT jsonb_object_keys(COALESCE(toc.toc_old_values::jsonb, '{}'::jsonb)) AS key
+                SELECT jsonb_object_keys(CASE WHEN jsonb_typeof(toc.toc_old_values::jsonb) = 'object' THEN toc.toc_old_values::jsonb ELSE '{}'::jsonb END) AS key
                 UNION
-                SELECT jsonb_object_keys(COALESCE(toc.toc_new_values::jsonb, '{}'::jsonb)) AS key
+                SELECT jsonb_object_keys(CASE WHEN jsonb_typeof(toc.toc_new_values::jsonb) = 'object' THEN toc.toc_new_values::jsonb ELSE '{}'::jsonb END) AS key
             ) all_keys
-            WHERE (COALESCE(toc.toc_old_values::jsonb, '{}'::jsonb) ->> key)
+            WHERE (CASE WHEN jsonb_typeof(toc.toc_old_values::jsonb) = 'object' THEN toc.toc_old_values::jsonb ELSE '{}'::jsonb END ->> key)
                   IS DISTINCT FROM
-                  (COALESCE(toc.toc_new_values::jsonb, '{}'::jsonb) ->> key)
+                  (CASE WHEN jsonb_typeof(toc.toc_new_values::jsonb) = 'object' THEN toc.toc_new_values::jsonb ELSE '{}'::jsonb END ->> key)
         ) diff
     )                                                                    AS changed_fields
 FROM ds.tbl_tms_time_off         tto

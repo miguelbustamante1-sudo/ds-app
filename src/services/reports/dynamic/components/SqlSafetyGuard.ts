@@ -59,9 +59,9 @@ export function extractParams(sql: string): string[] {
 export function assertSqlSafe(sql: string): void {
   const stripped = stripComments(sql).trim();
 
-  // Rule 1: Must start with SELECT
-  if (!/^SELECT\b/i.test(stripped)) {
-    throw new Error('SQL must begin with a SELECT statement.');
+  // Rule 1: Must start with SELECT or WITH (CTE)
+  if (!/^(SELECT|WITH)\b/i.test(stripped)) {
+    throw new Error('SQL must begin with a SELECT or WITH statement.');
   }
 
   // Rule 2: No blocked DML/DDL keywords

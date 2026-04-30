@@ -12,8 +12,8 @@ import {
   useExceptionTeamMemberTimeOffs,
   useExceptionTimeOffOperations,
 } from '@/hooks/useExceptionTimeOff';
-import { SupervisorTimeOffList } from '../supervisor/components/SupervisorTimeOffList';
 import { CancelTimeOffDialog } from '../supervisor/components/CancelTimeOffDialog';
+import { ExceptionTimeOffList } from './components/ExceptionTimeOffList';
 import { ExceptionTimeOffForm } from './components/ExceptionTimeOffForm';
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { apiGet, ApiError } from '@/lib/api';
@@ -164,14 +164,11 @@ export function TimeOffExceptionPage() {
               editingTimeOff={editingTimeOff}
               loading={operationsHook.loading}
             />
-            <SupervisorTimeOffList
+            <ExceptionTimeOffList
               timeOffs={timeOffsHook.timeOffs}
               loading={timeOffsHook.loading}
               onEditClick={handleEditClick}
               onCancelClick={handleCancelClick}
-              onRowClick={() => {}}
-              categoryMode="all"
-              selectedTimeOffId={null}
             />
           </div>
         ) : (

@@ -138,7 +138,7 @@ When you click **Execute**, the system performs the following steps automaticall
    | Country | Schedule |
    |---|---|
    | **El Salvador (SV)** | 15 vacation days at month 12 from Start Date |
-   | **Guatemala (GT)** | 5 days at month 4 · 5 days at month 8 · 5 days at month 12 |
+   | **Guatemala (GT) or unknown country** | 5 days at month 4 · 5 days at month 8 · 5 days at month 12 |
 
    Vacation start dates are adjusted to the nearest Monday. All projected vacations are created with **Pending** status and marked as projected.
 

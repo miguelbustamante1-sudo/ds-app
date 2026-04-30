@@ -106,7 +106,9 @@ To add a bonus:
 
 1. Select a **Bonus** type from the dropdown. Only bonus types available for the selected country are shown. Each type can only be added once per endorsement.
 2. Review or adjust the **Amount**. Many bonus types have a default amount that is pre-filled automatically — you can change it.
-3. If the selected bonus type has additional required fields (such as dates or other metadata), they appear below the amount field. Fill them in.
+3. If the selected bonus type has additional required fields (such as dates or other metadata), they appear below the amount field. Fill them in. Two automatic behaviors apply to date metadata fields:
+   - A field whose name contains "start date" is pre-filled with the endorsement's **Start Date** automatically.
+   - An **end date** field is calculated as the anchor start date + 9 months and updates automatically whenever the anchor date changes. You can override the value manually.
 4. Optionally enter a **Comments** note specific to this bonus.
 5. Click **Add Bonus**.
 
