@@ -1,11 +1,84 @@
 import { prisma } from './prisma';
 import { Prisma } from '@prisma/client';
 import type { WorkdayInfo } from '@prisma/client';
-import type { CreateWorkdayInfoDTO, UpdateWorkdayInfoDTO } from '../../shared/dto/WorkdayInfo';
+import type { CreateWorkdayInfoDTO, UpdateWorkdayInfoDTO, WorkdayInfoExceptionItemDTO, WorkdayInfoExceptionsDTO } from '../../shared/dto/WorkdayInfo';
+import { computeAnniversaryWindow } from '../services/timeoff/utils/anniversaryYear';
 
-export async function getAllWorkdayInfo(): Promise<WorkdayInfo[]> {
-  return await prisma.workdayInfo.findMany({
+const REJECTED_STATUS_ID = 5;
+const SPLIT_STATUS_ID = 6;
+const MAX_EXCEPTION_DAYS = 5;
+
+export interface WorkdayInfoRecord extends WorkdayInfo {
+  exceptionDaysUsed: number | null;
+  exceptionDaysRemaining: number | null;
+}
+
+export async function getAllWorkdayInfo(): Promise<WorkdayInfoRecord[]> {
+  const records = await prisma.workdayInfo.findMany({
     orderBy: { wdid: 'asc' },
+  });
+
+  if (records.length === 0) return [];
+
+  const wdids = records.map((r) => r.wdid);
+
+  const gtMembers = await prisma.teamMember.findMany({
+    where: {
+      workdayId: { in: wdids },
+      country: { countryIso: { equals: 'GT', mode: 'insensitive' } },
+    },
+    select: { teamMemberId: true, workdayId: true, teamMemberStartDate: true },
+  });
+
+  const exceptionByWdid = new Map<string, number>();
+
+  if (gtMembers.length > 0) {
+    const cancelledStatus = await prisma.timeOffStatus.findFirst({
+      where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },
+      select: { statusId: true },
+    });
+    const excludedIds = [
+      REJECTED_STATUS_ID,
+      SPLIT_STATUS_ID,
+      ...(cancelledStatus?.statusId ? [cancelledStatus.statusId] : []),
+    ];
+
+    const vacationCategory = await prisma.timeOffCategory.findFirst({
+      where: { categoryName: { equals: 'Vacation', mode: 'insensitive' } },
+      select: { categoryId: true },
+    });
+
+    if (vacationCategory) {
+      for (const member of gtMembers) {
+        if (!member.workdayId) continue;
+        const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
+          member.teamMemberStartDate
+        );
+        const exceptionTimeOffs = await prisma.timeOff.findMany({
+          where: {
+            teamMemberId: member.teamMemberId,
+            categoryId: vacationCategory.categoryId,
+            timeOffActive: 1,
+            timeOffIsException: true,
+            statusId: { notIn: excludedIds },
+            timeOffStartDate: { gte: anniversaryYearStart, lte: anniversaryYearEnd },
+          },
+          select: { timeOffDays: true },
+        });
+        const used = exceptionTimeOffs.reduce((sum, t) => sum + Number(t.timeOffDays), 0);
+        exceptionByWdid.set(member.workdayId, used);
+      }
+    }
+  }
+
+  return records.map((r) => {
+    const exceptionDaysUsed = exceptionByWdid.has(r.wdid) ? exceptionByWdid.get(r.wdid)! : null;
+    return {
+      ...r,
+      exceptionDaysUsed,
+      exceptionDaysRemaining:
+        exceptionDaysUsed !== null ? Math.max(0, MAX_EXCEPTION_DAYS - exceptionDaysUsed) : null,
+    };
   });
 }
 
@@ -61,6 +134,86 @@ export async function updateWorkdayInfo(wdid: string, data: UpdateWorkdayInfoDTO
       ...(data.personalDays !== undefined ? { personalDays: data.personalDays } : {}),
     },
   });
+}
+
+export async function getWorkdayInfoExceptions(wdid: string): Promise<WorkdayInfoExceptionsDTO> {
+  const member = await prisma.teamMember.findFirst({
+    where: {
+      workdayId: wdid,
+      country: { countryIso: { equals: 'GT', mode: 'insensitive' } },
+    },
+    select: { teamMemberId: true, teamMemberStartDate: true },
+  });
+
+  if (!member) {
+    return { anniversaryYearStart: null, anniversaryYearEnd: null, exceptionDaysUsed: null, exceptionDaysRemaining: null, exceptions: [] };
+  }
+
+  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(member.teamMemberStartDate);
+
+  const cancelledStatus = await prisma.timeOffStatus.findFirst({
+    where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },
+    select: { statusId: true },
+  });
+  const excludedIds = [
+    REJECTED_STATUS_ID,
+    SPLIT_STATUS_ID,
+    ...(cancelledStatus?.statusId ? [cancelledStatus.statusId] : []),
+  ];
+
+  const vacationCategory = await prisma.timeOffCategory.findFirst({
+    where: { categoryName: { equals: 'Vacation', mode: 'insensitive' } },
+    select: { categoryId: true },
+  });
+
+  if (!vacationCategory) {
+    return {
+      anniversaryYearStart: anniversaryYearStart.toISOString(),
+      anniversaryYearEnd: anniversaryYearEnd.toISOString(),
+      exceptionDaysUsed: 0,
+      exceptionDaysRemaining: MAX_EXCEPTION_DAYS,
+      exceptions: [],
+    };
+  }
+
+  const timeOffs = await prisma.timeOff.findMany({
+    where: {
+      teamMemberId: member.teamMemberId,
+      categoryId: vacationCategory.categoryId,
+      timeOffActive: 1,
+      timeOffIsException: true,
+      statusId: { notIn: excludedIds },
+      timeOffStartDate: { gte: anniversaryYearStart, lte: anniversaryYearEnd },
+    },
+    select: {
+      timeOffId: true,
+      timeOffStartDate: true,
+      timeOffEndDate: true,
+      timeOffDays: true,
+      category: { select: { categoryName: true } },
+      status: { select: { statusName: true } },
+    },
+    orderBy: { timeOffStartDate: 'asc' },
+  });
+
+  const exceptions: WorkdayInfoExceptionItemDTO[] = timeOffs.map((t) => ({
+    timeOffId: t.timeOffId,
+    timeOffStartDate: t.timeOffStartDate.toISOString(),
+    timeOffEndDate: t.timeOffEndDate.toISOString(),
+    timeOffDays: Number(t.timeOffDays),
+    categoryName: t.category?.categoryName ?? '—',
+    statusName: t.status?.statusName ?? '—',
+  }));
+
+  const exceptionDaysUsed = exceptions.reduce((sum, e) => sum + e.timeOffDays, 0);
+
+  return {
+    anniversaryYearStart: anniversaryYearStart.toISOString(),
+    anniversaryYearEnd: anniversaryYearEnd.toISOString(),
+    exceptionDaysUsed,
+    exceptionDaysRemaining: Math.max(0, MAX_EXCEPTION_DAYS - exceptionDaysUsed),
+    exceptions,
+  };
 }
 
 export async function deleteWorkdayInfo(wdid: string): Promise<void> {

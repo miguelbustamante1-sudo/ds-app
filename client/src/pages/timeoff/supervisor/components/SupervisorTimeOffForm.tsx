@@ -365,6 +365,7 @@ function SupervisorTimeOffFormInner({
     !isStartDateHoliday &&
     svValidation.valid &&
     !exceedsMaxDays &&
+    !gtExceptionWarning?.showLimitWarning &&
     !!comment?.trim() &&
     !loading;
 
@@ -550,7 +551,7 @@ function SupervisorTimeOffFormInner({
 
             {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
             {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
-              <Alert variant="destructive">
+              <Alert variant="warning">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
               </Alert>
@@ -763,7 +764,7 @@ function SupervisorTimeOffFormInner({
 
         {/* Workday Balance Warning (advisory — supervisor is not blocked) */}
         {!balanceValidation.valid && balanceValidation.errorMessage && (
-          <Alert variant="destructive">
+          <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
           </Alert>

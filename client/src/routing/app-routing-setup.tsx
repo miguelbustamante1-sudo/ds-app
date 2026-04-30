@@ -32,6 +32,7 @@ import { ClientContactsPage } from '@/pages/maintenance/client-contacts';
 import { TimeOffTypesPage } from '@/pages/maintenance/time-off-types';
 import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
+import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
@@ -111,6 +112,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/time-off-types" element={<TimeOffTypesPage />} />
         <Route path="/maintenance/time-off-statuses" element={<TimeOffStatusesPage />} />
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
+        <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />

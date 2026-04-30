@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { WorkdayInfoDTO, CreateWorkdayInfoDTO, UpdateWorkdayInfoDTO } from '@shared/dto';
 import {
@@ -42,8 +43,8 @@ import { ExportButton } from '@/pages/reports/components/ExportButton';
 import { formatUTCDate } from '@/lib/utils';
 
 export function WorkdayInfoPage() {
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<WorkdayInfoDTO | undefined>();
+  const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState<WorkdayInfoDTO | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -57,11 +58,6 @@ export function WorkdayInfoPage() {
     onSuccess: (message) => toast({ title: 'Success', description: message }),
     onError: (err) => toast({ title: 'Error', description: err, variant: 'destructive' }),
   });
-
-  const handleEdit = (record: WorkdayInfoDTO) => {
-    setEditingRecord(record);
-    setFormOpen(true);
-  };
 
   const handleDeleteClick = (record: WorkdayInfoDTO) => {
     setDeletingRecord(record);
@@ -132,12 +128,32 @@ export function WorkdayInfoPage() {
         meta: { headerTitle: 'Vacation Days', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
+        accessorKey: 'exceptionDaysUsed',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Exception Days" />,
+        cell: ({ row }) => {
+          const used = row.original.exceptionDaysUsed;
+          if (used == null) return <span>—</span>;
+          return (
+            <span>
+              {used}
+              <span className="text-muted-foreground"> / 5</span>
+            </span>
+          );
+        },
+        size: 150,
+        meta: { headerTitle: 'Exception Days', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
             {canCreate('WorkdayInfo') && (
-              <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/maintenance/workday-info/${row.original.wdid}`)}
+              >
                 <Pencil size={16} />
               </Button>
             )}
@@ -153,7 +169,7 @@ export function WorkdayInfoPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [canCreate, canDelete],
+    [canCreate, canDelete, navigate],
   );
 
   const table = useReactTable({
@@ -172,11 +188,6 @@ export function WorkdayInfoPage() {
     records.loadItems();
   }, []);
 
-  const handleCreate = () => {
-    setEditingRecord(undefined);
-    setFormOpen(true);
-  };
-
   const handleDeleteConfirm = async () => {
     if (!deletingRecord) return;
     try {
@@ -187,12 +198,6 @@ export function WorkdayInfoPage() {
       setDeleteDialogOpen(false);
       setDeletingRecord(null);
     }
-  };
-
-  const handleFormSuccess = () => {
-    setFormOpen(false);
-    setEditingRecord(undefined);
-    records.loadItems();
   };
 
   if (!canRead('WorkdayInfo')) {
@@ -217,7 +222,7 @@ export function WorkdayInfoPage() {
             filenamePrefix="workday-info"
           />
           {canCreate('WorkdayInfo') && (
-            <Button onClick={handleCreate}>
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus size={16} className="me-1" />
               New Record
             </Button>
@@ -252,10 +257,12 @@ export function WorkdayInfoPage() {
       </DataGridContainer>
 
       <WorkdayInfoFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        record={editingRecord}
-        onSuccess={handleFormSuccess}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSuccess={() => {
+          setCreateOpen(false);
+          records.loadItems();
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
