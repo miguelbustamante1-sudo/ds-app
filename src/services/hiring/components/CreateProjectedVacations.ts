@@ -66,10 +66,10 @@ export async function createProjectedVacations(
   }
 
   const status = await tx.timeOffStatus.findFirst({
-    where: { statusName: { equals: 'Pending', mode: 'insensitive' } },
+    where: { statusName: { equals: 'Tentative', mode: 'insensitive' } },
   });
   if (!status) {
-    throw new Error('TimeOffStatus "Pending" not found — cannot project vacations.');
+    throw new Error('TimeOffStatus "Tentative" not found — cannot project vacations.');
   }
 
   const schedule = buildSchedule(countryIso, startDate);
