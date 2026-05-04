@@ -75,7 +75,7 @@ export function CountryFormDialog({
           countryName: country.countryName,
           regionId: country.regionId?.toString() || '',
           countryIso: country.countryIso || '',
-          currencySymbol: country.currencySymbol || '',
+          currencySymbol: country.countryCurrencySymbol || '',
         });
       } else {
         reset({
@@ -95,7 +95,7 @@ export function CountryFormDialog({
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
-          currencySymbol: data.currencySymbol.trim() || null,
+          countryCurrencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPut<CountryDTO, UpdateCountryDTO>(`/api/countries/${country.countryId}`, payload);
         toast({ title: 'Success', description: 'Country updated successfully' });
@@ -104,7 +104,7 @@ export function CountryFormDialog({
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
-          currencySymbol: data.currencySymbol.trim() || null,
+          countryCurrencySymbol: data.currencySymbol.trim() || null,
         };
         await apiPost<CountryDTO, CreateCountryDTO>('/api/countries', payload);
         toast({ title: 'Success', description: 'Country created successfully' });

@@ -60,11 +60,11 @@ router.get('/:id', requirePermission('Countries', 'read'), async (req: Request, 
 // POST /countries
 router.post('/', requirePermission('Countries', 'create'), async (req: Request, res: Response) => {
   try {
-    const { countryName, regionId, currencySymbol } = req.body as { countryName?: string; regionId?: number | null; currencySymbol?: string | null };
+    const { countryName, regionId, countryIso, countryCurrencySymbol } = req.body as { countryName?: string; regionId?: number | null; countryIso?: string | null; countryCurrencySymbol?: string | null };
     if (!countryName || typeof countryName !== 'string') return res.status(400).json({ error: 'countryName is required' });
     const regId = typeof regionId === 'number' ? regionId : null;
 
-    const created = await createCountry(regId, countryName, currencySymbol);
+    const created = await createCountry(regId, countryName, countryIso, countryCurrencySymbol);
     res.status(201).json(created);
   } catch (err) {
     error(err);
@@ -78,11 +78,11 @@ router.put('/:id', requirePermission('Countries', 'create'), async (req: Request
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { countryName, regionId, currencySymbol } = req.body as { countryName?: string; regionId?: number | null; currencySymbol?: string | null };
+    const { countryName, regionId, countryIso, countryCurrencySymbol } = req.body as { countryName?: string; regionId?: number | null; countryIso?: string | null; countryCurrencySymbol?: string | null };
     if (!countryName || typeof countryName !== 'string') return res.status(400).json({ error: 'countryName is required' });
     const regId = typeof regionId === 'number' ? regionId : null;
 
-    const updated = await updateCountry(id, regId, countryName, currencySymbol);
+    const updated = await updateCountry(id, regId, countryName, countryIso, countryCurrencySymbol);
     if (!updated) return res.status(404).json({ error: 'Country not found' });
 
     res.json(updated);
