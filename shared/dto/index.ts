@@ -50,3 +50,7 @@ export * from './Option';
 export * from './PersistenceTemplate';
 export * from './PersistenceTable';
 export * from './PersistenceJob';
+
+// Shift DTOs
+export * from './Shift';
+export * from './ShiftDetail';

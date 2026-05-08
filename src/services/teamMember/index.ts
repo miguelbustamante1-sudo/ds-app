@@ -1,3 +1,7 @@
+export { createTeamMember } from './mutations/createTeamMember';
+export { updateTeamMember } from './mutations/updateTeamMember';
+export { deleteTeamMember } from './mutations/deleteTeamMember';
+export { TeamMemberNotFoundError, InvalidTierBandError } from './mutations/errors';
 export { getReports } from './queries/getReports';
 export { getAvailableForProject } from './queries/getAvailableForProject';
 export { getAvailableForProjectAll } from './queries/getAvailableForProjectAll';

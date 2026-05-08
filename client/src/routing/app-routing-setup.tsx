@@ -34,6 +34,7 @@ import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
+import { ShiftsPage } from '@/pages/maintenance/shifts';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
@@ -114,6 +115,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
+        <Route path="/maintenance/shifts" element={<ShiftsPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />

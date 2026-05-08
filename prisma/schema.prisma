@@ -88,11 +88,13 @@ model TeamMember {
   teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
   teamMemberLastUpdatedDate         DateTime?              @map("tms_last_upddat") @db.Date
   teamMemberFullLegalName           String?                @map("tms_full_legal_name") @db.VarChar(1000)
+  shiftId                           Int?                   @map("sft_id")
   createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
   country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
   primaryRole                       Role?                  @relation(fields: [teamMemberPrimaryRole], references: [roleId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
   tierBand                          TierBand?              @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
   lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
+  shift                             Shift?                 @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "fk_tbl_team_members_sft")
   timeOffs                          TimeOff[]
   holidaySwaps                      HolidaySwap[]
   projectAssignments                ProjectAssignment[]
@@ -107,6 +109,7 @@ model TeamMember {
   @@index([teamMemberPrimaryRole], map: "idx_tbl_team_members_rol_id")
   @@index([tierBandId], map: "idx_tbl_team_members_tib_id")
   @@index([teamMemberLastUpdatedBy], map: "idx_tbl_team_members_uby")
+  @@index([shiftId], map: "idx_tbl_team_members_sft_id")
   @@map("tbl_team_members")
   @@schema("ds")
 }
@@ -192,11 +195,14 @@ model ProjectAssignment {
   lastUpdatedByUser                 User?           @relation("tmp_team_member_project_tmp_updated_byTotbl_users", fields: [projectAssignmentLastUpdatedBy], references: [userId], map: "fk_tmp_team_member_project_uby")
   functionalArea                    FunctionalArea? @relation(fields: [functionalAreaId], references: [Id], onDelete: Restrict, map: "fk_tmp_team_member_project_far")
   clientContact                     ClientContact?  @relation(fields: [clientContactId], references: [id], onDelete: Restrict, map: "fk_tmp_team_member_project_cco")
+  shiftId                           Int?            @map("sft_id")
+  shift                             Shift?          @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "fk_tmp_team_member_project_sft")
 
   @@index([projectAssignmentCreatedBy], map: "idx_tmp_team_member_project_cby")
   @@index([projectId], map: "idx_tmp_team_member_project_pro_id")
   @@index([teamMemberId], map: "idx_tmp_team_member_project_tms_id")
   @@index([projectAssignmentLastUpdatedBy], map: "idx_tmp_team_member_project_uby")
+  @@index([shiftId], map: "idx_tmp_team_member_project_sft_id")
   @@map("tmp_team_member_project")
   @@schema("ds")
 }
@@ -815,5 +821,32 @@ model Bench {
   @@index([supervisorId], map: "idx_ben_tms_id_supervisor")
   @@index([functionalAreaId], map: "idx_ben_far_id")
   @@map("ben_bench")
+  @@schema("ds")
+}
+
+model Shift {
+  shiftId            Int                 @id @default(autoincrement()) @map("sft_id") @db.Integer
+  description        String              @map("sft_description") @db.VarChar(512)
+  totalWeekHours     Decimal             @map("sft_total_week_hours") @db.Decimal(5, 2)
+  lunchHours         Decimal             @default(0) @map("sft_lunch_hours") @db.Decimal(5, 2)
+  details            ShiftDetail[]
+  projectAssignments ProjectAssignment[]
+  teamMembers        TeamMember[]
+
+  @@map("sft_shifts")
+  @@schema("ds")
+}
+
+model ShiftDetail {
+  shiftDetailId Int     @id @default(autoincrement()) @map("sfd_id") @db.Integer
+  shiftId       Int     @map("sft_id") @db.Integer
+  dayOfWeek     Int     @map("sfd_day_of_week") @db.Integer
+  startTime     Int     @map("sfd_start_time") @db.Integer
+  endTime       Int     @map("sfd_end_time") @db.Integer
+  workingHours  Decimal @map("sfd_daily_hours") @db.Decimal(5, 2)
+  shift         Shift   @relation(fields: [shiftId], references: [shiftId], onDelete: Cascade, map: "fk_sfd_sft")
+
+  @@index([shiftId], map: "idx_sfd_sft_id")
+  @@map("sfd_shift_details")
   @@schema("ds")
 }

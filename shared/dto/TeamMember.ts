@@ -1,11 +1,3 @@
-/**
- * DTOs for Team Member
- * Updated to use normalized Prisma field names
- */
-
-/**
- * TeamMemberDTO - Full team member data returned to client
- */
 export interface TeamMemberDTO {
   teamMemberId: number;
   teamMemberNames: string;
@@ -24,19 +16,14 @@ export interface TeamMemberDTO {
   teamMemberCreatedDate: Date | null;
   teamMemberLastUpdatedBy: number | null;
   teamMemberLastUpdatedDate: Date | null;
+  shiftId?: number | null;
   // Optional included relation fields (for list views)
   countryName?: string | null;
   roleName?: string | null;
   tierBandDescription?: string | null;
+  shiftDescription?: string | null;
 }
 
-/**
- * CreateTeamMemberDTO - Data required to create a new team member
- * Excludes:
- * - teamMemberId (auto-generated)
- * - audit fields (auto-populated server-side)
- * - workdayId (read-only, synced from external system)
- */
 export interface CreateTeamMemberDTO {
   teamMemberNames: string;
   teamMemberSurnames: string;
@@ -47,15 +34,9 @@ export interface CreateTeamMemberDTO {
   tierBandId: number;
   workdayId: string | null;
   teamMemberFullLegalName: string | null;
+  shiftId?: number | null;
 }
 
-/**
- * UpdateTeamMemberDTO - Data allowed to be updated
- * Excludes:
- * - teamMemberId (immutable)
- * - audit fields (auto-populated server-side)
- * - workdayId (read-only, synced from external system)
- */
 export interface UpdateTeamMemberDTO {
   teamMemberNames?: string;
   teamMemberSurnames?: string;
@@ -67,12 +48,9 @@ export interface UpdateTeamMemberDTO {
   tierBandId?: number;
   workdayId?: string | null;
   teamMemberFullLegalName?: string | null;
+  shiftId?: number | null;
 }
 
-/**
- * AvailableResourceDTO - Team member with their total active allocation.
- * Used by the available-resources query to surface team members with capacity.
- */
 export interface AvailableResourceDTO {
   teamMemberId: number;
   teamMemberNames: string;
@@ -85,10 +63,6 @@ export interface AvailableResourceDTO {
   totalAllocation: number;
 }
 
-/**
- * AvailableResourceUnderSupervisorDTO - Extends AvailableResourceDTO with
- * computed available allocation and country currency for the Add TM dialog.
- */
 export interface AvailableResourceUnderSupervisorDTO extends AvailableResourceDTO {
   availableAllocation: number;           // 100 - totalAllocation
   countryCurrencySymbol: string | null;  // from Country.countryCurrencySymbol

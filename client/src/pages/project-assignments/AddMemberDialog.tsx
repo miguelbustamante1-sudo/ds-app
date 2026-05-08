@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { parseUTCDateAsLocal } from '@/lib/utils';
+import { getShifts, type ShiftDTO } from '@/services/shift';
 import { MemberComboBox } from './components/MemberComboBox';
 import { ContactComboBox } from './components/ContactComboBox';
 
@@ -39,6 +40,7 @@ interface FormData {
   projectAssignmentAllocation: string;
   functionalAreaId: string;
   clientContactId: string;
+  shiftId: string;
 }
 
 export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuccess }: Props) {
@@ -48,12 +50,17 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
   const [allFunctionalAreas, setAllFunctionalAreas] = useState<FunctionalAreaDTO[]>([]);
   const [functionalAreaId, setFunctionalAreaId] = useState('');
   const [contactId, setContactId] = useState('');
+  const [allShifts, setAllShifts] = useState<ShiftDTO[]>([]);
+  const [shiftId, setShiftId] = useState('');
 
   useEffect(() => {
     if (open) {
       apiGet<FunctionalAreaDTO[]>('/api/functional-areas')
         .then(setAllFunctionalAreas)
         .catch(() => toast({ title: 'Error', description: 'Failed to load functional areas', variant: 'destructive' }));
+      getShifts()
+        .then(setAllShifts)
+        .catch(() => toast({ title: 'Error', description: 'Failed to load shifts', variant: 'destructive' }));
     }
   }, [open, toast]);
 
@@ -74,6 +81,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
       projectAssignmentAllocation: '',
       functionalAreaId: '',
       clientContactId: '',
+      shiftId: '',
     },
   });
 
@@ -103,6 +111,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
       setSelectedTm(null);
       setFunctionalAreaId('');
       setContactId('');
+      setShiftId('');
     }
     onOpenChange(v);
   };
@@ -120,6 +129,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
         functionalAreaId: Number(data.functionalAreaId),
         clientContactId: data.clientContactId ? Number(data.clientContactId) : null,
+        shiftId: data.shiftId ? Number(data.shiftId) : null,
       });
       toast({ title: 'Success', description: 'Team member added to project.' });
       onSuccess();
@@ -287,6 +297,27 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
               <input type="hidden" {...register('functionalAreaId', { required: 'Functional area is required' })} />
               {errors.functionalAreaId && (
                 <p className="text-sm text-destructive">{errors.functionalAreaId.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Shift <span className="text-destructive">*</span>
+              </Label>
+              <ComboBox
+                options={allShifts.map((s): ComboBoxOption => ({ value: String(s.shiftId), label: s.description }))}
+                value={shiftId}
+                onValueChange={(val) => {
+                  setShiftId(val);
+                  setValue('shiftId', val, { shouldValidate: true });
+                }}
+                placeholder="Select shift..."
+                searchPlaceholder="Search shifts..."
+                emptyMessage="No shifts found."
+              />
+              <input type="hidden" {...register('shiftId', { required: 'Shift is required' })} />
+              {errors.shiftId && (
+                <p className="text-sm text-destructive">{errors.shiftId.message}</p>
               )}
             </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, CountryDTO, RoleDTO, TierBandDTO } from '@shared/dto';
+import { getShifts, type ShiftDTO } from '@/services/shift';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 
 interface TeamMemberFormData {
   teamMemberNames: string;
@@ -37,6 +39,7 @@ interface TeamMemberFormData {
   teamMemberPrimaryRole: string;
   tierBandId: string;
   workdayId: string;
+  shiftId: string;
 }
 
 interface TeamMemberFormDialogProps {
@@ -58,9 +61,11 @@ export function TeamMemberFormDialog({
   const [countries, setCountries] = useState<CountryDTO[]>([]);
   const [roles, setRoles] = useState<RoleDTO[]>([]);
   const [tierBands, setTierBands] = useState<TierBandDTO[]>([]);
+  const [shifts, setShifts] = useState<ShiftDTO[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [loadingTierBands, setLoadingTierBands] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TeamMemberFormData | null>(null);
   const [showEndDateConfirm, setShowEndDateConfirm] = useState(false);
 
@@ -83,15 +88,17 @@ export function TeamMemberFormDialog({
       teamMemberPrimaryRole: '',
       tierBandId: '',
       workdayId: '',
+      shiftId: '',
     },
   });
 
   // Register tierBandId for validation (controlled by ComboBox via setValue)
   register('tierBandId', { required: 'Tier band is required' });
 
-  const watchedCountryId = watch('countryId');
-  const watchedPrimaryRole = watch('teamMemberPrimaryRole');
-  const watchedTierBandId = watch('tierBandId');
+  const watchedCountryId      = watch('countryId');
+  const watchedPrimaryRole    = watch('teamMemberPrimaryRole');
+  const watchedTierBandId     = watch('tierBandId');
+  const watchedShiftId        = watch('shiftId');
 
   const countryOptions: ComboBoxOption[] = countries.map((c) => ({
     value: c.countryId.toString(),
@@ -106,6 +113,11 @@ export function TeamMemberFormDialog({
   const tierBandOptions: ComboBoxOption[] = tierBands.map((t) => ({
     value: t.tierBandId.toString(),
     label: t.tierBandDescription,
+  }));
+
+  const shiftOptions: ComboBoxOption[] = shifts.map((s) => ({
+    value: s.shiftId.toString(),
+    label: s.description,
   }));
 
   useEffect(() => {
@@ -127,6 +139,12 @@ export function TeamMemberFormDialog({
         .then((data) => setTierBands(data))
         .catch(() => toast({ title: 'Error', description: 'Failed to load tier bands', variant: 'destructive' }))
         .finally(() => setLoadingTierBands(false));
+
+      setLoadingShifts(true);
+      getShifts()
+        .then(setShifts)
+        .catch(() => toast({ title: 'Error', description: 'Failed to load shifts', variant: 'destructive' }))
+        .finally(() => setLoadingShifts(false));
     }
   }, [open, toast]);
 
@@ -134,10 +152,10 @@ export function TeamMemberFormDialog({
     if (open) {
       if (teamMember) {
         const startDate = teamMember.teamMemberStartDate
-          ? new Date(teamMember.teamMemberStartDate).toISOString().split('T')[0]
+          ? formatUTCDate(teamMember.teamMemberStartDate, 'yyyy-MM-dd')
           : '';
         const endDate = teamMember.teamMemberEndDate
-          ? new Date(teamMember.teamMemberEndDate).toISOString().split('T')[0]
+          ? formatUTCDate(teamMember.teamMemberEndDate, 'yyyy-MM-dd')
           : '';
         reset({
           teamMemberNames: teamMember.teamMemberNames,
@@ -150,6 +168,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: teamMember.teamMemberPrimaryRole?.toString() || '',
           tierBandId: teamMember.tierBandId?.toString() || '',
           workdayId: teamMember.workdayId || '',
+          shiftId: teamMember.shiftId?.toString() || '',
         });
       } else {
         reset({
@@ -163,6 +182,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: '',
           tierBandId: '',
           workdayId: '',
+          shiftId: '',
         });
       }
     }
@@ -182,6 +202,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
           tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
+          shiftId: data.shiftId ? Number(data.shiftId) : null,
         };
         await apiPut<TeamMemberDTO, UpdateTeamMemberDTO>(`/api/team-members/${teamMember.teamMemberId}`, payload);
         toast({
@@ -199,6 +220,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
           tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
+          shiftId: data.shiftId ? Number(data.shiftId) : null,
         };
         await apiPost<TeamMemberDTO, CreateTeamMemberDTO>('/api/team-members', payload);
         toast({
@@ -222,7 +244,7 @@ export function TeamMemberFormDialog({
     // because it will automatically cancel all future time-off requests for this member.
     if (isEditing) {
       const originalEndDate = teamMember?.teamMemberEndDate
-        ? new Date(teamMember.teamMemberEndDate).toISOString().split('T')[0]
+        ? formatUTCDate(teamMember.teamMemberEndDate, 'yyyy-MM-dd')
         : '';
       const endDateChanged = data.teamMemberEndDate !== originalEndDate && data.teamMemberEndDate !== '';
 
@@ -438,6 +460,19 @@ export function TeamMemberFormDialog({
                   {...register('workdayId')}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Shift</Label>
+              <ComboBox
+                options={shiftOptions}
+                value={watchedShiftId}
+                onValueChange={(value) => setValue('shiftId', value)}
+                placeholder="Select a shift..."
+                searchPlaceholder="Search shifts..."
+                emptyMessage="No shifts found."
+                disabled={loadingShifts}
+              />
             </div>
           </div>
 

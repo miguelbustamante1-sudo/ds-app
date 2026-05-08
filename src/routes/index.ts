@@ -39,6 +39,7 @@ import persistenceTemplateRouter from './persistenceTemplate.routes';
 import persistenceDataTypeRouter from './persistenceDataType.routes';
 import persistenceTableRouter from './persistenceTable.routes';
 import persistenceJobRouter from './persistenceJob.routes';
+import shiftRouter from './shift.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -83,6 +84,7 @@ export default function registerRoutes() {
   router.use('/persistence-data-type', persistenceDataTypeRouter);
   router.use('/persistence-table', persistenceTableRouter);
   router.use('/persistence-job', persistenceJobRouter);
+  router.use('/shift', shiftRouter);
 
   return router;
 }

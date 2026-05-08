@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   AlertCircle,
   ArrowLeftRight,
   Award,
@@ -247,6 +248,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Functional Areas', path: '/maintenance/functional-areas', icon: Network, permission: 'FunctionalAreas' },
       { title: 'Holidays', path: '/maintenance/holidays', icon: Gift, permission: 'Holidays' },
       { title: 'Projects', path: '/maintenance/projects', icon: FolderKanban, permission: 'Projects' },
+      { title: 'Shifts', path: '/maintenance/shifts', icon: AlarmClock, permission: 'Shift' },
       { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', icon: UserCheck, permission: 'SupervisorAssignments' },
       { title: 'Team Members', path: '/maintenance/team-members', icon: Users, permission: 'TeamMembers' },
       { title: 'Tier Bands', path: '/maintenance/tier-bands', icon: TrendingUp, permission: 'TierBands' },

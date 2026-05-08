@@ -51,6 +51,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
       intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
@@ -90,6 +91,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
       intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      shiftId: item.shiftId ?? null,
       teamMemberName: null,
       teamMemberSeniority: null,
       projectName: item.project?.projectName ?? null,
@@ -126,6 +128,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
       intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
@@ -303,6 +306,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
       projectAssignmentLastUpdatedDate: now,
       projectAssignmentDeleted: false,
       intercompanyBillRate: newIntercompanyBillRate !== undefined ? newIntercompanyBillRate : currentAssignment.intercompanyBillRate,
+      shiftId: currentAssignment.shiftId ?? null,
     };
 
     const { closed, created } = await closeAndCreateAssignment(id, closeEndDate, newRecord, dsUserId, now);

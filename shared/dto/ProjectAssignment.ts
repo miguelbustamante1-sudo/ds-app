@@ -1,10 +1,3 @@
-/**
- * DTOs for ProjectAssignment entity
- */
-
-/**
- * ProjectAssignmentDTO - Full project assignment data returned to client
- */
 export interface ProjectAssignmentDTO {
   projectAssignmentId: number;
   teamMemberId: number | null;
@@ -21,11 +14,9 @@ export interface ProjectAssignmentDTO {
   projectAssignmentDeleted: boolean;
   clientContactId: number | null;
   intercompanyBillRate: number | null;
+  shiftId?: number | null;
 }
 
-/**
- * CreateProjectAssignmentDTO - Data required to create a new project assignment
- */
 export interface CreateProjectAssignmentDTO {
   teamMemberId: number | null;
   projectId: number | null;
@@ -36,11 +27,9 @@ export interface CreateProjectAssignmentDTO {
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
   intercompanyBillRate?: number | null;
+  shiftId?: number | null;
 }
 
-/**
- * UpdateProjectAssignmentDTO - Data allowed to be updated
- */
 export interface UpdateProjectAssignmentDTO {
   projectAssignmentStartDate?: Date | string;
   projectAssignmentEndDate?: Date | string | null;
@@ -49,11 +38,9 @@ export interface UpdateProjectAssignmentDTO {
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
   intercompanyBillRate?: number | null;
+  shiftId?: number | null;
 }
 
-/**
- * ProjectAssignmentWithDetailsDTO - Enriched DTO with team member and project names
- */
 export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   teamMemberName: string | null;
   teamMemberSeniority: string | null;

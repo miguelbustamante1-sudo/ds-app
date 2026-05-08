@@ -56,7 +56,12 @@ async function handleResponse<T>(response: Response, endpoint: string): Promise<
     return undefined as T;
   }
 
-  return response.json();
+  const json = await response.json();
+  // Unwrap { data: T } envelope from new-style routes; pass raw response from legacy routes unchanged
+  if (json !== null && typeof json === 'object' && !Array.isArray(json) && 'data' in json) {
+    return json.data as T;
+  }
+  return json as T;
 }
 
 /**

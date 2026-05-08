@@ -2,6 +2,14 @@ import { prisma } from './prisma';
 import type { TeamMember, Prisma } from '@prisma/client';
 import { info } from '../logger';
 
+export interface TeamMemberWithDetails extends TeamMember {
+  shiftId:     number | null;
+  country:     { countryName: string; countryIso: string | null } | null;
+  primaryRole: { roleName: string } | null;
+  tierBand:    { tierBandDescription: string } | null;
+  shift:       { description: string } | null;
+}
+
 export const TABLE = 'ds.tbl_team_members';
 
 export async function ensureTeamMembersTableExists(): Promise<boolean> {
@@ -21,16 +29,18 @@ export async function getAllTeamMembers(): Promise<TeamMember[]> {
   });
 }
 
-export async function getAllTeamMembersWithDetails() {
+export async function getAllTeamMembersWithDetails(): Promise<TeamMemberWithDetails[]> {
   info(`Fetching all team members with details from table ${TABLE}`);
-  return await prisma.teamMember.findMany({
+  const rows = await prisma.teamMember.findMany({
     include: {
-      country: { select: { countryName: true, countryIso: true } },
+      country:     { select: { countryName: true, countryIso: true } },
       primaryRole: { select: { roleName: true } },
-      tierBand: { select: { tierBandDescription: true } },
+      tierBand:    { select: { tierBandDescription: true } },
+      shift:       { select: { description: true } },
     },
     orderBy: { teamMemberId: 'asc' },
   });
+  return rows as TeamMemberWithDetails[];
 }
 
 export async function getTeamMemberById(id: number): Promise<TeamMember | null> {
@@ -39,13 +49,13 @@ export async function getTeamMemberById(id: number): Promise<TeamMember | null> 
   });
 }
 
-export async function createTeamMember(payload: Prisma.TeamMemberCreateInput): Promise<TeamMember> {
+export async function createTeamMember(payload: Prisma.TeamMemberUncheckedCreateInput): Promise<TeamMember> {
   return await prisma.teamMember.create({
     data: payload,
   });
 }
 
-export async function updateTeamMember(id: number, payload: Prisma.TeamMemberUpdateInput): Promise<TeamMember | null> {
+export async function updateTeamMember(id: number, payload: Prisma.TeamMemberUncheckedUpdateInput): Promise<TeamMember | null> {
   if (Object.keys(payload).length === 0) {
     return getTeamMemberById(id);
   }
