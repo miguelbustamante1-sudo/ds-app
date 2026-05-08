@@ -29,7 +29,7 @@ const getHeaders = (): HeadersInit => ({
  * Handle API response and extract error message if needed
  * Dispatches a custom event on 401 for session expiration handling
  */
-async function handleResponse<T>(response: Response, endpoint: string): Promise<T> {
+async function handleResponse<T>(response: Response, endpoint: string, unwrap = true): Promise<T> {
   if (!response.ok) {
     // Handle 401 Unauthorized - session may have expired
     if (response.status === 401) {
@@ -58,7 +58,7 @@ async function handleResponse<T>(response: Response, endpoint: string): Promise<
 
   const json = await response.json();
   // Unwrap { data: T } envelope from new-style routes; pass raw response from legacy routes unchanged
-  if (json !== null && typeof json === 'object' && !Array.isArray(json) && 'data' in json) {
+  if (unwrap && json !== null && typeof json === 'object' && !Array.isArray(json) && 'data' in json) {
     return json.data as T;
   }
   return json as T;
@@ -67,14 +67,14 @@ async function handleResponse<T>(response: Response, endpoint: string): Promise<
 /**
  * GET request
  */
-export async function apiGet<TResponse>(endpoint: string): Promise<TResponse> {
+export async function apiGet<TResponse>(endpoint: string, unwrap = true): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'GET',
     headers: getHeaders(),
     credentials: 'include',
   });
 
-  return handleResponse<TResponse>(response, endpoint);
+  return handleResponse<TResponse>(response, endpoint, unwrap);
 }
 
 /**
@@ -82,7 +82,8 @@ export async function apiGet<TResponse>(endpoint: string): Promise<TResponse> {
  */
 export async function apiPost<TResponse, TBody = unknown>(
   endpoint: string,
-  data: TBody
+  data: TBody,
+  unwrap = true
 ): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -91,7 +92,7 @@ export async function apiPost<TResponse, TBody = unknown>(
     body: JSON.stringify(data),
   });
 
-  return handleResponse<TResponse>(response, endpoint);
+  return handleResponse<TResponse>(response, endpoint, unwrap);
 }
 
 /**

@@ -42,14 +42,14 @@ export function executeReport(
   page: number,
   pageSize: number,
 ): Promise<ExecuteResponseDTO> {
-  return apiPost(`/api/reports/dynamic/${id}/execute`, { params, page, pageSize });
+  return apiPost(`/api/reports/dynamic/${id}/execute`, { params, page, pageSize }, false);
 }
 
 export function downloadReport(
   id: number,
   params: Record<string, string | number | boolean | null>,
 ): Promise<ExecuteResponseDTO> {
-  return apiPost(`/api/reports/dynamic/${id}/download`, { params });
+  return apiPost(`/api/reports/dynamic/${id}/download`, { params }, false);
 }
 
 export function getParamOptions(

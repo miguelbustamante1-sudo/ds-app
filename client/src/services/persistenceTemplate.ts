@@ -48,6 +48,7 @@ export async function getAllPersistenceTables(): Promise<PersistenceTable[]> {
   while (true) {
     const raw = await apiGet<PersistenceTablePage | PersistenceTable[]>(
       `${TABLE_BASE}?page=${page}&limit=${LIMIT}`,
+      false,
     );
 
     // Plain array response (no pagination envelope)

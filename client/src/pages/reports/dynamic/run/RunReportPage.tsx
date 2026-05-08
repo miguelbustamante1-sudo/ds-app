@@ -114,7 +114,7 @@ export function RunReportPage() {
   }
 
   // Build dynamic columns from result data
-  const columns: ColumnDef<Record<string, unknown>>[] = result?.data[0]
+  const columns: ColumnDef<Record<string, unknown>>[] = result?.data?.[0]
     ? Object.keys(result.data[0]).map((key) => ({
         accessorKey: key,
         header: ({ column }) => <DataGridColumnHeader column={column} title={key} />,
