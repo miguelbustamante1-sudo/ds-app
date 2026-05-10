@@ -12,6 +12,7 @@ export async function getEndorsements(status?: string): Promise<Endorsement[]> {
       project: { select: { projectName: true } },
       country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
+      position: { select: { posId: true, posName: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -20,7 +21,7 @@ export async function getEndorsements(status?: string): Promise<Endorsement[]> {
 export async function createEndorsement(data: {
   candidateFirstName: string;
   candidateLastName: string;
-  candidatePosition: string;
+  posId: number;
   projectId: number;
   clientManagerEmail: string;
   tibId?: number | null;
@@ -36,7 +37,7 @@ export async function createEndorsement(data: {
     data: {
       candidateFirstName: data.candidateFirstName,
       candidateLastName: data.candidateLastName,
-      candidatePosition: data.candidatePosition,
+      posId: data.posId,
       projectId: data.projectId,
       clientManagerEmail: data.clientManagerEmail,
       tibId: data.tibId ?? null,
@@ -51,6 +52,7 @@ export async function createEndorsement(data: {
       project: { select: { projectName: true } },
       country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
+      position: { select: { posId: true, posName: true } },
     },
   });
 }
@@ -59,7 +61,7 @@ export async function createEndorsementWithBonuses(
   endorsementData: {
     candidateFirstName: string;
     candidateLastName: string;
-    candidatePosition: string;
+    posId: number;
     projectId: number;
     clientManagerEmail: string;
     tibId?: number | null;
@@ -84,7 +86,7 @@ export async function createEndorsementWithBonuses(
       data: {
         candidateFirstName: endorsementData.candidateFirstName,
         candidateLastName: endorsementData.candidateLastName,
-        candidatePosition: endorsementData.candidatePosition,
+        posId: endorsementData.posId,
         projectId: endorsementData.projectId,
         clientManagerEmail: endorsementData.clientManagerEmail,
         tibId: endorsementData.tibId ?? null,
@@ -117,10 +119,11 @@ export async function createEndorsementWithBonuses(
   });
 }
 
-const ENDORSEMENT_INCLUDE = {
+export const ENDORSEMENT_INCLUDE = {
   project: { select: { projectName: true, clientId: true } },
   country: { select: { countryName: true, countryCurrencySymbol: true } },
   tierBand: { select: { tierBandId: true, tierBandDescription: true } },
+  position: { select: { posId: true, posName: true } },
   endorsementBonuses: {
     include: {
       bonusSubcategory: {

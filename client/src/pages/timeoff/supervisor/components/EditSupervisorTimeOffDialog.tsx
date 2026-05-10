@@ -255,8 +255,8 @@ function EditSupervisorTimeOffDialogInner({
     : 0;
 
   // Pass timeOff?.timeOffId to exclude the time-off being edited from the calculation
-  const svMemberStartDate = teamMember?.teamMemberStartDate
-    ? parseUTCDateAsLocal(teamMember.teamMemberStartDate as unknown as string)
+  const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
+    ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
     : null;
   const existingVacationDays = isSVVacation
     ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, svMemberStartDate, timeOff?.timeOffId, startDate ?? undefined)

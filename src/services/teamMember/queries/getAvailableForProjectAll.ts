@@ -52,7 +52,7 @@ export async function getAvailableForProjectAll(
       tm.tms_known_as                                                   AS team_member_known_as,
       tm.tms_seniority                                                  AS team_member_seniority,
       tm.tms_enddat                                                     AS team_member_end_date,
-      r.rol_name                                                        AS primary_role_name,
+      r.pos_name                                                        AS primary_role_name,
       c.cou_id                                                          AS country_id,
       c.cou_name                                                        AS country_name,
       c.cou_iso                                                         AS country_iso,
@@ -68,7 +68,7 @@ export async function getAvailableForProjectAll(
         '[]'::json
       )                                                                 AS current_projects
     FROM ds.tbl_team_members tm
-    LEFT JOIN ds.tbl_roles r ON r.rol_id = tm.tms_primary_role
+    LEFT JOIN ds.pos_positions r ON r.pos_id = tm.tms_primary_role
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     LEFT JOIN ds.tmp_team_member_project tmp
       ON  tmp.tms_id = tm.tms_id
@@ -86,7 +86,7 @@ export async function getAvailableForProjectAll(
       tm.tms_known_as,
       tm.tms_seniority,
       tm.tms_enddat,
-      r.rol_name,
+      r.pos_name,
       c.cou_id,
       c.cou_name,
       c.cou_iso,

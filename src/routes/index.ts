@@ -54,7 +54,7 @@ export default function registerRoutes() {
   router.use('/team-members', teamMembersRouter);
   router.use('/team-member-projects', teamMemberProjectsRouter);
   router.use('/projects', projectsRouter);
-  router.use('/roles', rolesRouter);
+  router.use('/positions', rolesRouter);
   router.use('/users', usersRouter);
   router.use('/rbac/permissions', rbacPermissionsRouter);
   router.use('/rbac/roles', rbacRolesRouter);

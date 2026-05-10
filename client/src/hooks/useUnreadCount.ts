@@ -6,6 +6,7 @@ const DEFAULT_POLL_INTERVAL = 30000; // 30 seconds
 
 interface UseUnreadCountOptions {
   pollInterval?: number;
+  enabled?: boolean;
   onError?: (error: string) => void;
 }
 
@@ -18,8 +19,10 @@ export function useUnreadCount(options?: UseUnreadCountOptions): UseUnreadCountR
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollInterval = options?.pollInterval ?? DEFAULT_POLL_INTERVAL;
+  const enabled = options?.enabled ?? true;
 
   const refetch = useCallback(async () => {
+    if (!enabled) return;
     try {
       const data = await apiGet<UnreadCountDTO>('/api/notifications/unread-count');
       setUnreadCount(data.count);
@@ -28,9 +31,11 @@ export function useUnreadCount(options?: UseUnreadCountOptions): UseUnreadCountR
         options?.onError?.(err.message);
       }
     }
-  }, [options]);
+  }, [enabled, options]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     refetch();
 
     intervalRef.current = setInterval(refetch, pollInterval);
@@ -40,7 +45,7 @@ export function useUnreadCount(options?: UseUnreadCountOptions): UseUnreadCountR
         clearInterval(intervalRef.current);
       }
     };
-  }, [refetch, pollInterval]);
+  }, [refetch, pollInterval, enabled]);
 
   return { unreadCount, refetch };
 }

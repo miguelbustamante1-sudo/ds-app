@@ -47,6 +47,7 @@ interface MyTeamMemberProfile {
   teamMemberEndDate: string | null;
   countryId: number | null;
   countryIso: string | null;  // ISO code (e.g., "SV", "GT")
+  hireDate: string | null;
 }
 
 interface FormData {
@@ -79,6 +80,7 @@ export function EditTimeOffDialog({
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userStartDate, setUserStartDate] = useState<Date | null>(null);
+  const [userHireDate, setUserHireDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const { toast } = useToast();
@@ -146,6 +148,9 @@ export function EditTimeOffDialog({
         }
         if (profile.teamMemberStartDate) {
           setUserStartDate(parseUTCDateAsLocal(profile.teamMemberStartDate));
+        }
+        if (profile.hireDate) {
+          setUserHireDate(parseUTCDateAsLocal(profile.hireDate));
         }
         setUserCountryIso(profile.countryIso);
       } catch (error) {
@@ -221,7 +226,7 @@ export function EditTimeOffDialog({
 
   // Pass timeOff?.timeOffId to exclude the time-off being edited from the calculation
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, userStartDate, timeOff?.timeOffId, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, userHireDate ?? userStartDate, timeOff?.timeOffId, startDate ?? undefined)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0

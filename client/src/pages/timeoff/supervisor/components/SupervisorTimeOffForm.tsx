@@ -263,8 +263,8 @@ function SupervisorTimeOffFormInner({
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
 
-  const svMemberStartDate = teamMember?.teamMemberStartDate
-    ? parseUTCDateAsLocal(teamMember.teamMemberStartDate as unknown as string)
+  const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
+    ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
     : null;
   const existingVacationDays = isSVVacation
     ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4, svMemberStartDate, undefined, startDate ?? undefined)

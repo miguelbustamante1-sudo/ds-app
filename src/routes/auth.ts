@@ -5,6 +5,8 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 import oneloginService from '../services/oneloginService';
 import userService from '../services/userService';
 import googleOidcService from '../services/googleOidcService';
+import { resolvePermissions, PermissionSource } from '../services/permissionResolver';
+import { getDsUserByEmail } from '../db/users';
 
 const router = express.Router();
 const oauthStateTtlMs = 5 * 60 * 1000;
@@ -298,7 +300,6 @@ router.post('/logout', (req: AuthenticatedRequest, res: Response) => {
  */
 router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Read refresh token from cookie (primary) or body (fallback for backward compatibility)
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
     if (!refreshToken) {
@@ -306,27 +307,57 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    // Call OneLogin to refresh token
     const tokens = await oneloginService.exchangeRefreshToken(refreshToken);
 
-    // Calculate new expiration timestamp
     const expiresIn = tokens.expires_in || 3600;
     const expiresAt = Date.now() + expiresIn * 1000;
 
-    // Set new access token cookie
     res.cookie('access_token', tokens.access_token, getAccessTokenCookieOptions(expiresIn));
-
-    // Update refresh token if a new one was provided
     if (tokens.refresh_token) {
       res.cookie('refresh_token', tokens.refresh_token, getRefreshTokenCookieOptions());
     }
 
+    // Resolve full user from the new access token so the frontend can hydrate
+    const tokenToValidate = tokens.id_token || tokens.access_token;
+    const validation = await oneloginService.validateToken(tokenToValidate);
+
+    if (!validation.valid) {
+      clearAuthCookies(res);
+      res.status(401).json({ error: 'Session expired. Please log in again.' });
+      return;
+    }
+
+    let payload = validation.payload;
+    if (!payload.email && tokens.access_token) {
+      const userInfo = await oneloginService.getUserInfo(tokens.access_token);
+      payload = { ...payload, ...userInfo };
+    }
+
+    const permissionsSource = (process.env.PERMISSIONS_SOURCE as PermissionSource | undefined) || 'db';
+    const user = await userService.syncUserFromToken(payload);
+    const permissions = await resolvePermissions(permissionsSource, {
+      userId: user.id,
+      tokenPayload: payload,
+    });
+
+    const dsUser = await getDsUserByEmail(user.email);
+
     res.json({
       expiresAt,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: user.roles,
+        avatarUrl: user.avatarUrl,
+        permissions,
+        dsUserId: dsUser?.userId,
+        teamMemberId: dsUser?.teamMemberId ?? undefined,
+      },
     });
   } catch (error: any) {
     console.error('Token refresh error:', error);
-    // Clear cookies on refresh failure - user needs to re-login
     clearAuthCookies(res);
     res.status(401).json({ error: 'Session expired. Please log in again.' });
   }

@@ -27,6 +27,7 @@ interface RawSupervisedMember {
   supervisor_assignment_end_date: Date | null;
   team_member_end_date: Date | null;
   team_member_start_date: Date;
+  hire_date: Date | null;
 }
 
 /**
@@ -75,7 +76,7 @@ export async function getTeamMembersBySupervisor(
       tm.tms_surnames AS team_member_surnames,
       tm.tms_known_as AS team_member_known_as,
       tm.tms_seniority AS team_member_seniority,
-      r.rol_name AS primary_role_name,
+      r.pos_name AS primary_role_name,
       c.cou_id AS country_id,
       c.cou_name AS country_name,
       c.cou_iso AS country_iso,
@@ -84,11 +85,13 @@ export async function getTeamMembersBySupervisor(
       th.supervisor_assignment_start_date,
       th.supervisor_assignment_end_date,
       tm.tms_enddat AS team_member_end_date,
-      tm.tms_stadat AS team_member_start_date
+      tm.tms_stadat AS team_member_start_date,
+      wi.win_hire_date AS hire_date
     FROM team_hierarchy th
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = th.team_member_id
-    LEFT JOIN ds.tbl_roles r ON r.rol_id = tm.tms_primary_role
+    LEFT JOIN ds.pos_positions r ON r.pos_id = tm.tms_primary_role
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
+    LEFT JOIN es.win_workday_info wi ON wi.win_wdid = tm.wdid
     ORDER BY th.team_member_id, th.depth ASC
   `;
 
@@ -110,6 +113,7 @@ export async function getTeamMembersBySupervisor(
     supervisorAssignmentEndDate: row.supervisor_assignment_end_date,
     teamMemberEndDate: row.team_member_end_date,
     teamMemberStartDate: row.team_member_start_date,
+    hireDate: row.hire_date,
   }));
 }
 

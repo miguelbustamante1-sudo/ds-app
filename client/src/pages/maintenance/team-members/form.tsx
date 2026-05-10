@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, CountryDTO, RoleDTO, TierBandDTO } from '@shared/dto';
+import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, CountryDTO, PositionDTO, TierBandDTO } from '@shared/dto';
 import { getShifts, type ShiftDTO } from '@/services/shift';
 import {
   Dialog,
@@ -59,7 +59,7 @@ export function TeamMemberFormDialog({
   const isEditing = !!teamMember;
 
   const [countries, setCountries] = useState<CountryDTO[]>([]);
-  const [roles, setRoles] = useState<RoleDTO[]>([]);
+  const [roles, setRoles] = useState<PositionDTO[]>([]);
   const [tierBands, setTierBands] = useState<TierBandDTO[]>([]);
   const [shifts, setShifts] = useState<ShiftDTO[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
@@ -106,8 +106,8 @@ export function TeamMemberFormDialog({
   }));
 
   const roleOptions: ComboBoxOption[] = roles.map((r) => ({
-    value: r.roleId.toString(),
-    label: r.roleName,
+    value: r.posId.toString(),
+    label: r.posName,
   }));
 
   const tierBandOptions: ComboBoxOption[] = tierBands.map((t) => ({
@@ -129,7 +129,7 @@ export function TeamMemberFormDialog({
         .finally(() => setLoadingCountries(false));
 
       setLoadingRoles(true);
-      apiGet<RoleDTO[]>('/api/roles')
+      apiGet<PositionDTO[]>('/api/positions')
         .then((data) => setRoles(data))
         .catch(() => toast({ title: 'Error', description: 'Failed to load roles', variant: 'destructive' }))
         .finally(() => setLoadingRoles(false));

@@ -104,7 +104,7 @@ export async function getReports(
       tm.tms_seniority                                                  AS team_member_seniority,
       tm.tms_enddat                                                     AS team_member_end_date,
       tm.tms_stadat                                                     AS team_member_start_date,
-      r.rol_name                                                        AS primary_role_name,
+      r.pos_name                                                        AS primary_role_name,
       c.cou_id                                                          AS country_id,
       c.cou_name                                                        AS country_name,
       c.cou_iso                                                         AS country_iso,
@@ -134,7 +134,7 @@ export async function getReports(
       )                                                                 AS current_projects
     FROM ranked_hierarchy rh
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = rh.team_member_id
-    LEFT JOIN ds.tbl_roles r ON r.rol_id = tm.tms_primary_role
+    LEFT JOIN ds.pos_positions r ON r.pos_id = tm.tms_primary_role
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     LEFT JOIN ds.tmp_team_member_project tmp
       ON  tmp.tms_id = tm.tms_id
@@ -154,7 +154,7 @@ export async function getReports(
       tm.tms_seniority,
       tm.tms_enddat,
       tm.tms_stadat,
-      r.rol_name,
+      r.pos_name,
       c.cou_id,
       c.cou_name,
       c.cou_iso,

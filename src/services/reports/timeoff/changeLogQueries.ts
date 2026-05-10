@@ -74,10 +74,14 @@ interface WhereResult {
  * Build the parameterized WHERE clause.
  * Returns the SQL fragment with $N placeholders and the corresponding values array.
  */
-function buildWhereClause(params: TimeOffChangeLogQueryDTO): WhereResult {
+function buildWhereClause(params: TimeOffChangeLogQueryDTO, supervisedIds: number[]): WhereResult {
   const conditions: string[] = ['1=1'];
   const values: unknown[] = [];
   let idx = 1;
+
+  // Always restrict to the caller's reporting hierarchy
+  conditions.push(`tto.tms_id = ANY($${idx++}::int[])`);
+  values.push(supervisedIds);
 
   if (params.from) {
     conditions.push(`toc.toc_created_at >= $${idx++}::date`);
@@ -144,8 +148,9 @@ const EXPORT_ROW_CAP = 50_000;
 
 export async function getTimeOffChangeLog(
   params: TimeOffChangeLogQueryDTO,
+  supervisedIds: number[],
 ): Promise<{ rows: TimeOffChangeLogRowDTO[]; total: number; capped: boolean }> {
-  const { clause: whereClause, values: whereValues } = buildWhereClause(params);
+  const { clause: whereClause, values: whereValues } = buildWhereClause(params, supervisedIds);
   const joins = buildJoins();
 
   // Sort

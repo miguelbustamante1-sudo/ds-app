@@ -8,6 +8,7 @@ export interface CreateTeamMemberInput {
   workdayId: string;           // hiring.workdayId (guaranteed non-null at this stage)
   seniority: string;           // endorsement.tierBand.tierBandDescription
   tierBandId: number;          // endorsement.tibId
+  primaryRoleId: number;       // endorsement.posId
   createdByUserId: number;     // req.user.dsUserId
 }
 
@@ -23,6 +24,7 @@ export async function createTeamMember(
     workdayId,
     seniority,
     tierBandId,
+    primaryRoleId,
     createdByUserId,
   } = input;
 
@@ -36,6 +38,7 @@ export async function createTeamMember(
       workdayId,
       teamMemberSeniority: seniority,
       tierBandId,
+      teamMemberPrimaryRole: primaryRoleId,
       teamMemberCreatedBy: createdByUserId,
       teamMemberCreatedDate: new Date(),
     },

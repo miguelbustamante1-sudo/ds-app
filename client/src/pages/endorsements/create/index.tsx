@@ -25,6 +25,7 @@ import { EndorsementProjectComboBox } from '../components/EndorsementProjectComb
 import { EndorsementClientManagerEmailField } from '../components/EndorsementClientManagerEmailField';
 import { EndorsementCountryComboBox } from '../components/EndorsementCountryComboBox';
 import { EndorsementTierBandComboBox } from '../components/EndorsementTierBandComboBox';
+import { EndorsementPositionComboBox } from '../components/EndorsementPositionComboBox';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '../components/BonusMetadataFields';
 import { BonusSummaryTable } from '../components/BonusSummaryTable';
@@ -34,7 +35,7 @@ import type { SelectedBonus } from '../components/types';
 interface EndorsementFormData {
   candidateFirstName: string;
   candidateLastName: string;
-  candidatePosition: string;
+  posId: string;
   clientId: string;
   projectId: string;
   clientManagerEmail: string;
@@ -59,7 +60,7 @@ export function EndorsementCreatePage() {
     defaultValues: {
       candidateFirstName: '',
       candidateLastName: '',
-      candidatePosition: '',
+      posId: '',
       clientId: '',
       projectId: '',
       clientManagerEmail: '',
@@ -188,7 +189,7 @@ export function EndorsementCreatePage() {
       const payload: CreateEndorsementWithBonusesDTO = {
         candidateFirstName: data.candidateFirstName,
         candidateLastName: data.candidateLastName,
-        candidatePosition: data.candidatePosition,
+        posId: Number(data.posId),
         projectId: Number(data.projectId),
         clientManagerEmail: data.clientManagerEmail,
         tibId: data.tibId ? Number(data.tibId) : null,
@@ -259,18 +260,22 @@ export function EndorsementCreatePage() {
             )}
           </div>
 
-          {/* Candidate Position */}
+          {/* Position */}
           <div className="space-y-2">
-            <Label htmlFor="candidatePosition">
-              Candidate Position <span className="text-destructive">*</span>
+            <Label>
+              Position <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="candidatePosition"
-              {...register('candidatePosition', { required: 'Candidate position is required' })}
+            <EndorsementPositionComboBox
+              value={watch('posId')}
+              onValueChange={(value) => setValue('posId', value, { shouldValidate: true })}
             />
-            {errors.candidatePosition && (
-              <p className="text-sm text-destructive">{errors.candidatePosition.message}</p>
+            {errors.posId && (
+              <p className="text-sm text-destructive">{errors.posId.message}</p>
             )}
+            <input
+              type="hidden"
+              {...register('posId', { required: 'Position is required' })}
+            />
           </div>
 
           {/* Client */}
@@ -363,10 +368,19 @@ export function EndorsementCreatePage() {
 
           {/* Tier/Band */}
           <div className="space-y-2">
-            <Label>Tier/Band</Label>
+            <Label>
+              Tier/Band <span className="text-destructive">*</span>
+            </Label>
             <EndorsementTierBandComboBox
               value={tibIdValue}
-              onValueChange={(value) => setValue('tibId', value)}
+              onValueChange={(value) => setValue('tibId', value, { shouldValidate: true })}
+            />
+            {errors.tibId && (
+              <p className="text-sm text-destructive">{errors.tibId.message}</p>
+            )}
+            <input
+              type="hidden"
+              {...register('tibId', { required: 'Tier/Band is required' })}
             />
           </div>
 

@@ -64,7 +64,7 @@ export async function getMyOwnProfile(
     teamMemberSeniority: teamMember.teamMemberSeniority,
     teamMemberEndDate: teamMember.teamMemberEndDate ?? null,
     teamMemberStartDate: teamMember.teamMemberStartDate ?? null,
-    primaryRoleName: teamMember.primaryRole?.roleName ?? null,
+    primaryRoleName: teamMember.primaryRole?.posName ?? null,
     countryId: teamMember.countryId ?? null,
     countryName: teamMember.country?.countryName ?? null,
     countryIso: teamMember.country?.countryIso ?? null,

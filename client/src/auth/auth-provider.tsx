@@ -64,22 +64,23 @@ const mapUser = (data: any): AuthUser | null => {
 };
 
 const loadUser = async (): Promise<AuthUser | null> => {
-  const response = await fetch('/api/auth/me', {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
     credentials: 'include',
   });
 
-  if (response.status === 401) {
-    // Clear session expiration on auth failure
+  if (!response.ok) {
     localStorage.removeItem(SESSION_EXPIRES_KEY);
     return null;
   }
 
-  if (!response.ok) {
-    throw new Error('Failed to load user');
+  const data = await response.json();
+
+  if (data.expiresAt) {
+    localStorage.setItem(SESSION_EXPIRES_KEY, String(data.expiresAt));
   }
 
-  const data = await response.json();
-  return mapUser(data);
+  return mapUser(data.user);
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -100,11 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(SESSION_EXPIRES_KEY);
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(() => undefined);
-
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     window.location.href = '/auth/signin';
   }, []);
 
@@ -164,15 +161,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Fetch dev config from server (replaces VITE_* env vars)
     fetchDevConfig().then((cfg) => setEnableDevLogin(cfg.enableDevLogin));
 
-    // Skip initial refresh on callback page - it will handle auth itself
-    if (window.location.pathname === '/auth/callback') {
+    // Only attempt refresh when a session indicator exists in localStorage.
+    // The key is written on every successful refresh and removed on logout/failure,
+    // so its absence means no session — skipping the call avoids the 401 on the
+    // login page and after logout without needing a sessionStorage flag.
+    if (localStorage.getItem(SESSION_EXPIRES_KEY)) {
+      refresh().catch(() => setLoading(false));
+    } else {
       setLoading(false);
-      return;
     }
-    refresh().catch(() => setLoading(false));
   }, []);
 
   const value = useMemo(

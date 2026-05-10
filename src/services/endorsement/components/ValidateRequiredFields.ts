@@ -8,7 +8,7 @@ export interface ValidationError {
 const REQUIRED_FIELDS: { key: keyof CreateEndorsementDTO; label: string }[] = [
   { key: 'candidateFirstName', label: 'Candidate First Name' },
   { key: 'candidateLastName', label: 'Candidate Last Name' },
-  { key: 'candidatePosition', label: 'Candidate Position' },
+  { key: 'posId', label: 'Position' },
   { key: 'projectId', label: 'Project' },
   { key: 'clientManagerEmail', label: 'Client Manager Email' },
   { key: 'countryId', label: 'Country' },

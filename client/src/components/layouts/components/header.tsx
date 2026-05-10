@@ -10,13 +10,15 @@ import { UserDropdownMenu } from '@/components/layouts/shared/topbar/user-dropdo
 import { PocDirectoryDialog } from '@/components/layouts/shared/dialogs/poc-directory-dialog';
 import { useAuth } from '@/auth/auth-provider';
 import { PermissionGate } from '@/components/PermissionGate';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function Header() {
   const scrollPosition = useScrollPosition();
   const headerSticky: boolean = scrollPosition > 0;
   const { user } = useAuth();
   const avatar = user?.avatarUrl || toAbsoluteUrl('/media/avatars/blank.png');
-  const { unreadCount, refetch: refetchUnreadCount } = useUnreadCount();
+  const { canRead } = usePermissions();
+  const { unreadCount, refetch: refetchUnreadCount } = useUnreadCount({ enabled: canRead('NotificationCenter') });
 
   return (
     <header

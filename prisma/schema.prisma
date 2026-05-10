@@ -60,13 +60,14 @@ model Region {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model Role {
-  roleId          Int          @id @default(autoincrement()) @map("rol_id") @db.Integer
-  roleName        String       @map("rol_name") @db.VarChar(100)
-  roleDescription String?      @map("rol_description") @db.VarChar(2000)
+model Position {
+  posId           Int           @id @default(autoincrement()) @map("pos_id") @db.Integer
+  posName         String        @map("pos_name") @db.VarChar(100)
+  posDescription  String?       @map("pos_description") @db.VarChar(2000)
   teamMembers     TeamMember[]
+  endorsements    Endorsement[]
 
-  @@map("tbl_roles")
+  @@map("pos_positions")
   @@schema("ds")
 }
 
@@ -91,7 +92,7 @@ model TeamMember {
   shiftId                           Int?                   @map("sft_id")
   createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
   country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
-  primaryRole                       Role?                  @relation(fields: [teamMemberPrimaryRole], references: [roleId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
+  primaryRole                       Position?              @relation(fields: [teamMemberPrimaryRole], references: [posId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
   tierBand                          TierBand?              @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
   lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
   shift                             Shift?                 @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "fk_tbl_team_members_sft")
@@ -304,7 +305,8 @@ model Endorsement {
   endorsementId      Int       @id @default(autoincrement()) @map("end_id") @db.Integer
   candidateFirstName String    @map("end_candidate_first_name") @db.Text
   candidateLastName  String    @map("end_candidate_last_name") @db.Text
-  candidatePosition  String    @map("end_candidate_position") @db.Text
+  candidatePosition  String?   @map("end_candidate_position") @db.Text
+  posId              Int       @map("pos_id")
   projectId          Int       @map("pro_id")
   clientManagerEmail String    @map("end_client_manager_email") @db.Text
   tibId              Int?      @map("tib_id")
@@ -320,12 +322,14 @@ model Endorsement {
   project            Project            @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_end_project")
   country            Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_end_country")
   tierBand           TierBand?          @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_end_tier_band")
+  position           Position           @relation(fields: [posId], references: [posId], onDelete: Restrict, map: "fk_end_pos_positions")
   endorsementBonuses EndorsementBonus[]
   hirings            Hiring[]
 
   @@index([projectId], map: "idx_pro_id")
   @@index([countryId], map: "idx_cou_id")
   @@index([tibId], map: "idx_tib_id")
+  @@index([posId], map: "idx_pos_id")
   @@map("end_endorsements")
   @@schema("ds")
 }

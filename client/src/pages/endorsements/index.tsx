@@ -48,7 +48,8 @@ export function EndorsementsPage() {
         meta: { headerTitle: 'Candidate', skeleton: <Skeleton className="h-4 w-32" /> },
       },
       {
-        accessorKey: 'candidatePosition',
+        id: 'positionName',
+        accessorFn: (row) => row.position?.posName ?? '—',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Position" />,
         size: 200,
         meta: { headerTitle: 'Position', skeleton: <Skeleton className="h-4 w-28" /> },

@@ -34,7 +34,7 @@ export async function getAllTeamMembersWithDetails(): Promise<TeamMemberWithDeta
   const rows = await prisma.teamMember.findMany({
     include: {
       country:     { select: { countryName: true, countryIso: true } },
-      primaryRole: { select: { roleName: true } },
+      primaryRole: { select: { posName: true } },
       tierBand:    { select: { tierBandDescription: true } },
       shift:       { select: { description: true } },
     },

@@ -31,6 +31,7 @@ import { useEndorsementDetail } from './useEndorsementDetail';
 import { useBonusSubcategories } from '../components/useBonusSubcategories';
 import { EndorsementProjectComboBox } from '../components/EndorsementProjectComboBox';
 import { EndorsementTierBandComboBox } from '../components/EndorsementTierBandComboBox';
+import { EndorsementPositionComboBox } from '../components/EndorsementPositionComboBox';
 import { EndorsementClientManagerEmailField } from '../components/EndorsementClientManagerEmailField';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '../components/BonusMetadataFields';
@@ -47,7 +48,7 @@ import type {
 interface EndorsementFormData {
   candidateFirstName: string;
   candidateLastName: string;
-  candidatePosition: string;
+  posId: string;
   clientManagerEmail: string;
   projectId: string;
   startDate: string;
@@ -144,7 +145,7 @@ export function EndorsementDetailPage() {
     defaultValues: {
       candidateFirstName: '',
       candidateLastName: '',
-      candidatePosition: '',
+      posId: '',
       clientManagerEmail: '',
       projectId: '',
       startDate: '',
@@ -156,6 +157,7 @@ export function EndorsementDetailPage() {
 
   const projectIdValue = watch('projectId');
   const tibIdValue = watch('tibId');
+  const posIdValue = watch('posId');
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -170,7 +172,7 @@ export function EndorsementDetailPage() {
       reset({
         candidateFirstName: endorsement.candidateFirstName,
         candidateLastName: endorsement.candidateLastName,
-        candidatePosition: endorsement.candidatePosition,
+        posId: endorsement.posId != null ? String(endorsement.posId) : '',
         clientManagerEmail: endorsement.clientManagerEmail,
         projectId: String(endorsement.projectId),
         startDate: endorsement.startDate
@@ -194,7 +196,7 @@ export function EndorsementDetailPage() {
       const payload: UpdateEndorsementDTO = {
         candidateFirstName: data.candidateFirstName,
         candidateLastName: data.candidateLastName,
-        candidatePosition: data.candidatePosition,
+        posId: data.posId ? Number(data.posId) : null,
         clientManagerEmail: data.clientManagerEmail,
         projectId: Number(data.projectId),
         startDate: data.startDate,
@@ -386,7 +388,7 @@ export function EndorsementDetailPage() {
             </Button>
             <div>
               <ToolbarPageTitle>{`Endorsement #${endorsement.endorsementId} — ${endorsement.candidateFirstName} ${endorsement.candidateLastName}`}</ToolbarPageTitle>
-              <ToolbarDescription>{endorsement.candidatePosition}</ToolbarDescription>
+              <ToolbarDescription>{endorsement.position?.posName ?? '—'}</ToolbarDescription>
             </div>
           </div>
         </ToolbarHeading>
@@ -472,22 +474,23 @@ export function EndorsementDetailPage() {
             {/* Position */}
             <div>
               <dt className="text-sm font-medium text-muted-foreground">
-                {isEditing && <Label htmlFor="candidatePosition">Position <span className="text-destructive">*</span></Label>}
+                {isEditing && <Label>Position <span className="text-destructive">*</span></Label>}
                 {!isEditing && 'Position'}
               </dt>
               <dd className="text-sm mt-1">
                 {isEditing ? (
                   <>
-                    <Input
-                      id="candidatePosition"
-                      {...register('candidatePosition', { required: 'Position is required' })}
+                    <EndorsementPositionComboBox
+                      value={posIdValue}
+                      onValueChange={(value) => setValue('posId', value, { shouldValidate: true })}
                     />
-                    {errors.candidatePosition && (
-                      <p className="text-sm text-destructive mt-1">{errors.candidatePosition.message}</p>
+                    <input type="hidden" {...register('posId', { required: 'Position is required' })} />
+                    {errors.posId && (
+                      <p className="text-sm text-destructive mt-1">{errors.posId.message}</p>
                     )}
                   </>
                 ) : (
-                  endorsement.candidatePosition
+                  endorsement.position?.posName ?? '—'
                 )}
               </dd>
             </div>

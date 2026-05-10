@@ -186,16 +186,18 @@ export async function loadElSalvadorVacationContext(
     };
   }
 
-  // 4. Load accrued vacation days from win_workday_info
+  // 4. Load accrued vacation days and hireDate from win_workday_info
   let accruedVacationDays = 15; // fallback to legal minimum
+  let svHireDate: Date | null = null;
   if (teamMember.workdayId) {
     const workdayInfo = await prisma.workdayInfo.findUnique({
       where: { wdid: teamMember.workdayId },
-      select: { vacation: true },
+      select: { vacation: true, hireDate: true },
     });
     if (workdayInfo?.vacation != null) {
       accruedVacationDays = Math.max(15, Number(workdayInfo.vacation));
     }
+    svHireDate = workdayInfo?.hireDate ?? null;
   }
 
   // 5. Calculate requested days from date range
@@ -203,7 +205,7 @@ export async function loadElSalvadorVacationContext(
 
   // 6. Get anniversary year boundaries (same logic as Guatemala)
   const { anniversaryYearStart: yearStart, anniversaryYearEnd: yearEnd } =
-    computeAnniversaryWindow(teamMember.teamMemberStartDate);
+    computeAnniversaryWindow(svHireDate ?? teamMember.teamMemberStartDate);
   const currentYear = yearStart.getUTCFullYear();
 
   // 7. Get the Vacation category ID
@@ -288,11 +290,12 @@ export async function loadGuatemalaVacationExceptionContext(
     anniversaryYearEnd: new Date(),
   };
 
-  // 1. Load team member with country ISO and start date
+  // 1. Load team member with country ISO, start date, and workday ID
   const teamMember = await prisma.teamMember.findUnique({
     where: { teamMemberId: input.teamMemberId },
     select: {
       teamMemberStartDate: true,
+      workdayId: true,
       country: { select: { countryIso: true } },
     },
   });
@@ -313,8 +316,8 @@ export async function loadGuatemalaVacationExceptionContext(
     return NOT_APPLICABLE;
   }
 
-  // 4. Resolve cancelled and rejected status IDs
-  const [cancelledStatus, rejectedStatus] = await Promise.all([
+  // 4. Resolve cancelled/rejected status IDs and hireDate in parallel
+  const [cancelledStatus, rejectedStatus, gtWorkdayInfo] = await Promise.all([
     prisma.timeOffStatus.findFirst({
       where: { statusName: { equals: CANCELLED_STATUS_NAME, mode: 'insensitive' } },
       select: { statusId: true },
@@ -323,6 +326,12 @@ export async function loadGuatemalaVacationExceptionContext(
       where: { statusName: { equals: 'rejected', mode: 'insensitive' } },
       select: { statusId: true },
     }),
+    teamMember.workdayId
+      ? prisma.workdayInfo.findUnique({
+          where: { wdid: teamMember.workdayId },
+          select: { hireDate: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const excludedStatusIds = [
@@ -331,9 +340,9 @@ export async function loadGuatemalaVacationExceptionContext(
     ...(rejectedStatus ? [rejectedStatus.statusId] : []),
   ];
 
-  // 5. Calculate anniversary window
+  // 5. Calculate anniversary window using hireDate from WorkdayInfo when available
   const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
-    teamMember.teamMemberStartDate
+    gtWorkdayInfo?.hireDate ?? teamMember.teamMemberStartDate
   );
 
   // 6. Get the vacation category ID

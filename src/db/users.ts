@@ -96,6 +96,7 @@ export interface MyTeamMemberProfile {
   countryId: number | null;
   countryIso: string | null;
   gender: string | null;
+  hireDate: Date | null;
 }
 
 /**
@@ -122,12 +123,14 @@ export async function getMyTeamMemberProfile(teamMemberId: number): Promise<MyTe
   if (!teamMember) return null;
 
   let gender: string | null = null;
+  let hireDate: Date | null = null;
   if (teamMember.workdayId) {
     const workdayInfo = await prisma.workdayInfo.findUnique({
       where: { wdid: teamMember.workdayId },
-      select: { gender: true },
+      select: { gender: true, hireDate: true },
     });
     gender = workdayInfo?.gender ?? null;
+    hireDate = workdayInfo?.hireDate ?? null;
   }
 
   return {
@@ -137,5 +140,6 @@ export async function getMyTeamMemberProfile(teamMemberId: number): Promise<MyTe
     countryId: teamMember.countryId,
     countryIso: teamMember.country?.countryIso ?? null,
     gender,
+    hireDate,
   };
 }

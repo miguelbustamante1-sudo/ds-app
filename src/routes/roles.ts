@@ -1,85 +1,119 @@
 import express from 'express';
 import type { Request, Response } from 'express';
-import type { Role } from '@prisma/client';
-import { getAllRoles, getRoleById, createRole, updateRole, deleteRole } from '../db/roles';
+import type { Position } from '@prisma/client';
+import { getAllRoles, getRoleById, createRole, updateRole, deleteRole, TABLE } from '../db/roles';
 import { error } from '../logger';
 import { requirePermission } from '../middleware/auth';
+import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
+import type { AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// GET /roles
-router.get('/', requirePermission('Roles', 'read'), async (req: Request, res: Response) => {
+// GET /positions
+router.get('/', requirePermission('Positions', 'read'), async (req: Request, res: Response) => {
   try {
-    const roles: Role[] = await getAllRoles();
-    res.json(roles);
+    const positions: Position[] = await getAllRoles();
+    res.json(positions);
   } catch (err) {
     error(err);
-    res.status(500).json({ error: 'Failed to fetch roles' });
+    res.status(500).json({ error: 'Failed to fetch positions' });
   }
 });
 
-// GET /roles/:id
-router.get('/:id', requirePermission('Roles', 'read'), async (req: Request, res: Response) => {
+// GET /positions/:id
+router.get('/:id', requirePermission('Positions', 'read'), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const role = await getRoleById(id);
-    if (!role) return res.status(404).json({ error: 'Role not found' });
+    const position = await getRoleById(id);
+    if (!position) return res.status(404).json({ error: 'Position not found' });
 
-    res.json(role);
+    res.json(position);
   } catch (err) {
     error(err);
-    res.status(500).json({ error: 'Failed to fetch role' });
+    res.status(500).json({ error: 'Failed to fetch position' });
   }
 });
 
-// POST /roles
-router.post('/', requirePermission('Roles', 'create'), async (req: Request, res: Response) => {
+// POST /positions
+router.post('/', requirePermission('Positions', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { rol_name, rol_description } = req.body as { rol_name?: string; rol_description?: string | null };
-    if (!rol_name || typeof rol_name !== 'string') return res.status(400).json({ error: 'rol_name is required' });
-    const description = typeof rol_description === 'string' ? rol_description : null;
+    const { pos_name, pos_description } = req.body as { pos_name?: string; pos_description?: string | null };
+    if (!pos_name || typeof pos_name !== 'string') return res.status(400).json({ error: 'pos_name is required' });
+    const description = typeof pos_description === 'string' ? pos_description : null;
 
-    const created = await createRole(rol_name, description);
+    const created = await createRole(pos_name, description);
+
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(created.posId),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: null,
+      newValues: created as unknown as Record<string, unknown>,
+    });
+
     res.status(201).json(created);
   } catch (err) {
     error(err);
-    res.status(500).json({ error: 'Failed to create role' });
+    res.status(500).json({ error: 'Failed to create position' });
   }
 });
 
-// PUT /roles/:id
-router.put('/:id', requirePermission('Roles', 'create'), async (req: Request, res: Response) => {
+// PUT /positions/:id
+router.put('/:id', requirePermission('Positions', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { rol_name, rol_description } = req.body as { rol_name?: string; rol_description?: string | null };
-    if (!rol_name || typeof rol_name !== 'string') return res.status(400).json({ error: 'rol_name is required' });
-    const description = typeof rol_description === 'string' ? rol_description : null;
+    const { pos_name, pos_description } = req.body as { pos_name?: string; pos_description?: string | null };
+    if (!pos_name || typeof pos_name !== 'string') return res.status(400).json({ error: 'pos_name is required' });
+    const description = typeof pos_description === 'string' ? pos_description : null;
 
-    const updated = await updateRole(id, rol_name, description);
-    if (!updated) return res.status(404).json({ error: 'Role not found' });
+    const before = await getRoleById(id);
+    if (!before) return res.status(404).json({ error: 'Position not found' });
+
+    const updated = await updateRole(id, pos_name, description);
+    if (!updated) return res.status(404).json({ error: 'Position not found' });
+
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(id),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: before as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+    });
 
     res.json(updated);
   } catch (err) {
     error(err);
-    res.status(500).json({ error: 'Failed to update role' });
+    res.status(500).json({ error: 'Failed to update position' });
   }
 });
 
-// DELETE /roles/:id
-router.delete('/:id', requirePermission('Roles', 'delete'), async (req: Request, res: Response) => {
+// DELETE /positions/:id
+router.delete('/:id', requirePermission('Positions', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
+    const before = await getRoleById(id);
+    if (!before) return res.status(404).json({ error: 'Position not found' });
+
     await deleteRole(id);
+
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(id),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: before as unknown as Record<string, unknown>,
+      newValues: null,
+    });
+
     res.status(204).send();
   } catch (err) {
     error(err);
-    res.status(500).json({ error: 'Failed to delete role' });
+    res.status(500).json({ error: 'Failed to delete position' });
   }
 });
 

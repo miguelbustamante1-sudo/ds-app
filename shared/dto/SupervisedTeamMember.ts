@@ -30,4 +30,5 @@ export interface SupervisedTeamMemberDTO {
   supervisorAssignmentEndDate: Date | null;
   teamMemberEndDate: Date | null;
   teamMemberStartDate: Date | null;
+  hireDate: Date | null;
 }

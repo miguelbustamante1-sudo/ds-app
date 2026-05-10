@@ -22,7 +22,7 @@ export async function getAvailableResources(): Promise<AvailableResourceDTO[]> {
       teamMemberSeniority: true,
       countryId: true,
       country: { select: { countryName: true } },
-      primaryRole: { select: { roleName: true } },
+      primaryRole: { select: { posName: true } },
       projectAssignments: {
         where: {
           projectAssignmentDeleted: false,
@@ -46,7 +46,7 @@ export async function getAvailableResources(): Promise<AvailableResourceDTO[]> {
       teamMemberSeniority: tm.teamMemberSeniority,
       countryId: tm.countryId,
       countryName: tm.country?.countryName ?? null,
-      roleName: tm.primaryRole?.roleName ?? null,
+      roleName: tm.primaryRole?.posName ?? null,
       totalAllocation: tm.projectAssignments.reduce(
         (sum, a) => sum + Number(a.projectAssignmentAllocation ?? 0),
         0,

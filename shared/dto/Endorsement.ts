@@ -9,7 +9,8 @@ export interface EndorsementDTO {
   endorsementId: number;
   candidateFirstName: string;
   candidateLastName: string;
-  candidatePosition: string;
+  candidatePosition: string | null;
+  posId: number;
   projectId: number;
   clientManagerEmail: string;
   tibId: number | null;
@@ -56,6 +57,10 @@ export interface EndorsementWithDetailsDTO extends EndorsementDTO {
     tierBandId: number;
     tierBandDescription: string;
   } | null;
+  position: {
+    posId: number;
+    posName: string;
+  } | null;
   endorsementBonuses?: EndorsementBonusWithCategoryDTO[];
 }
 
@@ -65,7 +70,7 @@ export interface EndorsementWithDetailsDTO extends EndorsementDTO {
 export interface CreateEndorsementDTO {
   candidateFirstName: string;
   candidateLastName: string;
-  candidatePosition: string;
+  posId: number;
   projectId: number;
   clientManagerEmail: string;
   tibId?: number | null;
@@ -98,7 +103,7 @@ export interface CreateEndorsementWithBonusesDTO extends CreateEndorsementDTO {
 export interface UpdateEndorsementDTO {
   candidateFirstName?: string;
   candidateLastName?: string;
-  candidatePosition?: string;
+  posId?: number | null;
   projectId?: number;
   clientManagerEmail?: string;
   tibId?: number | null;

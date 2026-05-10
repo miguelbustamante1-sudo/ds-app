@@ -48,6 +48,7 @@ interface MyTeamMemberProfile {
   teamMemberEndDate: string | null;
   countryId: number | null;
   countryIso: string | null;
+  hireDate: string | null;
 }
 
 interface FormData {
@@ -68,6 +69,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
   const [userStartDate, setUserStartDate] = useState<Date | null>(null);
+  const [userHireDate, setUserHireDate] = useState<Date | null>(null);
   const [userCountryIso, setUserCountryIso] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -129,6 +131,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
         }
         if (profile.teamMemberStartDate) {
           setUserStartDate(parseUTCDateAsLocal(profile.teamMemberStartDate));
+        }
+        if (profile.hireDate) {
+          setUserHireDate(parseUTCDateAsLocal(profile.hireDate));
         }
         setUserCountryIso(profile.countryIso);
       } catch (error) {
@@ -199,7 +204,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     : 0;
 
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, userStartDate, undefined, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, userHireDate ?? userStartDate, undefined, startDate ?? undefined)
     : 0;
 
   // SV 15-day mode: applies whenever SV + Vacation.
@@ -227,7 +232,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   }, [categoryId]);
 
   const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15, userStartDate)
+    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15, userHireDate ?? userStartDate)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0, nextAnniversaryDate: null };
 
   // Days hint: respects isCalendar flag (calendar days vs workdays only)

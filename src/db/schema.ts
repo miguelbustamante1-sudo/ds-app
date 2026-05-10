@@ -51,7 +51,7 @@ const EXPECTED: Record<string, string[]> = {
     'tmp_deleted',
   ],
   'ds.pro_projects': ['pro_id', 'pro_name', 'pro_external_id', 'pro_sow'],
-  'ds.tbl_roles': ['rol_id', 'rol_name', 'rol_description'],
+  'ds.pos_positions': ['pos_id', 'pos_name', 'pos_description'],
   'ds.tbl_tm_time_off': [
     'tto_id',
     'tms_id',

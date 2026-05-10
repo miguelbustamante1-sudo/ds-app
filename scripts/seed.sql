@@ -44,40 +44,40 @@ INSERT INTO ds.tot_time_off_types (tot_id, tot_name, tot_gender) VALUES (14, 'Va
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name, tot_gender) VALUES (15, 'JANP',                 'Both')   ON CONFLICT (tot_id) DO NOTHING;
 INSERT INTO ds.tot_time_off_types (tot_id, tot_name, tot_gender) VALUES (16, 'Personal Time Off',    'Both')   ON CONFLICT (tot_id) DO NOTHING;
 
--- 5. Team Member Roles
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (1,  'Admin Team Leader',      'Admin Team Leader')      ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (2,  'AGM',                    'AGM')                    ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (3,  'Application Support',    'Application Support')    ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (4,  'Back End Developer',     'Back End Developer')     ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (5,  'Business Support Analyst','Business Support Analyst') ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (6,  'Business Systems Analyst','Business Systems Analyst') ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (7,  'Configuration Engineer', 'Configuration Engineer') ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (8,  'Content Manager',        'Content Manager')        ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (9,  'CRM',                    'CRM')                    ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (10, 'Data Analyst',           'Data Analyst')           ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (11, 'Data Scientist',         'Data Scientist')         ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (12, 'DBA',                    'DBA')                    ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (13, 'DevOps Engineer',        'DevOps Engineer')        ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (14, 'Director',               'Director')               ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (15, 'ERP Analysts',           'ERP Analysts')           ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (16, 'Front End Developer',    'Front End Developer')    ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (17, 'Full Stack Developer',   'Full Stack Developer')   ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (18, 'IVR Developer',          'IVR Developer')          ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (19, 'Mobile Developer',       'Mobile Developer')       ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (20, 'Network Admin',          'Network Admin')          ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (21, 'Operations Manager',     'Operations Manager')     ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (22, 'Product Owner',          'Product Owner')          ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (23, 'Project Manager',        'Project Manager')        ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (24, 'QA Automation',          'QA Automation')          ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (25, 'QA Manual',              'QA Manual')              ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (26, 'Scrum Master',           'Scrum Master')           ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (27, 'SDET',                   'SDET')                   ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (28, 'Software Architect',     'Software Architect')     ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (29, 'Software Delivery Manager','Software Delivery Manager') ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (30, 'Technical Leader',       'Technical Leader')       ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (31, 'Technology Specialist',  'Technology Specialist')  ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (32, 'UI/UX',                  'UI/UX')                  ON CONFLICT (rol_id) DO NOTHING;
-INSERT INTO ds.tbl_roles (rol_id, rol_name, rol_description) VALUES (33, 'Financial Analyst',      'Financial Analyst')      ON CONFLICT (rol_id) DO NOTHING;
+-- 5. Positions
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (1,  'Admin Team Leader',      'Admin Team Leader')      ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (2,  'AGM',                    'AGM')                    ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (3,  'Application Support',    'Application Support')    ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (4,  'Back End Developer',     'Back End Developer')     ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (5,  'Business Support Analyst','Business Support Analyst') ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (6,  'Business Systems Analyst','Business Systems Analyst') ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (7,  'Configuration Engineer', 'Configuration Engineer') ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (8,  'Content Manager',        'Content Manager')        ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (9,  'CRM',                    'CRM')                    ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (10, 'Data Analyst',           'Data Analyst')           ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (11, 'Data Scientist',         'Data Scientist')         ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (12, 'DBA',                    'DBA')                    ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (13, 'DevOps Engineer',        'DevOps Engineer')        ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (14, 'Director',               'Director')               ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (15, 'ERP Analysts',           'ERP Analysts')           ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (16, 'Front End Developer',    'Front End Developer')    ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (17, 'Full Stack Developer',   'Full Stack Developer')   ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (18, 'IVR Developer',          'IVR Developer')          ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (19, 'Mobile Developer',       'Mobile Developer')       ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (20, 'Network Admin',          'Network Admin')          ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (21, 'Operations Manager',     'Operations Manager')     ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (22, 'Product Owner',          'Product Owner')          ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (23, 'Project Manager',        'Project Manager')        ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (24, 'QA Automation',          'QA Automation')          ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (25, 'QA Manual',              'QA Manual')              ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (26, 'Scrum Master',           'Scrum Master')           ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (27, 'SDET',                   'SDET')                   ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (28, 'Software Architect',     'Software Architect')     ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (29, 'Software Delivery Manager','Software Delivery Manager') ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (30, 'Technical Leader',       'Technical Leader')       ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (31, 'Technology Specialist',  'Technology Specialist')  ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (32, 'UI/UX',                  'UI/UX')                  ON CONFLICT (pos_id) DO NOTHING;
+INSERT INTO ds.pos_positions (pos_id, pos_name, pos_description) VALUES (33, 'Financial Analyst',      'Financial Analyst')      ON CONFLICT (pos_id) DO NOTHING;
 
 -- 6. Category x Country mappings
 -- Columns: tot_id, cou_id, ttc_status, ttc_is_fixed_duration, ttc_fixed_days,

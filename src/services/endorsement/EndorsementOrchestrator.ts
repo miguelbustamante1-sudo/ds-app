@@ -4,8 +4,9 @@ import { validateRequiredFields, type ValidationError } from './components/Valid
 import { validateEmailFormat } from './components/ValidateEmailFormat';
 import { validateBonusArray } from './components/ValidateBonusArray';
 import { validateBonusMetadata } from './components/ValidateBonusMetadata';
-import { createEndorsement, createEndorsementWithBonuses, updateEndorsement, getEndorsementById } from '../../db/endorsements';
+import { createEndorsement, createEndorsementWithBonuses, updateEndorsement, getEndorsementById, TABLE } from '../../db/endorsements';
 import { getBonusSubcategoryById } from '../../db/bonusSubcategories';
+import { auditOrchestrator } from '../audit/AuditOrchestrator';
 
 interface OrchestratorResult {
   success: boolean;
@@ -100,7 +101,7 @@ export async function orchestrateCreateEndorsement(
       {
         candidateFirstName: input.candidateFirstName.trim(),
         candidateLastName: input.candidateLastName.trim(),
-        candidatePosition: input.candidatePosition.trim(),
+        posId: input.posId,
         projectId: input.projectId,
         clientManagerEmail: input.clientManagerEmail.trim(),
         tibId: input.tibId ?? null,
@@ -114,6 +115,14 @@ export async function orchestrateCreateEndorsement(
       sanitizedBonuses,
     );
 
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(endorsement!.endorsementId),
+      createdBy,
+      oldValues: null,
+      newValues: endorsement as unknown as Record<string, unknown>,
+    });
+
     return { success: true, data: endorsement! };
   }
 
@@ -122,11 +131,11 @@ export async function orchestrateCreateEndorsement(
     return { success: false, errors: allErrors };
   }
 
-  // No bonuses — create endorsement only (backwards compatible)
+  // No bonuses — create endorsement only
   const endorsement = await createEndorsement({
     candidateFirstName: input.candidateFirstName.trim(),
     candidateLastName: input.candidateLastName.trim(),
-    candidatePosition: input.candidatePosition.trim(),
+    posId: input.posId,
     projectId: input.projectId,
     clientManagerEmail: input.clientManagerEmail.trim(),
     tibId: input.tibId ?? null,
@@ -136,6 +145,14 @@ export async function orchestrateCreateEndorsement(
     status: 'Pending',
     createdBy,
     comment: input.comment?.trim() || null,
+  });
+
+  await auditOrchestrator.log({
+    entityName: TABLE,
+    entityId: String(endorsement.endorsementId),
+    createdBy,
+    oldValues: null,
+    newValues: endorsement as unknown as Record<string, unknown>,
   });
 
   return { success: true, data: endorsement };
@@ -165,7 +182,7 @@ export async function orchestrateUpdateEndorsement(
 
   if (input.candidateFirstName !== undefined) updateData.candidateFirstName = input.candidateFirstName.trim();
   if (input.candidateLastName !== undefined) updateData.candidateLastName = input.candidateLastName.trim();
-  if (input.candidatePosition !== undefined) updateData.candidatePosition = input.candidatePosition.trim();
+  if (input.posId !== undefined) updateData.posId = input.posId;
   if (input.projectId !== undefined) updateData.projectId = input.projectId;
   if (input.clientManagerEmail !== undefined) updateData.clientManagerEmail = input.clientManagerEmail.trim();
   if (input.tibId !== undefined) updateData.tibId = input.tibId;
@@ -175,6 +192,14 @@ export async function orchestrateUpdateEndorsement(
   if (input.comment !== undefined) updateData.comment = input.comment?.trim() || null;
 
   const updated = await updateEndorsement(id, updateData);
+
+  await auditOrchestrator.log({
+    entityName: TABLE,
+    entityId: String(id),
+    createdBy: updatedBy,
+    oldValues: existing as unknown as Record<string, unknown>,
+    newValues: updated as unknown as Record<string, unknown>,
+  });
 
   return { success: true, data: updated };
 }

@@ -49,10 +49,18 @@ export async function getAllWorkdayInfo(): Promise<WorkdayInfoRecord[]> {
     });
 
     if (vacationCategory) {
+      const hireDateByWdid = new Map(
+        (await prisma.workdayInfo.findMany({
+          where: { wdid: { in: gtMembers.map((m) => m.workdayId!).filter(Boolean) } },
+          select: { wdid: true, hireDate: true },
+        })).map((wi) => [wi.wdid, wi.hireDate])
+      );
+
       for (const member of gtMembers) {
         if (!member.workdayId) continue;
+        const hireDate = hireDateByWdid.get(member.workdayId) ?? null;
         const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
-          member.teamMemberStartDate
+          hireDate ?? member.teamMemberStartDate
         );
         const exceptionTimeOffs = await prisma.timeOff.findMany({
           where: {
@@ -137,19 +145,27 @@ export async function updateWorkdayInfo(wdid: string, data: UpdateWorkdayInfoDTO
 }
 
 export async function getWorkdayInfoExceptions(wdid: string): Promise<WorkdayInfoExceptionsDTO> {
-  const member = await prisma.teamMember.findFirst({
-    where: {
-      workdayId: wdid,
-      country: { countryIso: { equals: 'GT', mode: 'insensitive' } },
-    },
-    select: { teamMemberId: true, teamMemberStartDate: true },
-  });
+  const [member, workdayInfoForDate] = await Promise.all([
+    prisma.teamMember.findFirst({
+      where: {
+        workdayId: wdid,
+        country: { countryIso: { equals: 'GT', mode: 'insensitive' } },
+      },
+      select: { teamMemberId: true, teamMemberStartDate: true },
+    }),
+    prisma.workdayInfo.findUnique({
+      where: { wdid },
+      select: { hireDate: true },
+    }),
+  ]);
 
   if (!member) {
     return { anniversaryYearStart: null, anniversaryYearEnd: null, exceptionDaysUsed: null, exceptionDaysRemaining: null, exceptions: [] };
   }
 
-  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(member.teamMemberStartDate);
+  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
+    workdayInfoForDate?.hireDate ?? member.teamMemberStartDate
+  );
 
   const cancelledStatus = await prisma.timeOffStatus.findFirst({
     where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },

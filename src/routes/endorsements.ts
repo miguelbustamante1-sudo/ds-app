@@ -1,10 +1,11 @@
 import express from 'express';
 import type { Response } from 'express';
 import type { CreateEndorsementWithBonusesDTO, UpdateEndorsementDTO, UpdateEndorsementStatusDTO } from '@shared/dto';
-import { getEndorsements, getEndorsementById, updateEndorsement, deleteEndorsement } from '../db/endorsements';
+import { getEndorsements, getEndorsementById, updateEndorsement, deleteEndorsement, TABLE } from '../db/endorsements';
 import { orchestrateCreateEndorsement, orchestrateUpdateEndorsement } from '../services/endorsement/EndorsementOrchestrator';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
+import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 
 const router = express.Router();
 
@@ -107,6 +108,16 @@ router.patch('/:id/status', requirePermission('Endorsements', 'create'), async (
     }
 
     const updated = await updateEndorsement(id, updateData);
+
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(id),
+      createdBy: updatedBy,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: `Status changed to ${status}`,
+    });
+
     res.json(updated);
   } catch (err) {
     error(err);
@@ -124,6 +135,15 @@ router.delete('/:id', requirePermission('Endorsements', 'delete'), async (req: A
     if (!existing) return res.status(404).json({ error: 'Endorsement not found' });
 
     await deleteEndorsement(id);
+
+    await auditOrchestrator.log({
+      entityName: TABLE,
+      entityId: String(id),
+      createdBy: req.user?.email ?? 'unknown',
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+    });
+
     res.status(204).send();
   } catch (err) {
     error(err);

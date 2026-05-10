@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { requirePermission } from '../../middleware/auth';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { getTimeOffChangeLog } from '../../services/reports/timeoff/changeLogQueries';
+import { getReports } from '../../services/teamMember/queries/getReports';
 import type {
   TimeOffChangeLogQueryDTO,
   TimeOffChangeLogResponseDTO,
@@ -16,8 +17,16 @@ router.get(
   requirePermission('Reports', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
+      const supervisorTmId = req.user!.teamMemberId;
+      if (!supervisorTmId) {
+        return res.status(403).json({ error: 'No team member profile associated with your account' });
+      }
+
+      const reports = await getReports(supervisorTmId, true);
+      const supervisedIds = reports.map((r) => r.teamMemberId);
+
       const params = req.query as TimeOffChangeLogQueryDTO;
-      const { rows, total, capped } = await getTimeOffChangeLog(params);
+      const { rows, total, capped } = await getTimeOffChangeLog(params, supervisedIds);
 
       if (params.export === 'true') {
         if (capped) {

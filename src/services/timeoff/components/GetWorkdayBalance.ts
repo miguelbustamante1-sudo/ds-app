@@ -46,7 +46,7 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
   const rawPersonalDays = info.personalDays !== null ? Number(info.personalDays) : 0;
 
   const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
-    member.teamMemberStartDate
+    info.hireDate ?? member.teamMemberStartDate
   );
 
   // Resolve cancelled status ID dynamically

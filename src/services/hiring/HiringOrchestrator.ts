@@ -98,6 +98,7 @@ export class HiringOrchestrator {
           workdayId:       effectiveWorkdayId,
           seniority:       endorsement.tierBand!.tierBandDescription,
           tierBandId:      endorsement.tibId!,
+          primaryRoleId:   endorsement.posId,
           createdByUserId: dsUserId,
         });
 

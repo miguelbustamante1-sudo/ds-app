@@ -149,7 +149,7 @@ export function HiringDetailPage() {
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Position</dt>
-                <dd className="text-sm mt-1">{endorsement?.candidatePosition ?? '—'}</dd>
+                <dd className="text-sm mt-1">{endorsement?.position?.posName ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Project</dt>

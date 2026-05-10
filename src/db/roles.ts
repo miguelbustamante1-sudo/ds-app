@@ -1,53 +1,50 @@
 import { prisma } from './prisma';
-import type { Role } from '@prisma/client';
+import type { Position } from '@prisma/client';
 
-export const TABLE = 'ds.tbl_roles';
+export const TABLE = 'ds.pos_positions';
 
-/**
- * Check that the roles table exists (non-destructive)
- */
-export async function ensureRolesTableExists(): Promise<boolean> {
+export async function ensurePositionsTableExists(): Promise<boolean> {
   try {
-    await prisma.role.findFirst();
+    await prisma.position.findFirst();
     return true;
   } catch {
     return false;
   }
 }
 
-export async function getAllRoles(): Promise<Role[]> {
-  return await prisma.role.findMany({
-    orderBy: { roleId: 'asc' },
+export async function getAllRoles(): Promise<Position[]> {
+  return await prisma.position.findMany({
+    orderBy: { posId: 'asc' },
   });
 }
 
-export async function getRoleById(id: number): Promise<Role | null> {
-  return await prisma.role.findUnique({
-    where: { roleId: id },
+export async function getRoleById(id: number): Promise<Position | null> {
+  return await prisma.position.findUnique({
+    where: { posId: id },
   });
 }
 
-export async function createRole(roleName: string, roleDescription: string | null): Promise<Role> {
-  return await prisma.role.create({
+export async function createRole(posName: string, posDescription: string | null): Promise<Position> {
+  return await prisma.position.create({
     data: {
-      roleName,
-      roleDescription,
+      posName,
+      posDescription,
     },
   });
 }
 
-export async function updateRole(id: number, roleName: string, roleDescription: string | null): Promise<Role | null> {
-  return await prisma.role.update({
-    where: { roleId: id },
+export async function updateRole(id: number, posName: string, posDescription: string | null): Promise<Position | null> {
+  return await prisma.position.update({
+    where: { posId: id },
     data: {
-      roleName,
-      roleDescription,
+      posName,
+      posDescription,
     },
   });
 }
 
 export async function deleteRole(id: number): Promise<void> {
-  await prisma.role.delete({
-    where: { roleId: id },
+  await prisma.position.delete({
+    where: { posId: id },
   });
 }
