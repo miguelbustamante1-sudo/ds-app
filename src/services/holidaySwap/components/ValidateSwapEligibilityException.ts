@@ -6,7 +6,8 @@ export type { SwapEligibilityInput, SwapEligibilityResult };
 const SPLIT_STATUS_ID = 6;
 
 export async function validateSwapEligibilityException(
-  input: SwapEligibilityInput
+  input: SwapEligibilityInput,
+  existingSwapId?: number,
 ): Promise<SwapEligibilityResult> {
   const { teamMemberId, countryId, holiday } = input;
 
@@ -21,12 +22,13 @@ export async function validateSwapEligibilityException(
 
   // Step 2 (HOLIDAY_NOT_IN_FUTURE) is intentionally omitted on the exception path.
 
-  // 3. No existing active swap for this TM + holidayId
+  // 3. No existing active swap for this TM + holidayId (exclude current swap on updates)
   const existingSwap = await prisma.holidaySwap.findFirst({
     where: {
       teamMemberId,
       holidayId: holiday.holidayId,
       active: true,
+      ...(existingSwapId ? { NOT: { holidaySwapId: existingSwapId } } : {}),
     },
   });
 

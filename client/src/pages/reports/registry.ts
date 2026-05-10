@@ -17,5 +17,13 @@ export const REPORTS_REGISTRY: ReportEntry[] = [
     group: 'Time Off',
     permission: 'Reports',
   },
+  {
+    id: 'timeoff-upcoming-vacation',
+    title: 'Upcoming Vacation',
+    description: 'Approved time offs and holiday swaps for your team in the next N days.',
+    path: '/reports/time-off/upcoming-vacation',
+    group: 'Time Off',
+    permission: 'Reports',
+  },
   // Future reports are added here — no other files need to change.
 ];

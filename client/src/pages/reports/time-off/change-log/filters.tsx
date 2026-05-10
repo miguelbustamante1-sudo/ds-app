@@ -22,7 +22,7 @@ import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import type { CountryDTO } from '@shared/dto/Country';
 import type { TimeOffCategoryDTO } from '@shared/dto/TimeOffCategory';
 import type { TimeOffStatusDTO } from '@shared/dto/TimeOffStatus';
-import type { TeamMemberDTO } from '@shared/dto/TeamMember';
+import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { UserDTO } from '@shared/dto/User';
 import { apiGet } from '@/lib/api';
 
@@ -132,9 +132,9 @@ function useStatusOptions(): ComboBoxOption[] {
 }
 
 function useTeamMemberOptions(): ComboBoxOption[] {
-  const { data = [] } = useQuery<TeamMemberDTO[]>({
-    queryKey: ['team-members'],
-    queryFn: () => apiGet<TeamMemberDTO[]>('/api/team-members'),
+  const { data = [] } = useQuery<TeamMemberReportDTO[]>({
+    queryKey: ['team-members', 'my-reports'],
+    queryFn: () => apiGet<TeamMemberReportDTO[]>('/api/team-members/my-reports?hierarchy=complete'),
     staleTime: 300_000,
   });
   return data.map((m) => ({

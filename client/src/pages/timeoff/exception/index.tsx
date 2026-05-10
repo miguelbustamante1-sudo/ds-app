@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { TeamMemberDTO } from '@shared/dto/TeamMember';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { ActingAsUserDTO } from '@shared/dto/HolidaySwap';
 import {
   Toolbar,
   ToolbarDescription,
@@ -8,11 +9,9 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { useToast } from '@/hooks/use-toast';
-import {
-  useExceptionTeamMemberTimeOffs,
-  useExceptionTimeOffOperations,
-} from '@/hooks/useExceptionTimeOff';
-import { CancelTimeOffDialog } from '../supervisor/components/CancelTimeOffDialog';
+import { useExceptionTeamMemberTimeOffs } from '@/hooks/useExceptionTimeOff';
+import { useExceptionTimeOffOperations } from './hooks/useExceptionTimeOffOperations';
+import { ExceptionCancelTimeOffDialog } from './components/ExceptionCancelTimeOffDialog';
 import { ExceptionTimeOffList } from './components/ExceptionTimeOffList';
 import { ExceptionTimeOffForm } from './components/ExceptionTimeOffForm';
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
@@ -27,6 +26,9 @@ export function TimeOffExceptionPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [timeOffToCancel, setTimeOffToCancel] = useState<TimeOffWithDetailsDTO | null>(null);
   const [editingTimeOff, setEditingTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
+
+  const [actingAsUsers, setActingAsUsers] = useState<ActingAsUserDTO[]>([]);
+  const [actingAsUserId, setActingAsUserId] = useState<number | null>(null);
 
   const timeOffsHook = useExceptionTeamMemberTimeOffs({
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
@@ -54,6 +56,19 @@ export function TimeOffExceptionPage() {
   }, []);
 
   useEffect(() => {
+    async function loadActingAsUsers() {
+      try {
+        const data = await apiGet<ActingAsUserDTO[]>('/api/time-offs/exception/acting-as-users');
+        setActingAsUsers(data);
+      } catch (error) {
+        const message = error instanceof ApiError ? error.message : 'Failed to load acting-as users';
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+      }
+    }
+    loadActingAsUsers();
+  }, []);
+
+  useEffect(() => {
     if (selectedTeamMember) {
       timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
     } else {
@@ -66,12 +81,24 @@ export function TimeOffExceptionPage() {
     label: `${m.teamMemberNames} ${m.teamMemberSurnames} (${m.workdayId})`,
   }));
 
+  const actingAsOptions: ComboBoxOption[] = actingAsUsers.map((u) => ({
+    value: u.userId.toString(),
+    label: u.workdayId ? `${u.fullName} (${u.workdayId})` : u.fullName,
+  }));
+
   const handleSelectTeamMember = useCallback(
     (value: string) => {
       const found = teamMembers.find((m) => m.teamMemberId.toString() === value) ?? null;
       setSelectedTeamMember(found);
     },
     [teamMembers]
+  );
+
+  const handleSelectActingAs = useCallback(
+    (value: string) => {
+      setActingAsUserId(value ? Number(value) : null);
+    },
+    []
   );
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
@@ -90,33 +117,36 @@ export function TimeOffExceptionPage() {
 
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
-      await operationsHook.cancelTimeOff(timeOffId, comment);
+      if (!actingAsUserId) return;
+      await operationsHook.cancelTimeOff(timeOffId, comment, actingAsUserId);
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, actingAsUserId]
   );
 
   const handleCreateTimeOff = useCallback(
     async (data: CreateSupervisorTimeOffDTO) => {
-      await operationsHook.createTimeOff(data);
+      if (!actingAsUserId) return;
+      await operationsHook.createTimeOff(data, actingAsUserId);
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, actingAsUserId]
   );
 
   const handleUpdateTimeOff = useCallback(
     async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
-      await operationsHook.updateTimeOff(timeOffId, data);
+      if (!actingAsUserId) return;
+      await operationsHook.updateTimeOff(timeOffId, data, actingAsUserId);
       setEditingTimeOff(null);
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
       }
     },
-    [operationsHook, selectedTeamMember, timeOffsHook]
+    [operationsHook, selectedTeamMember, timeOffsHook, actingAsUserId]
   );
 
   return (
@@ -130,7 +160,7 @@ export function TimeOffExceptionPage() {
         </ToolbarHeading>
       </Toolbar>
 
-      <div className="flex items-center gap-4 mt-6">
+      <div className="flex flex-wrap items-center gap-4 mt-6">
         <div className="w-72 shrink-0">
           <ComboBox
             options={teamMemberOptions}
@@ -140,6 +170,16 @@ export function TimeOffExceptionPage() {
             searchPlaceholder="Search team members..."
             emptyMessage="No team members found."
             disabled={loadingTeamMembers}
+          />
+        </div>
+        <div className="w-72 shrink-0">
+          <ComboBox
+            options={actingAsOptions}
+            value={actingAsUserId?.toString() ?? ''}
+            onValueChange={handleSelectActingAs}
+            placeholder="Acting as..."
+            searchPlaceholder="Search users..."
+            emptyMessage="No users found."
           />
         </div>
         {selectedTeamMember && (
@@ -163,6 +203,7 @@ export function TimeOffExceptionPage() {
               onCancelEdit={handleCancelEdit}
               editingTimeOff={editingTimeOff}
               loading={operationsHook.loading}
+              disabled={!actingAsUserId}
             />
             <ExceptionTimeOffList
               timeOffs={timeOffsHook.timeOffs}
@@ -178,7 +219,7 @@ export function TimeOffExceptionPage() {
         )}
       </div>
 
-      <CancelTimeOffDialog
+      <ExceptionCancelTimeOffDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         timeOff={timeOffToCancel}

@@ -46,6 +46,7 @@ interface ExceptionTimeOffFormProps {
   onCancelEdit?: () => void;
   editingTimeOff?: TimeOffWithDetailsDTO | null;
   loading: boolean;
+  disabled?: boolean;
 }
 
 export function ExceptionTimeOffForm(props: ExceptionTimeOffFormProps) {
@@ -64,6 +65,7 @@ function ExceptionTimeOffFormInner({
   onCancelEdit,
   editingTimeOff,
   loading,
+  disabled,
 }: ExceptionTimeOffFormProps) {
   const isEditing = !!editingTimeOff;
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
@@ -190,7 +192,8 @@ function ExceptionTimeOffFormInner({
     !isStartDateHoliday &&
     !exceedsAttritionDate &&
     !!comment?.trim() &&
-    !loading;
+    !loading &&
+    !disabled;
 
   const handleFormSubmit = useCallback(
     async (data: FormData) => {

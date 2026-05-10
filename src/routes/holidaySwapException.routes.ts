@@ -11,6 +11,21 @@ import type { CreateExceptionHolidaySwapDTO } from '@shared/dto/HolidaySwap';
 
 const router = Router();
 
+/** GET /api/holiday-swaps/exception/acting-as-users — list users with a linked team member */
+router.get(
+  '/exception/acting-as-users',
+  requirePermission('HolidaySwapException', 'read'),
+  async (_req, res: Response) => {
+    try {
+      const users = await bsaHolidaySwapOrchestrator.getActingAsUsers();
+      res.json(users);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
 /** GET /api/holiday-swaps/exception/:teamMemberId — list TM swaps */
 router.get(
   '/exception/:teamMemberId',
@@ -43,11 +58,17 @@ router.post(
         res.status(400).json({ error: 'Invalid team member ID.' });
         return;
       }
-      const input: CreateExceptionHolidaySwapDTO = req.body;
+      const { onBehalfOfUserId, holidayId, replacementDate } = req.body as CreateExceptionHolidaySwapDTO & { onBehalfOfUserId: number };
+      if (!onBehalfOfUserId || isNaN(Number(onBehalfOfUserId))) {
+        res.status(400).json({ error: 'onBehalfOfUserId is required.' });
+        return;
+      }
+      const input: CreateExceptionHolidaySwapDTO = { holidayId, replacementDate };
       const swap = await bsaHolidaySwapOrchestrator.createSwapException(
         targetTeamMemberId,
         input,
-        bsaEmail
+        bsaEmail,
+        Number(onBehalfOfUserId)
       );
       res.status(201).json(swap);
     } catch (err: unknown) {
@@ -69,8 +90,12 @@ router.patch(
         res.status(400).json({ error: 'Invalid swap ID.' });
         return;
       }
-      const input: UpdateHolidaySwapDTO = req.body;
-      const swap = await bsaHolidaySwapOrchestrator.updateSwapException(swapId, input, bsaEmail);
+      const { onBehalfOfUserId, ...rest } = req.body as UpdateHolidaySwapDTO & { onBehalfOfUserId: number };
+      if (!onBehalfOfUserId || isNaN(Number(onBehalfOfUserId))) {
+        res.status(400).json({ error: 'onBehalfOfUserId is required.' });
+        return;
+      }
+      const swap = await bsaHolidaySwapOrchestrator.updateSwapException(swapId, rest, bsaEmail, Number(onBehalfOfUserId));
       res.json(swap);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal server error';
@@ -91,8 +116,12 @@ router.patch(
         res.status(400).json({ error: 'Invalid swap ID.' });
         return;
       }
-      const input: CancelHolidaySwapDTO = req.body;
-      const swap = await bsaHolidaySwapOrchestrator.cancelSwapException(swapId, bsaEmail, input);
+      const { onBehalfOfUserId, ...rest } = req.body as CancelHolidaySwapDTO & { onBehalfOfUserId: number };
+      if (!onBehalfOfUserId || isNaN(Number(onBehalfOfUserId))) {
+        res.status(400).json({ error: 'onBehalfOfUserId is required.' });
+        return;
+      }
+      const swap = await bsaHolidaySwapOrchestrator.cancelSwapException(swapId, bsaEmail, rest, Number(onBehalfOfUserId));
       res.json(swap);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal server error';
@@ -113,8 +142,12 @@ router.patch(
         res.status(400).json({ error: 'Invalid swap ID.' });
         return;
       }
-      const input: ReviewHolidaySwapDTO = req.body;
-      const swap = await bsaHolidaySwapOrchestrator.reviewSwapException(swapId, input, bsaEmail);
+      const { onBehalfOfUserId, ...rest } = req.body as ReviewHolidaySwapDTO & { onBehalfOfUserId: number };
+      if (!onBehalfOfUserId || isNaN(Number(onBehalfOfUserId))) {
+        res.status(400).json({ error: 'onBehalfOfUserId is required.' });
+        return;
+      }
+      const swap = await bsaHolidaySwapOrchestrator.reviewSwapException(swapId, rest, bsaEmail, Number(onBehalfOfUserId));
       res.json(swap);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal server error';

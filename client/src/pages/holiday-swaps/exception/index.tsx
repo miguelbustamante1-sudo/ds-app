@@ -16,7 +16,7 @@ import { CancelSwapDialog } from '../supervisor/components/CancelSwapDialog';
 import { useExceptionTeamMemberSwaps } from './hooks/useExceptionTeamMemberSwaps';
 import { useExceptionSwapOperations } from './hooks/useExceptionSwapOperations';
 import type { TeamMemberDTO } from '@shared/dto/TeamMember';
-import type { HolidaySwapDTO } from '@shared/dto/HolidaySwap';
+import type { HolidaySwapDTO, ActingAsUserDTO } from '@shared/dto/HolidaySwap';
 
 export function HolidaySwapExceptionPage() {
   const { toast } = useToast();
@@ -24,6 +24,11 @@ export function HolidaySwapExceptionPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMemberDTO[]>([]);
   const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberDTO | null>(null);
+
+  const [actingAsUsers, setActingAsUsers] = useState<ActingAsUserDTO[]>([]);
+  const [loadingActingAs, setLoadingActingAs] = useState(false);
+  const [actingAsUserId, setActingAsUserId] = useState<number | null>(null);
+
   const [editingSwap, setEditingSwap] = useState<HolidaySwapDTO | null>(null);
   const [cancelTarget, setCancelTarget] = useState<HolidaySwapDTO | null>(null);
   const [acknowledgedStatusId, setAcknowledgedStatusId] = useState<number | null>(null);
@@ -71,6 +76,23 @@ export function HolidaySwapExceptionPage() {
     load();
   }, []);
 
+  // Load acting-as users on mount
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoadingActingAs(true);
+        const data = await apiGet<ActingAsUserDTO[]>('/api/holiday-swaps/exception/acting-as-users');
+        setActingAsUsers(data);
+      } catch (error) {
+        const message = error instanceof ApiError ? error.message : 'Failed to load acting-as users';
+        toast({ title: 'Error', description: message, variant: 'destructive' });
+      } finally {
+        setLoadingActingAs(false);
+      }
+    }
+    load();
+  }, []);
+
   useEffect(() => {
     setEditingSwap(null);
     if (selectedTeamMember) {
@@ -94,22 +116,30 @@ export function HolidaySwapExceptionPage() {
     [teamMembers]
   );
 
+  const handleSelectActingAs = useCallback((value: string) => {
+    setActingAsUserId(value ? Number(value) : null);
+  }, []);
+
   const handleSubmit = useCallback(
-    async (holidayId: number, replacementDate: string, onBehalfOf: number) => {
-      if (!selectedTeamMember) return;
+    async (holidayId: number, replacementDate: string) => {
+      if (!selectedTeamMember || !actingAsUserId) return;
       if (editingSwap) {
-        await operationsHook.updateSwap(editingSwap.holidaySwapId, { holidayId, replacementDate });
+        await operationsHook.updateSwap(
+          editingSwap.holidaySwapId,
+          { holidayId, replacementDate },
+          actingAsUserId
+        );
         setEditingSwap(null);
       } else {
-        await operationsHook.createSwap(selectedTeamMember.teamMemberId, {
-          holidayId,
-          replacementDate,
-          onBehalfOf,
-        });
+        await operationsHook.createSwap(
+          selectedTeamMember.teamMemberId,
+          { holidayId, replacementDate },
+          actingAsUserId
+        );
       }
       refresh();
     },
-    [selectedTeamMember, editingSwap, operationsHook, refresh]
+    [selectedTeamMember, editingSwap, actingAsUserId, operationsHook, refresh]
   );
 
   const handleEditClick = useCallback((swap: HolidaySwapDTO) => {
@@ -119,34 +149,42 @@ export function HolidaySwapExceptionPage() {
 
   const handleConfirmCancel = useCallback(
     async (swapId: number, comment: string) => {
-      await operationsHook.cancelSwap(swapId, { comment });
+      if (!actingAsUserId) return;
+      await operationsHook.cancelSwap(swapId, actingAsUserId, { comment });
       refresh();
     },
-    [operationsHook, refresh]
+    [actingAsUserId, operationsHook, refresh]
   );
 
   const handleApprove = useCallback(
     async (swap: HolidaySwapDTO) => {
-      if (!acknowledgedStatusId) return;
-      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: acknowledgedStatusId });
+      if (!acknowledgedStatusId || !actingAsUserId) return;
+      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: acknowledgedStatusId }, actingAsUserId);
       refresh();
     },
-    [acknowledgedStatusId, operationsHook, refresh]
+    [acknowledgedStatusId, actingAsUserId, operationsHook, refresh]
   );
 
   const handleReject = useCallback(
     async (swap: HolidaySwapDTO) => {
-      if (!rejectedStatusId) return;
-      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: rejectedStatusId });
+      if (!rejectedStatusId || !actingAsUserId) return;
+      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: rejectedStatusId }, actingAsUserId);
       refresh();
     },
-    [rejectedStatusId, operationsHook, refresh]
+    [rejectedStatusId, actingAsUserId, operationsHook, refresh]
   );
 
   const teamMemberOptions: ComboBoxOption[] = teamMembers.map((m) => ({
     value: m.teamMemberId.toString(),
     label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
+
+  const actingAsOptions: ComboBoxOption[] = actingAsUsers.map((u) => ({
+    value: u.userId.toString(),
+    label: `${u.fullName}${u.workdayId ? ` (${u.workdayId})` : ''}`,
+  }));
+
+  const canOperate = selectedTeamMember !== null && actingAsUserId !== null;
 
   return (
     <div className="container">
@@ -159,14 +197,22 @@ export function HolidaySwapExceptionPage() {
         </ToolbarHeading>
       </Toolbar>
 
-      {/* Team member selector */}
-      <div className="mt-6 flex items-center gap-4">
+      {/* Selectors */}
+      <div className="mt-6 flex items-center gap-4 flex-wrap">
         <div className="w-80">
           <ComboBox
             options={teamMemberOptions}
             value={selectedTeamMember?.teamMemberId.toString() ?? ''}
             onValueChange={handleSelectTeamMember}
             placeholder={loadingTeamMembers ? 'Loading…' : 'Search team members…'}
+          />
+        </div>
+        <div className="w-80">
+          <ComboBox
+            options={actingAsOptions}
+            value={actingAsUserId?.toString() ?? ''}
+            onValueChange={handleSelectActingAs}
+            placeholder={loadingActingAs ? 'Loading…' : 'Acting as…'}
           />
         </div>
         {selectedTeamMember && (
@@ -189,13 +235,14 @@ export function HolidaySwapExceptionPage() {
               countryId={selectedTeamMember.countryId ?? null}
               editingSwap={editingSwap}
               loading={operationsHook.loading}
+              disabled={!canOperate}
               onSubmit={handleSubmit}
               onCancelEdit={() => setEditingSwap(null)}
             />
             <ExceptionSwapList
               swaps={swapsHook.swaps}
               loading={swapsHook.loading}
-              operationLoading={operationsHook.loading}
+              operationLoading={operationsHook.loading || !canOperate}
               acknowledgedStatusId={acknowledgedStatusId}
               rejectedStatusId={rejectedStatusId}
               onEditClick={handleEditClick}

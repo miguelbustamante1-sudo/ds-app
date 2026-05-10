@@ -26,6 +26,7 @@ import endorsementBonusesRouter from './endorsementBonuses';
 import tierBandsRouter from './tierBands';
 import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
+import upcomingVacationRouter from './reports/upcomingVacation';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
@@ -71,6 +72,7 @@ export default function registerRoutes() {
   router.use('/tier-bands', tierBandsRouter);
   router.use('/bonus-subcategories', bonusSubcategoriesRouter);
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
+  router.use('/reports/time-off/upcoming-vacation', upcomingVacationRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/client-contacts', clientContactsRouter);

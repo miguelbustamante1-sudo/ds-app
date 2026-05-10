@@ -21,11 +21,8 @@ export const TABS: TabConfig[] = [
   {
     id: 'category',
     label: 'By Category',
-    defaultSort: [
-      { id: 'origCategory', desc: false },
-      { id: 'changeDate', desc: true },
-    ],
-    pinnedLeft: ['origCategory'],
+    defaultSort: [{ id: 'changeDate', desc: true }],
+    pinnedLeft: ['employeeFullName'],
   },
   {
     id: 'reviewer',

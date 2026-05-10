@@ -16,8 +16,26 @@ import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
 const router = express.Router();
+
+async function resolveActingAsUserId(id: number): Promise<number> {
+  const user = await prisma.user.findUnique({ where: { userId: id }, select: { userId: true } });
+  if (!user) throw new Error('Acting-as user not found.');
+  return user.userId;
+}
+
+// GET /exception/acting-as-users — must be before /:timeOffId routes
+router.get('/acting-as-users', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (_req, res: Response) => {
+  try {
+    const users = await getActingAsUsers();
+    res.json(users);
+  } catch (err) {
+    console.error('[Exception] Error fetching acting-as users:', err);
+    res.status(500).json({ error: 'Failed to fetch acting-as users' });
+  }
+});
 
 // GET /exception/:timeOffId/detail — read-only detail for exception admins, no hierarchy check
 router.get('/:timeOffId/detail', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (req, res: Response) => {
@@ -105,18 +123,22 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
   try {
     const { resolvedUserId: userId } = req as ResolvedAuthRequest;
 
-    const { teamMemberId, timeOffStartDate, timeOffEndDate, categoryId, comment } = req.body as {
+    const { teamMemberId, timeOffStartDate, timeOffEndDate, categoryId, comment, onBehalfOfUserId } = req.body as {
       teamMemberId?: number;
       timeOffStartDate?: string;
       timeOffEndDate?: string;
       categoryId?: number;
       comment?: string;
+      onBehalfOfUserId?: number;
     };
 
     if (!teamMemberId) return res.status(400).json({ error: 'teamMemberId is required' });
     if (!timeOffStartDate || typeof timeOffStartDate !== 'string') return res.status(400).json({ error: 'timeOffStartDate is required' });
     if (!timeOffEndDate || typeof timeOffEndDate !== 'string') return res.status(400).json({ error: 'timeOffEndDate is required' });
     if (!categoryId) return res.status(400).json({ error: 'categoryId is required' });
+    if (!onBehalfOfUserId) return res.status(400).json({ error: 'onBehalfOfUserId is required' });
+
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
 
     const effectiveStatusId = DEFAULTS.STATUS_ID;
 
@@ -145,7 +167,7 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
       teamMemberId,
       timeOffStartDate,
       timeOffEndDate,
-      userId,
+      actingAsUserId,
       new Date().toISOString(),
       categoryId,
       effectiveStatusId,
@@ -223,16 +245,20 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
     const timeOffId = Number(req.params.timeOffId);
     if (Number.isNaN(timeOffId)) return res.status(400).json({ error: 'Invalid time-off id' });
 
-    const { timeOffStartDate, timeOffEndDate, categoryId, comment } = req.body as {
+    const { timeOffStartDate, timeOffEndDate, categoryId, comment, onBehalfOfUserId } = req.body as {
       timeOffStartDate?: string;
       timeOffEndDate?: string;
       categoryId?: number;
       comment?: string;
+      onBehalfOfUserId?: number;
     };
 
     if (!timeOffStartDate || typeof timeOffStartDate !== 'string') return res.status(400).json({ error: 'timeOffStartDate is required' });
     if (!timeOffEndDate || typeof timeOffEndDate !== 'string') return res.status(400).json({ error: 'timeOffEndDate is required' });
     if (categoryId === undefined || categoryId === null) return res.status(400).json({ error: 'categoryId is required' });
+    if (!onBehalfOfUserId) return res.status(400).json({ error: 'onBehalfOfUserId is required' });
+
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
 
     const timeOff = await getTimeOffById(timeOffId);
     if (!timeOff) return res.status(404).json({ error: 'Time-off not found' });
@@ -276,7 +302,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       timeOff.teamMemberId,
       timeOffStartDate,
       timeOffEndDate,
-      userId,
+      actingAsUserId,
       new Date().toISOString(),
       categoryId,
       timeOff.statusId,
@@ -316,10 +342,13 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
     const timeOffId = Number(req.params.timeOffId);
     if (Number.isNaN(timeOffId)) return res.status(400).json({ error: 'Invalid time-off id' });
 
-    const { comment } = req.body as { comment?: string };
+    const { comment, onBehalfOfUserId } = req.body as { comment?: string; onBehalfOfUserId?: number };
     if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
       return res.status(400).json({ error: 'Comment is required for cancellation' });
     }
+    if (!onBehalfOfUserId) return res.status(400).json({ error: 'onBehalfOfUserId is required' });
+
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
 
     const timeOff = await getTimeOffById(timeOffId);
     if (!timeOff) return res.status(404).json({ error: 'Time-off not found' });
@@ -337,7 +366,7 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
       timeOff.teamMemberId,
       timeOff.timeOffStartDate,
       timeOff.timeOffEndDate,
-      userId,
+      actingAsUserId,
       new Date().toISOString(),
       timeOff.categoryId,
       cancelledStatus.statusId

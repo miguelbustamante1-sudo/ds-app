@@ -17,12 +17,16 @@ export function useExceptionSwapOperations(options?: UseExceptionSwapOperationsO
   const [loading, setLoading] = useState(false);
 
   const createSwap = useCallback(
-    async (teamMemberId: number, input: CreateExceptionHolidaySwapDTO): Promise<HolidaySwapDTO> => {
+    async (
+      teamMemberId: number,
+      input: CreateExceptionHolidaySwapDTO,
+      onBehalfOfUserId: number
+    ): Promise<HolidaySwapDTO> => {
       setLoading(true);
       try {
-        const swap = await apiPost<HolidaySwapDTO, CreateExceptionHolidaySwapDTO>(
+        const swap = await apiPost<HolidaySwapDTO, CreateExceptionHolidaySwapDTO & { onBehalfOfUserId: number }>(
           `/api/holiday-swaps/exception/${teamMemberId}`,
-          input
+          { holidayId: input.holidayId, replacementDate: input.replacementDate, onBehalfOfUserId }
         );
         options?.onSuccess?.('Holiday swap exception created successfully');
         return swap;
@@ -38,12 +42,16 @@ export function useExceptionSwapOperations(options?: UseExceptionSwapOperationsO
   );
 
   const updateSwap = useCallback(
-    async (swapId: number, input: UpdateHolidaySwapDTO): Promise<HolidaySwapDTO> => {
+    async (
+      swapId: number,
+      input: UpdateHolidaySwapDTO,
+      onBehalfOfUserId: number
+    ): Promise<HolidaySwapDTO> => {
       setLoading(true);
       try {
-        const swap = await apiPatch<HolidaySwapDTO, UpdateHolidaySwapDTO>(
+        const swap = await apiPatch<HolidaySwapDTO, UpdateHolidaySwapDTO & { onBehalfOfUserId: number }>(
           `/api/holiday-swaps/exception/${swapId}`,
-          input
+          { ...input, onBehalfOfUserId }
         );
         options?.onSuccess?.('Holiday swap updated successfully');
         return swap;
@@ -59,12 +67,16 @@ export function useExceptionSwapOperations(options?: UseExceptionSwapOperationsO
   );
 
   const cancelSwap = useCallback(
-    async (swapId: number, input: CancelHolidaySwapDTO = {}): Promise<HolidaySwapDTO> => {
+    async (
+      swapId: number,
+      onBehalfOfUserId: number,
+      input: CancelHolidaySwapDTO = {}
+    ): Promise<HolidaySwapDTO> => {
       setLoading(true);
       try {
-        const swap = await apiPatch<HolidaySwapDTO, CancelHolidaySwapDTO>(
+        const swap = await apiPatch<HolidaySwapDTO, CancelHolidaySwapDTO & { onBehalfOfUserId: number }>(
           `/api/holiday-swaps/exception/${swapId}/cancel`,
-          input
+          { ...input, onBehalfOfUserId }
         );
         options?.onSuccess?.('Holiday swap cancelled successfully');
         return swap;
@@ -80,12 +92,16 @@ export function useExceptionSwapOperations(options?: UseExceptionSwapOperationsO
   );
 
   const reviewSwap = useCallback(
-    async (swapId: number, input: ReviewHolidaySwapDTO): Promise<HolidaySwapDTO> => {
+    async (
+      swapId: number,
+      input: ReviewHolidaySwapDTO,
+      onBehalfOfUserId: number
+    ): Promise<HolidaySwapDTO> => {
       setLoading(true);
       try {
-        const swap = await apiPatch<HolidaySwapDTO, ReviewHolidaySwapDTO>(
+        const swap = await apiPatch<HolidaySwapDTO, ReviewHolidaySwapDTO & { onBehalfOfUserId: number }>(
           `/api/holiday-swaps/exception/${swapId}/review`,
-          input
+          { ...input, onBehalfOfUserId }
         );
         options?.onSuccess?.('Holiday swap reviewed successfully');
         return swap;

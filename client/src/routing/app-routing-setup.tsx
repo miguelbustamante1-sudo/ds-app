@@ -37,6 +37,7 @@ import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
+import { UpcomingVacationPage } from '@/pages/reports/time-off/upcoming-vacation';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
@@ -121,6 +122,7 @@ export function AppRoutingSetup() {
         <Route path="/hiring/:id" element={<HiringDetailPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
+        <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />
         <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />

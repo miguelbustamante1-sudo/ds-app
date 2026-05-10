@@ -238,6 +238,13 @@ export interface TeamMemberTimeOffBreakdownDTO {
 }
 
 /**
+ * ActingAsTimeOffOperationDTO - Spread into exception operation request bodies to carry the acting-as user id
+ */
+export interface ActingAsTimeOffOperationDTO {
+  onBehalfOfUserId: number;
+}
+
+/**
  * TimeOffWithTeamMemberDTO - Time off with team member details for management grid
  */
 export interface TimeOffWithTeamMemberDTO {

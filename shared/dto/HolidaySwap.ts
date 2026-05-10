@@ -38,7 +38,6 @@ export interface UpdateHolidaySwapDTO {
 export interface CreateExceptionHolidaySwapDTO {
   holidayId: number;
   replacementDate: Date | string;
-  onBehalfOf: number; // ds.tbl_users.usr_id of the selected supervisor
 }
 
 export interface ActiveSwapSummaryDTO {
@@ -47,6 +46,13 @@ export interface ActiveSwapSummaryDTO {
   holidayName: string;
   originalDate: string; // ISO date string (UTC midnight)
   replacementDate: string; // ISO date string (UTC midnight)
+}
+
+export interface ActingAsUserDTO {
+  userId: number;
+  teamMemberId: number;
+  fullName: string;
+  workdayId: string | null;
 }
 
 export interface HolidaySwapDetailDTO {

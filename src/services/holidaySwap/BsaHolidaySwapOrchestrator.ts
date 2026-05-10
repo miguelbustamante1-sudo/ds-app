@@ -1,15 +1,17 @@
 import { prisma } from '../../db/prisma';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
+import { getActingAsUsers } from '../users/queries/getActingAsUsers';
 import type {
   HolidaySwapDTO,
   ReviewHolidaySwapDTO,
   CancelHolidaySwapDTO,
   UpdateHolidaySwapDTO,
+  ActingAsUserDTO,
 } from '@shared/dto/HolidaySwap';
 import type { CreateExceptionHolidaySwapDTO } from '@shared/dto/HolidaySwap';
 import { loadStatusIds } from './components/LoadStatusIds';
 import { validateSwapEligibilityException } from './components/ValidateSwapEligibilityException';
-import { validateReplacementDay } from './components/ValidateReplacementDay';
+import { validateReplacementDayException } from './components/ValidateReplacementDayException';
 import { getSwapsForBsa } from '../teamMember/queries/getSwapsForBsa';
 
 const ENTITY_NAME = 'hsw_holiday_swap';
@@ -44,13 +46,30 @@ function toDTO(
   };
 }
 
+async function resolveActingAsUserId(onBehalfOfUserId: number): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { userId: onBehalfOfUserId },
+    select: { userId: true },
+  });
+  if (!user) throw new Error('Acting-as user not found.');
+  return user.userId;
+}
+
 export class BsaHolidaySwapOrchestrator {
+  /** Returns all tbl_users records that have a linked team member — used to populate the Acting As selector */
+  async getActingAsUsers(): Promise<ActingAsUserDTO[]> {
+    return getActingAsUsers();
+  }
+
   /** BSA creates a swap on behalf of a supervisor/team leader */
   async createSwapException(
     targetTeamMemberId: number,
     input: CreateExceptionHolidaySwapDTO,
-    bsaEmail: string
+    bsaEmail: string,
+    onBehalfOfUserId: number
   ): Promise<HolidaySwapDTO> {
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
+
     const teamMember = await prisma.teamMember.findUnique({
       where: { teamMemberId: targetTeamMemberId },
       select: { teamMemberId: true, countryId: true },
@@ -82,7 +101,7 @@ export class BsaHolidaySwapOrchestrator {
     }
 
     const replacementDate = new Date(input.replacementDate);
-    const replacement = await validateReplacementDay({
+    const replacement = await validateReplacementDayException({
       teamMemberId: targetTeamMemberId,
       countryId: teamMember.countryId,
       proposedDate: replacementDate,
@@ -100,7 +119,7 @@ export class BsaHolidaySwapOrchestrator {
         originalDate: holiday.holidayDate,
         replacementDate,
         active: true,
-        createdBy: String(input.onBehalfOf),
+        createdBy: String(actingAsUserId),
       },
       include: { status: { select: { statusName: true } } },
     });
@@ -111,7 +130,7 @@ export class BsaHolidaySwapOrchestrator {
       createdBy: bsaEmail,
       oldValues: null,
       newValues: created,
-      comment: `Holiday swap exception created by ${bsaEmail} on behalf of userId ${input.onBehalfOf}`,
+      comment: `Holiday swap exception created by BSA ${bsaEmail} acting as userId ${actingAsUserId}`,
     });
 
     return toDTO(created, holiday.holidayName, created.status.statusName);
@@ -126,8 +145,11 @@ export class BsaHolidaySwapOrchestrator {
   async updateSwapException(
     swapId: number,
     input: UpdateHolidaySwapDTO,
-    bsaEmail: string
+    bsaEmail: string,
+    onBehalfOfUserId: number
   ): Promise<HolidaySwapDTO> {
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
+
     const swap = await prisma.holidaySwap.findUnique({
       where: { holidaySwapId: swapId },
       include: { holiday: true, status: true },
@@ -146,8 +168,22 @@ export class BsaHolidaySwapOrchestrator {
     });
     if (!teamMember?.countryId) throw new Error('Team member country not found.');
 
+    const eligibility = await validateSwapEligibilityException({
+      teamMemberId: swap.teamMemberId,
+      countryId: teamMember.countryId,
+      holiday: {
+        holidayId: holiday.holidayId,
+        countryId: holiday.countryId,
+        holidayDate: holiday.holidayDate,
+      },
+      submissionDate: new Date(),
+    }, swapId);
+    if (!eligibility.valid) {
+      throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+    }
+
     const replacementDate = new Date(input.replacementDate);
-    const replacement = await validateReplacementDay({
+    const replacement = await validateReplacementDayException({
       teamMemberId: swap.teamMemberId,
       countryId: teamMember.countryId,
       proposedDate: replacementDate,
@@ -170,7 +206,7 @@ export class BsaHolidaySwapOrchestrator {
         replacementDate,
         statusId: statusIds.pending,
         active: true,
-        updatedBy: bsaEmail,
+        updatedBy: String(actingAsUserId),
         updatedAt: new Date(),
       },
       include: { status: true },
@@ -182,7 +218,7 @@ export class BsaHolidaySwapOrchestrator {
       createdBy: bsaEmail,
       oldValues: before as Record<string, unknown>,
       newValues: updated as Record<string, unknown>,
-      comment: `Holiday swap exception updated by BSA ${bsaEmail}`,
+      comment: `Holiday swap exception updated by BSA ${bsaEmail} acting as userId ${actingAsUserId}`,
     });
 
     return toDTO(updated, holiday.holidayName, updated.status.statusName);
@@ -192,8 +228,11 @@ export class BsaHolidaySwapOrchestrator {
   async reviewSwapException(
     swapId: number,
     input: ReviewHolidaySwapDTO,
-    bsaEmail: string
+    bsaEmail: string,
+    onBehalfOfUserId: number
   ): Promise<HolidaySwapDTO> {
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
+
     const swap = await prisma.holidaySwap.findUnique({
       where: { holidaySwapId: swapId },
       include: { holiday: true, status: true },
@@ -211,7 +250,7 @@ export class BsaHolidaySwapOrchestrator {
       });
       if (!teamMember?.countryId) throw new Error('Team member country not found.');
 
-      const replacement = await validateReplacementDay({
+      const replacement = await validateReplacementDayException({
         teamMemberId: swap.teamMemberId,
         countryId: teamMember.countryId,
         proposedDate: swap.replacementDate,
@@ -230,7 +269,7 @@ export class BsaHolidaySwapOrchestrator {
       data: {
         statusId: input.statusId,
         active: isApproving,
-        updatedBy: bsaEmail,
+        updatedBy: String(actingAsUserId),
         updatedAt: new Date(),
       },
       include: { status: true },
@@ -243,7 +282,7 @@ export class BsaHolidaySwapOrchestrator {
       createdBy: bsaEmail,
       oldValues: before as Record<string, unknown>,
       newValues: updated as Record<string, unknown>,
-      comment: `Holiday swap exception ${action} by BSA ${bsaEmail}${input.comment ? ': ' + input.comment : ''}`,
+      comment: `Holiday swap exception ${action} by BSA ${bsaEmail} acting as userId ${actingAsUserId}${input.comment ? ': ' + input.comment : ''}`,
     });
 
     return toDTO(updated, swap.holiday.holidayName, updated.status.statusName);
@@ -253,8 +292,11 @@ export class BsaHolidaySwapOrchestrator {
   async cancelSwapException(
     swapId: number,
     bsaEmail: string,
-    input: CancelHolidaySwapDTO
+    input: CancelHolidaySwapDTO,
+    onBehalfOfUserId: number
   ): Promise<HolidaySwapDTO> {
+    const actingAsUserId = await resolveActingAsUserId(onBehalfOfUserId);
+
     const swap = await prisma.holidaySwap.findUnique({
       where: { holidaySwapId: swapId },
       include: { holiday: true, status: true },
@@ -270,7 +312,7 @@ export class BsaHolidaySwapOrchestrator {
       data: {
         statusId: statusIds.cancelled,
         active: false,
-        updatedBy: bsaEmail,
+        updatedBy: String(actingAsUserId),
         updatedAt: new Date(),
       },
       include: { status: true },
@@ -282,7 +324,7 @@ export class BsaHolidaySwapOrchestrator {
       createdBy: bsaEmail,
       oldValues: before as Record<string, unknown>,
       newValues: updated as Record<string, unknown>,
-      comment: `Holiday swap exception cancelled by BSA ${bsaEmail}${input.comment ? ': ' + input.comment : ''}`,
+      comment: `Holiday swap exception cancelled by BSA ${bsaEmail} acting as userId ${actingAsUserId}${input.comment ? ': ' + input.comment : ''}`,
     });
 
     return toDTO(updated, swap.holiday.holidayName, updated.status.statusName);

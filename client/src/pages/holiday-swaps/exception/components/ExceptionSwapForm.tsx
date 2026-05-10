@@ -11,17 +11,12 @@ import { CalendarArrowDown, X } from 'lucide-react';
 import type { HolidayDTO } from '@shared/dto/Holiday';
 import type { HolidaySwapDTO } from '@shared/dto/HolidaySwap';
 
-interface SupervisorOption {
-  userId: number;
-  teamMemberNames: string;
-  teamMemberSurnames: string;
-}
-
 interface ExceptionSwapFormProps {
   countryId: number | null;
   editingSwap: HolidaySwapDTO | null;
   loading: boolean;
-  onSubmit: (holidayId: number, replacementDate: string, onBehalfOf: number) => Promise<void>;
+  disabled?: boolean;
+  onSubmit: (holidayId: number, replacementDate: string) => Promise<void>;
   onCancelEdit: () => void;
 }
 
@@ -29,14 +24,13 @@ export function ExceptionSwapForm({
   countryId,
   editingSwap,
   loading,
+  disabled = false,
   onSubmit,
   onCancelEdit,
 }: ExceptionSwapFormProps) {
   const [holidays, setHolidays] = useState<HolidayDTO[]>([]);
-  const [supervisors, setSupervisors] = useState<SupervisorOption[]>([]);
   const [selectedHolidayId, setSelectedHolidayId] = useState<number | null>(null);
   const [replacementDate, setReplacementDate] = useState<string>('');
-  const [selectedOnBehalfOf, setSelectedOnBehalfOf] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Load all active holidays for the current calendar year
@@ -57,19 +51,6 @@ export function ExceptionSwapForm({
     };
     fetchHolidays();
   }, [countryId]);
-
-  // Load supervisors with userId on mount
-  useEffect(() => {
-    const fetchSupervisors = async () => {
-      try {
-        const data = await apiGet<SupervisorOption[]>('/api/team-members/supervisors-with-user-id');
-        setSupervisors(data);
-      } catch {
-        setSupervisors([]);
-      }
-    };
-    fetchSupervisors();
-  }, []);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -96,15 +77,10 @@ export function ExceptionSwapForm({
       setError('Please enter a replacement date.');
       return;
     }
-    if (!selectedOnBehalfOf) {
-      setError('Please select a "Created By" supervisor.');
-      return;
-    }
     try {
-      await onSubmit(selectedHolidayId, replacementDate, selectedOnBehalfOf);
+      await onSubmit(selectedHolidayId, replacementDate);
       setSelectedHolidayId(null);
       setReplacementDate('');
-      setSelectedOnBehalfOf(null);
     } catch {
       // error surfaced via onError in parent
     }
@@ -126,11 +102,6 @@ export function ExceptionSwapForm({
     return opts;
   })();
 
-  const supervisorOptions = supervisors.map((s) => ({
-    value: String(s.userId),
-    label: `${s.teamMemberNames} ${s.teamMemberSurnames}`,
-  }));
-
   return (
     <Card>
       <CardContent>
@@ -147,7 +118,7 @@ export function ExceptionSwapForm({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label>Holiday</Label>
             <ComboBox
@@ -167,18 +138,8 @@ export function ExceptionSwapForm({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Created By</Label>
-            <ComboBox
-              options={supervisorOptions}
-              value={selectedOnBehalfOf ? String(selectedOnBehalfOf) : ''}
-              onValueChange={(v) => setSelectedOnBehalfOf(v ? Number(v) : null)}
-              placeholder="Search supervisors..."
-            />
-          </div>
-
           <div className="flex items-end">
-            <Button onClick={handleSubmit} disabled={loading} className="w-full">
+            <Button onClick={handleSubmit} disabled={loading || disabled} className="w-full">
               {loading
                 ? isEditMode
                   ? 'Saving…'
