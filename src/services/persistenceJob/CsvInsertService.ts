@@ -83,6 +83,11 @@ const STOP_ON_FIRST_ERROR_AND_ROLLBACK = 'STOP_ON_FIRST_ERROR_AND_ROLLBACK';
 const STOP_ON_FIRST_ERROR_AND_COMMIT   = 'STOP_ON_FIRST_ERROR_AND_COMMIT';
 const REPLACE                          = 'REPLACE';
 
+// --- Batch configuration ------------------------------------------------------
+
+/** Number of rows grouped into a single multi-row INSERT statement. */
+const BATCH_SIZE = 500;
+
 // --- Debug helpers ------------------------------------------------------------
 
 /** Pause for the given number of milliseconds (used for manual cancel testing). */
@@ -178,55 +183,70 @@ export class CsvInsertService {
     const buildSql = (values: (string | null)[]): string =>
       this.buildInsertSql(targetTable, colNames, values, duplicatesHandlingStrategy, pkCols);
 
+    const buildBatchSql = (batchValues: (string | null)[][]): string =>
+      this.buildBatchInsertSql(targetTable, colNames, batchValues, duplicatesHandlingStrategy, pkCols);
+
     type OrderedColumn = (typeof orderedColumns)[number];
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_ROLLBACK) {
-      return this.insertWithTransaction(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
+      return this.insertWithTransaction(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
     }
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_COMMIT) {
-      return this.insertStopAndCommit(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
+      return this.insertStopAndCommit(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
     }
     console.warn(`${prefix} Error handling is default`);
-    return this.insertContinueOnError(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, prefix, signal, checkCancel, pollEvery);
+    return this.insertContinueOnError(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
   }
 
   // --- Transaction strategy (abort + rollback on first error) -----------------
 
   private async insertWithTransaction(
-    dataRows:       string[],
-    columns:        (InsertColumn & { csvOffset: number })[],
-    buildSql:       (values: (string | null)[]) => string,
-    prefix:         string,
-    signal?:        AbortSignal,
-    checkCancel?:   () => Promise<boolean>,
-    pollEvery?:     number,
+    dataRows:      string[],
+    columns:       (InsertColumn & { csvOffset: number })[],
+    buildSql:      (values: (string | null)[]) => string,
+    buildBatchSql: (batchValues: (string | null)[][]) => string,
+    prefix:        string,
+    signal?:       AbortSignal,
+    checkCancel?:  () => Promise<boolean>,
   ): Promise<InsertResult> {
     let linesInserted = 0;
 
+    const extractValues = (row: string): (string | null)[] =>
+      columns.map((col) => {
+        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
+        return raw === '' ? null : raw;
+      });
+
     try {
       await prisma.$transaction(async (tx: TxClient) => {
-        for (let i = 0; i < dataRows.length; i++) {
-          if (signal?.aborted) { console.warn(`${prefix} [ABORT] Signal fired at row ${i + 1} - rolling back transaction`); throw new Error('Job canceled - transaction rolled back'); }
-          if (checkCancel && pollEvery && i > 0 && i % pollEvery === 0) {
-            const canceled = await checkCancel();
-            if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at row ${i + 1} - rolling back transaction`); throw new Error('Job canceled - transaction rolled back'); }
+        for (let batchStart = 0; batchStart < dataRows.length; batchStart += BATCH_SIZE) {
+          if (signal?.aborted) {
+            console.warn(`${prefix} [ABORT] Signal fired at batch starting row ${batchStart + 1} - rolling back transaction`);
+            throw new Error('Job canceled - transaction rolled back');
           }
-          const cells  = this.splitCsvRow(dataRows[i]!);
-          const values = columns.map((col) => {
-            const raw = (cells[col.csvOffset] ?? '').trim();
-            return raw === '' ? null : raw;
-          });
+          if (checkCancel && batchStart > 0) {
+            const canceled = await checkCancel();
+            if (canceled) {
+              console.warn(`${prefix} [CANCEL] DB status is CANCELED at batch starting row ${batchStart + 1} - rolling back transaction`);
+              throw new Error('Job canceled - transaction rolled back');
+            }
+          }
 
-          const sql = buildSql(values);
-          // console.log(`${prefix} Row ${i + 1}: ${sql.slice(0, 120)}...`);
+          const batch       = dataRows.slice(batchStart, batchStart + BATCH_SIZE);
+          const batchValues = batch.map(extractValues);
+          const sql         = buildBatchSql(batchValues);
 
           await tx.$executeRawUnsafe(sql);
-          linesInserted++;
-          if (DEBUG_ROW_PAUSE_MS > 0) { console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after row ${i + 1} - cancel now to test abort`); await sleep(DEBUG_ROW_PAUSE_MS); }
+          linesInserted += batch.length;
+
+          if (DEBUG_ROW_PAUSE_MS > 0) {
+            console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after batch ending at row ${linesInserted}`);
+            await sleep(DEBUG_ROW_PAUSE_MS);
+          }
         }
       },
       {
-        timeout: 600 * 1000, // 600 seconds
-        maxWait: 5000,       // How long to wait for a connection from the pool
+        timeout: 600 * 1000,
+        maxWait: 5000,
       });
 
       console.log(`${prefix} Inserted ${linesInserted} row(s) successfully`);
@@ -234,7 +254,8 @@ export class CsvInsertService {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`${prefix} Transaction failed after ${linesInserted} row(s): ${msg}`);
+      // linesInserted reflects the last successfully committed batch; +1 is the first row of the failing batch.
+      console.error(`${prefix} Transaction failed at batch starting row ${linesInserted + 1}: ${msg}`);
       return { linesInserted: 0, errorLine: linesInserted + 1, errorMessage: msg };
     }
   }
@@ -242,41 +263,50 @@ export class CsvInsertService {
   // --- Stop-and-commit strategy (stop on first error, commit prior rows) --------
 
   private async insertStopAndCommit(
-    dataRows:     string[],
-    columns:      (InsertColumn & { csvOffset: number })[],
-    buildSql:     (values: (string | null)[]) => string,
-    prefix:       string,
-    signal?:      AbortSignal,
-    checkCancel?: () => Promise<boolean>,
-    pollEvery?:   number,
+    dataRows:      string[],
+    columns:       (InsertColumn & { csvOffset: number })[],
+    buildSql:      (values: (string | null)[]) => string,
+    buildBatchSql: (batchValues: (string | null)[][]) => string,
+    prefix:        string,
+    signal?:       AbortSignal,
+    checkCancel?:  () => Promise<boolean>,
   ): Promise<InsertResult> {
     let linesInserted = 0;
 
-    for (let i = 0; i < dataRows.length; i++) {
-      if (signal?.aborted) { console.warn(`${prefix} [ABORT] Signal fired at row ${i + 1} - breaking stop-and-commit loop`); break; }
-      if (checkCancel && pollEvery && i > 0 && i % pollEvery === 0) {
-        const canceled = await checkCancel();
-        if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at row ${i + 1} - breaking stop-and-commit loop`); break; }
-      }
-      const rowNumber = i + 1;
-      const cells     = this.splitCsvRow(dataRows[i]!);
-      const values    = columns.map((col) => {
-        const raw = (cells[col.csvOffset] ?? '').trim();
+    const extractValues = (row: string): (string | null)[] =>
+      columns.map((col) => {
+        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
-      const sql = buildSql(values);
-      // console.log(`${prefix} Row ${rowNumber}: ${sql}`);
+    for (let batchStart = 0; batchStart < dataRows.length; batchStart += BATCH_SIZE) {
+      if (signal?.aborted) { console.warn(`${prefix} [ABORT] Signal fired at batch starting row ${batchStart + 1} - breaking stop-and-commit loop`); break; }
+      if (checkCancel && batchStart > 0) {
+        const canceled = await checkCancel();
+        if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at batch starting row ${batchStart + 1} - breaking stop-and-commit loop`); break; }
+      }
+
+      const batch       = dataRows.slice(batchStart, batchStart + BATCH_SIZE);
+      const batchValues = batch.map(extractValues);
 
       try {
-        await prisma.$executeRawUnsafe(sql);
-        linesInserted++;
-        if (DEBUG_ROW_PAUSE_MS > 0) { console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after row ${rowNumber} - cancel now to test abort`); await sleep(DEBUG_ROW_PAUSE_MS); }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`${prefix}   Row ${rowNumber} FAILED (stop-and-commit): ${msg}`);
-        console.log(`${prefix} Committed ${linesInserted} row(s) before error on row ${rowNumber}`);
-        return { linesInserted, errorLine: rowNumber, errorMessage: msg };
+        await prisma.$executeRawUnsafe(buildBatchSql(batchValues));
+        linesInserted += batch.length;
+        if (DEBUG_ROW_PAUSE_MS > 0) { console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after batch ending at row ${linesInserted}`); await sleep(DEBUG_ROW_PAUSE_MS); }
+      } catch {
+        // Batch failed — fall back to row-by-row to surface the exact error row.
+        for (let j = 0; j < batch.length; j++) {
+          const rowNumber = batchStart + j + 1;
+          try {
+            await prisma.$executeRawUnsafe(buildSql(batchValues[j]!));
+            linesInserted++;
+          } catch (rowErr) {
+            const msg = rowErr instanceof Error ? rowErr.message : String(rowErr);
+            console.error(`${prefix} Row ${rowNumber} FAILED (stop-and-commit fallback): ${msg}`);
+            console.log(`${prefix} Committed ${linesInserted} row(s) before error on row ${rowNumber}`);
+            return { linesInserted, errorLine: rowNumber, errorMessage: msg };
+          }
+        }
       }
     }
 
@@ -287,44 +317,54 @@ export class CsvInsertService {
   // --- Continue-on-error strategy (skip failed rows) ---------------------------
 
   private async insertContinueOnError(
-    dataRows:     string[],
-    columns:      (InsertColumn & { csvOffset: number })[],
-    buildSql:     (values: (string | null)[]) => string,
-    prefix:       string,
-    signal?:      AbortSignal,
-    checkCancel?: () => Promise<boolean>,
-    pollEvery?:   number,
+    dataRows:      string[],
+    columns:       (InsertColumn & { csvOffset: number })[],
+    buildSql:      (values: (string | null)[]) => string,
+    buildBatchSql: (batchValues: (string | null)[][]) => string,
+    prefix:        string,
+    signal?:       AbortSignal,
+    checkCancel?:  () => Promise<boolean>,
   ): Promise<InsertResult> {
     let linesInserted = 0;
     let errorLine     = 0;
     let errorMessage: string | null = null;
 
-    for (let i = 0; i < dataRows.length; i++) {
-      if (signal?.aborted) { console.warn(`${prefix} [ABORT] Signal fired at row ${i + 1} - breaking continue-on-error loop`); break; }
-      if (checkCancel && pollEvery && i > 0 && i % pollEvery === 0) {
-        const canceled = await checkCancel();
-        if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at row ${i + 1} - breaking continue-on-error loop`); break; }
-      }
-      const rowNumber = i + 1;
-      const cells     = this.splitCsvRow(dataRows[i]!);
-      const values    = columns.map((col) => {
-        const raw = (cells[col.csvOffset] ?? '').trim();
+    const extractValues = (row: string): (string | null)[] =>
+      columns.map((col) => {
+        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
-      const sql = buildSql(values);
-      // console.log(`${prefix} Row ${rowNumber}: ${sql}`);
+    for (let batchStart = 0; batchStart < dataRows.length; batchStart += BATCH_SIZE) {
+      if (signal?.aborted) { console.warn(`${prefix} [ABORT] Signal fired at batch starting row ${batchStart + 1} - breaking continue-on-error loop`); break; }
+      if (checkCancel && batchStart > 0) {
+        const canceled = await checkCancel();
+        if (canceled) { console.warn(`${prefix} [CANCEL] DB status is CANCELED at batch starting row ${batchStart + 1} - breaking continue-on-error loop`); break; }
+      }
+
+      const batch       = dataRows.slice(batchStart, batchStart + BATCH_SIZE);
+      const batchValues = batch.map(extractValues);
 
       try {
-        await prisma.$executeRawUnsafe(sql);
-        linesInserted++;
-        if (DEBUG_ROW_PAUSE_MS > 0) { console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after row ${rowNumber} - cancel now to test abort`); await sleep(DEBUG_ROW_PAUSE_MS); }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`${prefix}   Row ${rowNumber} FAILED: ${msg}`);
-        if (errorLine === 0) {
-          errorLine    = rowNumber;
-          errorMessage = msg;
+        await prisma.$executeRawUnsafe(buildBatchSql(batchValues));
+        linesInserted += batch.length;
+        if (DEBUG_ROW_PAUSE_MS > 0) { console.log(`${prefix} [DEBUG] Pausing ${DEBUG_ROW_PAUSE_MS / 1000}s after batch ending at row ${linesInserted}`); await sleep(DEBUG_ROW_PAUSE_MS); }
+      } catch {
+        // Batch failed — fall back to row-by-row for this batch only so bad rows
+        // are skipped individually and good rows within the batch are still committed.
+        for (let j = 0; j < batch.length; j++) {
+          const rowNumber = batchStart + j + 1;
+          try {
+            await prisma.$executeRawUnsafe(buildSql(batchValues[j]!));
+            linesInserted++;
+          } catch (rowErr) {
+            const msg = rowErr instanceof Error ? rowErr.message : String(rowErr);
+            console.error(`${prefix} Row ${rowNumber} FAILED (continue-on-error fallback): ${msg}`);
+            if (errorLine === 0) {
+              errorLine    = rowNumber;
+              errorMessage = msg;
+            }
+          }
         }
       }
     }
@@ -393,6 +433,37 @@ export class CsvInsertService {
 
     // Default (INSERT): plain INSERT - fails on constraint violation so the
     // errorHandlingStrategy decides what happens next.
+    return base;
+  }
+
+  // --- Batch SQL builder --------------------------------------------------------
+
+  private buildBatchInsertSql(
+    table:       string,
+    colNames:    string[],
+    batchValues: (string | null)[][],
+    dupStrategy: string,
+    pkCols:      string[],
+  ): string {
+    const cols         = colNames.map((c) => `"${c}"`).join(', ');
+    const valueTuples  = batchValues
+      .map((values) => `(${values.map((v) => v === null ? 'NULL' : `'${v.replace(/'/g, "''")}'`).join(', ')})`)
+      .join(',\n  ');
+    const base = `INSERT INTO ${table} (${cols}) VALUES\n  ${valueTuples}`;
+
+    if (dupStrategy === REPLACE) {
+      if (pkCols.length === 0) {
+        console.warn(`buildBatchInsertSql: REPLACE requested but no PK found for ${table} - using plain INSERT`);
+        return base;
+      }
+      const conflictTarget = pkCols.map((c) => `"${c}"`).join(', ');
+      const updateCols     = colNames.filter((c) => !pkCols.includes(c));
+      const updates        = updateCols.length > 0
+        ? updateCols.map((c) => `"${c}" = EXCLUDED."${c}"`).join(', ')
+        : `"${colNames[0]}" = EXCLUDED."${colNames[0]}"`;
+      return `${base}\nON CONFLICT (${conflictTarget}) DO UPDATE SET ${updates}`;
+    }
+
     return base;
   }
 
