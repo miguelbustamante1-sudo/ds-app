@@ -29,6 +29,7 @@ import { detectOverlap } from '../utils/overlapDetection';
 import {
   isElSalvadorVacation,
   calculateCalendarDays,
+  computeCurrentPeriod,
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../utils/elSalvadorVacationValidation';
@@ -203,8 +204,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? calculateCalendarDays(startDate, endDate)
     : 0;
 
+  const currentPeriod = isSVVacation
+    ? computeCurrentPeriod(userHireDate ?? userStartDate, startDate ?? undefined)
+    : null;
+
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, userHireDate ?? userStartDate, undefined, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, currentPeriod)
     : 0;
 
   // SV 15-day mode: applies whenever SV + Vacation.

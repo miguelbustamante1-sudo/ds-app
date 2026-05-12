@@ -29,6 +29,7 @@ import { detectOverlap } from '../utils/overlapDetection';
 import {
   isElSalvadorVacation,
   calculateCalendarDays,
+  computeCurrentPeriod,
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../utils/elSalvadorVacationValidation';
@@ -224,9 +225,13 @@ export function EditTimeOffDialog({
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
 
+  const currentPeriod = isSVVacation
+    ? computeCurrentPeriod(userHireDate ?? userStartDate, startDate ?? undefined)
+    : null;
+
   // Pass timeOff?.timeOffId to exclude the time-off being edited from the calculation
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, userHireDate ?? userStartDate, timeOff?.timeOffId, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, currentPeriod, timeOff?.timeOffId)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0

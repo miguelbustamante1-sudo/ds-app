@@ -24,6 +24,7 @@ import { validateCancellationDaysBefore } from '../../services/timeoff/component
 import { prisma } from '../../db/prisma';
 import type { TimeOffDetailDTO } from '../../../shared/dto/TimeOff';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 
 const SPLIT_STATUS_ID = 6;
 
@@ -727,6 +728,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
     ]);
 
     const now = new Date();
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     // Atomic save — origin + both periods succeed or all are rolled back
     const [originRecord, createdA, createdB] = await prisma.$transaction(async (tx) => {
@@ -741,6 +743,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           categoryId,
           statusId: SPLIT_STATUS_ID,
           timeOffIsException: false,
+          timeOffPeriod: vacationPeriod,
         },
       });
       const a = await tx.timeOff.create({
@@ -755,6 +758,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionA,
           timeOffOriginalId: origin.timeOffId,
+          timeOffPeriod: vacationPeriod,
         },
       });
       const b = await tx.timeOff.create({
@@ -769,6 +773,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           statusId: effectiveStatusId,
           timeOffIsException: isExceptionB,
           timeOffOriginalId: origin.timeOffId,
+          timeOffPeriod: vacationPeriod,
         },
       });
       return [origin, a, b] as const;
@@ -903,6 +908,7 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
     );
 
     const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
       teamMemberId,
@@ -914,7 +920,8 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
       effectiveStatusId,
       totalDays,
       undefined,
-      isException
+      isException,
+      vacationPeriod
     );
 
     await createTimeOffChangeLog({

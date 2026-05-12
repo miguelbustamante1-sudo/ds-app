@@ -16,6 +16,7 @@ import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
+import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
 const router = express.Router();
@@ -162,6 +163,7 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
     );
 
     const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
       teamMemberId,
@@ -173,7 +175,8 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
       effectiveStatusId,
       totalDays,
       undefined,
-      isException
+      isException,
+      vacationPeriod
     );
 
     await createTimeOffChangeLog({

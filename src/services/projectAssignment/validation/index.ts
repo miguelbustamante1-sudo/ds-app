@@ -5,7 +5,6 @@
 
 import type { AssignmentValidationInput, ValidationError } from './types';
 import { validateRequiredFields } from './rules/requiredFields.rule';
-import { validateMemberIsReport } from './rules/memberIsReport.rule';
 import { validateAllocationRange } from './rules/allocationRange.rule';
 
 export interface AssignmentValidationResponse {
@@ -15,7 +14,6 @@ export interface AssignmentValidationResponse {
 
 export async function validateAssignment(
   input: AssignmentValidationInput,
-  supervisorTeamMemberId: number
 ): Promise<AssignmentValidationResponse> {
   const errors: ValidationError[] = [];
 
@@ -29,12 +27,6 @@ export async function validateAssignment(
   const allocationResult = validateAllocationRange(input.projectAssignmentAllocation!);
   if (!allocationResult.valid && allocationResult.error) {
     errors.push(allocationResult.error);
-  }
-
-  // Rule 3: Member is a report of the supervisor
-  const memberResult = await validateMemberIsReport(supervisorTeamMemberId, input.teamMemberId!);
-  if (!memberResult.valid && memberResult.error) {
-    errors.push(memberResult.error);
   }
 
   return {

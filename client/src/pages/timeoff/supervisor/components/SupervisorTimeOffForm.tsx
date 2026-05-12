@@ -24,6 +24,7 @@ import {
   VACATION_CATEGORY_NAME,
   isElSalvadorVacation,
   calculateCalendarDays,
+  computeCurrentPeriod,
   getExistingVacationDaysThisYear,
   validateSVVacation,
 } from '../../utils/elSalvadorVacationValidation';
@@ -266,8 +267,12 @@ function SupervisorTimeOffFormInner({
   const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
     ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
     : null;
+  const currentPeriod = isSVVacation
+    ? computeCurrentPeriod(svMemberStartDate, startDate ?? undefined)
+    : null;
+
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4, svMemberStartDate, undefined, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4, currentPeriod)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0

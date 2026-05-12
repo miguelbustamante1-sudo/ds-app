@@ -13,6 +13,7 @@ import { requirePermission, type AuthenticatedRequest } from '../../middleware/a
 import { validateTimeOff, DEFAULTS } from '../../services/timeoff/validation';
 import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCalculation';
 import { parseIdParam } from './helpers';
+import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 
 const router = express.Router();
 
@@ -112,6 +113,8 @@ router.post('/', requirePermission('TimeOffs', 'create'), async (req: Authentica
       new Date(timeOffEndDate)
     );
 
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
+
     const created = await createTimeOff(
       teamMemberId,
       timeOffStartDate,
@@ -120,7 +123,10 @@ router.post('/', requirePermission('TimeOffs', 'create'), async (req: Authentica
       new Date().toISOString(),
       categoryId,
       effectiveStatusId,
-      totalDays
+      totalDays,
+      undefined,
+      undefined,
+      vacationPeriod
     );
     res.status(201).json(created);
   } catch (err) {

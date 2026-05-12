@@ -13,7 +13,6 @@
  */
 
 import type { TimeOffWithDetailsDTO } from '../../../../../shared/dto/TimeOff';
-import { parseUTCDateAsLocal } from '@/lib/utils';
 
 /**
  * Computes the anniversary year window for SV vacation tracking.
@@ -90,67 +89,43 @@ export function calculateCalendarDays(startDate: Date, endDate: Date): number {
 }
 
 /**
- * Calculates existing vacation days used in the anniversary year that contains referenceDate.
+ * Returns the current period string (e.g. "2025-2026") for the anniversary year
+ * that contains the given referenceDate (defaults to today).
+ * Returns null when teamMemberStartDate is unavailable.
+ */
+export function computeCurrentPeriod(
+  teamMemberStartDate: Date | null,
+  referenceDate: Date = new Date()
+): string | null {
+  if (!teamMemberStartDate) return null;
+  const { windowStart, windowEnd } = computeSVAnniversaryWindow(teamMemberStartDate, referenceDate);
+  return `${windowStart.getUTCFullYear()}-${windowEnd.getUTCFullYear()}`;
+}
+
+/**
+ * Calculates existing vacation days used in the period matching currentPeriod.
  * Excludes cancelled time offs and optionally excludes a specific time off (for edit mode).
  *
  * @param timeOffs - List of existing time off requests
  * @param cancelledStatusId - Status ID for cancelled time offs (to exclude)
- * @param teamMemberStartDate - Employment start date used to compute the anniversary window
+ * @param currentPeriod - Period string (e.g. "2025-2026") to match against tto_period
  * @param currentTimeOffId - Optional ID of time off being edited (to exclude from calculation)
- * @param referenceDate - Date used to determine which anniversary window to evaluate (defaults to today)
  */
 export function getExistingVacationDaysThisYear(
   timeOffs: TimeOffWithDetailsDTO[],
   cancelledStatusId: number | null,
-  teamMemberStartDate: Date | null,
-  currentTimeOffId?: number,
-  referenceDate?: Date
+  currentPeriod: string | null,
+  currentTimeOffId?: number
 ): number {
-  const today = referenceDate ?? new Date();
-
-  let windowStart: Date;
-  let windowEnd: Date;
-
-  if (teamMemberStartDate) {
-    const window = computeSVAnniversaryWindow(teamMemberStartDate, today);
-    windowStart = window.windowStart;
-    windowEnd = window.windowEnd;
-  } else {
-    // Fallback to calendar year when start date is unavailable
-    const currentYear = today.getFullYear();
-    windowStart = new Date(Date.UTC(currentYear, 0, 1));
-    windowEnd = new Date(Date.UTC(currentYear, 11, 31));
-  }
+  if (!currentPeriod) return 0;
 
   return timeOffs
     .filter((timeOff) => {
-      // Exclude cancelled status
-      if (cancelledStatusId !== null && timeOff.statusId === cancelledStatusId) {
-        return false;
-      }
-
-      // Exclude split parent records (their days are counted via the child records)
-      if (timeOff.statusId === SPLIT_STATUS_ID) {
-        return false;
-      }
-
-      // Exclude self if editing
-      if (currentTimeOffId && timeOff.timeOffId === currentTimeOffId) {
-        return false;
-      }
-
-      // Only count vacation category
-      if (timeOff.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()) {
-        return false;
-      }
-
-      // Only count time offs starting within the anniversary window
-      const startDate = parseUTCDateAsLocal(timeOff.timeOffStartDate);
-      if (startDate < windowStart || startDate > windowEnd) {
-        return false;
-      }
-
-      return true;
+      if (cancelledStatusId !== null && timeOff.statusId === cancelledStatusId) return false;
+      if (timeOff.statusId === SPLIT_STATUS_ID) return false;
+      if (currentTimeOffId && timeOff.timeOffId === currentTimeOffId) return false;
+      if (timeOff.categoryName.toLowerCase() !== VACATION_CATEGORY_NAME.toLowerCase()) return false;
+      return timeOff.timeOffPeriod === currentPeriod;
     })
     .reduce((sum, timeOff) => sum + timeOff.timeOffDays, 0);
 }

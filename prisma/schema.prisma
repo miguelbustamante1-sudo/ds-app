@@ -151,6 +151,8 @@ model TimeOff {
   timeOffActive          Int                @default(1) @map("tto_active")
   timeOffIsProjected     Boolean            @default(false) @map("tto_is_projected")
   timeOffIsException     Boolean            @default(false) @map("tto_is_exception")
+  timeOffPeriod          String?            @map("tto_period") @db.VarChar(9)
+  timeOffBackfilled      Int                @default(0) @map("tto_backfilled") @db.SmallInt
   statusId               Int?               @map("sta_id")
   changeLogs             TimeOffChangeLog[]
   category               TimeOffCategory?   @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict, map: "fk_tms_time_off_tot")

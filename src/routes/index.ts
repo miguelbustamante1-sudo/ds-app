@@ -41,6 +41,7 @@ import persistenceDataTypeRouter from './persistenceDataType.routes';
 import persistenceTableRouter from './persistenceTable.routes';
 import persistenceJobRouter from './persistenceJob.routes';
 import shiftRouter from './shift.routes';
+import timeoffPeriodMaintenanceRouter from './timeoff-period-maintenance.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -87,6 +88,7 @@ export default function registerRoutes() {
   router.use('/persistence-table', persistenceTableRouter);
   router.use('/persistence-job', persistenceJobRouter);
   router.use('/shift', shiftRouter);
+  router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
 
   return router;
 }

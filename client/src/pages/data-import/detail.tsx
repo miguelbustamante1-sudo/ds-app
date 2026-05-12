@@ -104,6 +104,13 @@ export function DataImportDetailPage() {
     loadJob();
   }, [jobId]);
 
+  // Auto-refresh while the job is in a non-terminal state.
+  useEffect(() => {
+    if (!job || ['SUCCESSFUL', 'FAILED', 'CANCELED'].includes(job.status)) return;
+    const timer = setInterval(loadJob, 3000);
+    return () => clearInterval(timer);
+  }, [job?.status, jobId]);
+
   if (!canRead('PersistenceTemplates')) {
     return (
       <div className="container flex items-center justify-center rounded-lg border border-dashed p-12 mt-6 text-muted-foreground">

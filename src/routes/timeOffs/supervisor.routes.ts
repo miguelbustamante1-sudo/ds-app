@@ -31,6 +31,7 @@ import { computeTimeOffIsException } from '../../services/timeoff/components/Com
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { acknowledgeTimeOffBySupervisor } from '../../services/timeoff/components/AcknowledgeTimeOffBySupervisor';
 import { rejectTimeOffBySupervisor } from '../../services/timeoff/components/RejectTimeOffBySupervisor';
+import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 
 const SPLIT_STATUS_ID = 6;
 
@@ -237,6 +238,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
     );
 
     const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
       teamMemberId,
@@ -248,7 +250,8 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       effectiveStatusId,
       totalDays,
       undefined,
-      isException
+      isException,
+      vacationPeriod
     );
 
     await createTimeOffChangeLog({

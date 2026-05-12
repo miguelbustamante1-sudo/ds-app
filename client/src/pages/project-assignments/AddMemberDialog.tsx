@@ -27,6 +27,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   projectId: number;
   clientId: number | null;
+  projectName: string | null;
   onSuccess: () => void;
 }
 
@@ -43,7 +44,7 @@ interface FormData {
   shiftId: string;
 }
 
-export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuccess }: Props) {
+export function AddMemberDialog({ open, onOpenChange, projectId, clientId, projectName, onSuccess }: Props) {
   const { toast } = useToast();
   const [selectedTm, setSelectedTm] = useState<AvailableForProjectDTO | null>(null);
   const [teamMemberId, setTeamMemberId] = useState('');
@@ -152,6 +153,9 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, onSuc
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Team Member to Project</DialogTitle>
+          {projectName && (
+            <p className="text-sm text-muted-foreground">{projectName}</p>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>

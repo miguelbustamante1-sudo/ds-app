@@ -57,7 +57,8 @@ export async function createTimeOff(
   statusId: number | null = null,
   timeOffDays: number = 0,
   timeOffOriginalId: number | null = null,
-  timeOffIsException: boolean = false
+  timeOffIsException: boolean = false,
+  timeOffPeriod: string | null = null
 ): Promise<TimeOff> {
   return await prisma.timeOff.create({
     data: {
@@ -71,6 +72,7 @@ export async function createTimeOff(
       categoryId,
       statusId,
       timeOffIsException,
+      timeOffPeriod,
     },
   });
 }
@@ -172,6 +174,7 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
       statusName: timeOff.status?.statusName ?? 'Unknown',
       changeLogCount: timeOff._count.changeLogs,
       categoryCountryDaysBefore: categoryCountry?.categoryCountryDaysBefore ?? 0,
+      timeOffPeriod: timeOff.timeOffPeriod,
     };
   });
 }

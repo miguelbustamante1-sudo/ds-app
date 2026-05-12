@@ -42,6 +42,7 @@ export function ProjectAssignmentsPage() {
   const { assignments, loading, loadAssignments } = useProjectAssignments(projectId);
 
   const [clientId, setClientId] = useState<number | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   const [changeRateOpen, setChangeRateOpen] = useState(false);
   const [changeRateRow, setChangeRateRow] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
@@ -239,7 +240,10 @@ export function ProjectAssignmentsPage() {
         <ProjectComboBox
           value={projectId?.toString() ?? ''}
           onValueChange={(val) => setProjectIdParam(val)}
-          onSelectFull={(project) => setClientId(project?.clientId ?? null)}
+          onSelectFull={(project) => {
+            setClientId(project?.clientId ?? null);
+            setProjectName(project?.projectName ?? null);
+          }}
           placeholder="Search and select a project…"
         />
       </div>
@@ -333,6 +337,7 @@ export function ProjectAssignmentsPage() {
           onOpenChange={setAddOpen}
           projectId={projectId}
           clientId={clientId}
+          projectName={projectName}
           onSuccess={() => {
             setAddOpen(false);
             loadAssignments();

@@ -58,33 +58,34 @@ export async function getWorkdayBalance(teamMemberId: number, excludeTimeOffId?:
 
   const excludedIds = [REJECTED_STATUS_ID, SPLIT_STATUS_ID, ...(cancelledId ? [cancelledId] : [])];
 
-  // Sum used days by category — scoped to the current anniversary year so that
-  // time-offs beyond the next anniversary don't reduce the current balance.
-  const activeTimeOffs = await prisma.timeOff.findMany({
+  // Vacation: sum only requests not yet absorbed by Workday (tto_backfilled = 0).
+  // The anniversary year window is no longer used for vacation — tto_backfilled is the sole differentiator.
+  const pendingVacation = await prisma.timeOff.aggregate({
+    where: {
+      teamMemberId,
+      timeOffBackfilled: 0,
+      statusId: { notIn: excludedIds },
+      category: { categoryName: { equals: 'Vacation', mode: 'insensitive' } },
+      ...(excludeTimeOffId ? { NOT: { timeOffId: excludeTimeOffId } } : {}),
+    },
+    _sum: { timeOffDays: true },
+  });
+
+  const usedVacation = Number(pendingVacation._sum.timeOffDays ?? 0);
+
+  // Personal days: keep anniversary-year-scoped calculation unchanged.
+  const personalDayTimeOffs = await prisma.timeOff.findMany({
     where: {
       teamMemberId,
       statusId: { notIn: excludedIds },
       timeOffStartDate: { gte: anniversaryYearStart, lte: anniversaryYearEnd },
+      category: { categoryName: { in: ['Personal Day', 'Personal Days'], mode: 'insensitive' } },
       ...(excludeTimeOffId ? { NOT: { timeOffId: excludeTimeOffId } } : {}),
     },
-    select: {
-      timeOffDays: true,
-      category: { select: { categoryName: true } },
-    },
+    select: { timeOffDays: true },
   });
 
-  let usedVacation = 0;
-  let usedPersonalDays = 0;
-
-  for (const t of activeTimeOffs) {
-    const name = t.category?.categoryName?.trim().toLowerCase() ?? '';
-    const days = Number(t.timeOffDays);
-    if (name === 'vacation') {
-      usedVacation += days;
-    } else if (name === 'personal day' || name === 'personal days') {
-      usedPersonalDays += days;
-    }
-  }
+  const usedPersonalDays = personalDayTimeOffs.reduce((sum, t) => sum + Number(t.timeOffDays), 0);
 
   // Exception days — GT only
   const countryIso = member.country?.countryIso?.toUpperCase() ?? null;

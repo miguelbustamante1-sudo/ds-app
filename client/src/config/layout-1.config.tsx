@@ -253,6 +253,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Team Members', path: '/maintenance/team-members', icon: Users, permission: 'TeamMembers' },
       { title: 'Tier Bands', path: '/maintenance/tier-bands', icon: TrendingUp, permission: 'TierBands' },
       { title: 'Time Off Statuses', path: '/maintenance/time-off-statuses', icon: CheckCircle, permission: 'TimeOffStatuses' },
+      { title: 'Vacation Period Maintenance', path: '/maintenance/timeoff-period-backfill', icon: CalendarCheck, permission: 'TimeOffPeriodMaintenance' },
       { title: 'Type of TimeOff', path: '/maintenance/time-off-types', icon: Umbrella, permission: 'TimeOffCategories' },
       { title: 'Type of TimeOff by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Users', path: '/maintenance/users', icon: UserCircle, permission: 'Users' },

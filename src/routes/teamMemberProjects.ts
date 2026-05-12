@@ -2,6 +2,7 @@ import express from 'express';
 import type { Response } from 'express';
 import type { ProjectAssignment } from '@prisma/client';
 import type { ProjectAssignmentWithDetailsDTO } from '@shared/dto';
+import { error } from '../logger';
 import {
   getAllTeamMemberProjects,
   getTeamMemberProjectById,
@@ -27,6 +28,7 @@ router.get('/active-projects', requirePermission('ProjectAssignments', 'read'), 
     const projects = await getActiveProjects(q);
     res.json(projects);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to fetch active projects' });
   }
 });
@@ -63,6 +65,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
     }));
     res.json(dtos);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to fetch team member projects' });
   }
 });
@@ -101,6 +104,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
     }));
     res.json(dtos);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to fetch team member projects' });
   }
 });
@@ -140,6 +144,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
     }));
     res.json(dtos);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to fetch team member projects by project' });
   }
 });
@@ -155,6 +160,7 @@ router.get('/:id', requirePermission('ProjectAssignments', 'read'), async (req: 
 
     res.json(item);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to fetch team member project' });
   }
 });
@@ -173,14 +179,10 @@ router.post('/', requirePermission('ProjectAssignments', 'create'), async (req: 
       projectAssignmentAllocation: body.projectAssignmentAllocation ? Number(body.projectAssignmentAllocation) : null,
     };
 
-    const supervisorTeamMemberId = req.user?.teamMemberId;
-    if (!supervisorTeamMemberId) {
-      return res.status(403).json({ error: 'Current user is not linked to a team member' });
-    }
-
-    const validation = await validateAssignment(validationInput, supervisorTeamMemberId);
+    const validation = await validateAssignment(validationInput);
     if (!validation.valid) {
-      return res.status(400).json({ errors: validation.errors });
+      const firstMessage = validation.errors[0]?.message ?? 'Validation failed';
+      return res.status(400).json({ error: firstMessage, errors: validation.errors });
     }
 
     const now = new Date();
@@ -214,6 +216,7 @@ router.post('/', requirePermission('ProjectAssignments', 'create'), async (req: 
 
     res.status(201).json(created);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to create team member project' });
   }
 });
@@ -257,6 +260,7 @@ router.put('/:id', requirePermission('ProjectAssignments', 'create'), async (req
 
     res.json(updated);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to update team member project' });
   }
 });
@@ -331,6 +335,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
 
     res.status(201).json({ closed, created });
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to change bill rate' });
   }
 });
@@ -374,6 +379,7 @@ router.patch('/:id', requirePermission('ProjectAssignments', 'create'), async (r
 
     res.json(updated);
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to update team member project' });
   }
 });
@@ -400,6 +406,7 @@ router.delete('/:id', requirePermission('ProjectAssignments', 'delete'), async (
 
     res.status(204).send();
   } catch (err) {
+    error(err);
     res.status(500).json({ error: 'Failed to delete team member project' });
   }
 });
