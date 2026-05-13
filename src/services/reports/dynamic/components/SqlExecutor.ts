@@ -3,6 +3,16 @@ import { getReportById } from '../../../../db/dynamicReports';
 import { assertSqlSafe, extractParams } from './SqlSafetyGuard';
 import type { ExecuteResponseDTO } from '@shared/dto/DynamicReport';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function serializeBigInts(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    result[key] = typeof value === 'bigint' ? Number(value) : value;
+  }
+  return result;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -70,7 +80,7 @@ export async function executeSql(
 
   // Step 8: Return ExecuteResponseDTO
   return {
-    data: rows,
+    data: rows.map(serializeBigInts),
     total,
     page,
     pageSize,

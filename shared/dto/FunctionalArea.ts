@@ -10,10 +10,8 @@ export interface FunctionalAreaDTO {
 
 export interface CreateFunctionalAreaDTO {
   Name: string;
-  countryId?: number | null;
 }
 
 export interface UpdateFunctionalAreaDTO {
   Name?: string;
-  countryId?: number | null;
 }

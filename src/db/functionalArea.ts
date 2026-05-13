@@ -16,10 +16,7 @@ export async function getFunctionalAreaById(id: number): Promise<FunctionalArea 
 
 export async function createFunctionalArea(data: CreateFunctionalAreaDTO): Promise<FunctionalArea> {
   return await prisma.functionalArea.create({
-    data: {
-      Name: data.Name,
-      countryId: data.countryId ?? null,
-    },
+    data: { Name: data.Name },
   });
 }
 
@@ -28,7 +25,6 @@ export async function updateFunctionalArea(id: number, data: UpdateFunctionalAre
     where: { Id: id },
     data: {
       ...(data.Name !== undefined ? { Name: data.Name } : {}),
-      ...(data.countryId !== undefined ? { countryId: data.countryId } : {}),
     },
   });
 }

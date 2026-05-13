@@ -83,13 +83,6 @@ export function FunctionalAreaPage() {
         meta: { headerTitle: 'Name', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
-        accessorKey: 'countryId',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Country ID" />,
-        cell: ({ row }) => (row.original.countryId != null ? row.original.countryId : '—'),
-        size: 120,
-        meta: { headerTitle: 'Country ID', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (

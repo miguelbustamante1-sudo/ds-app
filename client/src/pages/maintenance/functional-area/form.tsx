@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import type { FunctionalAreaDTO, CreateFunctionalAreaDTO, UpdateFunctionalAreaDTO, CountryDTO } from '@shared/dto';
+import type { FunctionalAreaDTO, CreateFunctionalAreaDTO, UpdateFunctionalAreaDTO } from '@shared/dto';
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
-import { apiGet, apiPost, apiPut } from '@/lib/api';
+import { apiPost, apiPut } from '@/lib/api';
 
 interface FunctionalAreaFormData {
   Name: string;
-  countryId: string;
 }
 
 interface FunctionalAreaFormDialogProps {
@@ -37,66 +35,32 @@ export function FunctionalAreaFormDialog({
   const { toast } = useToast();
   const isEditing = !!record;
 
-  const [countries, setCountries] = useState<CountryDTO[]>([]);
-  const [loadingCountries, setLoadingCountries] = useState(false);
-
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FunctionalAreaFormData>({
-    defaultValues: {
-      Name: '',
-      countryId: '',
-    },
+    defaultValues: { Name: '' },
   });
 
-  const watchedCountryId = watch('countryId');
-
-  const countryOptions: ComboBoxOption[] = countries.map((c) => ({
-    value: c.countryId.toString(),
-    label: c.countryName,
-  }));
-
   useEffect(() => {
     if (open) {
-      setLoadingCountries(true);
-      apiGet<CountryDTO[]>('/api/countries')
-        .then((data) => setCountries(data))
-        .catch(() => toast({ title: 'Error', description: 'Failed to load countries', variant: 'destructive' }))
-        .finally(() => setLoadingCountries(false));
-    }
-  }, [open, toast]);
-
-  useEffect(() => {
-    if (open) {
-      reset({
-        Name: record?.Name ?? '',
-        countryId: record?.countryId?.toString() ?? '',
-      });
+      reset({ Name: record?.Name ?? '' });
     }
   }, [open, record, reset]);
 
   const onSubmit = async (data: FunctionalAreaFormData) => {
     try {
       if (isEditing) {
-        const payload: UpdateFunctionalAreaDTO = {
-          Name: data.Name.trim(),
-          countryId: data.countryId ? Number(data.countryId) : null,
-        };
+        const payload: UpdateFunctionalAreaDTO = { Name: data.Name.trim() };
         await apiPut<FunctionalAreaDTO, UpdateFunctionalAreaDTO>(
           `/api/functional-areas/${record.Id}`,
           payload,
         );
         toast({ title: 'Success', description: 'Functional area updated successfully' });
       } else {
-        const payload: CreateFunctionalAreaDTO = {
-          Name: data.Name.trim(),
-          countryId: data.countryId ? Number(data.countryId) : null,
-        };
+        const payload: CreateFunctionalAreaDTO = { Name: data.Name.trim() };
         await apiPost<FunctionalAreaDTO, CreateFunctionalAreaDTO>('/api/functional-areas', payload);
         toast({ title: 'Success', description: 'Functional area created successfully' });
       }
@@ -138,19 +102,6 @@ export function FunctionalAreaFormDialog({
                 })}
               />
               {errors.Name && <p className="text-sm text-destructive">{errors.Name.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="countryId">Country</Label>
-              <ComboBox
-                options={countryOptions}
-                value={watchedCountryId}
-                onValueChange={(value) => setValue('countryId', value)}
-                placeholder="Select a country..."
-                searchPlaceholder="Search countries..."
-                emptyMessage="No countries found."
-                disabled={loadingCountries}
-              />
             </div>
           </div>
 

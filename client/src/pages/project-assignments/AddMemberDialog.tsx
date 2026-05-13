@@ -86,9 +86,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
     },
   });
 
-  const functionalAreas = selectedTm?.countryId
-    ? allFunctionalAreas.filter((fa) => fa.countryId === selectedTm.countryId)
-    : allFunctionalAreas;
+  const functionalAreas = allFunctionalAreas;
 
   const handleTmSelect = (tm: AvailableForProjectDTO) => {
     setSelectedTm(tm);
