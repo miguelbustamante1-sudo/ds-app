@@ -18,7 +18,7 @@ import {
   getTeamMemberTimeOffBreakdown,
   getAllTeamTimeOffs,
 } from '../../services/timeoff/supervisor';
-import { createTimeOffChangeLog } from '../../services/timeoff/changelog';
+import { createTimeOffChangeLog, fetchRawTimeOffRow } from '../../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCalculation';
 import { getStatusByName } from '../../db/timeOffStatuses';
 import { resolveAuthUser, parseIdParam, type ResolvedAuthRequest } from './helpers';
@@ -254,16 +254,13 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       vacationPeriod
     );
 
+    const newRaw = await fetchRawTimeOffRow(created.timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId: created.timeOffId,
       comment: comment || 'Time-off created by supervisor',
       oldValues: null,
-      newValues: {
-        timeOffStartDate,
-        timeOffEndDate,
-        categoryId,
-        statusId: effectiveStatusId,
-      },
+      newValues: newRaw,
       createdByUserId: userId,
     });
 
@@ -429,19 +426,24 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
 
     const logComment = comment?.trim() || 'SV vacation split request created by supervisor';
 
+    const [rawA, rawB] = await Promise.all([
+      fetchRawTimeOffRow(createdA.timeOffId),
+      fetchRawTimeOffRow(createdB.timeOffId),
+    ]);
+
     await Promise.all([
       createTimeOffChangeLog({
         timeOffId: createdA.timeOffId,
         comment: logComment,
         oldValues: null,
-        newValues: { timeOffStartDate: periodA.startDate, timeOffEndDate: periodA.endDate, categoryId, statusId: effectiveStatusId },
+        newValues: rawA,
         createdByUserId: userId,
       }),
       createTimeOffChangeLog({
         timeOffId: createdB.timeOffId,
         comment: logComment,
         oldValues: null,
-        newValues: { timeOffStartDate: periodB.startDate, timeOffEndDate: periodB.endDate, categoryId, statusId: effectiveStatusId },
+        newValues: rawB,
         createdByUserId: userId,
       }),
     ]);
@@ -751,6 +753,8 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       : null;
     const categoryName = categoryRecord?.categoryName ?? '';
 
+    const oldRaw = await fetchRawTimeOffRow(timeOffId);
+
     const updated = await updateTimeOff(
       timeOffId,
       employeeTeamMemberId,
@@ -762,11 +766,13 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       cancelledStatus.statusId
     );
 
+    const newRaw = await fetchRawTimeOffRow(timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId,
       comment: comment.trim(),
-      oldValues: { statusId: timeOff.statusId },
-      newValues: { statusId: cancelledStatus.statusId },
+      oldValues: oldRaw,
+      newValues: newRaw,
       createdByUserId: userId,
     });
 
@@ -862,6 +868,8 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
     ]);
     const categoryName = categoryRecord?.categoryName ?? '';
 
+    const oldRaw = await fetchRawTimeOffRow(timeOffId);
+
     const updated = await updateTimeOff(
       timeOffId,
       timeOff.teamMemberId,
@@ -875,19 +883,13 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       isException
     );
 
+    const newRaw = await fetchRawTimeOffRow(timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId,
       comment: comment || 'Time-off updated by supervisor',
-      oldValues: {
-        timeOffStartDate: timeOff.timeOffStartDate,
-        timeOffEndDate: timeOff.timeOffEndDate,
-        categoryId: timeOff.categoryId,
-      },
-      newValues: {
-        timeOffStartDate,
-        timeOffEndDate,
-        categoryId,
-      },
+      oldValues: oldRaw,
+      newValues: newRaw,
       createdByUserId: userId,
     });
 

@@ -51,6 +51,8 @@ export interface InsertOptions {
   csvBuffer:                  Buffer;
   /** Whether the CSV file contains a header row. */
   hasCsvHeader:               boolean;
+  /** Field separator character (default: ','). */
+  separator:                  string;
   /** Already-computed validation result (must be valid). */
   validationResult:           CsvValidationResult;
   errorHandlingStrategy:      string;
@@ -114,6 +116,7 @@ export class CsvInsertService {
       columns,
       csvBuffer,
       hasCsvHeader,
+      separator,
       errorHandlingStrategy,
       duplicatesHandlingStrategy,
       jobId,
@@ -129,7 +132,7 @@ export class CsvInsertService {
     // hasCsvHeader=true  -> match by csvColumnName against the header row.
     // hasCsvHeader=false -> use csvColumnIndex directly.
     const headerLine  = allLines[0] ?? '';
-    const headerCells = this.splitCsvRow(headerLine);
+    const headerCells = this.splitCsvRow(headerLine, separator);
 
     const headerPositionMap = hasCsvHeader
       ? new Map<string, number>(headerCells.map((h, i) => [h.trim().toLowerCase(), i]))
@@ -188,13 +191,13 @@ export class CsvInsertService {
 
     type OrderedColumn = (typeof orderedColumns)[number];
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_ROLLBACK) {
-      return this.insertWithTransaction(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
+      return this.insertWithTransaction(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, separator, prefix, signal, checkCancel);
     }
     if (errorHandlingStrategy === STOP_ON_FIRST_ERROR_AND_COMMIT) {
-      return this.insertStopAndCommit(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
+      return this.insertStopAndCommit(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, separator, prefix, signal, checkCancel);
     }
     console.warn(`${prefix} Error handling is default`);
-    return this.insertContinueOnError(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, prefix, signal, checkCancel);
+    return this.insertContinueOnError(dataRows, orderedColumns as (InsertColumn & { csvOffset: number })[], buildSql, buildBatchSql, separator, prefix, signal, checkCancel);
   }
 
   // --- Transaction strategy (abort + rollback on first error) -----------------
@@ -204,6 +207,7 @@ export class CsvInsertService {
     columns:       (InsertColumn & { csvOffset: number })[],
     buildSql:      (values: (string | null)[]) => string,
     buildBatchSql: (batchValues: (string | null)[][]) => string,
+    separator:     string,
     prefix:        string,
     signal?:       AbortSignal,
     checkCancel?:  () => Promise<boolean>,
@@ -212,7 +216,7 @@ export class CsvInsertService {
 
     const extractValues = (row: string): (string | null)[] =>
       columns.map((col) => {
-        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
+        const raw = (this.splitCsvRow(row, separator)[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
@@ -267,6 +271,7 @@ export class CsvInsertService {
     columns:       (InsertColumn & { csvOffset: number })[],
     buildSql:      (values: (string | null)[]) => string,
     buildBatchSql: (batchValues: (string | null)[][]) => string,
+    separator:     string,
     prefix:        string,
     signal?:       AbortSignal,
     checkCancel?:  () => Promise<boolean>,
@@ -275,7 +280,7 @@ export class CsvInsertService {
 
     const extractValues = (row: string): (string | null)[] =>
       columns.map((col) => {
-        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
+        const raw = (this.splitCsvRow(row, separator)[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
@@ -321,6 +326,7 @@ export class CsvInsertService {
     columns:       (InsertColumn & { csvOffset: number })[],
     buildSql:      (values: (string | null)[]) => string,
     buildBatchSql: (batchValues: (string | null)[][]) => string,
+    separator:     string,
     prefix:        string,
     signal?:       AbortSignal,
     checkCancel?:  () => Promise<boolean>,
@@ -331,7 +337,7 @@ export class CsvInsertService {
 
     const extractValues = (row: string): (string | null)[] =>
       columns.map((col) => {
-        const raw = (this.splitCsvRow(row)[col.csvOffset] ?? '').trim();
+        const raw = (this.splitCsvRow(row, separator)[col.csvOffset] ?? '').trim();
         return raw === '' ? null : raw;
       });
 
@@ -469,7 +475,7 @@ export class CsvInsertService {
 
   // --- CSV row parser (same as CsvValidationService - handles quoted fields) ---
 
-  private splitCsvRow(row: string): string[] {
+  private splitCsvRow(row: string, separator: string = ','): string[] {
     const cells: string[] = [];
     let current  = '';
     let inQuotes = false;
@@ -483,9 +489,15 @@ export class CsvInsertService {
         else if (ch === '"')            { inQuotes = false; }
         else                            { current += ch; }
       } else {
-        if      (ch === '"') { inQuotes = true; }
-        else if (ch === ',') { cells.push(current); current = ''; }
-        else                 { current += ch; }
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (row.startsWith(separator, i)) {
+          cells.push(current);
+          current = '';
+          i += separator.length - 1;
+        } else {
+          current += ch;
+        }
       }
     }
 

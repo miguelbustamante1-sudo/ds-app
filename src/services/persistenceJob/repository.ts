@@ -38,6 +38,7 @@ export interface PersistenceJobRecord {
     description:                string | null;
     enabled:                    boolean;
     hasCsvHeader:               boolean;
+    separator:                  string;
     truncateBeforeImport:       boolean;
     errorHandlingStrategy:      string;
     duplicatesHandlingStrategy: string;

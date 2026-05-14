@@ -57,11 +57,11 @@ function buildJoins(): string {
     LEFT  JOIN ds.cou_countries        cou ON cou.cou_id  = tm.cou_id
     LEFT  JOIN ds.tbl_users            usr ON usr.usr_id  = toc.toc_created_by
     -- Resolve old category / status names from JSON
-    LEFT  JOIN ds.tot_time_off_types    oc  ON oc.tot_id   = (toc.toc_old_values->>'categoryId')::int
-    LEFT  JOIN ds.tbl_to_statuses      os  ON os.sta_id   = (toc.toc_old_values->>'statusId')::int
+    LEFT  JOIN ds.tot_time_off_types    oc  ON oc.tot_id   = (toc.toc_old_values->>'tot_id')::int
+    LEFT  JOIN ds.tbl_to_statuses      os  ON os.sta_id   = (toc.toc_old_values->>'sta_id')::int
     -- Resolve new category / status names from JSON
-    LEFT  JOIN ds.tot_time_off_types    nc  ON nc.tot_id   = (toc.toc_new_values->>'categoryId')::int
-    LEFT  JOIN ds.tbl_to_statuses      ns  ON ns.sta_id   = (toc.toc_new_values->>'statusId')::int
+    LEFT  JOIN ds.tot_time_off_types    nc  ON nc.tot_id   = (toc.toc_new_values->>'tot_id')::int
+    LEFT  JOIN ds.tbl_to_statuses      ns  ON ns.sta_id   = (toc.toc_new_values->>'sta_id')::int
   `;
 }
 
@@ -179,8 +179,8 @@ export async function getTimeOffChangeLog(
     usr.usr_name                                             AS changed_by_name,
     toc.toc_comment                                          AS comment,
     -- Original values (null when toc_old_values is null)
-    (toc.toc_old_values->>'startDate')                       AS orig_start_date,
-    (toc.toc_old_values->>'endDate')                         AS orig_end_date,
+    (toc.toc_old_values->>'tto_stadat')                        AS orig_start_date,
+    (toc.toc_old_values->>'tto_enddat')                        AS orig_end_date,
     (toc.toc_old_values->>'days')::numeric                   AS orig_days,
     oc.tot_name                                              AS orig_category,
     os.sta_name                                              AS orig_status,
@@ -190,8 +190,8 @@ export async function getTimeOffChangeLog(
       ELSE NULL
     END                                                      AS orig_active,
     -- New values
-    (toc.toc_new_values->>'startDate')                       AS new_start_date,
-    (toc.toc_new_values->>'endDate')                         AS new_end_date,
+    (toc.toc_new_values->>'tto_stadat')                        AS new_start_date,
+    (toc.toc_new_values->>'tto_enddat')                        AS new_end_date,
     (toc.toc_new_values->>'days')::numeric                   AS new_days,
     nc.tot_name                                              AS new_category,
     ns.sta_name                                              AS new_status,

@@ -68,11 +68,19 @@ interface PersistenceTemplateFormData {
   name: string;
   description: string;
   hasCsvHeader: boolean;
+  separator: string;
   truncateBeforeImport: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
   targetTable: string;
 }
+
+const SEPARATOR_OPTIONS = [
+  { value: ',',  label: 'Comma (,)' },
+  { value: '\t', label: 'Tab' },
+  { value: ';',  label: 'Semicolon (;)' },
+  { value: '|',  label: 'Pipe (|)' },
+];
 
 interface PersistenceTemplateFormDialogProps {
   open: boolean;
@@ -116,6 +124,7 @@ export function PersistenceTemplateFormDialog({
       name: '',
       description: '',
       hasCsvHeader: false,
+      separator: ',',
       truncateBeforeImport: false,
       errorHandlingStrategy: ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
       duplicatesHandlingStrategy: DuplicatesHandlingStrategy.INSERT,
@@ -205,6 +214,7 @@ export function PersistenceTemplateFormDialog({
           name: template.name,
           description: template.description ?? '',
           hasCsvHeader: savedCsvHeader,
+          separator: template.separator ?? ',',
           truncateBeforeImport: template.truncateBeforeImport ?? false,
           errorHandlingStrategy:
             template.errorHandlingStrategy ?? ErrorHandlingStrategy.STOP_ON_FIRST_ERROR_AND_COMMIT,
@@ -279,6 +289,7 @@ export function PersistenceTemplateFormDialog({
           name: data.name.trim(),
           description: data.description.trim() || null,
           hasCsvHeader: data.hasCsvHeader,
+          separator: data.separator || ',',
           truncateBeforeImport: data.truncateBeforeImport,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
@@ -292,6 +303,7 @@ export function PersistenceTemplateFormDialog({
           name: data.name.trim(),
           description: data.description.trim() || null,
           hasCsvHeader: data.hasCsvHeader,
+          separator: data.separator || ',',
           truncateBeforeImport: data.truncateBeforeImport,
           errorHandlingStrategy: data.errorHandlingStrategy,
           duplicatesHandlingStrategy: data.duplicatesHandlingStrategy,
@@ -396,6 +408,29 @@ export function PersistenceTemplateFormDialog({
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Separator */}
+            <div className="space-y-2">
+              <Label htmlFor="separator">Separator</Label>
+              <Controller
+                name="separator"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="separator" className="w-48">
+                      <SelectValue placeholder="Select separator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SEPARATOR_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {/* Truncate Before Import */}

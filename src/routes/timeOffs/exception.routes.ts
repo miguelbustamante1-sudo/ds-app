@@ -6,7 +6,7 @@ import type { ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
 import { requirePermission } from '../../middleware/auth';
 import { validateExceptionTimeOff } from '../../services/timeoff/validation/exceptionValidation';
 import { DEFAULTS } from '../../services/timeoff/validation';
-import { createTimeOffChangeLog } from '../../services/timeoff/changelog';
+import { createTimeOffChangeLog, fetchRawTimeOffRow } from '../../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCalculation';
 import { getStatusByName } from '../../db/timeOffStatuses';
 import { resolveAuthUser, parseIdParam, type ResolvedAuthRequest } from './helpers';
@@ -179,11 +179,13 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
       vacationPeriod
     );
 
+    const newRaw = await fetchRawTimeOffRow(created.timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId: created.timeOffId,
       comment: comment || 'Time-off exception entry created by BSA',
       oldValues: null,
-      newValues: { timeOffStartDate, timeOffEndDate, categoryId, statusId: effectiveStatusId },
+      newValues: newRaw,
       createdByUserId: userId,
     });
 
@@ -300,6 +302,8 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
 
     const isException = await computeTimeOffIsException(timeOff.teamMemberId, categoryId, totalDays);
 
+    const oldRaw = await fetchRawTimeOffRow(timeOffId);
+
     const updated = await updateTimeOff(
       timeOffId,
       timeOff.teamMemberId,
@@ -313,11 +317,13 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       isException
     );
 
+    const newRaw = await fetchRawTimeOffRow(timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId,
       comment: comment || 'Time-off exception entry updated by BSA',
-      oldValues: { timeOffStartDate: timeOff.timeOffStartDate, timeOffEndDate: timeOff.timeOffEndDate, categoryId: timeOff.categoryId },
-      newValues: { timeOffStartDate, timeOffEndDate, categoryId },
+      oldValues: oldRaw,
+      newValues: newRaw,
       createdByUserId: userId,
     });
 
@@ -364,6 +370,8 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
       return res.status(400).json({ error: 'Time-off is already cancelled' });
     }
 
+    const oldRaw = await fetchRawTimeOffRow(timeOffId);
+
     const updated = await updateTimeOff(
       timeOffId,
       timeOff.teamMemberId,
@@ -375,11 +383,13 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
       cancelledStatus.statusId
     );
 
+    const newRaw = await fetchRawTimeOffRow(timeOffId);
+
     await createTimeOffChangeLog({
       timeOffId,
       comment: comment.trim(),
-      oldValues: { statusId: timeOff.statusId },
-      newValues: { statusId: cancelledStatus.statusId },
+      oldValues: oldRaw,
+      newValues: newRaw,
       createdByUserId: userId,
     });
 

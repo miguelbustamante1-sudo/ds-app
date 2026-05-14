@@ -37,8 +37,8 @@ import { decodeCsvArrayBuffer } from '@/lib/decodeCsvFile';
 
 const CSV_PREVIEW_ROWS = 25;
 
-/** Splits a single CSV line respecting double-quoted fields. */
-function parseCsvLine(line: string): string[] {
+/** Splits a single delimited line respecting double-quoted fields. */
+function parseCsvLine(line: string, separator: string = ','): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -46,16 +46,16 @@ function parseCsvLine(line: string): string[] {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
-      // Escaped quote inside a quoted field
       if (inQuotes && line[i + 1] === '"') {
         current += '"';
         i++;
       } else {
         inQuotes = !inQuotes;
       }
-    } else if (ch === ',' && !inQuotes) {
+    } else if (!inQuotes && line.startsWith(separator, i)) {
       result.push(current);
       current = '';
+      i += separator.length - 1;
     } else {
       current += ch;
     }
@@ -69,7 +69,7 @@ interface CsvPreview {
   rows: string[][];
 }
 
-function parseCsvPreview(text: string): CsvPreview {
+function parseCsvPreview(text: string, separator: string = ','): CsvPreview {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trimEnd())
@@ -77,9 +77,9 @@ function parseCsvPreview(text: string): CsvPreview {
 
   if (lines.length === 0) return { headers: [], rows: [] };
 
-  const headers = parseCsvLine(lines[0] ?? '');
+  const headers = parseCsvLine(lines[0] ?? '', separator);
   const dataLines = lines.slice(1).slice(0, CSV_PREVIEW_ROWS);
-  const rows = dataLines.map(parseCsvLine);
+  const rows = dataLines.map((l) => parseCsvLine(l, separator));
   return { headers, rows };
 }
 
@@ -193,6 +193,7 @@ export function DataImportNewPage() {
 
   // Selected CSV file
   const [file, setFile] = useState<File | null>(null);
+  const [fileText, setFileText] = useState<string | null>(null);
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
 
   // Cell-level validation errors for the preview table
@@ -264,6 +265,17 @@ export function DataImportNewPage() {
       .catch(() => {/* non-critical: validation simply skips if dataTypes is empty */});
   }, []);
 
+  // -- Re-parse file when the template changes (separator may differ) -----------
+
+  useEffect(() => {
+    if (!fileText) return;
+    const tpl = selectedTemplateId
+      ? templates.find((t) => String(t.id) === selectedTemplateId) ?? null
+      : null;
+    const sep = tpl?.separator ?? ',';
+    setCsvPreview(parseCsvPreview(fileText, sep));
+  }, [selectedTemplateId, templates]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // -- Re-run validation whenever preview or template changes -------------------
 
   useEffect(() => {
@@ -288,20 +300,27 @@ export function DataImportNewPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
-    // Reset the input value so the same file can be picked again
     e.target.value = '';
     setFile(selected);
 
     if (!selected) {
+      setFileText(null);
       setCsvPreview(null);
       return;
     }
+
+    const tpl = selectedTemplateId
+      ? templates.find((t) => String(t.id) === selectedTemplateId) ?? null
+      : null;
+    const sep = tpl?.separator ?? ',';
 
     const reader = new FileReader();
     reader.onload = (ev) => {
       const arrayBuffer = ev.target?.result;
       if (arrayBuffer instanceof ArrayBuffer) {
-        setCsvPreview(parseCsvPreview(decodeCsvArrayBuffer(arrayBuffer)));
+        const text = decodeCsvArrayBuffer(arrayBuffer);
+        setFileText(text);
+        setCsvPreview(parseCsvPreview(text, sep));
       }
     };
     reader.readAsArrayBuffer(selected);
@@ -457,8 +476,16 @@ export function DataImportNewPage() {
                   ? templates.find((t) => String(t.id) === selectedTemplateId)
                   : null;
                 if (!tpl) return null;
+                const sepLabel = tpl.separator === '\t' ? 'Tab'
+                  : tpl.separator === ';' ? 'Semicolon (;)'
+                  : tpl.separator === '|' ? 'Pipe (|)'
+                  : 'Comma (,)';
                 return (
-                  <div className="grid grid-cols-3 gap-4 pt-1">
+                  <div className="grid grid-cols-4 gap-4 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Separator</Label>
+                      <p className="text-sm font-medium">{sepLabel}</p>
+                    </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wide">Duplicate Handling</Label>
                       <p className="text-sm font-medium">
@@ -491,13 +518,13 @@ export function DataImportNewPage() {
 
         {/* -- File picker ----------------------------------------------------- */}
         <section>
-          <h3 className="text-base font-semibold mb-1">2. Select CSV File</h3>
-          <p className="text-xs text-muted-foreground mb-3">Choose a CSV file to preview and validate it against the selected template.</p>
+          <h3 className="text-base font-semibold mb-1">2. Select File</h3>
+          <p className="text-xs text-muted-foreground mb-3">Choose a file to preview and validate it against the selected template. Supported formats: CSV, TSV, TXT.</p>
           <div className="rounded-lg border p-5 space-y-4">
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv,application/vnd.ms-excel"
+              accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values,application/vnd.ms-excel"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -509,7 +536,7 @@ export function DataImportNewPage() {
                 title={!selectedTemplateId ? 'Select a template first' : undefined}
               >
                 <Upload size={16} className="me-1" />
-                Open CSV File
+                Open File
               </Button>
               {file && (
                 <span className="text-sm text-muted-foreground truncate max-w-xs">
@@ -861,8 +888,17 @@ export function DataImportNewPage() {
                     <p className="text-sm text-muted-foreground">{draftTemplate.description}</p>
                   )}
 
-                  {/* Duplicate handling + Error handling + Includes CSV Header + Target Table */}
-                  <div className="grid grid-cols-4 gap-4">
+                  {/* Duplicate handling + Error handling + Includes CSV Header + Separator + Target Table */}
+                  <div className="grid grid-cols-5 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Separator</Label>
+                      <p className="text-sm font-medium">
+                        {draftTemplate.separator === '\t' ? 'Tab'
+                          : draftTemplate.separator === ';' ? 'Semicolon (;)'
+                          : draftTemplate.separator === '|' ? 'Pipe (|)'
+                          : 'Comma (,)'}
+                      </p>
+                    </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wide">Includes CSV Header</Label>
                       <p className="text-sm font-medium">

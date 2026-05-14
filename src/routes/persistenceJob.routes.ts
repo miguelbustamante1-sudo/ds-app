@@ -34,14 +34,19 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
   fileFilter: (_req, file, cb) => {
+    const name = file.originalname.toLowerCase();
     if (
       file.mimetype === 'text/csv' ||
+      file.mimetype === 'text/plain' ||
+      file.mimetype === 'text/tab-separated-values' ||
       file.mimetype === 'application/vnd.ms-excel' ||
-      file.originalname.toLowerCase().endsWith('.csv')
+      name.endsWith('.csv') ||
+      name.endsWith('.tsv') ||
+      name.endsWith('.txt')
     ) {
       cb(null, true);
     } else {
-      cb(new Error('Only CSV files are accepted'));
+      cb(new Error('Only CSV, TSV, or plain text files are accepted'));
     }
   },
 });
@@ -159,7 +164,7 @@ router.post(
     } catch (err) {
       if (
         err instanceof Error &&
-        err.message === 'Only CSV files are accepted'
+        err.message === 'Only CSV, TSV, or plain text files are accepted'
       ) {
         res.status(400).json({ error: err.message });
         return;

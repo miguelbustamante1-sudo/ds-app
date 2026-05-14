@@ -55,6 +55,17 @@ export async function createTimeOffChangeLog(
 }
 
 /**
+ * Fetch the raw DB row from tbl_tms_time_off using actual column names.
+ * Used to snapshot old/new state for changelog entries.
+ */
+export async function fetchRawTimeOffRow(timeOffId: number): Promise<Record<string, unknown> | null> {
+  const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
+    SELECT * FROM ds.tbl_tms_time_off WHERE tto_id = ${timeOffId}
+  `;
+  return rows[0] ?? null;
+}
+
+/**
  * Get all changelog entries for a time-off request
  */
 export async function getTimeOffChangeLog(

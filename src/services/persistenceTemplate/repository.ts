@@ -217,6 +217,7 @@ export interface PersistenceTemplateRecord {
   targetTable: string | null;
   enabled: boolean;
   hasCsvHeader: boolean;
+  separator: string;
   truncateBeforeImport: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;
@@ -297,6 +298,7 @@ export async function updatePersistenceTemplate(
         targetTable: input.targetTable ?? null,
         enabled: input.enabled ?? true,
         hasCsvHeader: input.hasCsvHeader ?? false,
+        separator: input.separator ?? ',',
         truncateBeforeImport: input.truncateBeforeImport ?? false,
         errorHandlingStrategy: input.errorHandlingStrategy ?? DEFAULT_ERROR_HANDLING_STRATEGY,
         duplicatesHandlingStrategy: input.duplicatesHandlingStrategy ?? DEFAULT_DUPLICATES_HANDLING_STRATEGY,
@@ -400,6 +402,7 @@ export async function createPersistenceTemplate(
       targetTable: input.targetTable ?? null,
       enabled: input.enabled ?? true,
       hasCsvHeader: input.hasCsvHeader ?? false,
+      separator: input.separator ?? ',',
       truncateBeforeImport: input.truncateBeforeImport ?? false,
       errorHandlingStrategy: input.errorHandlingStrategy ?? DEFAULT_ERROR_HANDLING_STRATEGY,
       duplicatesHandlingStrategy: input.duplicatesHandlingStrategy ?? DEFAULT_DUPLICATES_HANDLING_STRATEGY,

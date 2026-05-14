@@ -73,7 +73,7 @@ export class PersistenceJobService {
     //    so we can check before even creating the job record.
     const templateRow = await prisma.persistenceTemplate.findUnique({
       where:  { id: persistenceTemplateId },
-      select: { targetTable: true, hasCsvHeader: true },
+      select: { targetTable: true, hasCsvHeader: true, separator: true },
     });
 
     if (templateRow?.targetTable) {
@@ -123,6 +123,7 @@ export class PersistenceJobService {
           jobId,
           stopOnFirstError,
           template.hasCsvHeader,
+          template.separator ?? ',',
         );
 
         if (!validationResult.valid) {
@@ -172,6 +173,7 @@ export class PersistenceJobService {
           columns:                    template.columns,
           csvBuffer,
           hasCsvHeader:               template.hasCsvHeader,
+          separator:                  template.separator ?? ',',
           validationResult,
           errorHandlingStrategy:      template.errorHandlingStrategy,
           duplicatesHandlingStrategy: template.duplicatesHandlingStrategy,

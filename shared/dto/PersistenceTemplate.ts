@@ -39,6 +39,7 @@ export interface CreatePersistenceTemplateInput {
   targetTable?: string | null;
   enabled?: boolean;
   hasCsvHeader?: boolean;
+  separator?: string;
   truncateBeforeImport?: boolean;
   errorHandlingStrategy?: ErrorHandlingStrategy;
   duplicatesHandlingStrategy?: DuplicatesHandlingStrategy;
@@ -52,6 +53,7 @@ export interface UpdatePersistenceTemplateInput {
   targetTable?: string | null;
   enabled?: boolean;
   hasCsvHeader?: boolean;
+  separator?: string;
   truncateBeforeImport?: boolean;
   errorHandlingStrategy?: ErrorHandlingStrategy;
   duplicatesHandlingStrategy?: DuplicatesHandlingStrategy;
@@ -81,6 +83,7 @@ export interface PersistenceTemplateDTO {
   targetTable: string | null;
   enabled: boolean;
   hasCsvHeader: boolean;
+  separator: string;
   truncateBeforeImport: boolean;
   errorHandlingStrategy: ErrorHandlingStrategy;
   duplicatesHandlingStrategy: DuplicatesHandlingStrategy;

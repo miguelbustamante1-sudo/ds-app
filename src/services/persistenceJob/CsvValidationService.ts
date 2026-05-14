@@ -84,6 +84,7 @@ export class CsvValidationService {
     jobId:            number,
     stopOnFirstError: boolean = false,
     hasCsvHeader:     boolean = true,
+    separator:        string  = ',',
   ): CsvValidationResult {
     const prefix  = `[CsvValidation][job=${jobId}]`;
     const text    = decodeCsvBuffer(csvBuffer);
@@ -103,7 +104,7 @@ export class CsvValidationService {
 
     // -- Header row (always the first raw line) --------------------------------
     const headerRow   = rawRows[0] ?? '';
-    const headerCells = this.splitCsvRow(headerRow);
+    const headerCells = this.splitCsvRow(headerRow, separator);
 
     console.log(`${prefix} hasCsvHeader=${hasCsvHeader} Header: [${headerCells.join(' | ')}]`);
 
@@ -146,7 +147,7 @@ export class CsvValidationService {
     outer:
     for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
       const dataRow   = dataRows[rowIdx]!;
-      const cells     = this.splitCsvRow(dataRow);
+      const cells     = this.splitCsvRow(dataRow, separator);
       const rowNumber = rowIdx + 1; // 1-based
 
       // console.log(`${prefix} Row ${rowNumber}: [${cells.join(' | ')}]`);
@@ -234,7 +235,7 @@ export class CsvValidationService {
 
   // --- CSV row parser (handles RFC-4180 quoted fields) -------------------------
 
-  private splitCsvRow(row: string): string[] {
+  private splitCsvRow(row: string, separator: string = ','): string[] {
     const cells: string[] = [];
     let current  = '';
     let inQuotes = false;
@@ -255,9 +256,10 @@ export class CsvValidationService {
       } else {
         if (ch === '"') {
           inQuotes = true;
-        } else if (ch === ',') {
+        } else if (row.startsWith(separator, i)) {
           cells.push(current);
           current = '';
+          i += separator.length - 1;
         } else {
           current += ch;
         }
