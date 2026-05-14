@@ -592,6 +592,9 @@ router.post("/dev-login", async (req: AuthenticatedRequest, res: Response) => {
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { algorithm: "HS256" });
 
+    // Update last login
+    await userService.getUserById(user.id); // This triggers the last login update
+
     // Calculate expiration timestamp
     const expiresIn = 86400; // 24 hours
     const expiresAt = Date.now() + expiresIn * 1000;
