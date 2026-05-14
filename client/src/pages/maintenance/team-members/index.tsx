@@ -145,6 +145,13 @@ export function TeamMembersPage() {
         meta: { headerTitle: 'Workday ID', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
+        accessorKey: 'teamMemberXid',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="External ID" />,
+        cell: ({ row }) => row.original.teamMemberXid || '-',
+        size: 120,
+        meta: { headerTitle: 'External ID', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
         accessorKey: 'teamMemberEndDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
         cell: ({ row }) => formatDate(row.original.teamMemberEndDate),

@@ -113,6 +113,18 @@ export const TimeOffValidationErrors = {
     metadata: { categoryName, requestedDays, maxDays },
   }),
 
+  START_DATE_ON_HOLIDAY: (holidayName: string, startDate: Date): ValidationError => ({
+    code: 'START_DATE_ON_HOLIDAY',
+    message: `Start date falls on ${holidayName}, a public holiday. Please choose a different start date.`,
+    metadata: { holidayName, startDate },
+  }),
+
+  START_DATE_ON_REPLACEMENT_DAY: (holidayName: string, replacementDate: Date): ValidationError => ({
+    code: 'START_DATE_ON_REPLACEMENT_DAY',
+    message: `Start date is a replacement day (swapped from ${holidayName}). This is a personal holiday and cannot be used as a start date.`,
+    metadata: { holidayName, replacementDate },
+  }),
+
   // Guatemala Vacation Exception (< 5 days limit)
   GT_VACATION_EXCEPTION_LIMIT_REACHED: (
     usedDays: number,

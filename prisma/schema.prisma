@@ -89,6 +89,7 @@ model TeamMember {
   teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
   teamMemberLastUpdatedDate         DateTime?              @map("tms_last_upddat") @db.Date
   teamMemberFullLegalName           String?                @map("tms_full_legal_name") @db.VarChar(1000)
+  teamMemberXid                     String?                @map("tms_xid") @db.Text
   shiftId                           Int?                   @map("sft_id")
   createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
   country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")

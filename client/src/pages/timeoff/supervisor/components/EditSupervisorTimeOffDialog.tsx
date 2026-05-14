@@ -7,7 +7,7 @@ import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
 import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { calculateFixedDurationEndDate, calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
-import { HolidayProvider } from '../../context/HolidayContext';
+import { HolidayProvider, useHolidayContext } from '../../context/HolidayContext';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ import {
   calculateCalendarDays,
   getExistingVacationDaysThisYear,
   validateSVVacation,
+  computeCurrentPeriod,
 } from '../../utils/elSalvadorVacationValidation';
 import type { CategoryMode } from './SupervisorTimeOffForm';
 import { validateDaysBefore } from '../../utils/daysBefore';
@@ -136,6 +137,8 @@ function EditSupervisorTimeOffDialogInner({
     categoryName: selectedCategory?.categoryName,
   });
 
+  const { activeSwaps } = useHolidayContext();
+
   // Load categories for the team member's country
   useEffect(() => {
     async function loadData() {
@@ -223,8 +226,29 @@ function EditSupervisorTimeOffDialogInner({
   // Validation: Start date cannot be on weekend
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
-  // Validation: Start date cannot be on a public holiday
+  // Validation: Start date cannot be on a public holiday (swap-aware)
   const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+
+  // Swap awareness for start date: detect replacement day (block) vs swapped-away original (advisory)
+  const startDateReplacementSwap = useMemo(() => {
+    if (!startDate) return null;
+    return activeSwaps.find((s) => {
+      const rep = parseUTCDateAsLocal(s.replacementDate as string);
+      return rep.getFullYear() === startDate.getFullYear() &&
+             rep.getMonth() === startDate.getMonth() &&
+             rep.getDate() === startDate.getDate();
+    }) ?? null;
+  }, [startDate, activeSwaps]);
+
+  const startDateSwappedHoliday = useMemo(() => {
+    if (!startDate) return null;
+    return activeSwaps.find((s) => {
+      const orig = parseUTCDateAsLocal(s.originalDate as string);
+      return orig.getFullYear() === startDate.getFullYear() &&
+             orig.getMonth() === startDate.getMonth() &&
+             orig.getDate() === startDate.getDate();
+    }) ?? null;
+  }, [startDate, activeSwaps]);
 
   // Validation: Attrition date - check if dates exceed team member's end date
   const exceedsAttritionDate = teamMemberEndDate && (
@@ -258,15 +282,18 @@ function EditSupervisorTimeOffDialogInner({
   const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
     ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
     : null;
+  const currentPeriod = isSVVacation
+    ? computeCurrentPeriod(svMemberStartDate, startDate ?? undefined)
+    : null;
   const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, svMemberStartDate, timeOff?.timeOffId, startDate ?? undefined)
+    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId, currentPeriod, timeOff?.timeOffId)
     : 0;
 
   const svValidation = isSVVacation && requestedDays > 0
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
-  // Days-before notice period validation (advisory — does NOT block supervisor submission)
+  // Days-before notice period validation — blocks canSave
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
     startDate,
@@ -274,7 +301,7 @@ function EditSupervisorTimeOffDialogInner({
     selectedCategory?.categoryName ?? ''
   );
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, start date is weekend, or SV vacation invalid
+  // Save button enabled state
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -285,6 +312,7 @@ function EditSupervisorTimeOffDialogInner({
     !isStartDateWeekend &&
     !isStartDateHoliday &&
     svValidation.valid &&
+    (daysBeforeValidation?.valid !== false) &&
     !!comment?.trim() &&
     !loading;
 
@@ -400,12 +428,22 @@ function EditSupervisorTimeOffDialogInner({
             {isStartDateWeekend && (
               <p className="text-sm text-destructive">Start date cannot be on a weekend</p>
             )}
-            {isStartDateHoliday && (
+            {isStartDateHoliday && startDateReplacementSwap && (
+              <p className="text-sm text-destructive">
+                This date is a replacement day (swapped from {startDateReplacementSwap.holidayName}). It cannot be used as a start date.
+              </p>
+            )}
+            {isStartDateHoliday && !startDateReplacementSwap && (
               <p className="text-sm text-destructive">Start date cannot be on a public holiday</p>
+            )}
+            {!isStartDateHoliday && startDateSwappedHoliday && (
+              <p className="text-sm text-muted-foreground">
+                Note: {startDateSwappedHoliday.holidayName} on this date was swapped. This is now a working day.
+              </p>
             )}
           </div>
 
-          {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
+          {/* Days-Before Notice Period — blocks save */}
           {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />

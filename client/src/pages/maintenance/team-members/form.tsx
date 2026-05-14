@@ -39,6 +39,7 @@ interface TeamMemberFormData {
   teamMemberPrimaryRole: string;
   tierBandId: string;
   workdayId: string;
+  teamMemberXid: string;
   shiftId: string;
 }
 
@@ -88,6 +89,7 @@ export function TeamMemberFormDialog({
       teamMemberPrimaryRole: '',
       tierBandId: '',
       workdayId: '',
+      teamMemberXid: '',
       shiftId: '',
     },
   });
@@ -168,6 +170,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: teamMember.teamMemberPrimaryRole?.toString() || '',
           tierBandId: teamMember.tierBandId?.toString() || '',
           workdayId: teamMember.workdayId || '',
+          teamMemberXid: teamMember.teamMemberXid || '',
           shiftId: teamMember.shiftId?.toString() || '',
         });
       } else {
@@ -182,6 +185,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: '',
           tierBandId: '',
           workdayId: '',
+          teamMemberXid: '',
           shiftId: '',
         });
       }
@@ -202,6 +206,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
           tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
+          teamMemberXid: data.teamMemberXid.trim() || null,
           shiftId: data.shiftId ? Number(data.shiftId) : null,
         };
         await apiPut<TeamMemberDTO, UpdateTeamMemberDTO>(`/api/team-members/${teamMember.teamMemberId}`, payload);
@@ -220,6 +225,7 @@ export function TeamMemberFormDialog({
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
           tierBandId: Number(data.tierBandId),
           workdayId: data.workdayId.trim() || null,
+          teamMemberXid: data.teamMemberXid.trim() || null,
           shiftId: data.shiftId ? Number(data.shiftId) : null,
         };
         await apiPost<TeamMemberDTO, CreateTeamMemberDTO>('/api/team-members', payload);
@@ -460,6 +466,18 @@ export function TeamMemberFormDialog({
                   {...register('workdayId')}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="teamMemberXid">External ID</Label>
+              <Input
+                id="teamMemberXid"
+                placeholder="e.g., EXT-001 (Optional)"
+                {...register('teamMemberXid')}
+              />
+              <p className="text-sm text-muted-foreground">
+                External system identifier (tms_xid)
+              </p>
             </div>
 
             <div className="space-y-2">

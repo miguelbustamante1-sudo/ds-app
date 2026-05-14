@@ -221,6 +221,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       timeOffStartDate: new Date(timeOffStartDate),
       timeOffEndDate: new Date(timeOffEndDate),
       statusId: effectiveStatusId,
+      isSupervisorRequest: true,
     });
 
     if (!validationResult.valid) {
@@ -350,6 +351,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffStartDate: new Date(periodA.startDate),
         timeOffEndDate: new Date(periodA.endDate),
         statusId: effectiveStatusId,
+        isSupervisorRequest: true,
       }),
       validateTimeOff({
         teamMemberId,
@@ -357,6 +359,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffStartDate: new Date(periodB.startDate),
         timeOffEndDate: new Date(periodB.endDate),
         statusId: effectiveStatusId,
+        isSupervisorRequest: true,
       }),
     ]);
 
@@ -843,6 +846,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       timeOffEndDate: new Date(timeOffEndDate),
       statusId: timeOff.statusId,
       timeOffId,
+      isSupervisorRequest: true,
     });
 
     if (!validationResult.valid) {

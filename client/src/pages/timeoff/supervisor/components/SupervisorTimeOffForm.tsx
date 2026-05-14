@@ -8,7 +8,7 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
-import { HolidayProvider } from '../../context/HolidayContext';
+import { HolidayProvider, useHolidayContext } from '../../context/HolidayContext';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -221,6 +221,8 @@ function SupervisorTimeOffFormInner({
     categoryName: selectedCategory?.categoryName,
   });
 
+  const { activeSwaps } = useHolidayContext();
+
   // Clear end date when start date moves past it (non-fixed categories only)
   useEffect(() => {
     if (startDate && endDate && startDate > endDate && !isFixedDuration) {
@@ -234,8 +236,29 @@ function SupervisorTimeOffFormInner({
   // Validation: Start date cannot be on weekend
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
-  // Validation: Start date cannot be on a public holiday
+  // Validation: Start date cannot be on a public holiday (swap-aware)
   const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+
+  // Swap awareness for start date: detect replacement day (block) vs swapped-away original (advisory)
+  const startDateReplacementSwap = useMemo(() => {
+    if (!startDate) return null;
+    return activeSwaps.find((s) => {
+      const rep = parseUTCDateAsLocal(s.replacementDate as string);
+      return rep.getFullYear() === startDate.getFullYear() &&
+             rep.getMonth() === startDate.getMonth() &&
+             rep.getDate() === startDate.getDate();
+    }) ?? null;
+  }, [startDate, activeSwaps]);
+
+  const startDateSwappedHoliday = useMemo(() => {
+    if (!startDate) return null;
+    return activeSwaps.find((s) => {
+      const orig = parseUTCDateAsLocal(s.originalDate as string);
+      return orig.getFullYear() === startDate.getFullYear() &&
+             orig.getMonth() === startDate.getMonth() &&
+             orig.getDate() === startDate.getDate();
+    }) ?? null;
+  }, [startDate, activeSwaps]);
 
   // Validation: Attrition date - check if dates exceed team member's end date
   const exceedsAttritionDate = teamMemberEndDate && (
@@ -325,7 +348,7 @@ function SupervisorTimeOffFormInner({
     }
   }, [teamMember, categoryId, comment, reset, toast]);
 
-  // Days-before notice period validation (advisory — does NOT block supervisor submission)
+  // Days-before notice period validation — blocks canSave
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
     startDate,
@@ -357,7 +380,7 @@ function SupervisorTimeOffFormInner({
     ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, start date is weekend, or SV vacation invalid
+  // Save button enabled state
   const canSave =
     teamMember &&
     categoryId !== '' &&
@@ -371,6 +394,7 @@ function SupervisorTimeOffFormInner({
     svValidation.valid &&
     !exceedsMaxDays &&
     !gtExceptionWarning?.showLimitWarning &&
+    (daysBeforeValidation?.valid !== false) &&
     !!comment?.trim() &&
     !loading;
 
@@ -554,9 +578,9 @@ function SupervisorTimeOffFormInner({
               </div>
             </div>
 
-            {/* Days-Before Notice Period Warning (advisory — supervisor is not blocked) */}
+            {/* Days-Before Notice Period — blocks save */}
             {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
-              <Alert variant="warning">
+              <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{daysBeforeValidation.errorMessage}</AlertDescription>
               </Alert>
@@ -607,8 +631,18 @@ function SupervisorTimeOffFormInner({
           {isStartDateWeekend && (
             <p className="text-destructive">Start date cannot be on a weekend</p>
           )}
-          {isStartDateHoliday && (
+          {isStartDateHoliday && startDateReplacementSwap && (
+            <p className="text-destructive">
+              This date is a replacement day (swapped from {startDateReplacementSwap.holidayName}). It cannot be used as a start date.
+            </p>
+          )}
+          {isStartDateHoliday && !startDateReplacementSwap && (
             <p className="text-destructive">Start date cannot be on a public holiday</p>
+          )}
+          {!isStartDateHoliday && startDateSwappedHoliday && (
+            <p className="text-muted-foreground">
+              Note: {startDateSwappedHoliday.holidayName} on this date was swapped. This is now a working day.
+            </p>
           )}
           {isFixedDuration && fixedDays && (
             <p className="text-muted-foreground">

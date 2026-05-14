@@ -101,7 +101,13 @@ export async function loadValidationContext(
       })
     : [];
 
-  const workdayBalance = await getWorkdayBalance(input.teamMemberId, input.timeOffId);
+  const [workdayBalance, rawCountryHolidays] = await Promise.all([
+    getWorkdayBalance(input.teamMemberId, input.timeOffId),
+    prisma.holiday.findMany({
+      where: { countryId: effectiveCountryId, holidayIsActive: true },
+      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true },
+    }),
+  ]);
 
   return {
     teamMember,
@@ -115,6 +121,7 @@ export async function loadValidationContext(
       replacementDate: s.replacementDate,
       statusId: s.statusId,
     })),
+    countryHolidays: rawCountryHolidays,
     overlappingTimeOffs,
     categoryCountryDaysBefore,
     categoryCountryMaxDays,

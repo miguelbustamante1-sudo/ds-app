@@ -27,6 +27,7 @@ export async function updateTeamMember(
   if (dto.countryId !== undefined)              data.countryId              = dto.countryId;
   if (dto.workdayId !== undefined)              data.workdayId              = dto.workdayId;
   if (dto.shiftId !== undefined)                data.shiftId                = dto.shiftId;
+  if (dto.teamMemberXid !== undefined)          data.teamMemberXid          = dto.teamMemberXid;
 
   if (dto.tierBandId !== undefined) {
     const tierBand = await prisma.tierBand.findUnique({ where: { tierBandId: dto.tierBandId } });

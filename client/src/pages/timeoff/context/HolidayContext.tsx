@@ -26,6 +26,7 @@ interface HolidayContextValue {
   effectiveHolidays: HolidayDTO[];
   holidayDatesForCalendar: Date[];
   isHoliday: (date: Date) => boolean;
+  activeSwaps: ActiveSwapSummaryDTO[];
   loading: boolean;
 }
 
@@ -111,8 +112,8 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
   );
 
   const value = useMemo<HolidayContextValue>(
-    () => ({ effectiveHolidays, holidayDatesForCalendar, isHoliday, loading }),
-    [effectiveHolidays, holidayDatesForCalendar, isHoliday, loading],
+    () => ({ effectiveHolidays, holidayDatesForCalendar, isHoliday, activeSwaps, loading }),
+    [effectiveHolidays, holidayDatesForCalendar, isHoliday, activeSwaps, loading],
   );
 
   return <HolidayContext.Provider value={value}>{children}</HolidayContext.Provider>;

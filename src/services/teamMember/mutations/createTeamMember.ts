@@ -33,6 +33,7 @@ export async function createTeamMember(
     countryId:                dto.countryId,
     tierBandId:               dto.tierBandId,
     shiftId:                  dto.shiftId ?? null,
+    teamMemberXid:            dto.teamMemberXid ?? null,
   };
 
   const created = await dbCreate(data);

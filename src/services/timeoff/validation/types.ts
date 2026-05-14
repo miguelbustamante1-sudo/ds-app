@@ -12,6 +12,7 @@ export interface TimeOffValidationInput {
   timeOffEndDate: Date;
   statusId?: number | null;
   timeOffId?: number; // Only for updates (self-exclusion)
+  isSupervisorRequest?: boolean;
 }
 
 /**
@@ -36,6 +37,12 @@ export interface TimeOffValidationContext {
     originalDate: Date;
     replacementDate: Date;
     statusId: number;
+  }>;
+  countryHolidays: Array<{
+    holidayId: number;
+    holidayName: string;
+    holidayDate: Date;
+    holidayIsRecurring: boolean | null;
   }>;
   overlappingTimeOffs: Array<{
     timeOffId: number;

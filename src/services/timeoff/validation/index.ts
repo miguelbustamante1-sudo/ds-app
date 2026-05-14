@@ -16,6 +16,7 @@ import { validateGuatemalaVacationException } from './rules/guatemalaVacationExc
 import { validateDaysBefore } from './rules/daysBefore.rule';
 import { validateWorkdayBalance } from './rules/workdayBalance.rule';
 import { validateSwappedHolidayNotInRange, validateReplacementDayNotInRange } from './rules/holidaySwap.rule';
+import { validateNoHolidayStart } from './rules/noHolidayStart.rule';
 import { validateMaxDays } from './rules/maxDays.rule';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 import { TimeOffValidationErrors } from './errors';
@@ -69,6 +70,12 @@ export async function validateTimeOff(
   const categoryResult = validateCategoryCountry(input, context);
   if (!categoryResult.valid && categoryResult.error) {
     errors.push(categoryResult.error);
+  }
+
+  // Rule 3c: No holiday start date (swap-aware)
+  const noHolidayStartResult = validateNoHolidayStart(input, context);
+  if (!noHolidayStartResult.valid && noHolidayStartResult.error) {
+    errors.push(noHolidayStartResult.error);
   }
 
   // Rule 3b: Days-before notice period
@@ -127,9 +134,12 @@ export async function validateTimeOff(
   }
 
   // Rule 9: Workday balance (Vacation / Personal Day only)
-  const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
-  if (!balanceResult.valid && balanceResult.error) {
-    errors.push(balanceResult.error);
+  // Skipped for supervisor requests — supervisors may override balance as an advisory.
+  if (!input.isSupervisorRequest) {
+    const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
+    if (!balanceResult.valid && balanceResult.error) {
+      errors.push(balanceResult.error);
+    }
   }
 
   return {

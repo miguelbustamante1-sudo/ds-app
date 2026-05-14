@@ -12,6 +12,7 @@ export interface TeamMemberDTO {
   teamMemberPrimaryRole: number | null;
   tierBandId: number | null;
   teamMemberFullLegalName: string | null;
+  teamMemberXid: string | null;
   teamMemberCreatedBy: number | null;
   teamMemberCreatedDate: Date | null;
   teamMemberLastUpdatedBy: number | null;
@@ -34,6 +35,7 @@ export interface CreateTeamMemberDTO {
   tierBandId: number;
   workdayId: string | null;
   teamMemberFullLegalName: string | null;
+  teamMemberXid?: string | null;
   shiftId?: number | null;
 }
 
@@ -48,6 +50,7 @@ export interface UpdateTeamMemberDTO {
   tierBandId?: number;
   workdayId?: string | null;
   teamMemberFullLegalName?: string | null;
+  teamMemberXid?: string | null;
   shiftId?: number | null;
 }
 
