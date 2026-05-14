@@ -153,6 +153,7 @@ router.put(
         name?: unknown;
         description?: unknown;
         hasCsvHeader?: unknown;
+        separator?: unknown;
         truncateBeforeImport?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
@@ -161,7 +162,7 @@ router.put(
         columns?: unknown;
       };
 
-      const { name, description, hasCsvHeader, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, separator, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -278,6 +279,7 @@ router.put(
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
         hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        separator: typeof separator === 'string' ? separator : ',',
         truncateBeforeImport: typeof truncateBeforeImport === 'boolean' ? truncateBeforeImport : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
@@ -322,6 +324,7 @@ router.post(
         name?: unknown;
         description?: unknown;
         hasCsvHeader?: unknown;
+        separator?: unknown;
         truncateBeforeImport?: unknown;
         targetTable?: unknown;
         enabled?: unknown;
@@ -330,7 +333,7 @@ router.post(
         columns?: unknown;
       };
 
-      const { name, description, hasCsvHeader, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
+      const { name, description, hasCsvHeader, separator, truncateBeforeImport, targetTable, enabled, errorHandlingStrategy, duplicatesHandlingStrategy, columns } = body;
 
       // -- Validation ----------------------------------------------------------
       if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -450,6 +453,7 @@ router.post(
         name: name.trim(),
         description: typeof description === 'string' ? description : null,
         hasCsvHeader: typeof hasCsvHeader === 'boolean' ? hasCsvHeader : false,
+        separator: typeof separator === 'string' ? separator : ',',
         truncateBeforeImport: typeof truncateBeforeImport === 'boolean' ? truncateBeforeImport : false,
         targetTable: typeof targetTable === 'string' ? targetTable : null,
         enabled: typeof enabled === 'boolean' ? enabled : true,
