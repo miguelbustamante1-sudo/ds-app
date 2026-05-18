@@ -124,9 +124,7 @@ export function RunReportPage() {
           if (val === null || val === undefined) return <span className="text-muted-foreground">—</span>;
           const str = String(val);
           return (
-            <span className="max-w-[160px] truncate block" title={str}>
-              {str}
-            </span>
+            <span title={str}>{str}</span>
           );
         },
       }))
@@ -240,6 +238,7 @@ export function RunReportPage() {
                     headerBorder: true,
                     rowBorder: true,
                     columnsVisibility: true,
+                    columnsResizable: true,
                   }}
                 >
                   <div className="overflow-x-auto">
