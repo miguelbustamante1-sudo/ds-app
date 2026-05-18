@@ -78,7 +78,14 @@ export function TimeOffManagementGrid({
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'timeOffStartDate', desc: true }
   ]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+    try {
+      const saved = sessionStorage.getItem('timeoff-mgmt-filters');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Pre-filter by showCancelled (parent-controlled toggle, not a column filter)
   const filteredTimeOffs = useMemo(() => {
@@ -257,7 +264,13 @@ export function TimeOffManagementGrid({
       pagination: { pageSize: 30 },
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        sessionStorage.setItem('timeoff-mgmt-filters', JSON.stringify(next));
+        return next;
+      });
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -328,7 +341,10 @@ export function TimeOffManagementGrid({
         {isFiltered && (
           <Button
             variant="ghost"
-            onClick={() => table.resetColumnFilters()}
+            onClick={() => {
+              table.resetColumnFilters();
+              sessionStorage.removeItem('timeoff-mgmt-filters');
+            }}
             className="h-8 px-2 lg:px-3 self-end"
           >
             Reset

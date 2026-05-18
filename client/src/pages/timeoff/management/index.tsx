@@ -65,7 +65,9 @@ export function TimeOffManagementPage() {
   const navigate = useNavigate();
 
   // State
-  const [showCancelled, setShowCancelled] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(() => {
+    return sessionStorage.getItem('timeoff-mgmt-show-cancelled') === 'true';
+  });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithTeamMemberDTO | null>(null);
@@ -100,7 +102,7 @@ export function TimeOffManagementPage() {
   }, []);
 
   const handleRowClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
-    navigate(`/timeoff-detail/${timeOff.timeOffId}?from=/timeoff-management`);
+    navigate(`/timeoff-detail/${timeOff.timeOffId}?from=/time-off-management`);
   }, [navigate]);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
@@ -141,7 +143,11 @@ export function TimeOffManagementPage() {
           <Checkbox
             id="show-cancelled"
             checked={showCancelled}
-            onCheckedChange={(checked) => setShowCancelled(checked === true)}
+            onCheckedChange={(checked) => {
+              const value = checked === true;
+              setShowCancelled(value);
+              sessionStorage.setItem('timeoff-mgmt-show-cancelled', String(value));
+            }}
           />
           <Label
             htmlFor="show-cancelled"

@@ -8,7 +8,8 @@ import type { CategoryByCountryDTO } from '@shared/dto/TimeOffCategory';
 import { useTimeOffFormDates } from '@/hooks/useTimeOffFormDates';
 import { calculateRequestedDays } from '../../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../../hooks/useHolidayAwareness';
-import { HolidayProvider } from '../../context/HolidayContext';
+import { HolidayProvider, useHolidayContext } from '../../context/HolidayContext';
+import { ExceptionHolidayAlert } from './ExceptionHolidayAlert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -156,12 +157,19 @@ function ExceptionTimeOffFormInner({
     clearErrors,
   });
 
-  const { holidayDatesForCalendar } = useHolidayAwareness({
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+  } = useHolidayAwareness({
     countryIso: teamMember?.countryIso,
     startDate,
     endDate,
     categoryName: selectedCategory?.categoryName,
   });
+
+  const { activeSwaps } = useHolidayContext();
 
   useEffect(() => {
     if (startDate && endDate && startDate > endDate && !isFixedDuration) {
@@ -357,6 +365,8 @@ function ExceptionTimeOffFormInner({
                       onSelect={field.onChange}
                       defaultMonth={field.value ?? startDate ?? new Date()}
                       disabled={(date) => (startDate ? date < startDate : false)}
+                      modifiers={{ holiday: holidayDatesForCalendar }}
+                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>
@@ -384,9 +394,14 @@ function ExceptionTimeOffFormInner({
               Fixed duration: {fixedDays} day{fixedDays !== 1 ? 's' : ''}
             </p>
           )}
-          {!isFixedDuration && hintDays > 0 && (
+          {!isFixedDuration && hintDays > 0 && gtNetVacationDays === null && (
             <p className="text-muted-foreground">
               {hintDays} day{hintDays !== 1 ? 's' : ''}
+            </p>
+          )}
+          {!isFixedDuration && gtNetVacationDays !== null && (
+            <p className="text-muted-foreground">
+              {gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''} (net after holidays)
             </p>
           )}
         </div>
@@ -399,6 +414,17 @@ function ExceptionTimeOffFormInner({
             </AlertDescription>
           </Alert>
         )}
+
+        <ExceptionHolidayAlert
+          countryIso={teamMember?.countryIso}
+          categoryName={selectedCategory?.categoryName}
+          svHolidaysInRange={svHolidaysInRange}
+          gtWeekdayHolidaysInRange={gtWeekdayHolidaysInRange}
+          gtNetVacationDays={gtNetVacationDays}
+          activeSwaps={activeSwaps}
+          startDate={startDate}
+          endDate={endDate}
+        />
 
         {/* Comment — required for audit trail */}
         <div className="space-y-2">
