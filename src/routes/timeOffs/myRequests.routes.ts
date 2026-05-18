@@ -89,6 +89,7 @@ router.get('/detail/:timeOffId', requirePermission('TimeOffs', 'read'), resolveA
 
     // Compute available actions based on status and role
     let availableActions: TimeOffDetailDTO['availableActions'] = [];
+    const statusName = status?.statusName?.toLowerCase() ?? '';
     if (timeOff.statusId === 1) { // Tentative
       if (role === 'owner') {
         availableActions = ['acknowledge', 'decline', 'cancel'];
@@ -99,6 +100,8 @@ router.get('/detail/:timeOffId', requirePermission('TimeOffs', 'read'), resolveA
       if (role === 'supervisor') {
         availableActions = ['cancel'];
       }
+    } else if (statusName === 'acknowledged' && role === 'supervisor') {
+      availableActions = ['cancel'];
     }
 
     const creationLog = changeLogs.find(
@@ -248,14 +251,18 @@ router.patch('/detail/:timeOffId/cancel', requirePermission('TimeOffs', 'read'),
       return res.status(403).json({ error: 'Not authorized to cancel this time-off' });
     }
 
-    // Only Tentative (1) and Rejected (5) can be cancelled
-    if (timeOff.statusId !== 1 && timeOff.statusId !== 5) {
+    const acknowledgedStatus = await getStatusByName('acknowledged');
+    const isAcknowledged = acknowledgedStatus && timeOff.statusId === acknowledgedStatus.statusId;
+
+    // Tentative (1) and Rejected (5) can be cancelled by anyone with access.
+    // Acknowledged can only be cancelled by a supervisor.
+    if (timeOff.statusId !== 1 && timeOff.statusId !== 5 && !isAcknowledged) {
       return res.status(400).json({ error: 'Action already taken on this time-off' });
     }
 
-    // Rejected time-offs can only be cancelled by a supervisor
-    if (timeOff.statusId === 5 && !isSupervisor) {
-      return res.status(403).json({ error: 'Only supervisors can cancel a rejected time-off' });
+    // Rejected or Acknowledged time-offs can only be cancelled by a supervisor
+    if ((timeOff.statusId === 5 || isAcknowledged) && !isSupervisor) {
+      return res.status(403).json({ error: 'Only supervisors can cancel this time-off' });
     }
 
     const cancelledStatus = await getStatusByName('cancelled');

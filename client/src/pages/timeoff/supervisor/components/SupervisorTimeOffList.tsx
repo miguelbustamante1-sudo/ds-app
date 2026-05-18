@@ -214,7 +214,7 @@ export function SupervisorTimeOffList({ timeOffs, loading, onEditClick, onCancel
       globalFilter,
     },
     initialState: {
-      pagination: { pageSize: 5 },
+      pagination: { pageSize: 25 },
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,

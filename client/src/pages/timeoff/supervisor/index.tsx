@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import {
@@ -52,6 +52,7 @@ export function SupervisorTimeOffPage() {
   });
 
   const balanceHook = useTeamMemberWorkdayBalance();
+  const detailPanelRef = useRef<HTMLDivElement>(null);
 
   // Load team members on mount
   useEffect(() => {
@@ -78,6 +79,12 @@ export function SupervisorTimeOffPage() {
   const handleRowClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setSelectedTimeOffId((prev) => prev === timeOff.timeOffId ? null : timeOff.timeOffId);
   }, []);
+
+  useEffect(() => {
+    if (selectedTimeOffId !== null) {
+      detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedTimeOffId]);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setTimeOffToEdit(timeOff);
@@ -180,7 +187,7 @@ export function SupervisorTimeOffPage() {
               selectedTimeOffId={selectedTimeOffId}
             />
             {selectedTimeOffId && (
-              <div className="bg-card rounded-lg border p-4">
+              <div ref={detailPanelRef} className="bg-card rounded-lg border p-4">
                 <h3 className="text-base font-semibold mb-4">Time Off Detail #{selectedTimeOffId}</h3>
                 <TimeOffDetailPanel
                   timeOffId={selectedTimeOffId}

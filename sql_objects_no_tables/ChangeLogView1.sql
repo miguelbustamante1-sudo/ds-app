@@ -1,4 +1,4 @@
-CREATE VIEW ds.vw_timeoff_changelog_activity AS
+CREATE OR REPLACE VIEW ds.vw_timeoff_changelog_activity AS
 SELECT
     tto.tto_id                                                           AS timeoff_id,
     COALESCE(tm.tms_known_as, tm.tms_names) || ' ' || tm.tms_surnames  AS team_member,
