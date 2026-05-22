@@ -36,25 +36,48 @@ export async function getCountryById(id: number): Promise<Country | null> {
   });
 }
 
-export async function createCountry(regionId: number | null, countryName: string, countryIso?: string | null, countryCurrencySymbol?: string | null): Promise<Country> {
+export async function createCountry(
+  regionId: number | null,
+  countryName: string,
+  countryIso?: string | null,
+  currencySymbol?: string | null,
+  nightStart?: number | null,
+  nightEnd?: number | null,
+  nightMultiplier?: number | null,
+): Promise<Country> {
   return await prisma.country.create({
     data: {
       regionId,
       countryName,
       countryIso: countryIso ?? null,
-      countryCurrencySymbol: countryCurrencySymbol ?? null,
+      countryCurrencySymbol: currencySymbol ?? null,
+      nightStart: nightStart ?? null,
+      nightEnd: nightEnd ?? null,
+      nightMultiplier: nightMultiplier ?? null,
     },
   });
 }
 
-export async function updateCountry(id: number, regionId: number | null, countryName: string, countryIso?: string | null, countryCurrencySymbol?: string | null): Promise<Country | null> {
+export async function updateCountry(
+  id: number,
+  regionId: number | null,
+  countryName: string,
+  countryIso?: string | null,
+  currencySymbol?: string | null,
+  nightStart?: number | null,
+  nightEnd?: number | null,
+  nightMultiplier?: number | null,
+): Promise<Country | null> {
   return await prisma.country.update({
     where: { countryId: id },
     data: {
       regionId,
       countryName,
       countryIso: countryIso ?? null,
-      countryCurrencySymbol: countryCurrencySymbol ?? null,
+      countryCurrencySymbol: currencySymbol ?? null,
+      nightStart: nightStart ?? null,
+      nightEnd: nightEnd ?? null,
+      nightMultiplier: nightMultiplier ?? null,
     },
   });
 }

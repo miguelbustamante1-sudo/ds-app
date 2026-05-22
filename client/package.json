@@ -48,6 +48,7 @@
     "react-helmet": "^6.1.0",
     "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.62.0",
+    "react-imask": "^7.6.1",
     "react-inlinesvg": "^4.2.0",
     "react-intl": "^7.1.11",
     "react-leaflet": "^5.0.0",

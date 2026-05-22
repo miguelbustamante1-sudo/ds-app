@@ -10,7 +10,13 @@ export interface CountryDTO {
   countryName: string;
   regionId: number | null;
   countryIso: string | null;
-  countryCurrencySymbol: string | null;
+  currencySymbol: string | null;
+  /** Hour (0-23) when night shift starts */
+  nightStart: number | null;
+  /** Hour (0-23) when night shift ends */
+  nightEnd: number | null;
+  /** Multiplier applied to hours worked during night shift */
+  nightMultiplier: number | null;
 }
 
 /**
@@ -20,7 +26,10 @@ export interface CreateCountryDTO {
   countryName: string;
   regionId: number | null;
   countryIso?: string | null;
-  countryCurrencySymbol?: string | null;
+  currencySymbol?: string | null;
+  nightStart?: number | null;
+  nightEnd?: number | null;
+  nightMultiplier?: number | null;
 }
 
 /**
@@ -30,5 +39,8 @@ export interface UpdateCountryDTO {
   countryName?: string;
   regionId?: number | null;
   countryIso?: string | null;
-  countryCurrencySymbol?: string | null;
+  currencySymbol?: string | null;
+  nightStart?: number | null;
+  nightEnd?: number | null;
+  nightMultiplier?: number | null;
 }

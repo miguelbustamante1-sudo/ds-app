@@ -62,6 +62,9 @@ import { DataImportNewPage } from '@/pages/data-import/new';
 import { TimeOffExceptionPage } from '@/pages/timeoff/exception';
 import { TimeOffExceptionDetailPage } from '@/pages/timeoff/exception/detail';
 import { HolidaySwapExceptionPage } from '@/pages/holiday-swaps/exception';
+import { ApprovalManagementPage } from '@/pages/approval-management';
+import { CompensatoryTimeIntakePage } from '@/pages/compensatory-time/intake';
+import { CompensatoryTimeUsagePage } from '@/pages/compensatory-time/usage';
 
 export function AppRoutingSetup() {
   return (
@@ -139,6 +142,13 @@ export function AppRoutingSetup() {
         <Route path="/data-import" element={<DataImportPage />} />
         <Route path="/data-import/new" element={<DataImportNewPage />} />
         <Route path="/data-import/:id" element={<DataImportDetailPage />} />
+        {/* Shifts */}
+        <Route path="/shifts" element={<ShiftsPage />} />
+        {/* Approval Management */}
+        <Route path="/approval-management" element={<ApprovalManagementPage />} />
+        {/* Compensatory Time */}
+        <Route path="/compensatory-time/intake" element={<CompensatoryTimeIntakePage />} />
+        <Route path="/compensatory-time/usage" element={<CompensatoryTimeUsagePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

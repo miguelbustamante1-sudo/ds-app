@@ -9,11 +9,14 @@ datasource db {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Country {
-  countryId         Int               @id @default(autoincrement()) @map("cou_id") @db.Integer
-  countryName       String            @map("cou_name") @db.VarChar(100)
-  regionId          Int?              @map("reg_id")
+  countryId             Int               @id @default(autoincrement()) @map("cou_id") @db.Integer
+  countryName           String            @map("cou_name") @db.VarChar(100)
+  regionId              Int?              @map("reg_id")
   countryIso            String?           @map("cou_iso") @db.VarChar(2)
   countryCurrencySymbol String?           @map("cou_currency_symbol") @db.VarChar(10)
+  nightStart            Int?              @map("cou_night_start") @db.Integer
+  nightEnd              Int?              @map("cou_night_end") @db.Integer
+  nightMultiplier       Decimal?          @map("cou_night_multiplier") @db.Decimal(5, 2)
   region            Region?           @relation(fields: [regionId], references: [regionId], onDelete: Restrict, map: "fk_tbl_countries_reg")
   teamMembers       TeamMember[]
   categoryCountries CategoryCountry[]
@@ -44,8 +47,32 @@ model Project {
   projectManager     TeamMember?         @relation(fields: [projectManagerId], references: [teamMemberId])
   projectAssignments ProjectAssignment[]
   endorsements       Endorsement[]
+  compensatoryTimes  CompensatoryTime[]
 
   @@map("pro_projects")
+  @@schema("ds")
+}
+
+model CompensatoryTime {
+  compensatoryTimeId Int        @id @default(autoincrement()) @map("ct_id") @db.Integer
+  startingTime       DateTime   @map("ct_starting_time") @db.Timestamptz(6)
+  endingTime         DateTime   @map("ct_ending_time") @db.Timestamptz(6)
+  subject            String     @map("ct_subject") @db.VarChar(255)
+  status             String     @default("SUBMITTED") @map("ct_status") @db.VarChar(50)
+  compType           String     @default("EARNED") @map("ct_comp_type") @db.VarChar(50)
+  deleted            Boolean    @default(false) @map("ct_deleted")
+  teamMemberId       Int        @map("tms_id") @db.Integer
+  projectId          Int        @map("pro_id") @db.Integer
+  dayHours           Decimal    @default(0) @map("ct_day_hours") @db.Decimal(5, 2)
+  nightHours         Decimal    @default(0) @map("ct_night_hours") @db.Decimal(5, 2)
+  totalCreditedHours Decimal    @default(0) @map("ct_total_credited_hours") @db.Decimal(10, 2)
+  createdBy          String     @map("ct_created_by") @db.VarChar(255)
+  createdDate        DateTime   @default(now()) @map("ct_created_at") @db.Timestamptz(6)
+  rejectionReason    String     @default("") @map("ct_rejection_reason") @db.VarChar(1000)
+  teamMember         TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict)
+  project            Project    @relation(fields: [projectId], references: [projectId], onDelete: Restrict)
+
+  @@map("ct_compensatory_time")
   @@schema("ds")
 }
 
@@ -105,6 +132,7 @@ model TeamMember {
   managedProjects                   Project[]
   benchAssignments                  Bench[]        @relation("BenchTeamMember")
   supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
+  compensatoryTimes                 CompensatoryTime[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")

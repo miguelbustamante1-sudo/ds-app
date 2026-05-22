@@ -39,6 +39,7 @@ export * from './Bench';
 export * from './HolidaySwap';
 export * from './PendingRequest';
 export * from './TierBand';
+export * from './CompensatoryTime';
 export * from './TimeOffChangeLog';
 export * from './DynamicReport';
 

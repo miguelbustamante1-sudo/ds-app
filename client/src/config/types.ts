@@ -28,6 +28,12 @@ export interface MenuItem {
    * Example: 'admin'
    */
   role?: string;
+  /**
+   * Sub-permissions for dynamic visibility checks beyond role/permission.
+   * Supported values:
+   *   'supervisor' - only show if the current user has at least one direct report
+   */
+  subPermission?: string[];
 }
 
 export type MenuConfig = MenuItem[];

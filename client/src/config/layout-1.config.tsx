@@ -39,6 +39,7 @@ import {
   MessageSquare,
   Monitor,
   MonitorUp,
+  ClipboardClock,
   Network,
   Users as PeopleIcon,
   Plug,
@@ -97,6 +98,25 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Clock,
     path: '/timeoff-activity',
     permission: 'TimeOffActivity',
+  },
+  {
+    title: 'Comp Time Approval Mgmt',
+    icon: ClipboardClock,
+    path: '/approval-management',
+    permission: 'CompensatoryTime',
+    subPermission: ['supervisor', 'admin'],
+  },
+  {
+    title: 'My Comp Time Intake',
+    icon: ClipboardClock,
+    path: '/compensatory-time/intake',
+    permission: 'CompensatoryTime',
+  },
+  {
+    title: 'My Comp Time Usage',
+    icon: ClipboardClock,
+    path: '/compensatory-time/usage',
+    permission: 'CompensatoryTime',
   },
   { heading: 'Actions' },
   {

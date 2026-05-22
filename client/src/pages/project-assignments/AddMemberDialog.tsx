@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { AvailableForProjectDTO } from '@shared/dto/TeamMemberReport';
 import type { FunctionalAreaDTO } from '@shared/dto';
+import type { ShiftDTO } from '@shared/dto/Shift';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost } from '@/lib/api';
+import { getShifts } from '@/services/shift';
 import { ApiError } from '@/lib/api';
 import { parseUTCDateAsLocal } from '@/lib/utils';
 import { getShifts, type ShiftDTO } from '@/services/shift';

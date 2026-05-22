@@ -19,17 +19,21 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/auth/auth-provider';
+import { useIsSupervisor } from '@/hooks/useIsSupervisor';
 
 export function SidebarMenu() {
   const { pathname } = useLocation();
   const { canRead } = usePermissions();
   const { user } = useAuth();
+  const isSupervisor = useIsSupervisor(user?.teamMemberId);
 
   /**
-   * Filter menu items based on user permissions and roles.
+   * Filter menu items based on user permissions, roles, and sub-permissions.
    * Items without a permission or role field are always visible.
    * Items with a permission field require the user to have 'read' permission for that resource.
    * Items with a role field require the user to have that role.
+   * Items with subPermission: ['supervisor'] are only visible to supervisors (users with direct reports).
+   * Items with subPermission: ['admin'] are only visible to admin role users.
    */
   const filterByPermissions = useCallback(
     (items: MenuConfig): MenuConfig => {
@@ -37,10 +41,17 @@ export function SidebarMenu() {
         .filter((item) => {
           // Check role requirement first
           if (item.role && !user?.roles.includes(item.role)) return false;
-          // If no permission specified, show (role already passed)
+          // If no permission specified, show (role/subPermission already passed)
           if (!item.permission) return true;
           // Otherwise, check if user has read permission
-          return canRead(item.permission);
+          const isReadable = canRead(item.permission);
+
+          if(isReadable && item.subPermission){
+            // Check existing sub-permission requirements
+            return (item.subPermission.includes('supervisor') && isSupervisor) || (item.subPermission.includes('admin') && user?.roles.includes('admin'));
+          }
+
+          return isReadable;
         })
         .map((item) => {
           // Recursively filter children
@@ -57,7 +68,7 @@ export function SidebarMenu() {
         })
         .filter((item): item is MenuItem => item !== null);
     },
-    [canRead, user?.roles],
+    [canRead, user?.roles, isSupervisor],
   );
 
   // Memoize filtered menu to avoid recalculating on every render

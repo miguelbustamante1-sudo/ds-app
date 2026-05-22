@@ -106,6 +106,7 @@ export function CountriesPage() {
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingCountry(undefined);
+    countries.loadItems();
   };
 
   const regionOptions = useMemo(

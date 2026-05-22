@@ -200,6 +200,22 @@ router.get('/supervisors-with-user-id', requirePermission('TeamMembers', 'read')
   }
 });
 
+// GET /team-members/is-supervisor — returns { isSupervisor: boolean } for the current user
+router.get('/is-supervisor', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      return res.json({ isSupervisor: false });
+    }
+
+    const reports = await getReports(teamMemberId, false);
+    res.json({ isSupervisor: reports.length > 0 });
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to check supervisor status' });
+  }
+});
+
 // GET /team-members/:id/supervisor-chain — supervisor chain up to 3 levels
 router.get('/:id/supervisor-chain', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
   try {

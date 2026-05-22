@@ -160,6 +160,8 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (27
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (28, 'PersistenceDataTypes',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (29, 'PersistenceTables',        NOW()) ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (30, 'HolidaySwapException',     NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (30, 'CompensatoryTime',         NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES (31, 'Shift',                    NOW()) ON CONFLICT (opt_id) DO NOTHING;
 
 -- 9. RBAC Permissions
 -- Only insert if the table is empty (no unique constraint to use ON CONFLICT)
@@ -229,6 +231,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceDataTypes' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceDataTypes',   true, true, true, NULL,  NOW(), 28, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTables' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTables',         true, true, true, NULL,  NOW(), 29, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'HolidaySwapException' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('HolidaySwapException', true, true, false, NULL, NOW(), 30, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'CompensatoryTime' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('CompensatoryTime',           true, true, true, NULL,  NOW(), 30, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Shift' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Shift',                                 true, true, true, NULL,  NOW(), 31, 1); END IF;
 
   -- user (rol_id=2)
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTeam'           AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTeam',           true, true, false, NULL, NOW(), 22, 2); END IF;
@@ -239,6 +243,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTemplates' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTemplates',   true, true, true, NULL,  NOW(), 27, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceDataTypes' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceDataTypes',   true, true, true, NULL,  NOW(), 28, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PersistenceTables' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PersistenceTables',         true, true, true, NULL,  NOW(), 29, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'CompensatoryTime' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('CompensatoryTime',           true, true, true, NULL,  NOW(), 30, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Shift' AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Shift',                                 true, false, false, NULL,  NOW(), 31, 2); END IF;
 
 END $$;
 
@@ -307,3 +313,24 @@ WHERE pdt_index = 7 AND pdt_name = 'date';
 INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)
 VALUES (10, 'timestamp without time zone', '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', '2025-03-25 10:00:00')
 ON CONFLICT (pdt_index) DO NOTHING;
+
+-- Idempotent insert
+DO $$
+BEGIN
+  -- standard shift
+  IF NOT EXISTS (SELECT 1 FROM ds.sft_shifts WHERE sft_id = 1) THEN INSERT INTO ds.sft_shifts (sft_description, sft_total_week_hours, sft_lunch_hours) VALUES ('44 hrs hours in total, 5 days a week, starting on Monday at 8:00 AM', 44, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 0) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 0, 0, 0, 0); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 1) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 1, 8, 18, 9); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 2) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 2, 8, 18, 9); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 3) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 3, 8, 18, 9); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 4) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 4, 8, 18, 9); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 5) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 5, 8, 17, 8); END IF;
+  IF NOT EXISTS (SELECT 1 FROM ds.sfd_shift_details WHERE sft_id = 1 AND sfd_day_of_week = 6) THEN INSERT INTO ds.sfd_shift_details (sft_id, sfd_day_of_week, sfd_start_time, sfd_end_time, sfd_daily_hours) VALUES (1, 6, 0, 0, 0); END IF;
+END $$;
+
+-- team members with no Shift are assigned to the standard one
+UPDATE ds.tmp_team_member_project SET sft_id = 1 WHERE sft_id is NULL;
+
+-- set default night schedule and default night hours multiplier.
+-- Night starting at 6:00 PM and ending at 6:00 AM.  Compensatory night time multiplier set as 1.25
+UPDATE ds.cou_countries SET cou_night_start = 18, cou_night_end = 6, cou_night_multiplier = 1.25 WHERE cou_night_start IS NULL OR cou_night_end IS NULL OR cou_night_multiplier IS NULL;

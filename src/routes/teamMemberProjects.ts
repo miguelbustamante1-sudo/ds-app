@@ -185,6 +185,14 @@ router.post('/', requirePermission('ProjectAssignments', 'create'), async (req: 
       return res.status(400).json({ error: firstMessage, errors: validation.errors });
     }
 
+    if (!body.shiftId) {
+      return res.status(400).json({ error: 'shiftId is required' });
+    }
+
+    if (!body.shiftId) {
+      return res.status(400).json({ error: 'shiftId is required' });
+    }
+
     const now = new Date();
     const createData = {
       ...body,

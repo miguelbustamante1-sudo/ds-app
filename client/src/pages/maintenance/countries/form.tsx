@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, apiPut } from '@/lib/api';
 
@@ -21,6 +22,9 @@ interface CountryFormData {
   regionId: string;
   countryIso: string;
   currencySymbol: string;
+  nightStart: string;
+  nightEnd: string;
+  nightMultiplier: string;
 }
 
 interface CountryFormDialogProps {
@@ -53,6 +57,9 @@ export function CountryFormDialog({
       regionId: '',
       countryIso: '',
       currencySymbol: '',
+      nightStart: '',
+      nightEnd: '',
+      nightMultiplier: '',
     },
   });
 
@@ -75,7 +82,10 @@ export function CountryFormDialog({
           countryName: country.countryName,
           regionId: country.regionId?.toString() || '',
           countryIso: country.countryIso || '',
-          currencySymbol: country.countryCurrencySymbol || '',
+          currencySymbol: country.currencySymbol || '',
+          nightStart: country.nightStart?.toString() || '',
+          nightEnd: country.nightEnd?.toString() || '',
+          nightMultiplier: country.nightMultiplier?.toString() || '',
         });
       } else {
         reset({
@@ -83,6 +93,9 @@ export function CountryFormDialog({
           regionId: '',
           countryIso: '',
           currencySymbol: '',
+          nightStart: '',
+          nightEnd: '',
+          nightMultiplier: '',
         });
       }
     }
@@ -90,12 +103,19 @@ export function CountryFormDialog({
 
   const onSubmit = async (data: CountryFormData) => {
     try {
+      const nightStart = data.nightStart !== '' ? Number(data.nightStart) : null;
+      const nightEnd = data.nightEnd !== '' ? Number(data.nightEnd) : null;
+      const nightMultiplier = data.nightMultiplier !== '' ? Number(data.nightMultiplier) : null;
+
       if (isEditing) {
         const payload: UpdateCountryDTO = {
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
-          countryCurrencySymbol: data.currencySymbol.trim() || null,
+          currencySymbol: data.currencySymbol.trim() || null,
+          nightStart,
+          nightEnd,
+          nightMultiplier,
         };
         await apiPut<CountryDTO, UpdateCountryDTO>(`/api/countries/${country.countryId}`, payload);
         toast({ title: 'Success', description: 'Country updated successfully' });
@@ -104,17 +124,21 @@ export function CountryFormDialog({
           countryName: data.countryName.trim(),
           regionId: data.regionId ? Number(data.regionId) : null,
           countryIso: data.countryIso.trim() || null,
-          countryCurrencySymbol: data.currencySymbol.trim() || null,
+          currencySymbol: data.currencySymbol.trim() || null,
+          nightStart,
+          nightEnd,
+          nightMultiplier,
         };
         await apiPost<CountryDTO, CreateCountryDTO>('/api/countries', payload);
         toast({ title: 'Success', description: 'Country created successfully' });
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
       toast({
         title: 'Error',
-        description: error.message || `Failed to ${isEditing ? 'update' : 'create'} country`,
+        description: message || `Failed to ${isEditing ? 'update' : 'create'} country`,
         variant: 'destructive',
       });
     }
@@ -219,6 +243,90 @@ export function CountryFormDialog({
               <p className="text-sm text-muted-foreground">
                 Optional currency symbol (e.g., $, €, £)
               </p>
+            </div>
+
+            {/* Night shift fields - single row */}
+            <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="nightStart">Night Start (h)</Label>
+                <Input
+                  id="nightStart"
+                  type="number"
+                  placeholder="e.g., 18"
+                  {...register('nightStart', {
+                    required: 'Night Start is required',
+                    validate: (val) => {
+                      if (val === '' || val === undefined) return 'Night Start is required';
+                      const n = Number(val);
+                      if (!Number.isInteger(n)) return 'Must be an integer';
+                      if (n < 0) return 'Must be a positive integer';
+                      return true;
+                    },
+                  })}
+                />
+                {errors.nightStart && (
+                  <p className="text-sm text-destructive">{errors.nightStart.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nightEnd">Night End (h)</Label>
+                <Input
+                  id="nightEnd"
+                  type="number"
+                  placeholder="e.g., 6"
+                  {...register('nightEnd', {
+                    required: 'Night End is required',
+                    validate: (val) => {
+                      if (val === '' || val === undefined) return 'Night End is required';
+                      const n = Number(val);
+                      if (!Number.isInteger(n)) return 'Must be an integer';
+                      if (n <= 0) return 'Must be a positive integer';
+                      return true;
+                    },
+                  })}
+                />
+                {errors.nightEnd && (
+                  <p className="text-sm text-destructive">{errors.nightEnd.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Label htmlFor="nightMultiplier" className="cursor-help w-fit">
+                      Night Hour multiplier
+                    </Label>
+                  </TooltipTrigger>
+                  <TooltipContent>Compensatory Night Hours multiplier</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                <Input
+                  id="nightMultiplier"
+                  type="number"
+                  step="0.25"
+                  placeholder="e.g., 1.25"
+                  {...register('nightMultiplier', {
+                    required: 'Night multiplier is required',
+                    validate: (val) => {
+                      if (val === '' || val === undefined) return 'Night multiplier is required';
+                      const n = Number(val);
+                      if (isNaN(n)) return 'Must be a number';
+                      if (n < 1) return 'Must be 1 or greater';
+                      return true;
+                    },
+                  })}
+                />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Compensatory Night Hours multiplier</TooltipContent>
+                </Tooltip>
+                {errors.nightMultiplier && (
+                  <p className="text-sm text-destructive">{errors.nightMultiplier.message}</p>
+                )}
+              </div>
             </div>
           </div>
 
