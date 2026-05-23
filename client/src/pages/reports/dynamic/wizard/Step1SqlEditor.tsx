@@ -49,9 +49,9 @@ export function Step1SqlEditor({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-md border overflow-hidden resize-y h-80 min-h-[160px] max-h-[800px] overflow-hidden">
         <Editor
-          height="320px"
+          height="100%"
           language="sql"
           value={sql}
           onChange={(value) => onSqlChange(value ?? '')}
@@ -59,6 +59,7 @@ export function Step1SqlEditor({
           options={{
             minimap: { enabled: false },
             fontSize: 13,
+            automaticLayout: true,
             scrollBeyondLastLine: false,
             wordWrap: 'on',
           }}
