@@ -1,8 +1,8 @@
 import type { TeamMember, Prisma } from '@prisma/client';
 import type { CreateTeamMemberDTO } from '../../../../shared/dto';
 import { createTeamMember as dbCreate } from '../../../db/teamMembers';
+import { getTierBandById } from '../../../db/tierBands';
 import { auditOrchestrator } from '../../audit';
-import { prisma } from '../../../db/prisma';
 import { InvalidTierBandError } from './errors';
 
 export async function createTeamMember(
@@ -10,7 +10,7 @@ export async function createTeamMember(
   userId: number | null,
   email: string,
 ): Promise<TeamMember> {
-  const tierBand = await prisma.tierBand.findUnique({ where: { tierBandId: dto.tierBandId } });
+  const tierBand = await getTierBandById(dto.tierBandId);
   if (!tierBand) throw new InvalidTierBandError('Invalid tierBandId');
 
   const now = new Date();

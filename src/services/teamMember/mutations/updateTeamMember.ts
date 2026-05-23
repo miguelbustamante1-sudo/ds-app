@@ -1,8 +1,8 @@
 import type { TeamMember, Prisma } from '@prisma/client';
 import type { UpdateTeamMemberDTO } from '../../../../shared/dto';
 import { getTeamMemberById, updateTeamMember as dbUpdate } from '../../../db/teamMembers';
+import { getTierBandById } from '../../../db/tierBands';
 import { auditOrchestrator } from '../../audit';
-import { prisma } from '../../../db/prisma';
 import { TeamMemberNotFoundError, InvalidTierBandError } from './errors';
 
 export async function updateTeamMember(
@@ -11,8 +11,16 @@ export async function updateTeamMember(
   userId: number | null,
   email: string,
 ): Promise<TeamMember> {
-  const before = await getTeamMemberById(id);
+  const [before, tierBand] = await Promise.all([
+    getTeamMemberById(id),
+    dto.tierBandId !== undefined ? getTierBandById(dto.tierBandId) : Promise.resolve(undefined),
+  ]);
+
   if (!before) throw new TeamMemberNotFoundError('Team member not found');
+
+  if (dto.tierBandId !== undefined && !tierBand) {
+    throw new InvalidTierBandError('Invalid tierBandId');
+  }
 
   const data: Prisma.TeamMemberUncheckedUpdateInput = {
     teamMemberLastUpdatedBy:   userId,
@@ -29,9 +37,7 @@ export async function updateTeamMember(
   if (dto.shiftId !== undefined)                data.shiftId                = dto.shiftId;
   if (dto.teamMemberXid !== undefined)          data.teamMemberXid          = dto.teamMemberXid;
 
-  if (dto.tierBandId !== undefined) {
-    const tierBand = await prisma.tierBand.findUnique({ where: { tierBandId: dto.tierBandId } });
-    if (!tierBand) throw new InvalidTierBandError('Invalid tierBandId');
+  if (dto.tierBandId !== undefined && tierBand) {
     data.tierBandId          = dto.tierBandId;
     data.teamMemberSeniority = tierBand.tierBandDescription;
   }

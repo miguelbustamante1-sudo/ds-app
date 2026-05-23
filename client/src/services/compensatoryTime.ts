@@ -1,5 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
-import type { CompensatoryTimeDTO } from '@shared/dto/CompensatoryTime';
+import type { CompensatoryTimeDTO, CompStatus, CompType } from '@shared/dto/CompensatoryTime';
 
 const BASE = '/api/compensatory-time';
 
@@ -9,8 +9,8 @@ const BASE = '/api/compensatory-time';
 export const getCompensatoryTimesAdmin = async (
   page = 1,
   limit = 25,
-  compType?: string,
-  statuses?: string[],
+  compType?: CompType,
+  statuses?: CompStatus[],
   columnSearches?: Record<string, string>,
   sort?: { id: string; desc: boolean },
 ): Promise<{ data: CompensatoryTimeDTO[]; total: number }> => {
@@ -50,8 +50,8 @@ export const getCompensatoryTimesAdmin = async (
 export const getCompensatoryTimesUser = async (
   page = 1,
   limit = 25,
-  compType?: string,
-  statuses?: string[],
+  compType?: CompType,
+  statuses?: CompStatus[],
   columnSearches?: Record<string, string>,
   sort?: { id: string; desc: boolean },
   teamMemberId?: number,
@@ -88,7 +88,7 @@ export const getCompensatoryTimesUser = async (
 };
 
 /** Fetch a paginated list of compensatory time records. */
-export const getCompensatoryTimes = (page = 1, limit = 50, teamMemberId?: number, compType?: string, statuses?: string[], includeReportLevelForSupId?: number) => {
+export const getCompensatoryTimes = (page = 1, limit = 50, teamMemberId?: number, compType?: CompType, statuses?: CompStatus[], includeReportLevelForSupId?: number) => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (teamMemberId !== undefined) params.append('teamMemberId', String(teamMemberId));
   if (compType !== undefined) params.append('compType', compType);
@@ -108,7 +108,7 @@ export interface CreateCompensatoryTimePayload {
   dayHours: number;
   nightHours: number;
   totalCreditedHours?: number;
-  compType?: string;
+  compType?: CompType;
 }
 
 /** Create a new compensatory time record. */
@@ -122,8 +122,8 @@ export const getCompensatoryTimeSummary = (compType?: string) => {
 };
 
 /** Update the status of a compensatory time record. */
-export const updateCompensatoryTimeStatus = (id: number, status: string, rejectionReason?: string) =>
-  apiPatch<CompensatoryTimeDTO, { status: string; rejectionReason?: string }>(
+export const updateCompensatoryTimeStatus = (id: number, status: CompStatus, rejectionReason?: string) =>
+  apiPatch<CompensatoryTimeDTO, { status: CompStatus; rejectionReason?: string }>(
     `${BASE}/${id}`,
     { status, ...(rejectionReason !== undefined ? { rejectionReason } : {}) },
   );
@@ -183,9 +183,9 @@ export const getCompensatoryTimesBySupervisorPaginated = async (
   supervisorId: number,
   page = 1,
   limit = 25,
-  statuses?: string[],
+  statuses?: CompStatus[],
   includeReportLevelForSupId?: number,
-  compType?: string,
+  compType?: CompType,
   reportLevels?: number[],
   columnSearches?: Record<string, string>,
   sort?: { id: string; desc: boolean },
@@ -240,7 +240,7 @@ export const getMaxReportLevelBySupervisor = async (supervisorId: number): Promi
 };
 
 /** Fetch compensatory time records for all subordinates of a supervisor (full recursive hierarchy). */
-export const getCompensatoryTimesBySupervisor = (supervisorId: number, page = 1, limit = 100, statuses?: string[], includeReportLevelForSupId?: number, compType?: string) => {
+export const getCompensatoryTimesBySupervisor = (supervisorId: number, page = 1, limit = 100, statuses?: CompStatus[], includeReportLevelForSupId?: number, compType?: CompType) => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (compType !== undefined) params.append('compType', compType);
   if (statuses !== undefined && statuses.length > 0) {

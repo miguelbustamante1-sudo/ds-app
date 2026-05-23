@@ -5,10 +5,11 @@
  * Depends on the repository abstraction (DIP).
  */
 
-import type { CompensatoryTimeDTO } from '../../../shared/dto/CompensatoryTime';
+import type { CompensatoryTimeDTO, CompStatus, CompType } from '../../../shared/dto/CompensatoryTime';
 import type { CompensatoryTimeSummary, PaginationOptions, UpdateCompensatoryTimeInput } from './repository';
-import { createCompensatoryTime, getAllCompensatoryTimes, getCompensatoryTimeBalance, getCompensatoryTimeById, getCompensatoryTimeSummary, getNightPolicyForTeamMember, getShiftDetailsForAssignment, softDeleteCompensatoryTime, updateCompensatoryTime } from './repository';
-import { prisma } from '../../db/prisma';
+import { createCompensatoryTime, getAllCompensatoryTimes, getCompensatoryTimeBalance, getCompensatoryTimeById, getCompensatoryTimeSummary, getNightPolicyForTeamMember, getShiftDetailsForAssignment, softDeleteCompensatoryTime, updateCompensatoryTime, countCompensatoryTimes } from './repository';
+import { getReportLevelMapForCompensatoryTime } from '../teamMember/queries/getReportsForCompensatoryTime';
+import { getAllSubordinateIdsForCompensatoryTime, getDirectReportIdsForCompensatoryTime } from '../teamMember/queries/getSubordinatesForCompensatoryTime';
 
 /** Minimal interface the service depends on (DIP) */
 export interface CreateCompensatoryTimeInput {
@@ -21,7 +22,7 @@ export interface CreateCompensatoryTimeInput {
   nightHours: number;
   totalCreditedHours?: number;
   createdBy: string;
-  compType?: string;
+  compType?: CompType;
 }
 
 export interface ICompensatoryTimeRepository {
@@ -30,7 +31,7 @@ export interface ICompensatoryTimeRepository {
   create(data: CreateCompensatoryTimeInput): Promise<CompensatoryTimeDTO>;
   softDelete(id: number): Promise<CompensatoryTimeDTO | null>;
   update(id: number, data: UpdateCompensatoryTimeInput): Promise<CompensatoryTimeDTO | null>;
-  getSummary(teamMemberId?: number, compType?: string): Promise<CompensatoryTimeSummary>;
+  getSummary(teamMemberId?: number, compType?: CompType): Promise<CompensatoryTimeSummary>;
 }
 
 /** Default repository adapter */
@@ -40,7 +41,7 @@ const defaultRepository: ICompensatoryTimeRepository = {
   create:      createCompensatoryTime,
   softDelete:  softDeleteCompensatoryTime,
   update:      updateCompensatoryTime,
-  getSummary:  (teamMemberId?: number, compType?: string) => getCompensatoryTimeSummary(teamMemberId, compType),
+  getSummary:  (teamMemberId?: number, compType?: CompType) => getCompensatoryTimeSummary(teamMemberId, compType),
 };
 
 export class CompensatoryTimeService {
@@ -54,28 +55,45 @@ export class CompensatoryTimeService {
    * Retrieves a paginated list of compensatory time records.
    * Defaults: page = 1, limit = 10 (max 100).
    */
-  async getAll(pagination?: Partial<PaginationOptions> & { teamMemberId?: number; teamMemberIds?: number[]; status?: string; statuses?: string[]; compType?: string; includeReportLevelForSupId?: number; teamMemberSearch?: string; projectSearch?: string; subjectSearch?: string; rejectionReasonSearch?: string }): Promise<CompensatoryTimeDTO[]> {
+  async getAll(pagination?: Partial<PaginationOptions> & { teamMemberId?: number; teamMemberIds?: number[]; status?: CompStatus; statuses?: CompStatus[]; compType?: CompType; includeReportLevelForSupId?: number; teamMemberSearch?: string; projectSearch?: string; subjectSearch?: string; rejectionReasonSearch?: string }): Promise<CompensatoryTimeDTO[]> {
     const page  = Math.max(1, pagination?.page  ?? 1);
     const limit = Math.min(100, Math.max(1, pagination?.limit ?? 10));
-    const records = await this.repository.getAll({
-      page,
-      limit,
-      ...(pagination?.teamMemberIds !== undefined ? { teamMemberIds: pagination.teamMemberIds } : pagination?.teamMemberId !== undefined ? { teamMemberId: pagination.teamMemberId } : {}),
-      ...(pagination?.statuses !== undefined ? { statuses: pagination.statuses } : pagination?.status !== undefined ? { status: pagination.status } : {}),
-      ...(pagination?.compType !== undefined ? { compType: pagination.compType } : {}),
-      ...(pagination?.teamMemberSearch ? { teamMemberSearch: pagination.teamMemberSearch } : {}),
-      ...(pagination?.projectSearch ? { projectSearch: pagination.projectSearch } : {}),
-      ...(pagination?.subjectSearch ? { subjectSearch: pagination.subjectSearch } : {}),
-      ...(pagination?.rejectionReasonSearch ? { rejectionReasonSearch: pagination.rejectionReasonSearch } : {}),
-      ...(pagination?.sortBy  ? { sortBy:  pagination.sortBy  } : {}),
-      ...(pagination?.sortDir ? { sortDir: pagination.sortDir } : {}),
-    });
 
-    if (pagination?.includeReportLevelForSupId === undefined) {
-      return records.map((r) => ({ ...r, reportLevel: -1 }));
+    let memberFilter: { teamMemberIds: number[] } | { teamMemberId: number } | Record<string, never> = {};
+    if (pagination?.teamMemberIds !== undefined) {
+      memberFilter = { teamMemberIds: pagination.teamMemberIds };
+    } else if (pagination?.teamMemberId !== undefined) {
+      memberFilter = { teamMemberId: pagination.teamMemberId };
     }
 
-    const levelMap = await getReportLevelMap(pagination.includeReportLevelForSupId);
+    let statusFilter: { statuses: CompStatus[] } | { status: CompStatus } | Record<string, never> = {};
+    if (pagination?.statuses !== undefined) {
+      statusFilter = { statuses: pagination.statuses };
+    } else if (pagination?.status !== undefined) {
+      statusFilter = { status: pagination.status };
+    }
+
+    const supId = pagination?.includeReportLevelForSupId;
+    const [records, levelMap] = await Promise.all([
+      this.repository.getAll({
+        page,
+        limit,
+        ...memberFilter,
+        ...statusFilter,
+        ...(pagination?.compType !== undefined ? { compType: pagination.compType } : {}),
+        ...(pagination?.teamMemberSearch ? { teamMemberSearch: pagination.teamMemberSearch } : {}),
+        ...(pagination?.projectSearch ? { projectSearch: pagination.projectSearch } : {}),
+        ...(pagination?.subjectSearch ? { subjectSearch: pagination.subjectSearch } : {}),
+        ...(pagination?.rejectionReasonSearch ? { rejectionReasonSearch: pagination.rejectionReasonSearch } : {}),
+        ...(pagination?.sortBy  ? { sortBy:  pagination.sortBy  } : {}),
+        ...(pagination?.sortDir ? { sortDir: pagination.sortDir } : {}),
+      }),
+      supId !== undefined ? getReportLevelMapForCompensatoryTime(supId) : Promise.resolve(undefined),
+    ]);
+
+    if (levelMap === undefined) {
+      return records.map((r) => ({ ...r, reportLevel: -1 }));
+    }
     return records.map((r) => ({
       ...r,
       reportLevel: levelMap.get(r.teamMemberId) ?? -1,
@@ -100,7 +118,7 @@ export class CompensatoryTimeService {
    * Returns a count of records grouped by status, scoped to the given
    * teamMemberId when provided (non-admin users).
    */
-  async getSummary(teamMemberId?: number, compType?: string): Promise<CompensatoryTimeSummary> {
+  async getSummary(teamMemberId?: number, compType?: CompType): Promise<CompensatoryTimeSummary> {
     return this.repository.getSummary(teamMemberId, compType);
   }
 
@@ -133,25 +151,17 @@ export class CompensatoryTimeService {
     startingTime: Date,
     endingTime: Date,
   ): Promise<{ valid: boolean; error?: string; balanceHours?: number; requestedHours?: number }> {
-    if (isNaN(startingTime.getTime())) {
-      return { valid: false, error: 'startingTime is not a valid date' };
-    }
-    if (isNaN(endingTime.getTime())) {
-      return { valid: false, error: 'endingTime is not a valid date' };
-    }
-    const diffMs = endingTime.getTime() - startingTime.getTime();
-    if (diffMs <= 0) {
-      return { valid: false, error: 'endingTime must be after startingTime' };
-    }
+    const [shiftValidation, { balanceHours }] = await Promise.all([
+      this.validateUsageRecord(teamMemberId, projectId, startingTime, endingTime),
+      getCompensatoryTimeBalance(teamMemberId),
+    ]);
 
-    // Validate shift hours (start/end must be within the assigned shift for each day)
-    const shiftValidation = await this.validateUsageRecord(teamMemberId, projectId, startingTime, endingTime);
     if (!shiftValidation.valid) {
       return { valid: false, error: shiftValidation.error ?? 'Shift validation failed' };
     }
 
+    const diffMs = endingTime.getTime() - startingTime.getTime();
     const requestedHours = Math.round(diffMs / 3_600_000 * 100) / 100;
-    const { balanceHours } = await getCompensatoryTimeBalance(teamMemberId);
 
     if (requestedHours > balanceHours) {
       return {
@@ -375,52 +385,26 @@ export class CompensatoryTimeService {
       nightHours: Math.round(nightMinutes / 60 * 100) / 100,
     };
   }
-}
 
-/**
- * Builds a Map of teamMemberId -> reportLevel for the entire reporting hierarchy
- * of the given supervisor (unlimited depth).
- * Returns an empty Map if supervisorId is not a valid supervisor.
- */
-async function getReportLevelMap(supervisorId: number): Promise<Map<number, number>> {
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  const rows = await prisma.$queryRaw<Array<{ team_member_id: bigint; depth: bigint }>>`
-    WITH RECURSIVE team_hierarchy AS (
-      SELECT
-        sa.tms_id::int     AS team_member_id,
-        1::int             AS depth
-      FROM ds.tbl_tms_x_supervisor sa
-      WHERE sa.sup_id = ${supervisorId}::int
-        AND sa.txs_stadat <= ${todayStr}::date
-        AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${todayStr}::date)
-
-      UNION ALL
-
-      SELECT
-        sa.tms_id::int          AS team_member_id,
-        (th.depth + 1)::int     AS depth
-      FROM ds.tbl_tms_x_supervisor sa
-      INNER JOIN team_hierarchy th ON sa.sup_id = th.team_member_id
-      WHERE sa.txs_stadat <= ${todayStr}::date
-        AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${todayStr}::date)
-    ),
-    ranked AS (
-      SELECT DISTINCT ON (team_member_id)
-        team_member_id,
-        depth
-      FROM team_hierarchy
-      ORDER BY team_member_id, depth ASC
-    )
-    SELECT team_member_id, depth FROM ranked
-  `;
-
-  const map = new Map<number, number>();
-  for (const row of rows) {
-    map.set(Number(row.team_member_id), Number(row.depth));
+  async count(options: Parameters<typeof countCompensatoryTimes>[0]): Promise<number> {
+    return countCompensatoryTimes(options);
   }
 
-  return map;
+  async getSubordinateIds(supervisorId: number): Promise<number[]> {
+    return getAllSubordinateIdsForCompensatoryTime(supervisorId);
+  }
+
+  async getTeamMemberIdsBySupervisorId(supervisorId: number): Promise<number[]> {
+    return getDirectReportIdsForCompensatoryTime(supervisorId);
+  }
+
+  async getShiftDetails(teamMemberId: number, projectId: number) {
+    return getShiftDetailsForAssignment(teamMemberId, projectId);
+  }
+
+  async getReportLevelMapForSupervisor(supervisorId: number): Promise<Map<number, number>> {
+    return getReportLevelMapForCompensatoryTime(supervisorId);
+  }
 }
 
 /** Singleton instance used by the route layer */

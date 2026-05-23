@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 import oneloginService from '../services/oneloginService';
 import userService from '../services/userService';
-import googleOidcService from '../services/googleOidcService';
+import googleOidcService, { GoogleIdTokenPayload } from '../services/googleOidcService';
 import { resolvePermissions, PermissionSource } from '../services/permissionResolver';
 import { getDsUserByEmail } from '../db/users';
 
@@ -305,6 +305,52 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
     if (!refreshToken) {
       res.status(401).json({ error: 'No refresh token available' });
       return;
+    }
+
+    // In local development, OneLogin is not configured. dev-login signs the
+    // refresh_token with JWT_SECRET (HS256). Detect that here and renew locally.
+    // If a future pull from main breaks dev login (401 on /api/auth/refresh),
+    // check whether this block was removed. Symptom: "Missing OneLogin configuration".
+    if (process.env.NODE_ENV !== 'production') {
+      const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+      try {
+        const decoded = jwt.verify(refreshToken, JWT_SECRET, { algorithms: ['HS256'] }) as GoogleIdTokenPayload;
+        if (decoded.email) {
+          const expiresIn = 86400;
+          const expiresAt = Date.now() + expiresIn * 1000;
+          const newToken = jwt.sign(
+            { ...decoded, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + expiresIn },
+            JWT_SECRET,
+            { algorithm: 'HS256' },
+          );
+
+          res.cookie('access_token', newToken, getAccessTokenCookieOptions(expiresIn));
+          res.cookie('refresh_token', newToken, getRefreshTokenCookieOptions());
+
+          const permissionsSource = (process.env.PERMISSIONS_SOURCE as PermissionSource | undefined) || 'db';
+          const user = await userService.syncUserFromGoogleToken(decoded);
+          const permissions = await resolvePermissions(permissionsSource, { userId: user.id, tokenPayload: decoded });
+          const dsUser = await getDsUserByEmail(user.email);
+
+          res.json({
+            expiresAt,
+            user: {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              roles: user.roles,
+              avatarUrl: user.avatarUrl,
+              permissions,
+              dsUserId: dsUser?.userId,
+              teamMemberId: dsUser?.teamMemberId ?? undefined,
+            },
+          });
+          return;
+        }
+      } catch {
+        // Not a dev token — fall through to OneLogin
+      }
     }
 
     const tokens = await oneloginService.exchangeRefreshToken(refreshToken);

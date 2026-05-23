@@ -240,6 +240,8 @@ Do not implement a workaround silently. A workaround that is invisible is a hidd
 
 # 5. DECISION FLOW (WHEN UNSURE)
 
+**For non-trivial tasks** (any implementation touching more than one file or introducing a new pattern), present a step-by-step plan of what you intend to modify before writing any code. Wait for confirmation before proceeding.
+
 You MUST follow this order:
 
 1. Check Prisma schema

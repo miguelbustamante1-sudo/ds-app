@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '../../db/prisma';
-import type { CompensatoryTimeDTO } from '../../../shared/dto/CompensatoryTime';
+import type { CompensatoryTimeDTO, CompStatus, CompType } from '../../../shared/dto/CompensatoryTime';
 
 // --- Shared select shape ------------------------------------------------------
 
@@ -40,7 +40,7 @@ const compensatoryTimeSelect = {
 type CompensatoryTimeRow = Awaited<ReturnType<typeof prisma.compensatoryTime.findMany<{ select: typeof compensatoryTimeSelect }>>>[number];
 
 function toDTO(row: CompensatoryTimeRow): import('../../../shared/dto/CompensatoryTime').CompensatoryTimeDTO {
-  const { teamMember, project, dayHours, nightHours, totalCreditedHours, ...rest } = row;
+  const { teamMember, project, dayHours, nightHours, totalCreditedHours, status, compType, ...rest } = row;
   const name = teamMember
     ? `${teamMember.teamMemberNames ?? ''} ${teamMember.teamMemberSurnames ?? ''}`.trim() +
       (teamMember.workdayId ? ` (${teamMember.workdayId})` : '')
@@ -51,6 +51,8 @@ function toDTO(row: CompensatoryTimeRow): import('../../../shared/dto/Compensato
   const nightMultipliedHours = Math.round(Number(nightHours) * nightMult * 100) / 100;
   return {
     ...rest,
+    status:               status as CompStatus,
+    compType:             compType as CompType,
     dayHours:             Number(dayHours),
     nightHours:           Number(nightHours),
     nightMultipliedHours,
@@ -83,11 +85,11 @@ export interface PaginationOptions {
   /** Optional filter: return records for any of these team member IDs (IN clause) */
   teamMemberIds?: number[];
   /** Optional filter: only return records with this status (single value) */
-  status?: string;
+  status?: CompStatus;
   /** Optional filter: only return records whose status is one of these values */
-  statuses?: string[];
+  statuses?: CompStatus[];
   /** Optional filter: only return records with this compType */
-  compType?: string;
+  compType?: CompType;
   /** Optional text search on the team member name or surname */
   teamMemberSearch?: string;
   /** Optional text search on the project name */
@@ -231,7 +233,7 @@ export async function createCompensatoryTime(
     nightHours: number;
     totalCreditedHours?: number;
     createdBy: string;
-    compType?: string;
+    compType?: CompType;
   },
 ): Promise<CompensatoryTimeDTO> {
   const row = await prisma.compensatoryTime.create({
@@ -257,9 +259,9 @@ export interface UpdateCompensatoryTimeInput {
   endingTime?:      Date;
   subject?:         string;
   projectId?:       number;
-  status?:          string;
+  status?:          CompStatus;
   rejectionReason?: string;
-  compType?:        string;
+  compType?:        CompType;
 }
 
 /**
@@ -306,7 +308,7 @@ export interface CompensatoryTimeSummary {
  */
 export async function getCompensatoryTimeSummary(
   teamMemberId?: number,
-  compType?: string,
+  compType?: CompType,
 ): Promise<CompensatoryTimeSummary> {
   const rows = await prisma.compensatoryTime.findMany({
     where: {

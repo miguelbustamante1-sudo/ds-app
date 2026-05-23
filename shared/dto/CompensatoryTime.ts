@@ -4,6 +4,9 @@
 
 import type { TeamMemberDTO } from './TeamMember';
 
+export type CompStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+export type CompType   = 'EARNED' | 'USED';
+
 /**
  * CompensatoryTimeDTO - Full compensatory time record returned to client.
  */
@@ -12,8 +15,8 @@ export interface CompensatoryTimeDTO {
   startingTime:       Date;
   endingTime:         Date;
   subject:            string;
-  status:             string;
-  compType:           string;
+  status:             CompStatus;
+  compType:           CompType;
   deleted:            boolean;
   teamMemberId:       TeamMemberDTO['teamMemberId'];
   teamMemberName?:    string;
@@ -52,9 +55,9 @@ export interface UpdateCompensatoryTimeDTO {
   startingTime?:    Date | string;
   endingTime?:      Date | string;
   subject?:         string;
-  status?:          string;
+  status?:          CompStatus;
   rejectionReason?: string;
-  compType?:        string;
+  compType?:        CompType;
   deleted?:         boolean;
   teamMemberId?:    TeamMemberDTO['teamMemberId'];
   projectId?:       number;

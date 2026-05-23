@@ -13,12 +13,13 @@ import { Router, Request, Response } from 'express';
 import { requirePermission } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { compensatoryTimeService } from '../services/compensatoryTime/CompensatoryTimeService';
-import { getAllSubordinateIds, countCompensatoryTimes, getTeamMemberIdsBySupervisor } from '../services/compensatoryTime/repository';
 import type { SortableColumn } from '../services/compensatoryTime/repository';
+import type { CompStatus, CompType } from '../../shared/dto/CompensatoryTime';
 import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 import { error } from '../logger';
 
-const ALLOWED_STATUSES = ['SUBMITTED', 'APPROVED', 'REJECTED'] as const;
+const ALLOWED_STATUSES:   readonly CompStatus[] = ['SUBMITTED', 'APPROVED', 'REJECTED'];
+const ALLOWED_COMP_TYPES: readonly CompType[]   = ['EARNED', 'USED'];
 
 const router = Router();
 
@@ -33,7 +34,10 @@ router.get(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const rawCompType = (req as Request).query['compType'];
-      const compType    = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const rawCompTypeStr = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const compType: CompType | undefined = rawCompTypeStr !== undefined && ALLOWED_COMP_TYPES.includes(rawCompTypeStr as CompType)
+        ? rawCompTypeStr as CompType
+        : undefined;
       const isAdmin     = req.user?.roles.includes('admin') ?? false;
 
       if (isAdmin) {
@@ -72,7 +76,7 @@ router.post(
         dayHours?: number;
         nightHours?: number;
         totalCreditedHours?: number;
-        compType?: string;
+        compType?: CompType;
       };
 
       if (!startingTime || !endingTime || teamMemberId == null || projectId == null) {
@@ -97,7 +101,7 @@ router.post(
       }
 
       // When compType is USED, run the full usage-entry validation before saving
-      if (typeof compType === 'string' && compType === 'USED') {
+      if (compType === 'USED') {
         const validation = await compensatoryTimeService.validateUsageEntry(
           Number(teamMemberId),
           Number(projectId),
@@ -120,7 +124,7 @@ router.post(
         nightHours:   typeof nightHours === 'number' ? nightHours : 0,
         createdBy:    req.user?.email ?? 'unknown',
         ...(typeof totalCreditedHours === 'number' ? { totalCreditedHours } : {}),
-        ...(typeof compType === 'string' && compType ? { compType } : {}),
+        ...(compType !== undefined ? { compType } : {}),
       });
 
       res.status(201).json(result);
@@ -154,10 +158,15 @@ router.get(
       const VALID_SORT_COLS: string[] = ['createdDate', 'startingTime', 'endingTime', 'subject', 'status', 'totalCreditedHours', 'dayHours', 'nightHours'];
       const sortBy  = rawSortBy  && VALID_SORT_COLS.includes(rawSortBy)          ? rawSortBy  as SortableColumn : undefined;
       const sortDir = rawSortDir === 'asc' || rawSortDir === 'desc'              ? rawSortDir                   : undefined;
-      const statuses        = rawStatus !== undefined
-        ? (Array.isArray(rawStatus) ? rawStatus : [rawStatus]).map(String).filter(Boolean)
+      const statuses = rawStatus !== undefined
+        ? (Array.isArray(rawStatus) ? rawStatus : [rawStatus])
+            .map(String)
+            .filter((s): s is CompStatus => ALLOWED_STATUSES.includes(s as CompStatus))
         : undefined;
-      const compType        = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const rawCompTypeStr = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const compType: CompType | undefined = rawCompTypeStr !== undefined && ALLOWED_COMP_TYPES.includes(rawCompTypeStr as CompType)
+        ? rawCompTypeStr as CompType
+        : undefined;
       const includeReportLevelForSupId = rawIncludeReportLevelSupId !== undefined
         ? parseInt(String(rawIncludeReportLevelSupId), 10)
         : undefined;
@@ -206,7 +215,7 @@ router.get(
             ...(sortBy  ? { sortBy }  : {}),
             ...(sortDir ? { sortDir } : {}),
           }),
-          countCompensatoryTimes(countOptions),
+          compensatoryTimeService.count(countOptions),
         ]);
         res.setHeader('X-Total-Count', String(total));
         res.json(result);
@@ -225,7 +234,7 @@ router.get(
           teamMemberIds = [teamMemberId];
         } else {
           // Include records for this user AND any team members they supervise.
-          const supervisedIds = await getTeamMemberIdsBySupervisor(teamMemberId);
+          const supervisedIds = await compensatoryTimeService.getTeamMemberIdsBySupervisorId(teamMemberId);
           teamMemberIds = [teamMemberId, ...supervisedIds];
         }
 
@@ -247,7 +256,7 @@ router.get(
             ...(sortBy  ? { sortBy }  : {}),
             ...(sortDir ? { sortDir } : {}),
           }),
-          countCompensatoryTimes(countOptions),
+          compensatoryTimeService.count(countOptions),
         ]);
         res.setHeader('X-Total-Count', String(total));
         res.json(result);
@@ -377,8 +386,7 @@ router.get(
         return;
       }
 
-      const { getShiftDetailsForAssignment } = await import('../services/compensatoryTime/repository');
-      const details = await getShiftDetailsForAssignment(tmId, projId);
+      const details = await compensatoryTimeService.getShiftDetails(tmId, projId);
       res.json(details ?? []);
     } catch (err) {
       error(err);
@@ -474,8 +482,7 @@ router.get(
         }
       }
 
-      const { getReportLevelMapForSupervisor } = await import('../services/compensatoryTime/repository');
-      const levelMap = await getReportLevelMapForSupervisor(supervisorId);
+      const levelMap = await compensatoryTimeService.getReportLevelMapForSupervisor(supervisorId);
       let maxDepth = 0;
       for (const depth of levelMap.values()) {
         if (depth > maxDepth) maxDepth = depth;
@@ -546,9 +553,14 @@ router.get(
       }
 
       const statuses = rawStatus !== undefined
-        ? (Array.isArray(rawStatus) ? rawStatus : [rawStatus]).map(String).filter(Boolean)
+        ? (Array.isArray(rawStatus) ? rawStatus : [rawStatus])
+            .map(String)
+            .filter((s): s is CompStatus => ALLOWED_STATUSES.includes(s as CompStatus))
         : undefined;
-      const compType = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const rawCompTypeStrSup = rawCompType !== undefined ? String(rawCompType) : undefined;
+      const compType: CompType | undefined = rawCompTypeStrSup !== undefined && ALLOWED_COMP_TYPES.includes(rawCompTypeStrSup as CompType)
+        ? rawCompTypeStrSup as CompType
+        : undefined;
       const reportLevelFilter = rawReportLevels !== undefined
         ? (Array.isArray(rawReportLevels) ? rawReportLevels : [rawReportLevels])
             .map((v) => parseInt(String(v), 10))
@@ -565,11 +577,10 @@ router.get(
       let reportLevelMap: Map<number, number> | undefined;
 
       if (reportLevelFilter !== undefined && reportLevelFilter.length > 0) {
-        const { getReportLevelMapForSupervisor } = await import('../services/compensatoryTime/repository');
-        reportLevelMap = await getReportLevelMapForSupervisor(supervisorId);
+        reportLevelMap = await compensatoryTimeService.getReportLevelMapForSupervisor(supervisorId);
         allSubordinateIds = [...reportLevelMap.keys()];
       } else {
-        allSubordinateIds = await getAllSubordinateIds(supervisorId);
+        allSubordinateIds = await compensatoryTimeService.getSubordinateIds(supervisorId);
       }
 
       // Apply report-level filter: keep only IDs whose depth is in the requested set.
@@ -610,7 +621,7 @@ router.get(
           ...(sortBy  ? { sortBy }  : {}),
           ...(sortDir ? { sortDir } : {}),
         }),
-        countCompensatoryTimes(countOptions),
+        compensatoryTimeService.count(countOptions),
       ]);
       res.setHeader('X-Total-Count', String(total));
       res.json(result);
@@ -650,7 +661,7 @@ router.patch(
           return;
         }
         // Non-admins may only update records that belong to their supervised team members.
-        const supervisedIds = await getTeamMemberIdsBySupervisor(selfId);
+        const supervisedIds = await compensatoryTimeService.getTeamMemberIdsBySupervisorId(selfId);
         if (!supervisedIds.includes(before.teamMemberId)) {
           res.status(403).json({ error: 'Not allowed: you can only update compensatory time records of your supervised team members' });
           return;
@@ -664,14 +675,14 @@ router.patch(
         return;
       }
 
-      const { status, rejectionReason } = body as { status?: string; rejectionReason?: string };
+      const { status, rejectionReason } = body as { status?: CompStatus; rejectionReason?: string };
 
       if (status === undefined) {
         res.status(400).json({ error: '`status` is required' });
         return;
       }
 
-      if (!ALLOWED_STATUSES.includes(status as typeof ALLOWED_STATUSES[number])) {
+      if (!ALLOWED_STATUSES.includes(status)) {
         res.status(400).json({ error: `status must be one of: ${ALLOWED_STATUSES.join(', ')}` });
         return;
       }
@@ -686,7 +697,7 @@ router.patch(
         return;
       }
 
-      const updateData: { status: string; rejectionReason?: string } = { status };
+      const updateData: { status: CompStatus; rejectionReason?: string } = { status };
       if (rejectionReason !== undefined) {
         updateData.rejectionReason = rejectionReason;
       }
