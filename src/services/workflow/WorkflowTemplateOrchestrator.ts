@@ -1,0 +1,884 @@
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../db/prisma';
+import { auditOrchestrator } from '../audit/AuditOrchestrator';
+import { buildTemplateSnapshot } from './components/BuildTemplateSnapshot';
+import { validateTemplateCode } from './components/ValidateTemplateCode';
+import { validateRoutingExpressions } from './components/ValidateRoutingExpressions';
+import { validateTaskRoutes } from './components/ValidateTaskRoutes';
+import { validateTaskDependencies } from './components/ValidateTaskDependencies';
+import {
+  WorkflowNotFoundError,
+  WorkflowNotDraftError,
+  WorkflowMissingStartTaskError,
+} from './errors';
+import { AppError } from '../../errors/AppError';
+
+// ---------------------------------------------------------------------------
+// Input types
+// ---------------------------------------------------------------------------
+
+interface CreateTemplateInput {
+  code: string;
+  name: string;
+  description?: string;
+  versionNo: number;
+  wecId?: string;
+  effectiveFrom?: Date;
+  effectiveTo?: Date;
+}
+
+interface UpdateTemplateInput {
+  name?: string;
+  description?: string;
+  versionNo?: number;
+  wecId?: string;
+  effectiveFrom?: Date;
+  effectiveTo?: Date;
+}
+
+interface ListTemplatesFilters {
+  code?: string;
+  status?: string;
+  isActive?: boolean;
+}
+
+interface AddTaskInput {
+  code: string;
+  name: string;
+  description?: string;
+  sequenceNo?: number;
+  taskType: string;
+  assignmentType: string;
+  assignedUserId?: string;
+  assignedRoleId?: string;
+  dynamicAssignmentType?: string;
+  priority: string;
+  slaDurationHours?: number;
+  escalationUserId?: string;
+  escalationRoleId?: string;
+  escalationDynamicType?: string;
+  maxRetryCount?: number;
+  allowReassignment?: boolean;
+  requireCommentOnReassign?: boolean;
+  allowFail?: boolean;
+  isStartingTask?: boolean;
+}
+
+interface UpdateTaskInput {
+  code?: string;
+  name?: string;
+  description?: string;
+  sequenceNo?: number;
+  taskType?: string;
+  assignmentType?: string;
+  assignedUserId?: string;
+  assignedRoleId?: string;
+  dynamicAssignmentType?: string;
+  priority?: string;
+  slaDurationHours?: number;
+  escalationUserId?: string;
+  escalationRoleId?: string;
+  escalationDynamicType?: string;
+  maxRetryCount?: number;
+  allowReassignment?: boolean;
+  requireCommentOnReassign?: boolean;
+  allowFail?: boolean;
+  isStartingTask?: boolean;
+}
+
+interface AddInputInput {
+  code: string;
+  label: string;
+  description?: string;
+  dataType: string;
+  isRequired?: boolean;
+  isRoutingInput?: boolean;
+  displayOrder?: number;
+  defaultValue?: string;
+  validationRule?: string;
+  optionSetJson?: Prisma.InputJsonValue;
+}
+
+interface UpdateInputInput {
+  code?: string;
+  label?: string;
+  description?: string;
+  dataType?: string;
+  isRequired?: boolean;
+  isRoutingInput?: boolean;
+  displayOrder?: number;
+  defaultValue?: string;
+  validationRule?: string;
+  optionSetJson?: Prisma.InputJsonValue;
+}
+
+interface AddOutcomeInput {
+  code: string;
+  label: string;
+  description?: string;
+  isTerminal?: boolean;
+}
+
+interface AddRouteInput {
+  wtkFromId: string;
+  wtoId?: string;
+  wtkToId: string;
+  conditionType: string;
+  routeOrder?: number;
+}
+
+interface AddDependencyInput {
+  wtkPredecessorId: string;
+  wtkSuccessorId: string;
+  dependencyType: string;
+  joinGroupCode?: string;
+  isRequired?: boolean;
+}
+
+interface AddNotificationInput {
+  eventType: string;
+  recipientType: string;
+  recipientUserId?: string;
+  recipientRoleId?: string;
+  recipientDynamicType?: string;
+  messageTemplate: string;
+  emailTemplate?: string;
+  isActive?: boolean;
+}
+
+interface UpdateNotificationInput {
+  eventType?: string;
+  recipientType?: string;
+  recipientUserId?: string;
+  recipientRoleId?: string;
+  recipientDynamicType?: string;
+  messageTemplate?: string;
+  emailTemplate?: string;
+  isActive?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function requireDraftTemplate(wflId: string) {
+  const template = await prisma.wflWorkflowTemplate.findUnique({
+    where: { wflId },
+    select: { wflId: true, status: true },
+  });
+  if (template === null) throw new WorkflowNotFoundError();
+  if (template.status !== 'DRAFT') throw new WorkflowNotDraftError();
+  return template;
+}
+
+async function requireTemplate(wflId: string) {
+  const template = await prisma.wflWorkflowTemplate.findUnique({
+    where: { wflId },
+    select: { wflId: true, status: true },
+  });
+  if (template === null) throw new WorkflowNotFoundError();
+  return template;
+}
+
+// ---------------------------------------------------------------------------
+// Orchestrator
+// ---------------------------------------------------------------------------
+
+export class WorkflowTemplateOrchestrator {
+  // -------------------------------------------------------------------------
+  // Templates
+  // -------------------------------------------------------------------------
+
+  async createTemplate(data: CreateTemplateInput, userId: string, userEmail: string) {
+    await validateTemplateCode(data.code, data.versionNo);
+
+    const record = await prisma.wflWorkflowTemplate.create({
+      data: {
+        code: data.code,
+        name: data.name,
+        versionNo: data.versionNo,
+        status: 'DRAFT',
+        createdBy: userId,
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.wecId !== undefined && { wecId: data.wecId }),
+        ...(data.effectiveFrom !== undefined && { effectiveFrom: data.effectiveFrom }),
+        ...(data.effectiveTo !== undefined && { effectiveTo: data.effectiveTo }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wfl_workflow_templates',
+      entityId: record.wflId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: record as unknown as Record<string, unknown>,
+      comment: 'Workflow template created',
+    });
+
+    return record;
+  }
+
+  async getTemplate(wflId: string) {
+    const template = await buildTemplateSnapshot(wflId);
+    if (template === null) throw new WorkflowNotFoundError();
+    return template;
+  }
+
+  async listTemplates(filters?: ListTemplatesFilters) {
+    return prisma.wflWorkflowTemplate.findMany({
+      where: {
+        ...(filters?.code !== undefined && { code: filters.code }),
+        ...(filters?.status !== undefined && { status: filters.status }),
+        ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
+      },
+      orderBy: [{ code: 'asc' }, { versionNo: 'asc' }],
+    });
+  }
+
+  async updateTemplate(
+    wflId: string,
+    data: UpdateTemplateInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    const existing = await prisma.wflWorkflowTemplate.findUnique({ where: { wflId } });
+    if (existing === null) throw new WorkflowNotFoundError();
+    if (existing.status !== 'DRAFT') throw new WorkflowNotDraftError();
+
+    if (data.versionNo !== undefined && data.versionNo !== existing.versionNo) {
+      await validateTemplateCode(existing.code, data.versionNo, wflId);
+    }
+
+    const updated = await prisma.wflWorkflowTemplate.update({
+      where: { wflId },
+      data: {
+        updatedBy: userId,
+        updatedAt: new Date(),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.versionNo !== undefined && { versionNo: data.versionNo }),
+        ...(data.wecId !== undefined && { wecId: data.wecId }),
+        ...(data.effectiveFrom !== undefined && { effectiveFrom: data.effectiveFrom }),
+        ...(data.effectiveTo !== undefined && { effectiveTo: data.effectiveTo }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wfl_workflow_templates',
+      entityId: wflId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Workflow template updated',
+    });
+
+    return updated;
+  }
+
+  async publishTemplate(wflId: string, userId: string, userEmail: string) {
+    const existing = await prisma.wflWorkflowTemplate.findUnique({ where: { wflId } });
+    if (existing === null) throw new WorkflowNotFoundError();
+    if (existing.status !== 'DRAFT') throw new WorkflowNotDraftError();
+
+    const startingTask = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wflId, isStartingTask: true, isActive: true },
+      select: { wtkId: true },
+    });
+    if (startingTask === null) throw new WorkflowMissingStartTaskError();
+
+    await validateRoutingExpressions(wflId);
+
+    const now = new Date();
+    const updated = await prisma.wflWorkflowTemplate.update({
+      where: { wflId },
+      data: {
+        status: 'PUBLISHED',
+        updatedBy: userId,
+        updatedAt: now,
+        ...(existing.effectiveFrom === null && { effectiveFrom: now }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wfl_workflow_templates',
+      entityId: wflId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Workflow template published',
+    });
+
+    return updated;
+  }
+
+  async archiveTemplate(wflId: string, userId: string, userEmail: string) {
+    const existing = await prisma.wflWorkflowTemplate.findUnique({ where: { wflId } });
+    if (existing === null) throw new WorkflowNotFoundError();
+
+    const now = new Date();
+    const updated = await prisma.wflWorkflowTemplate.update({
+      where: { wflId },
+      data: {
+        status: 'ARCHIVED',
+        effectiveTo: now,
+        updatedBy: userId,
+        updatedAt: now,
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wfl_workflow_templates',
+      entityId: wflId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Workflow template archived',
+    });
+
+    return updated;
+  }
+
+  // -------------------------------------------------------------------------
+  // Tasks
+  // -------------------------------------------------------------------------
+
+  async addTask(wflId: string, data: AddTaskInput, userId: string, userEmail: string) {
+    await requireDraftTemplate(wflId);
+
+    const task = await prisma.wtkWorkflowTemplateTask.create({
+      data: {
+        wflId,
+        code: data.code,
+        name: data.name,
+        taskType: data.taskType,
+        assignmentType: data.assignmentType,
+        priority: data.priority,
+        createdBy: userId,
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.sequenceNo !== undefined && { sequenceNo: data.sequenceNo }),
+        ...(data.assignedUserId !== undefined && { assignedUserId: data.assignedUserId }),
+        ...(data.assignedRoleId !== undefined && { assignedRoleId: data.assignedRoleId }),
+        ...(data.dynamicAssignmentType !== undefined && { dynamicAssignmentType: data.dynamicAssignmentType }),
+        ...(data.slaDurationHours !== undefined && { slaDurationHours: data.slaDurationHours }),
+        ...(data.escalationUserId !== undefined && { escalationUserId: data.escalationUserId }),
+        ...(data.escalationRoleId !== undefined && { escalationRoleId: data.escalationRoleId }),
+        ...(data.escalationDynamicType !== undefined && { escalationDynamicType: data.escalationDynamicType }),
+        ...(data.maxRetryCount !== undefined && { maxRetryCount: data.maxRetryCount }),
+        ...(data.allowReassignment !== undefined && { allowReassignment: data.allowReassignment }),
+        ...(data.requireCommentOnReassign !== undefined && { requireCommentOnReassign: data.requireCommentOnReassign }),
+        ...(data.allowFail !== undefined && { allowFail: data.allowFail }),
+        ...(data.isStartingTask !== undefined && { isStartingTask: data.isStartingTask }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtk_workflow_template_tasks',
+      entityId: task.wtkId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: task as unknown as Record<string, unknown>,
+      comment: 'Task added to workflow template',
+    });
+
+    return task;
+  }
+
+  async updateTask(
+    wflId: string,
+    wtkId: string,
+    data: UpdateTaskInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wtkId, wflId },
+    });
+    if (existing === null) throw new AppError('Task not found in this template', 404);
+
+    const updated = await prisma.wtkWorkflowTemplateTask.update({
+      where: { wtkId },
+      data: {
+        updatedBy: userId,
+        updatedAt: new Date(),
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.sequenceNo !== undefined && { sequenceNo: data.sequenceNo }),
+        ...(data.taskType !== undefined && { taskType: data.taskType }),
+        ...(data.assignmentType !== undefined && { assignmentType: data.assignmentType }),
+        ...(data.assignedUserId !== undefined && { assignedUserId: data.assignedUserId }),
+        ...(data.assignedRoleId !== undefined && { assignedRoleId: data.assignedRoleId }),
+        ...(data.dynamicAssignmentType !== undefined && { dynamicAssignmentType: data.dynamicAssignmentType }),
+        ...(data.priority !== undefined && { priority: data.priority }),
+        ...(data.slaDurationHours !== undefined && { slaDurationHours: data.slaDurationHours }),
+        ...(data.escalationUserId !== undefined && { escalationUserId: data.escalationUserId }),
+        ...(data.escalationRoleId !== undefined && { escalationRoleId: data.escalationRoleId }),
+        ...(data.escalationDynamicType !== undefined && { escalationDynamicType: data.escalationDynamicType }),
+        ...(data.maxRetryCount !== undefined && { maxRetryCount: data.maxRetryCount }),
+        ...(data.allowReassignment !== undefined && { allowReassignment: data.allowReassignment }),
+        ...(data.requireCommentOnReassign !== undefined && { requireCommentOnReassign: data.requireCommentOnReassign }),
+        ...(data.allowFail !== undefined && { allowFail: data.allowFail }),
+        ...(data.isStartingTask !== undefined && { isStartingTask: data.isStartingTask }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtk_workflow_template_tasks',
+      entityId: wtkId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Task updated in workflow template',
+    });
+
+    return updated;
+  }
+
+  async removeTask(wflId: string, wtkId: string, userId: string, userEmail: string) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wtkId, wflId },
+    });
+    if (existing === null) throw new AppError('Task not found in this template', 404);
+
+    const updated = await prisma.wtkWorkflowTemplateTask.update({
+      where: { wtkId },
+      data: { isActive: false, updatedBy: userId, updatedAt: new Date() },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtk_workflow_template_tasks',
+      entityId: wtkId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Task removed from workflow template',
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Inputs
+  // -------------------------------------------------------------------------
+
+  async addInput(
+    wflId: string,
+    wtkId: string,
+    data: AddInputInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const task = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wtkId, wflId },
+      select: { wtkId: true },
+    });
+    if (task === null) throw new AppError('Task not found in this template', 404);
+
+    const input = await prisma.wtiWorkflowTemplateTaskInput.create({
+      data: {
+        wtkId,
+        code: data.code,
+        label: data.label,
+        dataType: data.dataType,
+        createdBy: userId,
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.isRequired !== undefined && { isRequired: data.isRequired }),
+        ...(data.isRoutingInput !== undefined && { isRoutingInput: data.isRoutingInput }),
+        ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
+        ...(data.defaultValue !== undefined && { defaultValue: data.defaultValue }),
+        ...(data.validationRule !== undefined && { validationRule: data.validationRule }),
+        ...(data.optionSetJson !== undefined && { optionSetJson: data.optionSetJson }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wti_workflow_template_task_inputs',
+      entityId: input.wtiId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: input as unknown as Record<string, unknown>,
+      comment: 'Input added to workflow task',
+    });
+
+    return input;
+  }
+
+  async updateInput(
+    wflId: string,
+    wtkId: string,
+    wtiId: string,
+    data: UpdateInputInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtiWorkflowTemplateTaskInput.findFirst({
+      where: { wtiId, wtkId, task: { wflId } },
+    });
+    if (existing === null) throw new AppError('Input not found in this task', 404);
+
+    const updated = await prisma.wtiWorkflowTemplateTaskInput.update({
+      where: { wtiId },
+      data: {
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.label !== undefined && { label: data.label }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.dataType !== undefined && { dataType: data.dataType }),
+        ...(data.isRequired !== undefined && { isRequired: data.isRequired }),
+        ...(data.isRoutingInput !== undefined && { isRoutingInput: data.isRoutingInput }),
+        ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
+        ...(data.defaultValue !== undefined && { defaultValue: data.defaultValue }),
+        ...(data.validationRule !== undefined && { validationRule: data.validationRule }),
+        ...(data.optionSetJson !== undefined && { optionSetJson: data.optionSetJson }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wti_workflow_template_task_inputs',
+      entityId: wtiId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Input updated in workflow task',
+    });
+
+    return updated;
+  }
+
+  async removeInput(
+    wflId: string,
+    wtkId: string,
+    wtiId: string,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtiWorkflowTemplateTaskInput.findFirst({
+      where: { wtiId, wtkId, task: { wflId } },
+    });
+    if (existing === null) throw new AppError('Input not found in this task', 404);
+
+    await prisma.wtiWorkflowTemplateTaskInput.delete({ where: { wtiId } });
+
+    await auditOrchestrator.log({
+      entityName: 'wti_workflow_template_task_inputs',
+      entityId: wtiId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+      comment: 'Input removed from workflow task',
+    });
+
+    // suppress unused-variable lint — userId param kept for API consistency
+    void userId;
+  }
+
+  // -------------------------------------------------------------------------
+  // Outcomes
+  // -------------------------------------------------------------------------
+
+  async addOutcome(
+    wflId: string,
+    wtkId: string,
+    data: AddOutcomeInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const task = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wtkId, wflId },
+      select: { wtkId: true },
+    });
+    if (task === null) throw new AppError('Task not found in this template', 404);
+
+    const outcome = await prisma.wtoWorkflowTemplateTaskOutcome.create({
+      data: {
+        wtkId,
+        code: data.code,
+        label: data.label,
+        createdBy: userId,
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.isTerminal !== undefined && { isTerminal: data.isTerminal }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wto_workflow_template_task_outcomes',
+      entityId: outcome.wtoId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: outcome as unknown as Record<string, unknown>,
+      comment: 'Outcome added to workflow task',
+    });
+
+    return outcome;
+  }
+
+  async removeOutcome(
+    wflId: string,
+    wtkId: string,
+    wtoId: string,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtoWorkflowTemplateTaskOutcome.findFirst({
+      where: { wtoId, wtkId, task: { wflId } },
+    });
+    if (existing === null) throw new AppError('Outcome not found in this task', 404);
+
+    await prisma.wtoWorkflowTemplateTaskOutcome.delete({ where: { wtoId } });
+
+    await auditOrchestrator.log({
+      entityName: 'wto_workflow_template_task_outcomes',
+      entityId: wtoId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+      comment: 'Outcome removed from workflow task',
+    });
+
+    void userId;
+  }
+
+  // -------------------------------------------------------------------------
+  // Routes
+  // -------------------------------------------------------------------------
+
+  async addRoute(wflId: string, data: AddRouteInput, userId: string, userEmail: string) {
+    await requireDraftTemplate(wflId);
+    await validateTaskRoutes(wflId, data.wtkFromId, data.wtkToId);
+
+    const route = await prisma.wtrWorkflowTemplateRoute.create({
+      data: {
+        wflId,
+        wtkFromId: data.wtkFromId,
+        wtkToId: data.wtkToId,
+        conditionType: data.conditionType,
+        createdBy: userId,
+        ...(data.wtoId !== undefined && { wtoId: data.wtoId }),
+        ...(data.routeOrder !== undefined && { routeOrder: data.routeOrder }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtr_workflow_template_routes',
+      entityId: route.wtrId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: route as unknown as Record<string, unknown>,
+      comment: 'Route added to workflow template',
+    });
+
+    return route;
+  }
+
+  async removeRoute(wflId: string, wtrId: string, userId: string, userEmail: string) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtrWorkflowTemplateRoute.findFirst({
+      where: { wtrId, wflId },
+    });
+    if (existing === null) throw new AppError('Route not found in this template', 404);
+
+    await prisma.wtrWorkflowTemplateRoute.delete({ where: { wtrId } });
+
+    await auditOrchestrator.log({
+      entityName: 'wtr_workflow_template_routes',
+      entityId: wtrId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+      comment: 'Route removed from workflow template',
+    });
+
+    void userId;
+  }
+
+  // -------------------------------------------------------------------------
+  // Dependencies
+  // -------------------------------------------------------------------------
+
+  async addDependency(
+    wflId: string,
+    data: AddDependencyInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+    await validateTaskDependencies(wflId, data.wtkPredecessorId, data.wtkSuccessorId);
+
+    const dependency = await prisma.wtdWorkflowTemplateDependency.create({
+      data: {
+        wflId,
+        wtkPredecessorId: data.wtkPredecessorId,
+        wtkSuccessorId: data.wtkSuccessorId,
+        dependencyType: data.dependencyType,
+        createdBy: userId,
+        ...(data.joinGroupCode !== undefined && { joinGroupCode: data.joinGroupCode }),
+        ...(data.isRequired !== undefined && { isRequired: data.isRequired }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtd_workflow_template_dependencies',
+      entityId: dependency.wtdId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: dependency as unknown as Record<string, unknown>,
+      comment: 'Dependency added to workflow template',
+    });
+
+    return dependency;
+  }
+
+  async removeDependency(wflId: string, wtdId: string, userId: string, userEmail: string) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtdWorkflowTemplateDependency.findFirst({
+      where: { wtdId, wflId },
+    });
+    if (existing === null) throw new AppError('Dependency not found in this template', 404);
+
+    await prisma.wtdWorkflowTemplateDependency.delete({ where: { wtdId } });
+
+    await auditOrchestrator.log({
+      entityName: 'wtd_workflow_template_dependencies',
+      entityId: wtdId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+      comment: 'Dependency removed from workflow template',
+    });
+
+    void userId;
+  }
+
+  // -------------------------------------------------------------------------
+  // Notifications
+  // -------------------------------------------------------------------------
+
+  async addNotification(
+    wflId: string,
+    wtkId: string,
+    data: AddNotificationInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const task = await prisma.wtkWorkflowTemplateTask.findFirst({
+      where: { wtkId, wflId },
+      select: { wtkId: true },
+    });
+    if (task === null) throw new AppError('Task not found in this template', 404);
+
+    const notification = await prisma.wtnWorkflowTemplateNotification.create({
+      data: {
+        wtkId,
+        eventType: data.eventType,
+        recipientType: data.recipientType,
+        messageTemplate: data.messageTemplate,
+        createdBy: userId,
+        ...(data.recipientUserId !== undefined && { recipientUserId: data.recipientUserId }),
+        ...(data.recipientRoleId !== undefined && { recipientRoleId: data.recipientRoleId }),
+        ...(data.recipientDynamicType !== undefined && { recipientDynamicType: data.recipientDynamicType }),
+        ...(data.emailTemplate !== undefined && { emailTemplate: data.emailTemplate }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtn_workflow_template_notifications',
+      entityId: notification.wtnId,
+      createdBy: userEmail,
+      oldValues: null,
+      newValues: notification as unknown as Record<string, unknown>,
+      comment: 'Notification added to workflow task',
+    });
+
+    return notification;
+  }
+
+  async updateNotification(
+    wflId: string,
+    wtkId: string,
+    wtnId: string,
+    data: UpdateNotificationInput,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtnWorkflowTemplateNotification.findFirst({
+      where: { wtnId, wtkId, task: { wflId } },
+    });
+    if (existing === null) throw new AppError('Notification not found in this task', 404);
+
+    const updated = await prisma.wtnWorkflowTemplateNotification.update({
+      where: { wtnId },
+      data: {
+        ...(data.eventType !== undefined && { eventType: data.eventType }),
+        ...(data.recipientType !== undefined && { recipientType: data.recipientType }),
+        ...(data.recipientUserId !== undefined && { recipientUserId: data.recipientUserId }),
+        ...(data.recipientRoleId !== undefined && { recipientRoleId: data.recipientRoleId }),
+        ...(data.recipientDynamicType !== undefined && { recipientDynamicType: data.recipientDynamicType }),
+        ...(data.messageTemplate !== undefined && { messageTemplate: data.messageTemplate }),
+        ...(data.emailTemplate !== undefined && { emailTemplate: data.emailTemplate }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+      },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'wtn_workflow_template_notifications',
+      entityId: wtnId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: updated as unknown as Record<string, unknown>,
+      comment: 'Notification updated in workflow task',
+    });
+
+    // userId consumed by audit via userEmail
+    void userId;
+
+    return updated;
+  }
+
+  async removeNotification(
+    wflId: string,
+    wtkId: string,
+    wtnId: string,
+    userId: string,
+    userEmail: string,
+  ) {
+    await requireDraftTemplate(wflId);
+
+    const existing = await prisma.wtnWorkflowTemplateNotification.findFirst({
+      where: { wtnId, wtkId, task: { wflId } },
+    });
+    if (existing === null) throw new AppError('Notification not found in this task', 404);
+
+    await prisma.wtnWorkflowTemplateNotification.delete({ where: { wtnId } });
+
+    await auditOrchestrator.log({
+      entityName: 'wtn_workflow_template_notifications',
+      entityId: wtnId,
+      createdBy: userEmail,
+      oldValues: existing as unknown as Record<string, unknown>,
+      newValues: null,
+      comment: 'Notification removed from workflow task',
+    });
+
+    void userId;
+  }
+}
+
+export const workflowTemplateOrchestrator = new WorkflowTemplateOrchestrator();

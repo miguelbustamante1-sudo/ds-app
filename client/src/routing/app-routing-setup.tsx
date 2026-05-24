@@ -65,6 +65,12 @@ import { HolidaySwapExceptionPage } from '@/pages/holiday-swaps/exception';
 import { ApprovalManagementPage } from '@/pages/approval-management';
 import { CompensatoryTimeIntakePage } from '@/pages/compensatory-time/intake';
 import { CompensatoryTimeUsagePage } from '@/pages/compensatory-time/usage';
+import { TemplateListPage } from '@/pages/admin/workflow/TemplateListPage';
+import { TemplateFormPage } from '@/pages/admin/workflow/TemplateFormPage';
+import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
+import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
+import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
+import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
 
 export function AppRoutingSetup() {
   return (
@@ -149,6 +155,15 @@ export function AppRoutingSetup() {
         {/* Compensatory Time */}
         <Route path="/compensatory-time/intake" element={<CompensatoryTimeIntakePage />} />
         <Route path="/compensatory-time/usage" element={<CompensatoryTimeUsagePage />} />
+        {/* Workflow Admin */}
+        <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
+        <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />
+        <Route path="/admin/workflow/templates/:wflId/edit" element={<TemplateFormPage />} />
+        <Route path="/admin/workflow/instances" element={<InstanceListPage />} />
+        <Route path="/admin/workflow/instances/:winId" element={<InstanceDetailPage />} />
+        {/* Workflow Inbox / Execution */}
+        <Route path="/my-tasks" element={<TaskInboxPage />} />
+        <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

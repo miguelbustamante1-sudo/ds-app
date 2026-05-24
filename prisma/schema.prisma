@@ -886,3 +886,470 @@ model ShiftDetail {
   @@map("sfd_shift_details")
   @@schema("ds")
 }
+
+// =============================================================================
+// DTOS — Dynamic Task Orchestration System
+// =============================================================================
+
+// --- Definition Layer --------------------------------------------------------
+
+model WecWorkflowEntityConfig {
+  wecId      String    @id @default(uuid()) @map("wec_id") @db.Uuid
+  entityType String    @map("wec_entity_type") @db.VarChar(50)
+  label      String    @map("wec_label") @db.VarChar(200)
+  isActive   Boolean   @default(true) @map("wec_is_active")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy  String?   @map("created_by") @db.VarChar(100)
+  updatedAt  DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy  String?   @map("updated_by") @db.VarChar(100)
+
+  entityFields      WefWorkflowEntityField[]
+  workflowTemplates WflWorkflowTemplate[]
+
+  @@map("wec_workflow_entity_configs")
+  @@schema("ds")
+}
+
+model WefWorkflowEntityField {
+  wefId        String   @id @default(uuid()) @map("wef_id") @db.Uuid
+  wecId        String   @map("wec_id") @db.Uuid
+  contextKey   String   @map("wef_context_key") @db.VarChar(100)
+  label        String   @map("wef_label") @db.VarChar(200)
+  sourceField  String   @map("wef_source_field") @db.VarChar(100)
+  dataType     String   @map("wef_data_type") @db.VarChar(30)
+  displayOrder Int      @default(1) @map("wef_display_order") @db.Integer
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?  @map("created_by") @db.VarChar(100)
+
+  entityConfig WecWorkflowEntityConfig @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wef_workflow_entity_fields_wec_fk")
+
+  @@index([wecId], map: "idx_wef_wec_id")
+  @@map("wef_workflow_entity_fields")
+  @@schema("ds")
+}
+
+model WflWorkflowTemplate {
+  wflId         String    @id @default(uuid()) @map("wfl_id") @db.Uuid
+  wecId         String?   @map("wec_id") @db.Uuid
+  code          String    @map("wfl_code") @db.VarChar(30)
+  name          String    @map("wfl_name") @db.VarChar(200)
+  description   String?   @map("wfl_description")
+  versionNo     Int       @map("wfl_version_no") @db.Integer
+  status        String    @map("wfl_status") @db.VarChar(30)
+  isActive      Boolean   @default(true) @map("wfl_is_active")
+  effectiveFrom DateTime? @map("wfl_effective_from") @db.Timestamptz(6)
+  effectiveTo   DateTime? @map("wfl_effective_to") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?   @map("created_by") @db.VarChar(100)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy     String?   @map("updated_by") @db.VarChar(100)
+
+  entityConfig WecWorkflowEntityConfig? @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wfl_workflow_templates_wec_fk")
+  tasks        WtkWorkflowTemplateTask[]
+  routes       WtrWorkflowTemplateRoute[]
+  dependencies WtdWorkflowTemplateDependency[]
+  instances    WinWorkflowInstance[]
+
+  @@index([wecId], map: "idx_wfl_wec_id")
+  @@map("wfl_workflow_templates")
+  @@schema("ds")
+}
+
+model WtkWorkflowTemplateTask {
+  wtkId                    String    @id @default(uuid()) @map("wtk_id") @db.Uuid
+  wflId                    String    @map("wfl_id") @db.Uuid
+  code                     String    @map("wtk_code") @db.VarChar(50)
+  name                     String    @map("wtk_name") @db.VarChar(200)
+  description              String?   @map("wtk_description")
+  sequenceNo               Int?      @map("wtk_sequence_no") @db.Integer
+  taskType                 String    @map("wtk_task_type") @db.VarChar(30)
+  assignmentType           String    @map("wtk_assignment_type") @db.VarChar(30)
+  assignedUserId           String?   @map("wtk_assigned_user_id") @db.Uuid
+  assignedRoleId           String?   @map("wtk_assigned_role_id") @db.Uuid
+  dynamicAssignmentType    String?   @map("wtk_dynamic_assignment_type") @db.VarChar(50)
+  priority                 String    @map("wtk_priority") @db.VarChar(20)
+  slaDurationHours         Int?      @map("wtk_sla_duration_hours") @db.Integer
+  escalationUserId         String?   @map("wtk_escalation_user_id") @db.Uuid
+  escalationRoleId         String?   @map("wtk_escalation_role_id") @db.Uuid
+  escalationDynamicType    String?   @map("wtk_escalation_dynamic_type") @db.VarChar(50)
+  maxRetryCount            Int       @default(0) @map("wtk_max_retry_count") @db.Integer
+  allowReassignment        Boolean   @default(true) @map("wtk_allow_reassignment")
+  requireCommentOnReassign Boolean   @default(true) @map("wtk_require_comment_on_reassign")
+  allowFail                Boolean   @default(true) @map("wtk_allow_fail")
+  isStartingTask           Boolean   @default(false) @map("wtk_is_starting_task")
+  isActive                 Boolean   @default(true) @map("wtk_is_active")
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy                String?   @map("created_by") @db.VarChar(100)
+  updatedAt                DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy                String?   @map("updated_by") @db.VarChar(100)
+
+  template        WflWorkflowTemplate              @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtk_workflow_template_tasks_wfl_fk")
+  inputs          WtiWorkflowTemplateTaskInput[]
+  outcomes        WtoWorkflowTemplateTaskOutcome[]
+  notifications   WtnWorkflowTemplateNotification[]
+  routesFrom      WtrWorkflowTemplateRoute[]        @relation("WtrFrom")
+  routesTo        WtrWorkflowTemplateRoute[]        @relation("WtrTo")
+  predecessorDeps WtdWorkflowTemplateDependency[]   @relation("WtdPredecessor")
+  successorDeps   WtdWorkflowTemplateDependency[]   @relation("WtdSuccessor")
+  instanceTasks   WitWorkflowInstanceTask[]
+
+  @@index([wflId], map: "idx_wtk_wfl_id")
+  @@map("wtk_workflow_template_tasks")
+  @@schema("ds")
+}
+
+model WtiWorkflowTemplateTaskInput {
+  wtiId          String   @id @default(uuid()) @map("wti_id") @db.Uuid
+  wtkId          String   @map("wtk_id") @db.Uuid
+  code           String   @map("wti_code") @db.VarChar(50)
+  label          String   @map("wti_label") @db.VarChar(200)
+  description    String?  @map("wti_description")
+  dataType       String   @map("wti_data_type") @db.VarChar(30)
+  isRequired     Boolean  @default(false) @map("wti_is_required")
+  isRoutingInput Boolean  @default(false) @map("wti_is_routing_input")
+  displayOrder   Int      @default(1) @map("wti_display_order") @db.Integer
+  defaultValue   String?  @map("wti_default_value")
+  validationRule String?  @map("wti_validation_rule")
+  optionSetJson  Json?    @map("wti_option_set_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy      String?  @map("created_by") @db.VarChar(100)
+
+  task           WtkWorkflowTemplateTask        @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wti_workflow_template_task_inputs_wtk_fk")
+  instanceInputs WiiWorkflowInstanceTaskInput[]
+
+  @@index([wtkId], map: "idx_wti_wtk_id")
+  @@map("wti_workflow_template_task_inputs")
+  @@schema("ds")
+}
+
+model WtoWorkflowTemplateTaskOutcome {
+  wtoId       String   @id @default(uuid()) @map("wto_id") @db.Uuid
+  wtkId       String   @map("wtk_id") @db.Uuid
+  code        String   @map("wto_code") @db.VarChar(50)
+  label       String   @map("wto_label") @db.VarChar(200)
+  description String?  @map("wto_description")
+  isTerminal  Boolean  @default(false) @map("wto_is_terminal")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?  @map("created_by") @db.VarChar(100)
+
+  task   WtkWorkflowTemplateTask    @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wto_workflow_template_task_outcomes_wtk_fk")
+  routes WtrWorkflowTemplateRoute[]
+
+  @@index([wtkId], map: "idx_wto_wtk_id")
+  @@map("wto_workflow_template_task_outcomes")
+  @@schema("ds")
+}
+
+model WtrWorkflowTemplateRoute {
+  wtrId         String   @id @default(uuid()) @map("wtr_id") @db.Uuid
+  wflId         String   @map("wfl_id") @db.Uuid
+  wtkFromId     String   @map("wtk_from_id") @db.Uuid
+  wtoId         String?  @map("wto_id") @db.Uuid
+  wtkToId       String   @map("wtk_to_id") @db.Uuid
+  conditionType String   @map("wtr_condition_type") @db.VarChar(30)
+  routeOrder    Int      @default(1) @map("wtr_route_order") @db.Integer
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?  @map("created_by") @db.VarChar(100)
+
+  template WflWorkflowTemplate              @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtr_workflow_template_routes_wfl_fk")
+  fromTask WtkWorkflowTemplateTask           @relation("WtrFrom", fields: [wtkFromId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_from_fk")
+  outcome  WtoWorkflowTemplateTaskOutcome?   @relation(fields: [wtoId], references: [wtoId], onDelete: Restrict, map: "wtr_workflow_template_routes_wto_fk")
+  toTask   WtkWorkflowTemplateTask           @relation("WtrTo", fields: [wtkToId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_to_fk")
+
+  @@index([wflId, wtkFromId], map: "idx_wtr_wfl_from")
+  @@map("wtr_workflow_template_routes")
+  @@schema("ds")
+}
+
+model WtdWorkflowTemplateDependency {
+  wtdId            String   @id @default(uuid()) @map("wtd_id") @db.Uuid
+  wflId            String   @map("wfl_id") @db.Uuid
+  wtkPredecessorId String   @map("wtk_predecessor_id") @db.Uuid
+  wtkSuccessorId   String   @map("wtk_successor_id") @db.Uuid
+  dependencyType   String   @map("wtd_dependency_type") @db.VarChar(30)
+  joinGroupCode    String?  @map("wtd_join_group_code") @db.VarChar(50)
+  isRequired       Boolean  @default(true) @map("wtd_is_required")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?  @map("created_by") @db.VarChar(100)
+
+  template    WflWorkflowTemplate     @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtd_workflow_template_dependencies_wfl_fk")
+  predecessor WtkWorkflowTemplateTask @relation("WtdPredecessor", fields: [wtkPredecessorId], references: [wtkId], onDelete: Restrict, map: "wtd_workflow_template_dependencies_predecessor_fk")
+  successor   WtkWorkflowTemplateTask @relation("WtdSuccessor", fields: [wtkSuccessorId], references: [wtkId], onDelete: Restrict, map: "wtd_workflow_template_dependencies_successor_fk")
+
+  @@index([wflId, wtkSuccessorId], map: "idx_wtd_wfl_successor")
+  @@map("wtd_workflow_template_dependencies")
+  @@schema("ds")
+}
+
+model WtnWorkflowTemplateNotification {
+  wtnId                String   @id @default(uuid()) @map("wtn_id") @db.Uuid
+  wtkId                String   @map("wtk_id") @db.Uuid
+  eventType            String   @map("wtn_event_type") @db.VarChar(50)
+  recipientType        String   @map("wtn_recipient_type") @db.VarChar(30)
+  recipientUserId      String?  @map("wtn_recipient_user_id") @db.Uuid
+  recipientRoleId      String?  @map("wtn_recipient_role_id") @db.Uuid
+  recipientDynamicType String?  @map("wtn_recipient_dynamic_type") @db.VarChar(50)
+  messageTemplate      String   @map("wtn_message_template")
+  emailTemplate        String?  @map("wtn_email_template")
+  isActive             Boolean  @default(true) @map("wtn_is_active")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy            String?  @map("created_by") @db.VarChar(100)
+
+  task WtkWorkflowTemplateTask @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wtn_workflow_template_notifications_wtk_fk")
+
+  @@index([wtkId], map: "idx_wtn_wtk_id")
+  @@map("wtn_workflow_template_notifications")
+  @@schema("ds")
+}
+
+// --- Execution Layer ---------------------------------------------------------
+
+model WinWorkflowInstance {
+  winId                  String    @id @default(uuid()) @map("win_id") @db.Uuid
+  wflId                  String    @map("wfl_id") @db.Uuid
+  workflowCode           String    @map("win_workflow_code") @db.VarChar(30)
+  templateVersionNo      Int       @map("win_template_version_no") @db.Integer
+  name                   String    @map("win_name") @db.VarChar(200)
+  status                 String    @map("win_status") @db.VarChar(30)
+  startedAt              DateTime  @default(now()) @map("win_started_at") @db.Timestamptz(6)
+  startedBy              String?   @map("win_started_by") @db.VarChar(100)
+  completedAt            DateTime? @map("win_completed_at") @db.Timestamptz(6)
+  completedBy            String?   @map("win_completed_by") @db.VarChar(100)
+  destroyedAt            DateTime? @map("win_destroyed_at") @db.Timestamptz(6)
+  destroyedBy            String?   @map("win_destroyed_by") @db.VarChar(100)
+  destructionReason      String?   @map("win_destruction_reason")
+  forcedCompletedAt      DateTime? @map("win_forced_completed_at") @db.Timestamptz(6)
+  forcedCompletedBy      String?   @map("win_forced_completed_by") @db.VarChar(100)
+  forcedCompletionReason String?   @map("win_forced_completion_reason")
+  ownerUserId            String?   @map("win_owner_user_id") @db.Uuid
+  businessReferenceType  String?   @map("win_business_reference_type") @db.VarChar(100)
+  businessReferenceId    String?   @map("win_business_reference_id") @db.VarChar(100)
+  contextJson            Json?     @map("win_context_json")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy              String?   @map("created_by") @db.VarChar(100)
+
+  template     WflWorkflowTemplate               @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "win_workflow_instances_wfl_fk")
+  tasks        WitWorkflowInstanceTask[]
+  context      WicWorkflowInstanceContext[]
+  dependencies WidWorkflowInstanceTaskDependency[]
+  auditLogs    WalWorkflowAuditLog[]
+
+  @@index([wflId], map: "idx_win_wfl_id")
+  @@index([status, startedAt], map: "idx_win_status_started")
+  @@index([ownerUserId, status], map: "idx_win_owner_status")
+  @@index([businessReferenceType, businessReferenceId], map: "idx_win_business_ref")
+  @@map("win_workflow_instances")
+  @@schema("ds")
+}
+
+model WitWorkflowInstanceTask {
+  witId                 String    @id @default(uuid()) @map("wit_id") @db.Uuid
+  winId                 String    @map("win_id") @db.Uuid
+  wtkId                 String?   @map("wtk_id") @db.Uuid
+  code                  String    @map("wit_code") @db.VarChar(50)
+  name                  String    @map("wit_name") @db.VarChar(200)
+  description           String?   @map("wit_description")
+  sequenceNo            Int?      @map("wit_sequence_no") @db.Integer
+  taskType              String    @map("wit_task_type") @db.VarChar(30)
+  assignmentType        String    @map("wit_assignment_type") @db.VarChar(30)
+  assignedUserId        String?   @map("wit_assigned_user_id") @db.Uuid
+  assignedRoleId        String?   @map("wit_assigned_role_id") @db.Uuid
+  dynamicAssignmentType String?   @map("wit_dynamic_assignment_type") @db.VarChar(50)
+  resolvedUserId        String?   @map("wit_resolved_user_id") @db.Uuid
+  priority              String    @map("wit_priority") @db.VarChar(20)
+  state                 String    @map("wit_state") @db.VarChar(30)
+  dueAt                 DateTime? @map("wit_due_at") @db.Timestamptz(6)
+  activatedAt           DateTime? @map("wit_activated_at") @db.Timestamptz(6)
+  startedAt             DateTime? @map("wit_started_at") @db.Timestamptz(6)
+  completedAt           DateTime? @map("wit_completed_at") @db.Timestamptz(6)
+  completedBy           String?   @map("wit_completed_by") @db.VarChar(100)
+  outcomeCode           String?   @map("wit_outcome_code") @db.VarChar(50)
+  resultComment         String?   @map("wit_result_comment")
+  retryCount            Int       @default(0) @map("wit_retry_count") @db.Integer
+  maxRetryCount         Int       @default(0) @map("wit_max_retry_count") @db.Integer
+  slaDurationHours      Int?      @map("wit_sla_duration_hours") @db.Integer
+  escalatedAt           DateTime? @map("wit_escalated_at") @db.Timestamptz(6)
+  escalationUserId      String?   @map("wit_escalation_user_id") @db.Uuid
+  escalationRoleId      String?   @map("wit_escalation_role_id") @db.Uuid
+  escalationDynamicType String?   @map("wit_escalation_dynamic_type") @db.VarChar(50)
+  overrideReason        String?   @map("wit_override_reason")
+  overriddenAt          DateTime? @map("wit_overridden_at") @db.Timestamptz(6)
+  overriddenBy          String?   @map("wit_overridden_by") @db.VarChar(100)
+  voidedAt              DateTime? @map("wit_voided_at") @db.Timestamptz(6)
+  voidedBy              String?   @map("wit_voided_by") @db.VarChar(100)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy             String?   @map("created_by") @db.VarChar(100)
+  updatedAt             DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy             String?   @map("updated_by") @db.VarChar(100)
+
+  instance        WinWorkflowInstance               @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wit_workflow_instance_tasks_win_fk")
+  templateTask    WtkWorkflowTemplateTask?           @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wit_workflow_instance_tasks_wtk_fk")
+  inputs          WiiWorkflowInstanceTaskInput[]
+  inputValues     WivWorkflowInstanceTaskInputValue[]
+  notifications   WntWorkflowInstanceNotification[]
+  contextEntries  WicWorkflowInstanceContext[]
+  reassignments   WreWorkflowTaskReassignment[]
+  auditLogs       WalWorkflowAuditLog[]
+  predecessorDeps WidWorkflowInstanceTaskDependency[] @relation("WidPredecessor")
+  successorDeps   WidWorkflowInstanceTaskDependency[] @relation("WidSuccessor")
+
+  @@index([winId, state], map: "idx_wit_win_state")
+  @@index([resolvedUserId, state, dueAt], map: "idx_wit_resolved_user_state_due")
+  @@index([assignedRoleId, state, dueAt], map: "idx_wit_role_state_due")
+  @@index([code], map: "idx_wit_code")
+  @@index([dueAt], map: "idx_wit_due_at")
+  @@map("wit_workflow_instance_tasks")
+  @@schema("ds")
+}
+
+model WiiWorkflowInstanceTaskInput {
+  wiiId          String   @id @default(uuid()) @map("wii_id") @db.Uuid
+  witId          String   @map("wit_id") @db.Uuid
+  wtiId          String?  @map("wti_id") @db.Uuid
+  code           String   @map("wii_code") @db.VarChar(50)
+  label          String   @map("wii_label") @db.VarChar(200)
+  description    String?  @map("wii_description")
+  dataType       String   @map("wii_data_type") @db.VarChar(30)
+  isRequired     Boolean  @default(false) @map("wii_is_required")
+  isRoutingInput Boolean  @default(false) @map("wii_is_routing_input")
+  displayOrder   Int      @default(1) @map("wii_display_order") @db.Integer
+  defaultValue   String?  @map("wii_default_value")
+  validationRule String?  @map("wii_validation_rule")
+  optionSetJson  Json?    @map("wii_option_set_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy      String?  @map("created_by") @db.VarChar(100)
+
+  task          WitWorkflowInstanceTask             @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wii_workflow_instance_task_inputs_wit_fk")
+  templateInput WtiWorkflowTemplateTaskInput?       @relation(fields: [wtiId], references: [wtiId], onDelete: Restrict, map: "wii_workflow_instance_task_inputs_wti_fk")
+  inputValues   WivWorkflowInstanceTaskInputValue[]
+
+  @@index([witId], map: "idx_wii_wit_id")
+  @@map("wii_workflow_instance_task_inputs")
+  @@schema("ds")
+}
+
+model WivWorkflowInstanceTaskInputValue {
+  wivId         String    @id @default(uuid()) @map("wiv_id") @db.Uuid
+  witId         String    @map("wit_id") @db.Uuid
+  wiiId         String    @map("wii_id") @db.Uuid
+  attemptNo     Int       @default(1) @map("wiv_attempt_no") @db.Integer
+  valueText     String?   @map("wiv_value_text")
+  valueNumber   Decimal?  @map("wiv_value_number") @db.Decimal(18, 4)
+  valueBoolean  Boolean?  @map("wiv_value_boolean")
+  valueDate     DateTime? @map("wiv_value_date") @db.Date
+  valueDatetime DateTime? @map("wiv_value_datetime") @db.Timestamptz(6)
+  valueJson     Json?     @map("wiv_value_json")
+  enteredAt     DateTime  @default(now()) @map("wiv_entered_at") @db.Timestamptz(6)
+  enteredBy     String?   @map("wiv_entered_by") @db.VarChar(100)
+
+  task  WitWorkflowInstanceTask      @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wiv_workflow_instance_task_input_values_wit_fk")
+  input WiiWorkflowInstanceTaskInput @relation(fields: [wiiId], references: [wiiId], onDelete: Restrict, map: "wiv_workflow_instance_task_input_values_wii_fk")
+
+  @@index([wiiId], map: "idx_wiv_wii_id")
+  @@map("wiv_workflow_instance_task_input_values")
+  @@schema("ds")
+}
+
+model WidWorkflowInstanceTaskDependency {
+  widId            String   @id @default(uuid()) @map("wid_id") @db.Uuid
+  winId            String   @map("win_id") @db.Uuid
+  witPredecessorId String   @map("wit_predecessor_id") @db.Uuid
+  witSuccessorId   String   @map("wit_successor_id") @db.Uuid
+  dependencyType   String   @map("wid_dependency_type") @db.VarChar(30)
+  joinGroupCode    String?  @map("wid_join_group_code") @db.VarChar(50)
+  isRequired       Boolean  @default(true) @map("wid_is_required")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?  @map("created_by") @db.VarChar(100)
+
+  instance    WinWorkflowInstance     @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wid_workflow_instance_task_dependencies_win_fk")
+  predecessor WitWorkflowInstanceTask @relation("WidPredecessor", fields: [witPredecessorId], references: [witId], onDelete: Restrict, map: "wid_workflow_instance_task_dependencies_predecessor_fk")
+  successor   WitWorkflowInstanceTask @relation("WidSuccessor", fields: [witSuccessorId], references: [witId], onDelete: Restrict, map: "wid_workflow_instance_task_dependencies_successor_fk")
+
+  @@index([winId, witSuccessorId], map: "idx_wid_win_successor")
+  @@map("wid_workflow_instance_task_dependencies")
+  @@schema("ds")
+}
+
+model WntWorkflowInstanceNotification {
+  wntId                String    @id @default(uuid()) @map("wnt_id") @db.Uuid
+  witId                String    @map("wit_id") @db.Uuid
+  eventType            String    @map("wnt_event_type") @db.VarChar(50)
+  recipientType        String    @map("wnt_recipient_type") @db.VarChar(30)
+  recipientUserId      String?   @map("wnt_recipient_user_id") @db.Uuid
+  recipientRoleId      String?   @map("wnt_recipient_role_id") @db.Uuid
+  recipientDynamicType String?   @map("wnt_recipient_dynamic_type") @db.VarChar(50)
+  messageTemplate      String    @map("wnt_message_template")
+  emailTemplate        String?   @map("wnt_email_template")
+  lastTriggeredAt      DateTime? @map("wnt_last_triggered_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy            String?   @map("created_by") @db.VarChar(100)
+
+  task WitWorkflowInstanceTask @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wnt_workflow_instance_notifications_wit_fk")
+
+  @@index([witId], map: "idx_wnt_wit_id")
+  @@map("wnt_workflow_instance_notifications")
+  @@schema("ds")
+}
+
+model WicWorkflowInstanceContext {
+  wicId        String    @id @default(uuid()) @map("wic_id") @db.Uuid
+  winId        String    @map("win_id") @db.Uuid
+  witId        String?   @map("wit_id") @db.Uuid
+  key          String    @map("wic_key") @db.VarChar(100)
+  valueText    String?   @map("wic_value_text")
+  valueNumber  Decimal?  @map("wic_value_number") @db.Decimal(18, 4)
+  valueBoolean Boolean?  @map("wic_value_boolean")
+  valueDate    DateTime? @map("wic_value_date") @db.Date
+  valueDatetime DateTime? @map("wic_value_datetime") @db.Timestamptz(6)
+  valueJson    Json?     @map("wic_value_json")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?   @map("created_by") @db.VarChar(100)
+  updatedAt    DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy    String?   @map("updated_by") @db.VarChar(100)
+
+  instance WinWorkflowInstance      @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wic_workflow_instance_context_win_fk")
+  task     WitWorkflowInstanceTask? @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wic_workflow_instance_context_wit_fk")
+
+  @@index([winId, key], map: "idx_wic_win_key")
+  @@map("wic_workflow_instance_context")
+  @@schema("ds")
+}
+
+model WreWorkflowTaskReassignment {
+  wreId        String   @id @default(uuid()) @map("wre_id") @db.Uuid
+  witId        String   @map("wit_id") @db.Uuid
+  fromUserId   String?  @map("wre_from_user_id") @db.Uuid
+  fromRoleId   String?  @map("wre_from_role_id") @db.Uuid
+  toUserId     String?  @map("wre_to_user_id") @db.Uuid
+  toRoleId     String?  @map("wre_to_role_id") @db.Uuid
+  reason       String   @map("wre_reason")
+  reassignedAt DateTime @default(now()) @map("wre_reassigned_at") @db.Timestamptz(6)
+  reassignedBy String   @map("wre_reassigned_by") @db.VarChar(100)
+  createdBy    String?  @map("wre_created_by") @db.VarChar(100)
+
+  task WitWorkflowInstanceTask @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wre_workflow_task_reassignments_wit_fk")
+
+  @@index([witId, reassignedAt], map: "idx_wre_wit_at")
+  @@map("wre_workflow_task_reassignments")
+  @@schema("ds")
+}
+
+model WalWorkflowAuditLog {
+  walId          String    @id @default(uuid()) @map("wal_id") @db.Uuid
+  winId          String    @map("win_id") @db.Uuid
+  witId          String?   @map("wit_id") @db.Uuid
+  eventType      String    @map("wal_event_type") @db.VarChar(50)
+  eventTimestamp DateTime  @default(now()) @map("wal_event_timestamp") @db.Timestamptz(6)
+  performedBy    String?   @map("wal_performed_by") @db.VarChar(100)
+  reason         String?   @map("wal_reason")
+  oldState       String?   @map("wal_old_state") @db.VarChar(30)
+  newState       String?   @map("wal_new_state") @db.VarChar(30)
+  detailsJson    Json?     @map("wal_details_json")
+
+  instance WinWorkflowInstance      @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wal_workflow_audit_log_win_fk")
+  task     WitWorkflowInstanceTask? @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wal_workflow_audit_log_wit_fk")
+
+  @@index([winId, eventTimestamp], map: "idx_wal_win_timestamp")
+  @@map("wal_workflow_audit_log")
+  @@schema("ds")
+}

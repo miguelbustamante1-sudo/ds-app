@@ -43,6 +43,10 @@ import persistenceJobRouter from './persistenceJob.routes';
 import shiftRouter from './shift.routes';
 import timeoffPeriodMaintenanceRouter from './timeoff-period-maintenance.routes';
 import compensatoryTimeRouter from './compensatoryTime.routes';
+import workflowTemplatesRouter from '../services/workflow/routes/templates';
+import workflowInstancesRouter from '../services/workflow/routes/instances';
+import workflowTasksRouter from '../services/workflow/routes/tasks';
+import workflowAdminRouter from '../services/workflow/routes/admin';
 
 export default function registerRoutes() {
   const router = Router();
@@ -91,7 +95,10 @@ export default function registerRoutes() {
   router.use('/shift', shiftRouter);
   router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
   router.use('/compensatory-time', compensatoryTimeRouter);
-  router.use('/shift', shiftRouter);
+  router.use('/workflow/templates', workflowTemplatesRouter);
+  router.use('/workflow/instances', workflowInstancesRouter);
+  router.use('/workflow', workflowTasksRouter);
+  router.use('/workflow', workflowAdminRouter);
 
   return router;
 }

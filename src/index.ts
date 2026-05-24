@@ -19,6 +19,7 @@ import { error } from './logger';
 import { processAttritionTimeOffs } from './services/timeoff/attrition/processAttrition';
 import { processCountdownNotifications } from './services/timeoff/countdownNotifications/processCountdownNotifications';
 import { backfillTimeOffDays } from './services/timeoff/backfill/backfillTimeOffDays';
+import { processSlaBreaches } from './services/workflow/components/SlaBreachScanner';
 
 import type { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -101,6 +102,11 @@ setInterval(processAttritionTimeOffs, 24 * 60 * 60 * 1000);
 // and then every 24 hours.
 processCountdownNotifications();
 setInterval(processCountdownNotifications, 24 * 60 * 60 * 1000);
+
+// SLA breach scanner: detects tasks past their due date and escalates them.
+// Runs once on startup and then every 15 minutes.
+processSlaBreaches();
+setInterval(processSlaBreaches, 15 * 60 * 1000);
 
 // PostgreSQL connection pool for Cloud SQL
 // pool is provided by `src/db/pool.ts`
