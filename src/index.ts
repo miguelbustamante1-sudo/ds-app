@@ -16,7 +16,7 @@ import authRoutes from './routes/auth';
 import { authMiddleware } from './middleware/auth';
 import { getAllCountries } from './db/countries';
 import { error } from './logger';
-import { processAttritionTimeOffs } from './services/timeoff/attrition/processAttrition';
+import { processAttritionTimeOffs } from './services/attrition';
 import { processCountdownNotifications } from './services/timeoff/countdownNotifications/processCountdownNotifications';
 import { backfillTimeOffDays } from './services/timeoff/backfill/backfillTimeOffDays';
 import { processSlaBreaches } from './services/workflow/components/SlaBreachScanner';

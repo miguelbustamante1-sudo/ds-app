@@ -4,15 +4,15 @@ import { getReportsForWorkflow } from '../../teamMember/queries/getReportsForWor
 interface ResolveInput {
   witId: string;
   assignmentType: string;
-  assignedUserId: string | null;
+  assignedUserId: number | null;
   assignedRoleId: string | null;
   dynamicAssignmentType: string | null;
-  ownerUserId: string | null; // win_owner_user_id — used as starting point for DYNAMIC
+  ownerUserId: number | null; // win_owner_user_id — used as starting point for DYNAMIC
   performedBy: string; // req.user.email for audit
 }
 
 interface ResolveResult {
-  resolvedUserId: string | null;
+  resolvedUserId: number | null;
   noResponsibleFound: boolean;
 }
 
@@ -36,7 +36,7 @@ export async function resolveTaskResponsible(
     if (!ownerUserId) return { resolvedUserId: null, noResponsibleFound: true };
 
     // ownerUserId references ds.tbl_users.usr_id — look up teamMemberId
-    const dsUser = await tx.user.findUnique({ where: { userId: parseInt(ownerUserId, 10) } });
+    const dsUser = await tx.user.findUnique({ where: { userId: ownerUserId } });
     if (!dsUser?.teamMemberId) return { resolvedUserId: null, noResponsibleFound: true };
 
     const supervisorIds = await getReportsForWorkflow(dsUser.teamMemberId);
@@ -48,7 +48,7 @@ export async function resolveTaskResponsible(
     const managerUser = await tx.user.findFirst({ where: { teamMemberId: firstSupervisorTmsId } });
     if (!managerUser) return { resolvedUserId: null, noResponsibleFound: true };
 
-    return { resolvedUserId: managerUser.userId.toString(), noResponsibleFound: false };
+    return { resolvedUserId: managerUser.userId, noResponsibleFound: false };
   }
 
   return { resolvedUserId: null, noResponsibleFound: true };

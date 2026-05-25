@@ -12,11 +12,11 @@ export interface TaskInboxItem {
   isOverdue: boolean;
   isClaimed: boolean;
   isClaimedByMe: boolean;
-  claimedByUserId: string | null;
+  claimedByUserId: number | null;
 }
 
 interface GetTaskInboxParams {
-  dsUserId: string;
+  dsUserId: number;
   isAdmin: boolean;
 }
 

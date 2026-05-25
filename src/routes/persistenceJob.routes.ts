@@ -4,9 +4,11 @@
  * Responsibility: HTTP transport layer only (thin controller).
  * All business logic lives in PersistenceJobService.
  *
- * Security: all endpoints require the admin-level permission
- * requirePermission('PersistenceTemplates', 'create'), consistent with
- * the RBAC pattern used across the application.
+ * Security:
+ *   GET endpoints use requirePermission('PersistenceTemplates', 'read') — viewing
+ *   job records is a read operation and must be accessible to users with read-only
+ *   access to this resource.
+ *   Mutation endpoints (POST) use requirePermission('PersistenceTemplates', 'create').
  *
  * Endpoints (spec: ticads.yaml):
  *   POST   /persistence-job/            - create a new persistence job
@@ -55,7 +57,7 @@ const upload = multer({
 // Returns all persistence jobs ordered by most recent first.
 router.get(
   '/',
-  requirePermission('PersistenceTemplates', 'create'),
+  requirePermission('PersistenceTemplates', 'read'),
   async (_req: AuthenticatedRequest, res: Response) => {
     try {
       const jobs = await persistenceJobService.getAll();
@@ -190,7 +192,7 @@ router.post(
 // Returns a single persistence job by id, including the linked template.
 router.get(
   '/:id',
-  requirePermission('PersistenceTemplates', 'create'),
+  requirePermission('PersistenceTemplates', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id ?? '', 10);

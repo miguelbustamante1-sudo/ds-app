@@ -49,12 +49,12 @@ interface AddTaskInput {
   sequenceNo?: number;
   taskType: string;
   assignmentType: string;
-  assignedUserId?: string;
+  assignedUserId?: number;
   assignedRoleId?: string;
   dynamicAssignmentType?: string;
   priority: string;
   slaDurationHours?: number;
-  escalationUserId?: string;
+  escalationUserId?: number;
   escalationRoleId?: string;
   escalationDynamicType?: string;
   maxRetryCount?: number;
@@ -71,12 +71,12 @@ interface UpdateTaskInput {
   sequenceNo?: number;
   taskType?: string;
   assignmentType?: string;
-  assignedUserId?: string;
+  assignedUserId?: number;
   assignedRoleId?: string;
   dynamicAssignmentType?: string;
   priority?: string;
   slaDurationHours?: number;
-  escalationUserId?: string;
+  escalationUserId?: number;
   escalationRoleId?: string;
   escalationDynamicType?: string;
   maxRetryCount?: number;
@@ -138,7 +138,7 @@ interface AddDependencyInput {
 interface AddNotificationInput {
   eventType: string;
   recipientType: string;
-  recipientUserId?: string;
+  recipientUserId?: number;
   recipientRoleId?: string;
   recipientDynamicType?: string;
   messageTemplate: string;
@@ -149,7 +149,7 @@ interface AddNotificationInput {
 interface UpdateNotificationInput {
   eventType?: string;
   recipientType?: string;
-  recipientUserId?: string;
+  recipientUserId?: number;
   recipientRoleId?: string;
   recipientDynamicType?: string;
   messageTemplate?: string;

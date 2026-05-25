@@ -12,11 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface MatrixRow {
   option: OptionDTO;
-  permission: PermissionDTO | null; // null when no permission record exists for this role+option
+  permission: PermissionDTO | null;
   read: boolean;
   write: boolean;
-  del: boolean;   // 'delete' is a reserved word
-  dirty: boolean; // true when user toggled a checkbox since last load/save
+  del: boolean;
 }
 
 export function usePermissionsMatrix() {
@@ -25,10 +24,9 @@ export function usePermissionsMatrix() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [matrix, setMatrix] = useState<MatrixRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [savingOptionId, setSavingOptionId] = useState<number | null>(null);
   const { toast } = useToast();
 
-  // 1. On mount — fetch roles and options once (they rarely change)
   useEffect(() => {
     Promise.all([getRoles(), getOptions()]).then(([r, o]) => {
       setRoles(r);
@@ -36,7 +34,6 @@ export function usePermissionsMatrix() {
     });
   }, []);
 
-  // 2. When selectedRoleId changes — fetch ALL permissions, filter in memory
   useEffect(() => {
     if (selectedRoleId === null) {
       setMatrix([]);
@@ -54,7 +51,6 @@ export function usePermissionsMatrix() {
             read: perm?.permissionRead ?? false,
             write: perm?.permissionWrite ?? false,
             del: perm?.permissionDelete ?? false,
-            dirty: false,
           };
         });
         setMatrix(rows);
@@ -62,68 +58,50 @@ export function usePermissionsMatrix() {
       .finally(() => setLoading(false));
   }, [selectedRoleId, options]);
 
-  // 3. toggleFlag — marks the row dirty
-  function toggleFlag(optionId: number, flag: 'read' | 'write' | 'del') {
-    setMatrix((prev) =>
-      prev.map((row) => {
-        if (row.option.optionId !== optionId) return row;
-        return { ...row, [flag]: !row[flag], dirty: true };
-      }),
-    );
-  }
+  async function toggleFlag(optionId: number, flag: 'read' | 'write' | 'del') {
+    if (!selectedRoleId || savingOptionId !== null) return;
 
-  // 4. saveChanges — runs all mutations in parallel, then reloads
-  async function saveChanges() {
-    if (!selectedRoleId) return;
-    setSaving(true);
+    const row = matrix.find((r) => r.option.optionId === optionId);
+    if (!row) return;
+
+    const optimistic: MatrixRow = { ...row, [flag]: !row[flag] };
+    setMatrix((prev) => prev.map((r) => r.option.optionId === optionId ? optimistic : r));
+    setSavingOptionId(optionId);
+
     try {
-      const ops = matrix
-        .filter((r) => r.dirty)
-        .map((row) => {
-          const allFalse = !row.read && !row.write && !row.del;
-          if (row.permission && allFalse) {
-            // DELETE
-            return deletePermission(row.permission.permissionId);
-          }
-          if (row.permission && !allFalse) {
-            // UPDATE
-            return updatePermission(row.permission.permissionId, {
-              per_read: row.read,
-              per_write: row.write,
-              per_delete: row.del,
-            });
-          }
-          if (!row.permission && !allFalse) {
-            // CREATE
-            return createPermission({
-              per_read: row.read,
-              per_write: row.write,
-              per_delete: row.del,
-              opt_id: row.option.optionId,
-              rol_id: selectedRoleId,
-              per_resource: row.option.optionDescription,
-            });
-          }
-          return Promise.resolve(); // no-op (dirty but all false and no existing permission)
+      const allFalse = !optimistic.read && !optimistic.write && !optimistic.del;
+
+      if (row.permission && allFalse) {
+        await deletePermission(row.permission.permissionId);
+        setMatrix((prev) =>
+          prev.map((r) => r.option.optionId === optionId ? { ...optimistic, permission: null } : r),
+        );
+      } else if (row.permission && !allFalse) {
+        await updatePermission(row.permission.permissionId, {
+          per_read: optimistic.read,
+          per_write: optimistic.write,
+          per_delete: optimistic.del,
         });
-      await Promise.all(ops);
-      toast({ title: 'Success', description: 'Permissions saved.' });
-      // Reload matrix after save by toggling selectedRoleId
-      const saved = selectedRoleId;
-      setSelectedRoleId(null);
-      setTimeout(() => setSelectedRoleId(saved), 0);
+      } else if (!row.permission && !allFalse) {
+        const created = await createPermission({
+          per_read: optimistic.read,
+          per_write: optimistic.write,
+          per_delete: optimistic.del,
+          opt_id: optionId,
+          rol_id: selectedRoleId,
+          per_resource: row.option.optionDescription,
+        });
+        setMatrix((prev) =>
+          prev.map((r) => r.option.optionId === optionId ? { ...optimistic, permission: created } : r),
+        );
+      }
     } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to save some permissions.',
-        variant: 'destructive',
-      });
+      setMatrix((prev) => prev.map((r) => r.option.optionId === optionId ? row : r));
+      toast({ title: 'Error', description: 'Failed to update permission.', variant: 'destructive' });
     } finally {
-      setSaving(false);
+      setSavingOptionId(null);
     }
   }
-
-  const hasDirty = matrix.some((r) => r.dirty);
 
   return {
     roles,
@@ -132,9 +110,7 @@ export function usePermissionsMatrix() {
     setSelectedRoleId,
     matrix,
     loading,
-    saving,
+    savingOptionId,
     toggleFlag,
-    saveChanges,
-    hasDirty,
   };
 }

@@ -10,7 +10,7 @@ import { notifyWorkflowEvent } from './NotificationDispatcher';
 
 interface ReassignInput {
   witId: string;
-  toUserId?: string;
+  toUserId?: number;
   toRoleId?: string;
   reason: string;
   reassignedBy: string;       // req.user.email
@@ -73,7 +73,7 @@ export async function reassignTask(input: ReassignInput): Promise<WitWorkflowIns
     await notifyWorkflowEvent({
       witId,
       eventType: 'ON_REASSIGNMENT',
-      recipientUserIds: toUserId ? [toUserId] : [],
+      recipientUserIds: toUserId !== undefined ? [toUserId.toString()] : [],
     });
 
     await tx.walWorkflowAuditLog.create({

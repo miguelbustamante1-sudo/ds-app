@@ -164,12 +164,12 @@ router.post(
           sequenceNo?: number;
           taskType: string;
           assignmentType: string;
-          assignedUserId?: string;
+          assignedUserId?: number;
           assignedRoleId?: string;
           dynamicAssignmentType?: string;
           priority: string;
           slaDurationHours?: number;
-          escalationUserId?: string;
+          escalationUserId?: number;
           escalationRoleId?: string;
           escalationDynamicType?: string;
           maxRetryCount?: number;
@@ -203,12 +203,12 @@ router.patch(
           sequenceNo?: number;
           taskType?: string;
           assignmentType?: string;
-          assignedUserId?: string;
+          assignedUserId?: number;
           assignedRoleId?: string;
           dynamicAssignmentType?: string;
           priority?: string;
           slaDurationHours?: number;
-          escalationUserId?: string;
+          escalationUserId?: number;
           escalationRoleId?: string;
           escalationDynamicType?: string;
           maxRetryCount?: number;
@@ -483,7 +483,7 @@ router.post(
         req.body as {
           eventType: string;
           recipientType: string;
-          recipientUserId?: string;
+          recipientUserId?: number;
           recipientRoleId?: string;
           recipientDynamicType?: string;
           messageTemplate: string;
@@ -512,7 +512,7 @@ router.patch(
         req.body as {
           eventType?: string;
           recipientType?: string;
-          recipientUserId?: string;
+          recipientUserId?: number;
           recipientRoleId?: string;
           recipientDynamicType?: string;
           messageTemplate?: string;

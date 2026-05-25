@@ -31,6 +31,9 @@ export async function createPersistenceJob(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint: `${BASE}/` } }));
+    }
     const body = await response.json().catch(() => ({}));
     throw new Error((body as { error?: string }).error ?? `HTTP ${response.status}`);
   }

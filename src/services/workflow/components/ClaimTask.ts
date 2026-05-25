@@ -9,7 +9,7 @@ export async function claimTask(
   tx: Prisma.TransactionClient,
   witId: string,
   claimedBy: string,
-  claimedByUserId: string,
+  claimedByUserId: number,
 ): Promise<WitWorkflowInstanceTask> {
   const task = await tx.witWorkflowInstanceTask.findUnique({
     where: { witId },
@@ -33,7 +33,7 @@ export async function claimTask(
     where: { witId },
     data: {
       resolvedUserId: claimedByUserId,
-      updatedBy: claimedByUserId,
+      updatedBy: claimedByUserId.toString(),
       updatedAt: now,
     },
   });
@@ -54,7 +54,7 @@ export async function unclaimTask(
   tx: Prisma.TransactionClient,
   witId: string,
   unclaimedBy: string,
-  unclaimedByUserId: string,
+  unclaimedByUserId: number,
 ): Promise<WitWorkflowInstanceTask> {
   const task = await tx.witWorkflowInstanceTask.findUnique({
     where: { witId },
@@ -77,7 +77,7 @@ export async function unclaimTask(
     where: { witId },
     data: {
       resolvedUserId: null,
-      updatedBy: unclaimedByUserId,
+      updatedBy: unclaimedByUserId.toString(),
       updatedAt: now,
     },
   });

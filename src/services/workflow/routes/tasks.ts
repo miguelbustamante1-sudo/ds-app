@@ -13,7 +13,10 @@ import { WorkflowInstanceNotFoundError } from '../errors';
 const router = Router();
 
 // Safe access helpers — requirePermission ensures req.user is populated before handlers run.
-function userId(req: AuthenticatedRequest): string {
+function userId(req: AuthenticatedRequest): number {
+  return req.user?.dsUserId ?? 0;
+}
+function userIdStr(req: AuthenticatedRequest): string {
   return req.user?.dsUserId?.toString() ?? '';
 }
 function userEmail(req: AuthenticatedRequest): string {
@@ -117,7 +120,7 @@ router.post(
         inputs: inputs ?? [],
         comment,
         completedBy: userEmail(req),
-        completedByUserId: userId(req),
+        completedByUserId: userIdStr(req),
         // TODO: full admin override is deferred. Pass false until a dedicated
         // admin permission is defined for the Workflow resource.
         isAdmin: false,
@@ -138,7 +141,7 @@ router.post(
     try {
       const { witId } = req.params as { winId: string; witId: string };
       const retriedBy = userEmail(req);
-      const retriedByUserId = userId(req);
+      const retriedByUserId = userIdStr(req);
 
       const result = await prisma.$transaction(async (tx) => {
         return retryTask(tx, witId, retriedBy, retriedByUserId);
@@ -227,7 +230,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { toUserId, toRoleId, reason } = req.body as {
-        toUserId?: string;
+        toUserId?: number;
         toRoleId?: string;
         reason: string;
       };
@@ -238,7 +241,7 @@ router.post(
         ...(toRoleId !== undefined ? { toRoleId } : {}),
         reason,
         reassignedBy: userEmail(req),
-        reassignedByUserId: userId(req),
+        reassignedByUserId: userIdStr(req),
       });
       res.json({ data: result });
     } catch (err: unknown) {

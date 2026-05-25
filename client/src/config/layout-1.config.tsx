@@ -120,6 +120,12 @@ export const MENU_SIDEBAR: MenuConfig = [
   },
   { heading: 'Actions' },
   {
+    title: 'My Tasks',
+    icon: Inbox,
+    path: '/my-tasks',
+    permission: 'Workflow',
+  },
+  {
     title: 'Supervisor Time Off',
     icon: Users,
     path: '/supervisor-time-off',
@@ -227,6 +233,16 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/holiday-swap-exception',
     role: 'bsa',
     permission: 'HolidaySwapException',
+  },
+  { heading: 'Workflow', permission: 'WorkflowAdmin' },
+  {
+    title: 'Workflow',
+    icon: Kanban,
+    permission: 'WorkflowAdmin',
+    children: [
+      { title: 'Templates', path: '/admin/workflow/templates', icon: FileText },
+      { title: 'Instances', path: '/admin/workflow/instances', icon: Monitor },
+    ],
   },
   { heading: 'Security', role: 'admin' },
   {

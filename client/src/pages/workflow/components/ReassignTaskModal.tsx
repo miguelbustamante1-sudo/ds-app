@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ComboBox } from '@/components/ui/combobox';
+import type { ComboBoxOption } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +13,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { apiPost } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+
+interface UserOption {
+  userId: number;
+  userName: string;
+  userEmail: string;
+}
 
 interface ReassignTaskModalProps {
   witId: string;
@@ -38,36 +46,56 @@ export function ReassignTaskModal({
   requireReason,
 }: ReassignTaskModalProps) {
   const { toast } = useToast();
+  const [userOptions, setUserOptions] = useState<ComboBoxOption[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<ReassignFormData>({
     defaultValues: { toUserId: '', toRoleId: '', reason: '' },
   });
 
+  const watchedToUserId = watch('toUserId');
+
   useEffect(() => {
     if (open) {
       reset({ toUserId: '', toRoleId: '', reason: '' });
+      void loadUsers();
     }
   }, [open, reset]);
+
+  const loadUsers = async () => {
+    try {
+      const data = await apiGet<UserOption[]>('/api/users');
+      setUserOptions(
+        data.map((u) => ({
+          value: String(u.userId),
+          label: `${u.userName} (${u.userEmail})`,
+        })),
+      );
+    } catch {
+      // silently ignore
+    }
+  };
 
   const onSubmit = async (data: ReassignFormData) => {
     const toUserId = data.toUserId.trim();
     const toRoleId = data.toRoleId.trim();
 
     if (!toUserId && !toRoleId) {
-      setError('toUserId', { message: 'At least one of User ID or Role ID is required' });
+      setError('toUserId', { message: 'At least one of User or Role ID is required' });
       return;
     }
 
-    const payload: { toUserId?: string; toRoleId?: string; reason: string } = {
+    const payload: { toUserId?: number; toRoleId?: string; reason: string } = {
       reason: data.reason.trim(),
     };
-    if (toUserId) payload.toUserId = toUserId;
+    if (toUserId) payload.toUserId = Number(toUserId);
     if (toRoleId) payload.toRoleId = toRoleId;
 
     try {
@@ -92,14 +120,14 @@ export function ReassignTaskModal({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="reassign-user">
-              User ID (UUID)
-              {/* TODO: Replace with a user ComboBox once user lookup endpoint is available */}
-            </Label>
-            <Input
-              id="reassign-user"
-              {...register('toUserId')}
-              placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+            <Label>Assign To User</Label>
+            <ComboBox
+              options={userOptions}
+              value={watchedToUserId}
+              onValueChange={(value) => setValue('toUserId', value)}
+              placeholder="Select user..."
+              searchPlaceholder="Search users..."
+              emptyMessage="No users found."
             />
             {errors.toUserId && (
               <p className="text-sm text-destructive">{errors.toUserId.message}</p>
@@ -107,14 +135,11 @@ export function ReassignTaskModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="reassign-role">
-              Role ID (UUID)
-              {/* TODO: Replace with a role ComboBox once role lookup endpoint is available */}
-            </Label>
+            <Label htmlFor="reassign-role">Role ID</Label>
             <Input
               id="reassign-role"
               {...register('toRoleId')}
-              placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+              placeholder="Role UUID (optional)"
             />
           </div>
 

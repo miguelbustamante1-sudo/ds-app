@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/', requirePermission('RBACOptions', 'read'), async (_req: Request, res: Response) => {
   try {
     const items: Option[] = await getAllRbacOptions();
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch options' });
@@ -33,7 +33,7 @@ router.get('/:id', requirePermission('RBACOptions', 'read'), async (req: Request
     const item = await getRbacOptionById(id);
     if (!item) return res.status(404).json({ error: 'Option not found' });
 
-    res.json(item);
+    res.json({ data: item });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch option' });
@@ -53,7 +53,7 @@ router.post('/', requirePermission('RBACOptions', 'create'), async (req: Request
       opt_created_by ?? null
     );
 
-    res.status(201).json(created);
+    res.status(201).json({ data: created });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to create option' });
@@ -74,7 +74,7 @@ router.put('/:id', requirePermission('RBACOptions', 'create'), async (req: Reque
 
     if (!updated) return res.status(404).json({ error: 'Option not found' });
 
-    res.json(updated);
+    res.json({ data: updated });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to update option' });

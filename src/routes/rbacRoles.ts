@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/', requirePermission('RBACRoles', 'read'), async (_req: Request, res: Response) => {
   try {
     const items: SecurityRole[] = await getAllRbacRoles();
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch roles' });
@@ -27,7 +27,7 @@ router.get('/:id', requirePermission('RBACRoles', 'read'), async (req: Request, 
     const item = await getRbacRoleById(id);
     if (!item) return res.status(404).json({ error: 'Role not found' });
 
-    res.json(item);
+    res.json({ data: item });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch role' });
@@ -41,7 +41,7 @@ router.post('/', requirePermission('RBACRoles', 'create'), async (req: Request, 
     if (!rol_name || typeof rol_name !== 'string') return res.status(400).json({ error: 'rol_name is required' });
 
     const created = await createRbacRole(rol_name, typeof rol_description === 'string' ? rol_description : null);
-    res.status(201).json(created);
+    res.status(201).json({ data: created });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to create role' });
@@ -60,7 +60,7 @@ router.put('/:id', requirePermission('RBACRoles', 'create'), async (req: Request
     const updated = await updateRbacRole(id, rol_name, typeof rol_description === 'string' ? rol_description : null);
     if (!updated) return res.status(404).json({ error: 'Role not found' });
 
-    res.json(updated);
+    res.json({ data: updated });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to update role' });

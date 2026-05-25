@@ -92,10 +92,7 @@ class TaskCompletionOrchestrator {
       }
 
       // Step 2: Authorization
-      // NOTE: resolvedUserId is stored as a UUID string from the DTOS system,
-      // while completedByUserId is a stringified integer (dsUserId). These will
-      // only match if the task was claimed using the same string format.
-      if (!isAdmin && task.resolvedUserId !== null && task.resolvedUserId !== completedByUserId) {
+      if (!isAdmin && task.resolvedUserId !== null && task.resolvedUserId !== parseInt(completedByUserId, 10)) {
         throw new TaskExecutionForbiddenError();
       }
 

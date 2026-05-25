@@ -69,6 +69,7 @@ export function TeamMemberFormDialog({
   const [loadingShifts, setLoadingShifts] = useState(false);
   const [pendingSubmitData, setPendingSubmitData] = useState<TeamMemberFormData | null>(null);
   const [showEndDateConfirm, setShowEndDateConfirm] = useState(false);
+  const [showClearEndDateConfirm, setShowClearEndDateConfirm] = useState(false);
 
   const {
     register,
@@ -246,17 +247,23 @@ export function TeamMemberFormDialog({
   };
 
   const onSubmit = async (data: TeamMemberFormData) => {
-    // When editing: if the end date is being set or changed, require explicit confirmation
-    // because it will automatically cancel all future time-off requests for this member.
     if (isEditing) {
       const originalEndDate = teamMember?.teamMemberEndDate
         ? formatUTCDate(teamMember.teamMemberEndDate, 'yyyy-MM-dd')
         : '';
-      const endDateChanged = data.teamMemberEndDate !== originalEndDate && data.teamMemberEndDate !== '';
 
-      if (endDateChanged) {
+      const endDateSet     = data.teamMemberEndDate !== originalEndDate && data.teamMemberEndDate !== '';
+      const endDateCleared = originalEndDate !== '' && data.teamMemberEndDate === '';
+
+      if (endDateSet) {
         setPendingSubmitData(data);
         setShowEndDateConfirm(true);
+        return;
+      }
+
+      if (endDateCleared) {
+        setPendingSubmitData(data);
+        setShowClearEndDateConfirm(true);
         return;
       }
     }
@@ -266,6 +273,14 @@ export function TeamMemberFormDialog({
 
   const handleEndDateConfirmed = async () => {
     setShowEndDateConfirm(false);
+    if (pendingSubmitData) {
+      await submitData(pendingSubmitData);
+      setPendingSubmitData(null);
+    }
+  };
+
+  const handleClearEndDateConfirmed = async () => {
+    setShowClearEndDateConfirm(false);
     if (pendingSubmitData) {
       await submitData(pendingSubmitData);
       setPendingSubmitData(null);
@@ -286,9 +301,16 @@ export function TeamMemberFormDialog({
             You are setting the end date for <strong>{memberName}</strong> to{' '}
             <strong>{pendingSubmitData?.teamMemberEndDate}</strong>.
             <br /><br />
-            All future time-off requests for this team member will be automatically
-            cancelled when this date is reached. Please confirm the date is correct
-            and not an error.
+            Once this date is reached, the system will automatically cancel:
+            <br />
+            &bull; All time-off requests with a start date after the end date.
+            <br />
+            &bull; Tentative requests that started before the end date but extend past it.
+            <br /><br />
+            Processing runs on a 24-hour cycle, so cancellations may take up to
+            24 hours to take effect after the end date is reached.
+            <br /><br />
+            Please confirm the date is correct and not an error.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -297,6 +319,32 @@ export function TeamMemberFormDialog({
           </AlertDialogCancel>
           <AlertDialogAction onClick={handleEndDateConfirmed}>
             Yes, confirm end date
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={showClearEndDateConfirm} onOpenChange={setShowClearEndDateConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove end date?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You are removing the end date for <strong>{memberName}</strong>.
+            <br /><br />
+            Any time-off requests that were previously cancelled due to the
+            attrition process will <strong>not</strong> be automatically
+            reactivated. Those records must be reviewed and reactivated manually
+            if needed.
+            <br /><br />
+            Do you want to continue?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingSubmitData(null)}>
+            Go back
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleClearEndDateConfirmed}>
+            Yes, remove end date
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/', requirePermission('RBACPermissions', 'read'), async (_req: Request, res: Response) => {
   try {
     const items: Permission[] = await getAllRbacPermissions();
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch permissions' });
@@ -33,7 +33,7 @@ router.get('/:id', requirePermission('RBACPermissions', 'read'), async (req: Req
     const item = await getRbacPermissionById(id);
     if (!item) return res.status(404).json({ error: 'Permission not found' });
 
-    res.json(item);
+    res.json({ data: item });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch permission' });
@@ -63,7 +63,7 @@ router.post('/', requirePermission('RBACPermissions', 'create'), async (req: Req
       typeof rol_id === 'number' ? rol_id : null
     );
 
-    res.status(201).json(created);
+    res.status(201).json({ data: created });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to create permission' });
@@ -99,7 +99,7 @@ router.put('/:id', requirePermission('RBACPermissions', 'create'), async (req: R
 
     if (!updated) return res.status(404).json({ error: 'Permission not found' });
 
-    res.json(updated);
+    res.json({ data: updated });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to update permission' });

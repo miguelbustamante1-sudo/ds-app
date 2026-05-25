@@ -22,17 +22,24 @@ interface StartWorkflowModalProps {
   onSuccess: () => void;
 }
 
+interface UserOption {
+  userId: number;
+  userName: string;
+  userEmail: string;
+}
+
 interface StartWorkflowFormData {
   wflId: string;
   winName: string;
   businessReferenceType: string;
   businessReferenceId: string;
-  ownerUserId: string;
+  ownerUserId: string; // ComboBox value is always string; converted to number on submit
 }
 
 export function StartWorkflowModal({ open, onOpenChange, onSuccess }: StartWorkflowModalProps) {
   const { toast } = useToast();
   const [templateOptions, setTemplateOptions] = useState<ComboBoxOption[]>([]);
+  const [userOptions, setUserOptions] = useState<ComboBoxOption[]>([]);
 
   const {
     register,
@@ -63,6 +70,7 @@ export function StartWorkflowModal({ open, onOpenChange, onSuccess }: StartWorkf
       ownerUserId: '',
     });
     void loadTemplates();
+    void loadUsers();
   }, [open]);
 
   const loadTemplates = async () => {
@@ -80,6 +88,20 @@ export function StartWorkflowModal({ open, onOpenChange, onSuccess }: StartWorkf
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const data = await apiGet<UserOption[]>('/api/users');
+      setUserOptions(
+        data.map((u) => ({
+          value: String(u.userId),
+          label: `${u.userName} (${u.userEmail})`,
+        })),
+      );
+    } catch {
+      // silently ignore
+    }
+  };
+
   const onSubmit = async (data: StartWorkflowFormData) => {
     try {
       await apiPost('/api/workflow/instances', {
@@ -87,7 +109,7 @@ export function StartWorkflowModal({ open, onOpenChange, onSuccess }: StartWorkf
         winName: data.winName,
         businessReferenceType: data.businessReferenceType || undefined,
         businessReferenceId: data.businessReferenceId || undefined,
-        ownerUserId: data.ownerUserId || undefined,
+        ownerUserId: data.ownerUserId ? Number(data.ownerUserId) : undefined,
       });
       toast({ title: 'Success', description: 'Workflow started successfully.' });
       onSuccess();
@@ -153,12 +175,14 @@ export function StartWorkflowModal({ open, onOpenChange, onSuccess }: StartWorkf
           </div>
 
           <div className="space-y-1.5">
-            {/* TODO: replace with user ComboBox when user lookup endpoint is available */}
-            <Label htmlFor="win-owner">Owner User ID</Label>
-            <Input
-              id="win-owner"
-              {...register('ownerUserId')}
-              placeholder="UUID of owner user (optional)"
+            <Label>Owner User</Label>
+            <ComboBox
+              options={userOptions}
+              value={watch('ownerUserId')}
+              onValueChange={(value) => setValue('ownerUserId', value)}
+              placeholder="Select owner user (optional)..."
+              searchPlaceholder="Search users..."
+              emptyMessage="No users found."
             />
           </div>
 

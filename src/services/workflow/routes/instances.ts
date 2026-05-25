@@ -36,7 +36,7 @@ router.post(
           businessReferenceType?: string;
           businessReferenceId?: string;
           contextJson?: unknown;
-          ownerUserId?: string;
+          ownerUserId?: number;
         };
 
       if (!wflId) {

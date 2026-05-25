@@ -17,7 +17,7 @@ const router = express.Router();
 router.get('/', requirePermission('RBACUserRoles', 'read'), async (_req: Request, res: Response) => {
   try {
     const items: UserRole[] = await getAllRbacUserRoles();
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch user roles' });
@@ -31,7 +31,7 @@ router.get('/user/:usr_id', requirePermission('RBACUserRoles', 'read'), async (r
     if (Number.isNaN(usrId)) return res.status(400).json({ error: 'Invalid usr_id' });
 
     const items = await getRbacUserRolesByUser(usrId);
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch user roles by user' });
@@ -45,7 +45,7 @@ router.get('/role/:rol_id', requirePermission('RBACUserRoles', 'read'), async (r
     if (Number.isNaN(rolId)) return res.status(400).json({ error: 'Invalid rol_id' });
 
     const items = await getRbacUserRolesByRole(rolId);
-    res.json(items);
+    res.json({ data: items });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch user roles by role' });
@@ -62,7 +62,7 @@ router.post('/', requirePermission('RBACUserRoles', 'create'), async (req: Reque
     }
 
     const created = await createRbacUserRole(usr_id, rol_id);
-    res.status(201).json(created);
+    res.status(201).json({ data: created });
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to create user role' });

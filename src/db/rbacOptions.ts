@@ -5,7 +5,7 @@ export const TABLE = 'sec.opt_options';
 
 export async function getAllRbacOptions(): Promise<Option[]> {
   return await prisma.option.findMany({
-    orderBy: { optionId: 'asc' },
+    orderBy: { optionDescription: 'asc' },
   });
 }
 

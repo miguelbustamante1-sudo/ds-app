@@ -12,7 +12,7 @@ interface InstantiateInput {
   businessReferenceType?: string | undefined;
   businessReferenceId?: string | undefined;
   contextJson?: Array<{ key: string; value: string | number | boolean }> | undefined;
-  ownerUserId?: string | undefined;
+  ownerUserId?: number | undefined;
   startedBy: string; // req.user.email
   createdBy: string; // req.user.dsUserId.toString()
 }

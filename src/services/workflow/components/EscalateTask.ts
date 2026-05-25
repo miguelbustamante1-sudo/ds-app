@@ -26,21 +26,16 @@ export async function escalateTask(tx: Prisma.TransactionClient, witId: string):
   let recipientIds: string[] = [];
 
   if (task.escalationUserId !== null) {
-    recipientIds = [task.escalationUserId];
+    recipientIds = [task.escalationUserId.toString()];
   } else if (task.escalationRoleId !== null) {
     recipientIds = [task.escalationRoleId];
   } else if (task.escalationDynamicType !== null) {
-    // TODO: DTOS dynamic escalation requires a numeric teamMemberId but instance ownerUserId
-    // is a UUID string. This path is deferred until the ownerUserId type is clarified.
     const instance = await tx.winWorkflowInstance.findUnique({ where: { winId: task.winId } });
     const ownerUserId = instance?.ownerUserId ?? null;
 
     if (ownerUserId !== null) {
-      const parsed = parseInt(ownerUserId, 10);
-      if (!Number.isNaN(parsed)) {
-        const reportIds = await getReportsForWorkflowEscalation(parsed);
-        recipientIds = reportIds.map((id) => id.toString());
-      }
+      const reportIds = await getReportsForWorkflowEscalation(ownerUserId);
+      recipientIds = reportIds.map((id) => id.toString());
     }
   }
 

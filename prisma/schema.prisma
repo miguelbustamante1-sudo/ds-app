@@ -964,12 +964,12 @@ model WtkWorkflowTemplateTask {
   sequenceNo               Int?      @map("wtk_sequence_no") @db.Integer
   taskType                 String    @map("wtk_task_type") @db.VarChar(30)
   assignmentType           String    @map("wtk_assignment_type") @db.VarChar(30)
-  assignedUserId           String?   @map("wtk_assigned_user_id") @db.Uuid
+  assignedUserId           Int?      @map("wtk_assigned_user_id")
   assignedRoleId           String?   @map("wtk_assigned_role_id") @db.Uuid
   dynamicAssignmentType    String?   @map("wtk_dynamic_assignment_type") @db.VarChar(50)
   priority                 String    @map("wtk_priority") @db.VarChar(20)
   slaDurationHours         Int?      @map("wtk_sla_duration_hours") @db.Integer
-  escalationUserId         String?   @map("wtk_escalation_user_id") @db.Uuid
+  escalationUserId         Int?      @map("wtk_escalation_user_id")
   escalationRoleId         String?   @map("wtk_escalation_role_id") @db.Uuid
   escalationDynamicType    String?   @map("wtk_escalation_dynamic_type") @db.VarChar(50)
   maxRetryCount            Int       @default(0) @map("wtk_max_retry_count") @db.Integer
@@ -1086,7 +1086,7 @@ model WtnWorkflowTemplateNotification {
   wtkId                String   @map("wtk_id") @db.Uuid
   eventType            String   @map("wtn_event_type") @db.VarChar(50)
   recipientType        String   @map("wtn_recipient_type") @db.VarChar(30)
-  recipientUserId      String?  @map("wtn_recipient_user_id") @db.Uuid
+  recipientUserId      Int?     @map("wtn_recipient_user_id")
   recipientRoleId      String?  @map("wtn_recipient_role_id") @db.Uuid
   recipientDynamicType String?  @map("wtn_recipient_dynamic_type") @db.VarChar(50)
   messageTemplate      String   @map("wtn_message_template")
@@ -1121,7 +1121,7 @@ model WinWorkflowInstance {
   forcedCompletedAt      DateTime? @map("win_forced_completed_at") @db.Timestamptz(6)
   forcedCompletedBy      String?   @map("win_forced_completed_by") @db.VarChar(100)
   forcedCompletionReason String?   @map("win_forced_completion_reason")
-  ownerUserId            String?   @map("win_owner_user_id") @db.Uuid
+  ownerUserId            Int?      @map("win_owner_user_id")
   businessReferenceType  String?   @map("win_business_reference_type") @db.VarChar(100)
   businessReferenceId    String?   @map("win_business_reference_id") @db.VarChar(100)
   contextJson            Json?     @map("win_context_json")
@@ -1152,10 +1152,10 @@ model WitWorkflowInstanceTask {
   sequenceNo            Int?      @map("wit_sequence_no") @db.Integer
   taskType              String    @map("wit_task_type") @db.VarChar(30)
   assignmentType        String    @map("wit_assignment_type") @db.VarChar(30)
-  assignedUserId        String?   @map("wit_assigned_user_id") @db.Uuid
+  assignedUserId        Int?      @map("wit_assigned_user_id")
   assignedRoleId        String?   @map("wit_assigned_role_id") @db.Uuid
   dynamicAssignmentType String?   @map("wit_dynamic_assignment_type") @db.VarChar(50)
-  resolvedUserId        String?   @map("wit_resolved_user_id") @db.Uuid
+  resolvedUserId        Int?      @map("wit_resolved_user_id")
   priority              String    @map("wit_priority") @db.VarChar(20)
   state                 String    @map("wit_state") @db.VarChar(30)
   dueAt                 DateTime? @map("wit_due_at") @db.Timestamptz(6)
@@ -1169,7 +1169,7 @@ model WitWorkflowInstanceTask {
   maxRetryCount         Int       @default(0) @map("wit_max_retry_count") @db.Integer
   slaDurationHours      Int?      @map("wit_sla_duration_hours") @db.Integer
   escalatedAt           DateTime? @map("wit_escalated_at") @db.Timestamptz(6)
-  escalationUserId      String?   @map("wit_escalation_user_id") @db.Uuid
+  escalationUserId      Int?      @map("wit_escalation_user_id")
   escalationRoleId      String?   @map("wit_escalation_role_id") @db.Uuid
   escalationDynamicType String?   @map("wit_escalation_dynamic_type") @db.VarChar(50)
   overrideReason        String?   @map("wit_override_reason")
@@ -1275,7 +1275,7 @@ model WntWorkflowInstanceNotification {
   witId                String    @map("wit_id") @db.Uuid
   eventType            String    @map("wnt_event_type") @db.VarChar(50)
   recipientType        String    @map("wnt_recipient_type") @db.VarChar(30)
-  recipientUserId      String?   @map("wnt_recipient_user_id") @db.Uuid
+  recipientUserId      Int?      @map("wnt_recipient_user_id")
   recipientRoleId      String?   @map("wnt_recipient_role_id") @db.Uuid
   recipientDynamicType String?   @map("wnt_recipient_dynamic_type") @db.VarChar(50)
   messageTemplate      String    @map("wnt_message_template")
@@ -1318,9 +1318,9 @@ model WicWorkflowInstanceContext {
 model WreWorkflowTaskReassignment {
   wreId        String   @id @default(uuid()) @map("wre_id") @db.Uuid
   witId        String   @map("wit_id") @db.Uuid
-  fromUserId   String?  @map("wre_from_user_id") @db.Uuid
+  fromUserId   Int?     @map("wre_from_user_id")
   fromRoleId   String?  @map("wre_from_role_id") @db.Uuid
-  toUserId     String?  @map("wre_to_user_id") @db.Uuid
+  toUserId     Int?     @map("wre_to_user_id")
   toRoleId     String?  @map("wre_to_role_id") @db.Uuid
   reason       String   @map("wre_reason")
   reassignedAt DateTime @default(now()) @map("wre_reassigned_at") @db.Timestamptz(6)
