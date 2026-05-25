@@ -201,7 +201,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
           <Skeleton className="h-40 w-full" />
         ) : (
           <DataGridContainer>
-            <DataGrid>
+            <DataGrid table={table}>
               <DataGridTable table={table} />
             </DataGrid>
             <DataGridPagination table={table} />
