@@ -59,3 +59,13 @@ export interface UpdateSupervisorAssignmentDTO {
   supervisorAssignmentStartDate?: Date | string;
   supervisorAssignmentEndDate?: Date | string | null;
 }
+
+export interface TransferSupervisorAssignmentsDTO {
+  fromSupervisorId: number;
+  toSupervisorId: number;
+}
+
+export interface TransferSupervisorAssignmentsResultDTO {
+  transferredCount: number;
+  skippedCount: number;
+}

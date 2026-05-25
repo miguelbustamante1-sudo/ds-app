@@ -132,6 +132,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'SupervisorTimeOff',
   },
   {
+    title: 'Team Comp Time',
+    icon: ClipboardClock,
+    path: '/comp-time/supervisor',
+    permission: 'SupervisorCompTime',
+  },
+  {
     title: 'Team Holiday Swaps',
     icon: CalendarCheck,
     path: '/supervisor-holiday-swaps',

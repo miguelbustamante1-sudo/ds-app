@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { SupervisorAssignmentFormDialog } from './form';
+import { SupervisorAssignmentTransferDialog } from './transfer-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const formatDate = (date: Date | string | null) => {
@@ -61,6 +62,7 @@ export function SupervisorAssignmentsPage() {
   const [editingAssignment, setEditingAssignment] = useState<SupervisorAssignmentDTO | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingAssignment, setDeletingAssignment] = useState<SupervisorAssignmentDTO | null>(null);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
@@ -251,10 +253,15 @@ export function SupervisorAssignmentsPage() {
         </ToolbarHeading>
         <ToolbarActions>
           {canCreate('SupervisorAssignments') && (
-            <Button onClick={handleCreate}>
-              <Plus size={16} className="me-1" />
-              New Assignment
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setTransferDialogOpen(true)}>
+                Transfer Assignments
+              </Button>
+              <Button onClick={handleCreate}>
+                <Plus size={16} className="me-1" />
+                New Assignment
+              </Button>
+            </>
           )}
         </ToolbarActions>
       </Toolbar>
@@ -327,6 +334,12 @@ export function SupervisorAssignmentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SupervisorAssignmentTransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        onSuccess={() => assignments.loadItems()}
+      />
     </div>
   );
 }

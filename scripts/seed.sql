@@ -195,6 +195,7 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_create
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (49, 'Workflow',                'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:50:35.456+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (50, 'WorkflowAdmin',           'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:50:48.407+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (51, 'CompensatoryTime',        'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:53:01.629+00')    ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (52, 'SupervisorCompTime',      'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:53:01.629+00')    ON CONFLICT (opt_id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('sec.opt_options', 'opt_id'), (SELECT MAX(opt_id) FROM sec.opt_options));
 
 -- 9. RBAC Permissions
@@ -283,6 +284,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Positions'           AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Positions',           true, true, true,  NULL, NOW(), 47, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Workflow'            AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Workflow',            true, true, true,  NULL, NOW(), 49, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'WorkflowAdmin'       AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('WorkflowAdmin',       true, true, true,  NULL, NOW(), 50, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'SupervisorCompTime'  AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorCompTime',  true, true, true,  NULL, NOW(), 52, 1); END IF;
 
   -- user (rol_id=2)
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTeam'              AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTeam',              true, true,  false, NULL, NOW(), 32, 2); END IF;

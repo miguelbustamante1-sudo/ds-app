@@ -46,9 +46,9 @@ git clone <repo-url>
 cd ds-app
 ```
 
-## 2. Configure `.env.local`
+## 2. Create Your `.env.local`
 
-The repository includes a `.env.local` file with defaults for local development. Review it and update the values marked below:
+`.env.local` is **not committed to the repository** — each team member must create their own copy. Create the file at the root of `ds-app/` and populate it with the values below:
 
 | Variable               | Description                                                                 | Default / Action         |
 | ---------------------- | --------------------------------------------------------------------------- | ------------------------ |

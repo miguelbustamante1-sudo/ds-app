@@ -5,7 +5,9 @@ import {
   SelfAssignmentError,
 } from '../services/supervisorAssignment';
 import { requirePermission } from '../middleware/auth';
-import type { CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO } from '@shared/dto/SupervisorAssignment';
+import { AppError } from '../errors/AppError';
+import type { AuthenticatedRequest } from '../middleware/auth';
+import type { CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO, TransferSupervisorAssignmentsDTO } from '@shared/dto/SupervisorAssignment';
 
 const router = express.Router();
 
@@ -45,6 +47,32 @@ router.get('/supervisor/:sup_id', requirePermission('SupervisorAssignments', 're
   }
 });
 
+// POST /supervisor-assignments/transfer
+router.post('/transfer', requirePermission('SupervisorAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { fromSupervisorId, toSupervisorId } = req.body as TransferSupervisorAssignmentsDTO;
+
+    if (!fromSupervisorId) return res.status(400).json({ error: 'fromSupervisorId is required' });
+    if (!toSupervisorId) return res.status(400).json({ error: 'toSupervisorId is required' });
+
+    const result = await supervisorAssignmentOrchestrator.transfer(
+      fromSupervisorId,
+      toSupervisorId,
+      req.user!.email,
+      req.user!.dsUserId,
+    );
+
+    res.json({ data: result });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /supervisor-assignments/:id
 router.get('/:id', requirePermission('SupervisorAssignments', 'read'), async (req: Request, res: Response) => {
   try {
@@ -61,16 +89,15 @@ router.get('/:id', requirePermission('SupervisorAssignments', 'read'), async (re
 });
 
 // POST /supervisor-assignments
-router.post('/', requirePermission('SupervisorAssignments', 'create'), async (req: Request, res: Response) => {
+router.post('/', requirePermission('SupervisorAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const body = req.body as CreateSupervisorAssignmentDTO;
 
-    // Basic validation
     if (!body.teamMemberId) return res.status(400).json({ error: 'teamMemberId is required' });
     if (!body.supervisorId) return res.status(400).json({ error: 'supervisorId is required' });
     if (!body.supervisorAssignmentStartDate) return res.status(400).json({ error: 'supervisorAssignmentStartDate is required' });
 
-    const created = await supervisorAssignmentOrchestrator.create(body);
+    const created = await supervisorAssignmentOrchestrator.create(body, req.user!.email, req.user!.dsUserId);
     res.status(201).json(created);
   } catch (err) {
     if (err instanceof SelfAssignmentError) {
@@ -81,14 +108,14 @@ router.post('/', requirePermission('SupervisorAssignments', 'create'), async (re
 });
 
 // PUT /supervisor-assignments/:id
-router.put('/:id', requirePermission('SupervisorAssignments', 'create'), async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('SupervisorAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const body = req.body as UpdateSupervisorAssignmentDTO;
 
-    const updated = await supervisorAssignmentOrchestrator.update(id, body);
+    const updated = await supervisorAssignmentOrchestrator.update(id, body, req.user!.email, req.user!.dsUserId);
     if (!updated) return res.status(404).json({ error: 'Supervisor assignment not found' });
 
     res.json(updated);
@@ -101,12 +128,12 @@ router.put('/:id', requirePermission('SupervisorAssignments', 'create'), async (
 });
 
 // DELETE /supervisor-assignments/:id
-router.delete('/:id', requirePermission('SupervisorAssignments', 'delete'), async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('SupervisorAssignments', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    await supervisorAssignmentOrchestrator.delete(id);
+    await supervisorAssignmentOrchestrator.delete(id, req.user!.email);
 
     res.status(204).send();
   } catch (err) {
