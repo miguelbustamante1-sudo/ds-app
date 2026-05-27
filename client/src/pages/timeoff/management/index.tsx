@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import type { TimeOffWithTeamMemberDTO, TimeOffWithDetailsDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
-import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
+import type { TimeOffWithTeamMemberDTO, TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
 import {
   Toolbar,
   ToolbarDescription,
@@ -17,11 +16,7 @@ import {
 } from '@/hooks/useSupervisorTimeOff';
 import { TimeOffManagementGrid } from './components/TimeOffManagementGrid';
 import { CancelTimeOffDialog } from '../supervisor/components/CancelTimeOffDialog';
-import { EditSupervisorTimeOffDialog } from '../supervisor/components/EditSupervisorTimeOffDialog';
 
-/**
- * Convert TimeOffWithTeamMemberDTO to TimeOffWithDetailsDTO for dialogs
- */
 function toTimeOffWithDetails(timeOff: TimeOffWithTeamMemberDTO): TimeOffWithDetailsDTO {
   return {
     timeOffId: timeOff.timeOffId,
@@ -36,30 +31,6 @@ function toTimeOffWithDetails(timeOff: TimeOffWithTeamMemberDTO): TimeOffWithDet
   };
 }
 
-/**
- * Create a minimal SupervisedTeamMemberDTO from TimeOffWithTeamMemberDTO for edit dialog
- */
-function toSupervisedTeamMember(timeOff: TimeOffWithTeamMemberDTO): SupervisedTeamMemberDTO {
-  return {
-    teamMemberId: timeOff.teamMemberId,
-    workdayId: timeOff.workdayId,
-    teamMemberNames: '',
-    teamMemberSurnames: '',
-    teamMemberKnownAs: null,
-    teamMemberFullName: timeOff.teamMemberFullName,
-    teamMemberSeniority: '',
-    primaryRoleName: null,
-    countryId: null,
-    countryName: null,
-    countryIso: timeOff.countryIso,
-    reportType: 'Direct',
-    reportLevel: timeOff.reportLevel,
-    supervisorAssignmentStartDate: new Date(),
-    supervisorAssignmentEndDate: null,
-    teamMemberEndDate: timeOff.teamMemberEndDate,
-  };
-}
-
 export function TimeOffManagementPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -69,7 +40,6 @@ export function TimeOffManagementPage() {
     return sessionStorage.getItem('timeoff-mgmt-show-cancelled') === 'true';
   });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithTeamMemberDTO | null>(null);
 
   // Hooks
@@ -87,19 +57,9 @@ export function TimeOffManagementPage() {
     timeOffsHook.loadTimeOffs();
   }, []);
 
-  // Get existing time-offs for the selected team member (for overlap detection in edit dialog)
-  const existingTimeOffsForMember = useMemo<TimeOffWithDetailsDTO[]>(() => {
-    if (!selectedTimeOff) return [];
-    return timeOffsHook.timeOffs
-      .filter((t) => t.teamMemberId === selectedTimeOff.teamMemberId)
-      .map(toTimeOffWithDetails);
-  }, [timeOffsHook.timeOffs, selectedTimeOff]);
-
-  // Handlers
   const handleEditClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
-    setSelectedTimeOff(timeOff);
-    setEditDialogOpen(true);
-  }, []);
+    navigate(`/supervisor-time-off/edit/${timeOff.timeOffId}?teamMemberId=${timeOff.teamMemberId}`);
+  }, [navigate]);
 
   const handleRowClick = useCallback((timeOff: TimeOffWithTeamMemberDTO) => {
     navigate(`/timeoff-detail/${timeOff.timeOffId}?from=/time-off-management`);
@@ -113,14 +73,6 @@ export function TimeOffManagementPage() {
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
-      timeOffsHook.refreshTimeOffs();
-    },
-    [operationsHook, timeOffsHook]
-  );
-
-  const handleConfirmEdit = useCallback(
-    async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
-      await operationsHook.updateTimeOff(timeOffId, data);
       timeOffsHook.refreshTimeOffs();
     },
     [operationsHook, timeOffsHook]
@@ -177,16 +129,6 @@ export function TimeOffManagementPage() {
         loading={operationsHook.loading}
       />
 
-      {/* Edit Dialog */}
-      <EditSupervisorTimeOffDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        timeOff={selectedTimeOff ? toTimeOffWithDetails(selectedTimeOff) : null}
-        teamMember={selectedTimeOff ? toSupervisedTeamMember(selectedTimeOff) : null}
-        existingTimeOffs={existingTimeOffsForMember}
-        onConfirm={handleConfirmEdit}
-        loading={operationsHook.loading}
-      />
     </div>
   );
 }

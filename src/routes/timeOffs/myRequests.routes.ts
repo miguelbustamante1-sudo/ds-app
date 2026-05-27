@@ -2,7 +2,7 @@ import express from 'express';
 import type { Response } from 'express';
 import {
   getTimeOffById,
-  getMyTimeOffs,
+  getTimeOffsByTeamMember,
   createTimeOff,
   updateTimeOff,
 } from '../../db/timeOffs';
@@ -34,7 +34,7 @@ const router = express.Router();
 router.get('/', requirePermission('TimeOffs', 'read'), resolveAuthUser, async (req, res: Response) => {
   try {
     const { teamMemberId } = req as ResolvedAuthRequest;
-    const timeOffs = await getMyTimeOffs(teamMemberId);
+    const timeOffs = await getTimeOffsByTeamMember(teamMemberId);
     res.json(timeOffs);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch time offs' });
@@ -869,6 +869,227 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
   } catch (err) {
     console.error('[TimeOff] Error creating split vacation:', err);
     res.status(500).json({ error: 'Failed to create split vacation requests' });
+  }
+});
+
+// POST /:timeOffId/convert-to-split — Convert an existing 15-day SV vacation into two Pending child records
+router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const timeOffId = parseIdParam(req.params.timeOffId);
+    if (timeOffId === null) {
+      return res.status(400).json({ error: 'Invalid timeOffId' });
+    }
+
+    const { teamMemberId, resolvedUserId: userId } = req as ResolvedAuthRequest;
+
+    const { periodA, periodB, comment } = req.body as {
+      periodA?: { startDate: string; endDate: string };
+      periodB?: { startDate: string; endDate: string };
+      comment?: string;
+    };
+
+    if (!periodA?.startDate || !periodA?.endDate) {
+      return res.status(400).json({ error: 'periodA startDate and endDate are required' });
+    }
+    if (!periodB?.startDate || !periodB?.endDate) {
+      return res.status(400).json({ error: 'periodB startDate and endDate are required' });
+    }
+
+    // Load and validate ownership
+    const original = await getTimeOffById(timeOffId);
+    if (!original) {
+      return res.status(404).json({ error: 'Time-off not found' });
+    }
+    if (original.teamMemberId !== teamMemberId) {
+      return res.status(403).json({ error: 'Not authorized to edit this time-off' });
+    }
+    if (original.statusId === SPLIT_STATUS_ID) {
+      return res.status(400).json({ error: 'This time-off is already a split origin record' });
+    }
+    if (original.timeOffOriginalId !== null) {
+      return res.status(400).json({ error: 'Cannot split a record that is already a split child' });
+    }
+
+    const cancelledStatus = await getStatusByName('cancelled');
+    if (cancelledStatus && original.statusId === cancelledStatus.statusId) {
+      return res.status(400).json({ error: 'Cannot convert a cancelled time-off' });
+    }
+
+    if (!original.categoryId) {
+      return res.status(400).json({ error: 'Time-off record has no category' });
+    }
+
+    const categoryId = original.categoryId;
+
+    // Validate both periods (exclude the original record from overlap check)
+    const [validationA, validationB] = await Promise.all([
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodA.startDate),
+        timeOffEndDate: new Date(periodA.endDate),
+        statusId: DEFAULTS.STATUS_ID,
+        timeOffId,
+      }),
+      validateTimeOff({
+        teamMemberId,
+        categoryId,
+        timeOffStartDate: new Date(periodB.startDate),
+        timeOffEndDate: new Date(periodB.endDate),
+        statusId: DEFAULTS.STATUS_ID,
+        timeOffId,
+      }),
+    ]);
+
+    if (!validationA.valid) {
+      return res.status(400).json({ error: 'Period 1 validation failed', details: validationA.errors });
+    }
+    if (!validationB.valid) {
+      return res.status(400).json({ error: 'Period 2 validation failed', details: validationB.errors });
+    }
+
+    const [{ totalDays: daysA }, { totalDays: daysB }] = await Promise.all([
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodA.startDate), new Date(periodA.endDate)),
+      calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
+    ]);
+
+    const [isExceptionA, isExceptionB] = await Promise.all([
+      computeTimeOffIsException(teamMemberId, categoryId, daysA),
+      computeTimeOffIsException(teamMemberId, categoryId, daysB),
+    ]);
+
+    const now = new Date();
+    const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
+
+    const pendingStatus = await getStatusByName('tentative');
+    const pendingStatusId = pendingStatus?.statusId ?? DEFAULTS.STATUS_ID;
+
+    // Atomic transaction: mark original as split origin, create two Pending children
+    const [createdA, createdB] = await prisma.$transaction(async (tx) => {
+      await tx.timeOff.update({
+        where: { timeOffId },
+        data: { statusId: SPLIT_STATUS_ID },
+      });
+
+      const a = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodA.startDate),
+          timeOffEndDate: new Date(periodA.endDate),
+          timeOffDays: daysA,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: pendingStatusId,
+          timeOffIsException: isExceptionA,
+          timeOffOriginalId: timeOffId,
+          timeOffPeriod: vacationPeriod,
+        },
+      });
+
+      const b = await tx.timeOff.create({
+        data: {
+          teamMemberId,
+          timeOffStartDate: new Date(periodB.startDate),
+          timeOffEndDate: new Date(periodB.endDate),
+          timeOffDays: daysB,
+          timeOffCreatedBy: userId,
+          timeOffCreatedDate: now,
+          categoryId,
+          statusId: pendingStatusId,
+          timeOffIsException: isExceptionB,
+          timeOffOriginalId: timeOffId,
+          timeOffPeriod: vacationPeriod,
+        },
+      });
+
+      return [a, b] as const;
+    });
+
+    const logComment = comment?.trim() || 'SV vacation converted to split from edit page';
+
+    const [rawOriginal, rawA, rawB] = await Promise.all([
+      fetchRawTimeOffRow(timeOffId),
+      fetchRawTimeOffRow(createdA.timeOffId),
+      fetchRawTimeOffRow(createdB.timeOffId),
+    ]);
+
+    await Promise.all([
+      createTimeOffChangeLog({
+        timeOffId,
+        comment: logComment,
+        oldValues: rawOriginal,
+        newValues: rawOriginal,
+        createdByUserId: userId,
+      }),
+      createTimeOffChangeLog({
+        timeOffId: createdA.timeOffId,
+        comment: logComment,
+        oldValues: null,
+        newValues: rawA,
+        createdByUserId: userId,
+      }),
+      createTimeOffChangeLog({
+        timeOffId: createdB.timeOffId,
+        comment: logComment,
+        oldValues: null,
+        newValues: rawB,
+        createdByUserId: userId,
+      }),
+    ]);
+
+    const authReq = req as ResolvedAuthRequest;
+    await Promise.all([
+      auditOrchestrator.log({
+        entityName: 'tbl_tms_time_off',
+        entityId: String(timeOffId),
+        createdBy: authReq.user?.email ?? 'unknown',
+        oldValues: { statusId: original.statusId } as Record<string, unknown>,
+        newValues: { statusId: SPLIT_STATUS_ID } as Record<string, unknown>,
+        comment: `Original 15-day SV vacation converted to split origin via edit page`,
+      }),
+      auditOrchestrator.log({
+        entityName: 'tbl_tms_time_off',
+        entityId: String(createdA.timeOffId),
+        createdBy: authReq.user?.email ?? 'unknown',
+        oldValues: null,
+        newValues: createdA as unknown as Record<string, unknown>,
+        comment: `Split Period A created from edit — linked to origin ${timeOffId}`,
+      }),
+      auditOrchestrator.log({
+        entityName: 'tbl_tms_time_off',
+        entityId: String(createdB.timeOffId),
+        createdBy: authReq.user?.email ?? 'unknown',
+        oldValues: null,
+        newValues: createdB as unknown as Record<string, unknown>,
+        comment: `Split Period B created from edit — linked to origin ${timeOffId}`,
+      }),
+    ]);
+
+    try {
+      const category = await prisma.timeOffCategory.findUnique({
+        where: { categoryId },
+        select: { categoryName: true },
+      });
+      const employeeName = authReq.user?.firstName
+        ? `${authReq.user.firstName} ${authReq.user.lastName ?? ''}`.trim()
+        : 'A team member';
+      await notifySupervisorNewRequest({
+        teamMemberId,
+        timeOffId: createdA.timeOffId,
+        timeOffStartDate: periodA.startDate,
+        timeOffEndDate: periodA.endDate,
+        employeeName,
+        categoryName: category?.categoryName ?? 'time-off',
+      });
+    } catch (notifErr) {
+      console.error('[TimeOff] Failed to notify supervisor on convert-to-split:', notifErr);
+    }
+
+    res.status(201).json({ data: { originId: timeOffId, periodA: createdA, periodB: createdB } });
+  } catch (err) {
+    console.error('[TimeOff] Error converting time-off to split:', err);
+    res.status(500).json({ error: 'Failed to convert time-off to split' });
   }
 });
 

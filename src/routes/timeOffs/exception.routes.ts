@@ -1,6 +1,6 @@
 import express from 'express';
 import type { Response } from 'express';
-import { getTimeOffById, getMyTimeOffs, createTimeOff, updateTimeOff } from '../../db/timeOffs';
+import { getTimeOffById, getTimeOffsByTeamMember, createTimeOff, updateTimeOff } from '../../db/timeOffs';
 import { getTimeOffChangeLog } from '../../services/timeoff/changelog';
 import type { ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
 import { requirePermission } from '../../middleware/auth';
@@ -111,7 +111,7 @@ router.get('/team-member/:teamMemberId', requirePermission('TimeOffException', '
       return res.status(400).json({ error: 'Invalid team member id' });
     }
 
-    const timeOffs = await getMyTimeOffs(teamMemberId);
+    const timeOffs = await getTimeOffsByTeamMember(teamMemberId);
     res.json(timeOffs);
   } catch (err) {
     console.error('[Exception] Error fetching team member time-offs:', err);

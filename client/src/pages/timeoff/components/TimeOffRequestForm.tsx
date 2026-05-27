@@ -26,13 +26,8 @@ import { apiGet, apiPost, ApiError } from '@/lib/api';
 import { SVVacationSplitMode, type SplitPeriod } from './SVVacationSplitMode';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../utils/overlapDetection';
-import {
-  isElSalvadorVacation,
-  calculateCalendarDays,
-  computeCurrentPeriod,
-  getExistingVacationDaysThisYear,
-  validateSVVacation,
-} from '../utils/elSalvadorVacationValidation';
+import { isElSalvadorVacation } from '../utils/elSalvadorVacationValidation';
+import { computeCurrentPeriod, getNextAnniversaryDate } from '../utils/anniversaryWindow';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
@@ -190,7 +185,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
 
   // Overlap detection (use cancelledStatusId from API, fallback to -1 if not loaded yet)
   const overlappingTimeOffs = existingTimeOffs && startDate && endDate
-    ? detectOverlap(startDate, endDate, existingTimeOffs, cancelledStatusId ?? -1)
+    ? detectOverlap(startDate, endDate, existingTimeOffs, cancelledStatusId ?? -1, 6)
     : [];
   const hasOverlap = overlappingTimeOffs.length > 0;
 
@@ -199,18 +194,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     userCountryIso,
     selectedCategory?.categoryName
   );
-
-  const requestedDays = startDate && endDate
-    ? calculateCalendarDays(startDate, endDate)
-    : 0;
-
-  const currentPeriod = isSVVacation
-    ? computeCurrentPeriod(userHireDate ?? userStartDate, startDate ?? undefined)
-    : null;
-
-  const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs ?? [], cancelledStatusId ?? 4, currentPeriod)
-    : 0;
 
   // SV 15-day mode: applies whenever SV + Vacation.
   // Must NOT use isFixedDuration — see requirements.
@@ -236,10 +219,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     setIsSplitMode(false);
   }, [categoryId]);
 
-  const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays, workdayBalance?.rawVacation ?? 15, userHireDate ?? userStartDate)
-    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0, nextAnniversaryDate: null };
-
   // Days hint: respects isCalendar flag (calendar days vs workdays only)
   const hintDays = startDate && endDate && isDateRangeValid
     ? calculateRequestedDays(startDate, endDate, isCalendar)
@@ -255,13 +234,30 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
 
   // Workday balance validation — for GT vacation, add accrued days (1.25/month since 2025-12-31)
   const isGTVacation = userCountryIso === 'GT' && selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
+  const isVacation = selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
+  const userMemberStartDate = userHireDate ?? userStartDate;
+  const nextAnniversaryDate = userMemberStartDate ? getNextAnniversaryDate(userMemberStartDate) : null;
   const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
-  const balanceForValidation = workdayBalance && gtAccruedDays > 0
-    ? { ...workdayBalance, vacation: workdayBalance.vacation + gtAccruedDays }
+  const anniversaryBonus = isVacation && !isGTVacation && startDate && nextAnniversaryDate && startDate >= nextAnniversaryDate ? 15 : 0;
+  const totalVacationAdjustment = gtAccruedDays + anniversaryBonus;
+  const balanceForValidation = workdayBalance && totalVacationAdjustment > 0
+    ? { ...workdayBalance, vacation: workdayBalance.vacation + totalVacationAdjustment }
     : workdayBalance;
   const balanceValidation = selectedCategory && hintDays > 0
     ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
+
+  const startDatePeriod = userMemberStartDate && startDate
+    ? computeCurrentPeriod(userMemberStartDate, startDate)
+    : null;
+  const endDatePeriod = userMemberStartDate && endDate
+    ? computeCurrentPeriod(userMemberStartDate, endDate)
+    : null;
+  const spansAnniversaryBoundary =
+    !!isDateRangeValid &&
+    startDatePeriod !== null &&
+    endDatePeriod !== null &&
+    startDatePeriod !== endDatePeriod;
 
   // Max days per request validation
   const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
@@ -286,7 +282,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
     !isStartDateHoliday &&
-    svValidation.valid &&
     daysBeforeValidation.valid &&
     balanceValidation.valid &&
     !exceedsMaxDays &&
@@ -454,6 +449,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           {isStartDateHoliday && (
             <p className="text-sm text-destructive">Start date cannot be on a public holiday</p>
           )}
+          {isVacation && startDatePeriod && (
+            <p className="text-sm text-muted-foreground">Anniversary period: {startDatePeriod}</p>
+          )}
         </div>
 
         {/* Days-Before Notice Period Warning */}
@@ -582,6 +580,15 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           </Alert>
         )}
 
+        {/* Anniversary Boundary Notice */}
+        {spansAnniversaryBoundary && (
+          <Alert>
+            <AlertDescription>
+              This request spans two anniversary periods ({startDatePeriod} → {endDatePeriod}). Days from each period will be tracked separately.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Overlap Warning */}
         {hasOverlap && (
           <Alert variant="destructive">
@@ -610,41 +617,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Time off cannot extend beyond your end date ({format(userEndDate, 'PPP')}).
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* El Salvador Vacation Info/Warning */}
-        {isSVVacation && (
-          <Alert variant={svValidation.valid ? 'info' : 'destructive'}>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <p className="font-medium mb-2">El Salvador Vacation Policy</p>
-              <p className="text-sm mb-2">
-                Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of {Math.max(15, workdayBalance?.rawVacation ?? 15)} days
-              </p>
-              {requestedDays > 0 && (
-                <p className="text-sm mb-2">
-                  Current request: <span className="font-medium">{requestedDays} days</span>
-                </p>
-              )}
-              {existingVacationDays === 0 && (
-                <p className="text-sm mb-2">
-                  To take your vacation in two separate periods, select a start date and use the{' '}
-                  <span className="font-medium">Split</span> option. In split mode, you will only
-                  select the end date of the first period — the second period start date must be a
-                  future date, and its end date will be auto-calculated based on the remaining days
-                  (e.g. if period 1 is 7 days, period 2 will be fixed at 8 days).
-                </p>
-              )}
-              {svValidation.errorMessage && (
-                <p className="text-sm font-medium mt-2">
-                  {svValidation.errorMessage}
-                  {svValidation.nextAnniversaryDate && (
-                    <> You will be able to request vacation again from <span className="font-medium">{formatUTCDate(svValidation.nextAnniversaryDate.toISOString(), 'dd-MMM-yyyy')}</span>.</>
-                  )}
-                </p>
-              )}
             </AlertDescription>
           </Alert>
         )}

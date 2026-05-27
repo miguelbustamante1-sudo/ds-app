@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
-import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
+import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
 import {
   Toolbar,
   ToolbarDescription,
@@ -19,11 +20,11 @@ import { TeamMembersDataGrid } from './components/TeamMembersDataGrid';
 import { SupervisorTimeOffList } from './components/SupervisorTimeOffList';
 import { SupervisorTimeOffForm } from './components/SupervisorTimeOffForm';
 import { CancelTimeOffDialog } from './components/CancelTimeOffDialog';
-import { EditSupervisorTimeOffDialog } from './components/EditSupervisorTimeOffDialog';
 import { TimeOffDetailPanel } from './components/TimeOffDetailPanel';
 
 export function SupervisorTimeOffPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Team members state
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
@@ -32,10 +33,6 @@ export function SupervisorTimeOffPage() {
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [timeOffToCancel, setTimeOffToCancel] = useState<TimeOffWithDetailsDTO | null>(null);
-
-  // Edit dialog state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [timeOffToEdit, setTimeOffToEdit] = useState<TimeOffWithDetailsDTO | null>(null);
 
   // Hooks
   const teamMembersHook = useMyTeamMembers({
@@ -87,9 +84,8 @@ export function SupervisorTimeOffPage() {
   }, [selectedTimeOffId]);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
-    setTimeOffToEdit(timeOff);
-    setEditDialogOpen(true);
-  }, []);
+    navigate(`/supervisor-time-off/edit/${timeOff.timeOffId}?teamMemberId=${timeOff.teamMemberId}`);
+  }, [navigate]);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setTimeOffToCancel(timeOff);
@@ -99,17 +95,6 @@ export function SupervisorTimeOffPage() {
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
-      if (selectedTeamMember) {
-        timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
-        balanceHook.loadBalance(selectedTeamMember.teamMemberId);
-      }
-    },
-    [operationsHook, selectedTeamMember, timeOffsHook, balanceHook]
-  );
-
-  const handleConfirmEdit = useCallback(
-    async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
-      await operationsHook.updateTimeOff(timeOffId, data);
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
         balanceHook.loadBalance(selectedTeamMember.teamMemberId);
@@ -217,17 +202,6 @@ export function SupervisorTimeOffPage() {
         loading={operationsHook.loading}
       />
 
-      {/* Edit Dialog */}
-      <EditSupervisorTimeOffDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        timeOff={timeOffToEdit}
-        teamMember={selectedTeamMember}
-        existingTimeOffs={timeOffsHook.timeOffs}
-        onConfirm={handleConfirmEdit}
-        loading={operationsHook.loading}
-        categoryMode="all"
-      />
     </div>
   );
 }

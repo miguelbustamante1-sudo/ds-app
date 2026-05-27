@@ -23,11 +23,8 @@ import { detectOverlap } from '../../utils/overlapDetection';
 import {
   VACATION_CATEGORY_NAME,
   isElSalvadorVacation,
-  calculateCalendarDays,
-  computeCurrentPeriod,
-  getExistingVacationDaysThisYear,
-  validateSVVacation,
 } from '../../utils/elSalvadorVacationValidation';
+import { computeCurrentPeriod } from '../../utils/anniversaryWindow';
 import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
@@ -269,7 +266,7 @@ function SupervisorTimeOffFormInner({
   // Overlap detection
   const overlappingTimeOffs =
     existingTimeOffs && startDate && endDate
-      ? detectOverlap(startDate, endDate, existingTimeOffs, cancelledStatusId ?? -1)
+      ? detectOverlap(startDate, endDate, existingTimeOffs, cancelledStatusId ?? -1, 6)
       : [];
   const hasOverlap = overlappingTimeOffs.length > 0;
 
@@ -279,10 +276,6 @@ function SupervisorTimeOffFormInner({
     selectedCategory?.categoryName
   );
 
-  const requestedDays = startDate && endDate
-    ? calculateCalendarDays(startDate, endDate)
-    : 0;
-
   const hintDays = startDate && endDate && isDateRangeValid
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
@@ -290,18 +283,6 @@ function SupervisorTimeOffFormInner({
   const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
     ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
     : null;
-  const currentPeriod = isSVVacation
-    ? computeCurrentPeriod(svMemberStartDate, startDate ?? undefined)
-    : null;
-
-  const existingVacationDays = isSVVacation
-    ? getExistingVacationDaysThisYear(existingTimeOffs, cancelledStatusId ?? 4, currentPeriod)
-    : 0;
-
-  const svValidation = isSVVacation && requestedDays > 0
-    ? validateSVVacation(requestedDays, existingVacationDays, undefined, svMemberStartDate)
-    : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0, nextAnniversaryDate: null };
-
   // Anniversary boundary notice — shown when the date range crosses into the next anniversary period
   const startDatePeriod = svMemberStartDate && startDate
     ? computeCurrentPeriod(svMemberStartDate, startDate)
@@ -314,6 +295,8 @@ function SupervisorTimeOffFormInner({
     startDatePeriod !== null &&
     endDatePeriod !== null &&
     startDatePeriod !== endDatePeriod;
+
+  const isVacation = selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
 
   // SV 15-day mode: applies whenever SV + Vacation
   const isSV15DayMode = isSVVacation;
@@ -404,7 +387,6 @@ function SupervisorTimeOffFormInner({
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
     !isStartDateHoliday &&
-    svValidation.valid &&
     !exceedsMaxDays &&
     !gtExceptionWarning?.showLimitWarning &&
     (daysBeforeValidation?.valid !== false) &&
@@ -657,6 +639,9 @@ function SupervisorTimeOffFormInner({
               Note: {startDateSwappedHoliday.holidayName} on this date was swapped. This is now a working day.
             </p>
           )}
+          {isVacation && startDatePeriod && (
+            <p className="text-muted-foreground">Anniversary period: {startDatePeriod}</p>
+          )}
           {isFixedDuration && fixedDays && (
             <p className="text-muted-foreground">
               Fixed duration: {fixedDays} day{fixedDays !== 1 ? 's' : ''}
@@ -759,41 +744,6 @@ function SupervisorTimeOffFormInner({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               Time off cannot extend beyond {teamMember?.teamMemberNames} {teamMember?.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'PPP')}).
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* El Salvador Vacation Info/Warning */}
-        {isSVVacation && (
-          <Alert variant={svValidation.valid ? 'info' : 'destructive'}>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <p className="font-medium mb-2">El Salvador Vacation Policy</p>
-              <p className="text-sm mb-2">
-                Vacation days used this year: <span className="font-medium">{existingVacationDays}</span> of 15 days
-              </p>
-              {requestedDays > 0 && (
-                <p className="text-sm mb-2">
-                  Current request: <span className="font-medium">{requestedDays} days</span>
-                </p>
-              )}
-              {existingVacationDays === 0 && (
-                <p className="text-sm mb-2">
-                  To take vacation in two separate periods, select a start date and use the{' '}
-                  <span className="font-medium">Split</span> option. In split mode, you will only
-                  select the end date of the first period — the second period start date must be a
-                  future date, and its end date will be auto-calculated based on the remaining days
-                  (e.g. if period 1 is 7 days, period 2 will be fixed at 8 days).
-                </p>
-              )}
-              {svValidation.errorMessage && (
-                <p className="text-sm font-medium mt-2">
-                  {svValidation.errorMessage}
-                  {svValidation.nextAnniversaryDate && (
-                    <> You will be able to request vacation again from <span className="font-medium">{formatUTCDate(svValidation.nextAnniversaryDate.toISOString(), 'dd-MMM-yyyy')}</span>.</>
-                  )}
-                </p>
-              )}
             </AlertDescription>
           </Alert>
         )}

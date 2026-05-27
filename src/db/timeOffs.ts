@@ -127,7 +127,7 @@ export async function deleteTimeOff(id: number): Promise<boolean> {
  * Returns past 1 month + all records starting in the current year + all future time offs.
  * The current-year window ensures SV vacation day counting is accurate for the full year.
  */
-export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDetailsDTO[]> {
+export async function getTimeOffsByTeamMember(teamMemberId: number): Promise<TimeOffWithDetailsDTO[]> {
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const startOfYear = new Date(new Date().getFullYear(), 0, 1);
@@ -163,6 +163,7 @@ export async function getMyTimeOffs(teamMemberId: number): Promise<TimeOffWithDe
 
     return {
       timeOffId: timeOff.timeOffId,
+      teamMemberId: timeOff.teamMemberId,
       timeOffStartDate: timeOff.timeOffStartDate,
       timeOffEndDate: timeOff.timeOffEndDate,
       timeOffDays: Number(timeOff.timeOffDays),

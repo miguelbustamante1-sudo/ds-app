@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { TimeOffWithDetailsDTO, UpdateMyTimeOffDTO } from '../../../../shared/dto/TimeOff';
+import type { TimeOffWithDetailsDTO } from '../../../../shared/dto/TimeOff';
 import {
   Toolbar,
   ToolbarDescription,
@@ -15,7 +15,7 @@ import { HolidayProvider } from './context/HolidayContext';
 import { MyTimeOffList } from './components/MyTimeOffList';
 import { TimeOffRequestForm } from './components/TimeOffRequestForm';
 import { CancelMyTimeOffDialog } from './components/CancelMyTimeOffDialog';
-import { EditTimeOffDialog } from './components/EditTimeOffDialog';
+
 
 export function MyTimeOffPage() {
   const navigate = useNavigate();
@@ -29,7 +29,6 @@ export function MyTimeOffPage() {
 
   // Dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
 
   // Operations hook
@@ -79,9 +78,8 @@ export function MyTimeOffPage() {
   }, [navigate]);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
-    setSelectedTimeOff(timeOff);
-    setEditDialogOpen(true);
-  }, []);
+    navigate(`/my-time-off/edit/${timeOff.timeOffId}`);
+  }, [navigate]);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setSelectedTimeOff(timeOff);
@@ -91,15 +89,6 @@ export function MyTimeOffPage() {
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
       await operationsHook.cancelTimeOff(timeOffId, comment);
-      loadTimeOffs();
-      refetchBalance();
-    },
-    [operationsHook, loadTimeOffs, refetchBalance]
-  );
-
-  const handleConfirmEdit = useCallback(
-    async (timeOffId: number, data: UpdateMyTimeOffDTO) => {
-      await operationsHook.updateTimeOff(timeOffId, data);
       loadTimeOffs();
       refetchBalance();
     },
@@ -150,16 +139,6 @@ export function MyTimeOffPage() {
         loading={operationsHook.loading}
       />
 
-      {/* Edit Dialog */}
-      <EditTimeOffDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        timeOff={selectedTimeOff}
-        existingTimeOffs={timeOffs}
-        onConfirm={handleConfirmEdit}
-        loading={operationsHook.loading}
-        workdayBalance={balance}
-      />
     </div>
     </HolidayProvider>
   );
