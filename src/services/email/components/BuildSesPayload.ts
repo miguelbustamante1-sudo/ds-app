@@ -1,35 +1,24 @@
-/**
- * BuildSesPayload
- * Converts a SendEmailDTO into a SendEmailCommandInput ready for SES.
- * Reads SES_FROM_EMAIL and SES_FROM_NAME from process.env to build the
- * Source field. Throws a configuration error if either is missing.
- */
-
 import type { SendEmailCommandInput } from '@aws-sdk/client-ses';
 import type { SendEmailDTO } from '../types';
 import { requireEnv } from '../../../utils/env';
 
-/**
- * Builds the SES SendEmailCommandInput from a SendEmailDTO.
- * The caller owns recipient resolution and body content.
- */
+let cachedFromEmail: string | null = null;
+let cachedFromName: string | null = null;
+
 export function buildSesPayload(dto: SendEmailDTO): SendEmailCommandInput {
-  const fromEmail = requireEnv('SES_FROM_EMAIL');
-  const fromName = requireEnv('SES_FROM_NAME');
+  if (cachedFromEmail === null) cachedFromEmail = requireEnv('SES_FROM_EMAIL');
+  if (cachedFromName === null) cachedFromName = requireEnv('SES_FROM_NAME');
 
   const toAddresses: string[] = Array.isArray(dto.to) ? dto.to : [dto.to];
+  const source = `${cachedFromName} <${cachedFromEmail}>`;
 
-  const source = `${fromName} <${fromEmail}>`;
-
-  const body: SendEmailCommandInput['Message']['Body'] = dto.isHtml === true
+  const body: NonNullable<SendEmailCommandInput['Message']>['Body'] = dto.isHtml === true
     ? { Html: { Data: dto.body, Charset: 'UTF-8' } }
     : { Text: { Data: dto.body, Charset: 'UTF-8' } };
 
   const input: SendEmailCommandInput = {
     Source: source,
-    Destination: {
-      ToAddresses: toAddresses,
-    },
+    Destination: { ToAddresses: toAddresses },
     Message: {
       Subject: { Data: dto.subject, Charset: 'UTF-8' },
       Body: body,
@@ -41,4 +30,10 @@ export function buildSesPayload(dto: SendEmailDTO): SendEmailCommandInput {
   }
 
   return input;
+}
+
+// Exposed only for test teardown — resets cached sender config so tests can inject different env vars.
+export function _resetBuildSesPayloadForTesting(): void {
+  cachedFromEmail = null;
+  cachedFromName = null;
 }
