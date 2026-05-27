@@ -516,3 +516,24 @@ VALUES
   (104, 504, 104, '2025-04-01', NULL,         72.00, 'USD', 1, 100.00, false, 1)
 ON CONFLICT (tmp_id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('ds.tmp_team_member_project', 'tmp_id'), GREATEST((SELECT MAX(tmp_id) FROM ds.tmp_team_member_project), 104));
+
+-- 16. Corporate Phone Lines
+INSERT INTO ds.cpl_corporate_phone_lines (cpl_id, cpl_phone_number, cpl_contract_start_date, cpl_contract_end_date, cpl_renewal_parent_id, cpl_actual_cost_rate, cpl_deleted_at, cou_id, cpl_created_at, usr_id_created_by, usr_id_updated_by, cpl_comments, cpl_deleted)
+VALUES
+  (1, '50378537348', NULL, NULL, NULL, 22.51, NULL, 1, NOW(), 1, NULL, 'Line currently being charged to Mastercard Prepaid Management Services', false),
+  (2, '50378603601', NULL, NULL, NULL, 22.52, NULL, 1, NOW(), 1, NULL, 'Line currently being charged to Mastercard Prepaid Management Services', false),
+  (3, '50378604304', NULL, NULL, NULL, 22.52, NULL, 1, NOW(), 1, NULL, 'Line currently being charged to Mastercard Prepaid Management Services', false)
+ON CONFLICT (cpl_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.cpl_corporate_phone_lines', 'cpl_id'), (SELECT MAX(cpl_id) FROM ds.cpl_corporate_phone_lines));
+
+-- 17. Corporate Phone Assignments
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM ds.cpa_corporate_phone_assignments LIMIT 1) THEN
+    INSERT INTO ds.cpa_corporate_phone_assignments (cpl_id, tms_id, cpa_bill_rate, cpa_assign_date_start, cpa_assign_date_end, cpa_billable, cpa_remarks, cpa_created_at, usr_id_created_by, usr_id_updated_by, cpa_deleted_at, cpa_deleted)
+    VALUES
+      (1, 61, 25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Ernesto Menjívar Colorado (10083492)', NOW(), 1, NULL, NULL, false),
+      (2, 87, 25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Roberto Pineda Urrutia (10029794)',    NOW(), 1, NULL, NULL, false),
+      (3, 5,  25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Josue Guillen Rosales (10100154)',     NOW(), 1, NULL, NULL, false);
+  END IF;
+END $$;

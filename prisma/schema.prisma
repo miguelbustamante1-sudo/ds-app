@@ -24,6 +24,7 @@ model Country {
   endorsements       Endorsement[]
   bonusSubcategories BonusSubcategory[]
   functionalAreas    FunctionalArea[]
+  phoneLines         CorporatePhoneLine[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
   @@map("cou_countries")
@@ -133,6 +134,7 @@ model TeamMember {
   benchAssignments                  Bench[]        @relation("BenchTeamMember")
   supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
   compensatoryTimes                 CompensatoryTime[]
+  phoneAssignments                  CorporatePhoneAssignment[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -384,6 +386,10 @@ model User {
   supervisorAssignmentsCreated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
   supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
   recipients                   Recipient[]
+  phoneCreatedLines            CorporatePhoneLine[]       @relation("CplCreatedBy")
+  phoneUpdatedLines            CorporatePhoneLine[]       @relation("CplUpdatedBy")
+  phoneCreatedAssignments      CorporatePhoneAssignment[] @relation("CpaCreatedBy")
+  phoneUpdatedAssignments      CorporatePhoneAssignment[] @relation("CpaUpdatedBy")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1353,3 +1359,54 @@ model WalWorkflowAuditLog {
   @@map("wal_workflow_audit_log")
   @@schema("ds")
 }
+
+model CorporatePhoneLine {
+  phoneLineId           Int       @id @default(autoincrement()) @map("cpl_id") @db.Integer
+  phoneNumber           String    @map("cpl_phone_number") @db.VarChar(20)
+  contractStartDate     DateTime? @map("cpl_contract_start_date") @db.Date
+  contractEndDate       DateTime? @map("cpl_contract_end_date") @db.Date
+  renewalParentId       Int?      @map("cpl_renewal_parent_id") @db.Integer
+  actualCostRate        Decimal?  @map("cpl_actual_cost_rate") @db.Decimal(10, 2)
+  deletedAt             DateTime? @map("cpl_deleted_at")
+  countryId             Int?      @map("cou_id") @db.Integer
+  createdAt             DateTime? @default(now()) @map("cpl_created_at")
+  createdBy             Int?      @map("usr_id_created_by") @db.Integer
+  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  comments              String?   @map("cpl_comments")
+  deleted               Boolean?  @default(false) @map("cpl_deleted")
+
+  renewalParent         CorporatePhoneLine?  @relation("PhoneLineRenewals", fields: [renewalParentId], references: [phoneLineId], onDelete: Restrict)
+  renewals              CorporatePhoneLine[] @relation("PhoneLineRenewals")
+  country               Country?             @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_cpl_cou")
+  createdByUser         User?                @relation("CplCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpl_created_by")
+  updatedByUser         User?                @relation("CplUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpl_updated_by")
+  phoneAssignments      CorporatePhoneAssignment[]
+
+  @@map("cpl_corporate_phone_lines")
+  @@schema("ds")
+}
+
+model CorporatePhoneAssignment {
+  phoneAssignmentId     Int       @id @default(autoincrement()) @map("cpa_id") @db.Integer
+  phoneLineId           Int       @map("cpl_id") @db.Integer
+  teamMemberId          Int       @map("tms_id") @db.Integer
+  billRate              Decimal   @default(0.00) @map("cpa_bill_rate") @db.Decimal(10, 2)
+  assignDateStart       DateTime  @map("cpa_assign_date_start") @db.Date
+  assignDateEnd         DateTime? @map("cpa_assign_date_end") @db.Date
+  billable              Boolean   @default(true) @map("cpa_billable")
+  remarks               String?   @map("cpa_remarks")
+  createdAt             DateTime? @default(now()) @map("cpa_created_at")
+  createdBy             Int?      @map("usr_id_created_by") @db.Integer
+  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  deletedAt             DateTime? @map("cpa_deleted_at")
+  deleted               Boolean?  @default(false) @map("cpa_deleted")
+
+  phoneLine             CorporatePhoneLine @relation(fields: [phoneLineId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpa_cpl")
+  teamMember            TeamMember         @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_cpa_tms")
+  createdByUser         User?              @relation("CpaCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpa_created_by")
+  updatedByUser         User?              @relation("CpaUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpa_updated_by")
+
+  @@map("cpa_corporate_phone_assignments")
+  @@schema("ds")
+}
+
