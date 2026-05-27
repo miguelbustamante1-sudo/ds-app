@@ -293,6 +293,19 @@ function EditSupervisorTimeOffDialogInner({
     ? validateSVVacation(requestedDays, existingVacationDays)
     : { valid: true, errorMessage: null, allowedDayOptions: [], existingDays: 0 };
 
+  // Anniversary boundary notice — shown when the date range crosses into the next anniversary period
+  const startDatePeriod = svMemberStartDate && startDate
+    ? computeCurrentPeriod(svMemberStartDate, startDate)
+    : null;
+  const endDatePeriod = svMemberStartDate && endDate
+    ? computeCurrentPeriod(svMemberStartDate, endDate)
+    : null;
+  const spansAnniversaryBoundary =
+    !!isDateRangeValid &&
+    startDatePeriod !== null &&
+    endDatePeriod !== null &&
+    startDatePeriod !== endDatePeriod;
+
   // Days-before notice period validation — blocks canSave
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -545,6 +558,15 @@ function EditSupervisorTimeOffDialogInner({
                 <p className="text-sm font-medium">
                   Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong>
                 </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Anniversary Boundary Notice */}
+          {spansAnniversaryBoundary && (
+            <Alert>
+              <AlertDescription>
+                This request spans two anniversary periods ({startDatePeriod} → {endDatePeriod}). Days from each period will be tracked separately.
               </AlertDescription>
             </Alert>
           )}

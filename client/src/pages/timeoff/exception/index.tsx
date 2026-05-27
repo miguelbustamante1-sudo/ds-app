@@ -117,7 +117,10 @@ export function TimeOffExceptionPage() {
 
   const handleConfirmCancel = useCallback(
     async (timeOffId: number, comment: string) => {
-      if (!actingAsUserId) return;
+      if (!actingAsUserId) {
+        toast({ title: 'Error', description: 'Please select an "Acting As" user before cancelling', variant: 'destructive' });
+        throw new Error('No acting-as user selected');
+      }
       await operationsHook.cancelTimeOff(timeOffId, comment, actingAsUserId);
       if (selectedTeamMember) {
         timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);

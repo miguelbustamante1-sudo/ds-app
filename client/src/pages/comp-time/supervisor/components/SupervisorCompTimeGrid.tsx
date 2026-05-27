@@ -6,6 +6,7 @@ import {
   PaginationState,
   SortingState,
   getCoreRowModel,
+  getFilteredRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
   useReactTable,
@@ -18,7 +19,6 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { getCompensatoryTimesUser, deleteCompensatoryTime } from '@/services/compensatoryTime';
 import { formatUTCDate } from '@/lib/utils';
@@ -88,7 +88,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [refreshKey, teamMemberId]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     try {
       await deleteCompensatoryTime(id);
       toast({ title: 'Deleted', description: 'Record deleted successfully.' });
@@ -97,7 +97,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
       const message = err instanceof Error ? err.message : 'Failed to delete record';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
-  };
+  }, [fetchRecords, toast]);
 
   const columns = useMemo<ColumnDef<CompensatoryTimeDTO>[]>(() => [
     {
@@ -138,6 +138,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
     },
     {
       id: 'actions',
+      enableSorting: false,
       cell: ({ row }) =>
         row.original.status === 'SUBMITTED' ? (
           <Button
@@ -149,8 +150,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
           </Button>
         ) : null,
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], []);
+  ], [handleDelete]);
 
   const table = useReactTable({
     data: records,
@@ -161,6 +161,7 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     manualPagination: true,
@@ -197,16 +198,12 @@ export function SupervisorCompTimeGrid({ teamMemberId, refreshKey }: SupervisorC
           )}
         </div>
 
-        {loading ? (
-          <Skeleton className="h-40 w-full" />
-        ) : (
-          <DataGridContainer>
-            <DataGrid table={table}>
-              <DataGridTable table={table} />
-            </DataGrid>
-            <DataGridPagination table={table} />
-          </DataGridContainer>
-        )}
+        <DataGridContainer>
+          <DataGrid table={table} recordCount={total} isLoading={loading}>
+            <DataGridTable />
+            <DataGridPagination sizes={[10, 25, 50]} />
+          </DataGrid>
+        </DataGridContainer>
       </CardContent>
     </Card>
   );
