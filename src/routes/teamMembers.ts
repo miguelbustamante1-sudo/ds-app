@@ -11,6 +11,8 @@ import {
   TeamMemberNotFoundError, InvalidTierBandError,
 } from '../services/teamMember';
 import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
+import { getReportsForTeamOverview } from '../services/teamMember/queries/getReportsForTeamOverview';
+import { AppError } from '../errors/AppError';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -94,6 +96,27 @@ router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: 
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+// GET /team-members/my-reports-overview
+// Returns all reports (direct + indirect) enriched with vacation balance.
+router.get('/my-reports-overview', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      return res.status(404).json({ error: 'Team member not found for current user' });
+    }
+
+    const overview = await getReportsForTeamOverview(teamMemberId);
+    res.json({ data: overview });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
   }
 });
 

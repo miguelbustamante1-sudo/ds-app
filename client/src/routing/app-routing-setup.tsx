@@ -15,6 +15,8 @@ import { MyTimeOffPage } from '@/pages/timeoff';
 import { EditTimeOffPage } from '@/pages/timeoff/edit';
 import { EditSupervisorTimeOffPage } from '@/pages/timeoff/supervisor/edit';
 import { SupervisorTimeOffPage } from '@/pages/timeoff/supervisor';
+import { SupervisorTeamOverviewPage } from '@/pages/timeoff/supervisor-v2';
+import { SupervisorMemberDetailPage } from '@/pages/timeoff/supervisor-v2/detail';
 import { TimeOffManagementPage } from '@/pages/timeoff/management';
 import { MyTeamPage } from '@/pages/my-team';
 import { TeamMemberProfilePage } from '@/pages/my-team/profile';
@@ -96,6 +98,8 @@ export function AppRoutingSetup() {
         <Route path="/my-time-off/edit/:timeOffId" element={<EditTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
         <Route path="/supervisor-time-off/edit/:timeOffId" element={<EditSupervisorTimeOffPage />} />
+        <Route path="/supervisor-time-off-v2" element={<SupervisorTeamOverviewPage />} />
+        <Route path="/supervisor-time-off-v2/:teamMemberId" element={<SupervisorMemberDetailPage />} />
         <Route path="/timeoff-exception" element={<TimeOffExceptionPage />} />
         <Route path="/timeoff-exception-detail/:timeOffId" element={<TimeOffExceptionDetailPage />} />
         <Route path="/time-off-management" element={<TimeOffManagementPage />} />

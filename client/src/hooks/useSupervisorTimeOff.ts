@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { apiGet, apiPost, apiPatch, ApiError } from '../lib/api';
+import type { SupervisorTeamOverviewDTO } from '@shared/dto/SupervisorTeamOverview';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, CancelSupervisorTimeOffDTO, UpdateSupervisorTimeOffDTO, TeamTimeOffCurrentMonthDTO, TeamMemberYearlySummaryDTO, TeamMemberTimeOffBreakdownDTO, TimeOffWithTeamMemberDTO } from '@shared/dto/TimeOff';
 import type { TimeOff } from '@prisma/client';
@@ -318,5 +319,36 @@ export function useAllTeamTimeOffs(options?: UseSupervisorTimeOffOptions) {
     error,
     loadTimeOffs,
     refreshTimeOffs,
+  };
+}
+
+/**
+ * Hook for fetching supervised team members with vacation balance (team overview page).
+ */
+export function useMyTeamOverview(options?: UseSupervisorTimeOffOptions) {
+  const [teamOverview, setTeamOverview] = useState<SupervisorTeamOverviewDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTeamOverview = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiGet<SupervisorTeamOverviewDTO[]>('/api/team-members/my-reports-overview');
+      setTeamOverview(data);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load team overview';
+      setError(message);
+      options?.onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [options]);
+
+  return {
+    teamOverview,
+    loading,
+    error,
+    loadTeamOverview,
   };
 }

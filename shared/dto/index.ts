@@ -56,3 +56,6 @@ export * from './PersistenceJob';
 // Shift DTOs
 export * from './Shift';
 export * from './ShiftDetail';
+
+// Supervisor V2 DTOs
+export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';

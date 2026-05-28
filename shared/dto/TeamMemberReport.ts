@@ -12,6 +12,7 @@ import type { ReportType } from './SupervisedTeamMember';
 export interface TeamMemberReportProjectDTO {
   projectId: number;
   projectName: string;
+  projectExternalId: string | null;
   projectAssignmentAllocation: number;
   projectAssignmentStartDate: Date | null;
   projectAssignmentEndDate: Date | null;

@@ -76,6 +76,7 @@ export async function getMyOwnProfile(
     currentProjects: projectAssignments.map((a) => ({
       projectId: a.projectId,
       projectName: a.project.projectName ?? '',
+      projectExternalId: a.project.projectExternalId ?? null,
       projectAssignmentAllocation: Number(a.projectAssignmentAllocation),
       projectAssignmentStartDate: a.projectAssignmentStartDate,
       projectAssignmentEndDate: a.projectAssignmentEndDate ?? null,

@@ -31,6 +31,7 @@ interface RawTeamMemberReport {
   current_projects: Array<{
     projectId: number;
     projectName: string;
+    projectExternalId: string | null;
     projectAssignmentAllocation: number;
     projectAssignmentStartDate: string | null;
     projectAssignmentEndDate: string | null;
@@ -118,6 +119,7 @@ export async function getReports(
           json_build_object(
             'projectId',                   p.pro_id,
             'projectName',                 p.pro_name,
+            'projectExternalId',           p.pro_external_id,
             'projectAssignmentAllocation', tmp.tmp_allocation,
             'projectAssignmentStartDate',  tmp.tmp_start_date,
             'projectAssignmentEndDate',    tmp.tmp_end_date,
@@ -171,6 +173,7 @@ export async function getReports(
       ? row.current_projects.map((p) => ({
           projectId: Number(p.projectId),
           projectName: p.projectName,
+          projectExternalId: p.projectExternalId ?? null,
           projectAssignmentAllocation: Number(p.projectAssignmentAllocation),
           projectAssignmentStartDate: p.projectAssignmentStartDate ? new Date(p.projectAssignmentStartDate) : null,
           projectAssignmentEndDate: p.projectAssignmentEndDate ? new Date(p.projectAssignmentEndDate) : null,

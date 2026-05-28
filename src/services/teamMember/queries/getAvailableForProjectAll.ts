@@ -99,6 +99,7 @@ export async function getAvailableForProjectAll(
       ? row.current_projects.map((p) => ({
           projectId: Number(p.projectId),
           projectName: p.projectName,
+          projectExternalId: null,
           projectAssignmentAllocation: Number(p.projectAssignmentAllocation),
           projectAssignmentStartDate: null,
           projectAssignmentEndDate: null,

@@ -25,6 +25,8 @@ interface SVVacationSplitModeProps {
   submitting: boolean;
   onBack: () => void;
   onSaveSplit: (periodA: SplitPeriod, periodB: SplitPeriod) => void;
+  /** 'stacked' (default) — periods shown vertically; 'columns' — periods side by side */
+  layout?: 'stacked' | 'columns';
 }
 
 export function SVVacationSplitMode({
@@ -35,6 +37,7 @@ export function SVVacationSplitMode({
   submitting,
   onBack,
   onSaveSplit,
+  layout = 'stacked',
 }: SVVacationSplitModeProps) {
   const [periodAEndDate, setPeriodAEndDate] = useState<Date | undefined>(undefined);
   const [periodADays, setPeriodADays] = useState<number>(0);
@@ -113,20 +116,10 @@ export function SVVacationSplitMode({
     );
   }, [anchorStartDate, periodAEndDate, periodBStartDate, periodBEndDate, onSaveSplit]);
 
-  return (
-    <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Back to single request */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-3 w-3" />
-        Back to single request
-      </button>
+  const isColumns = layout === 'columns';
 
-      {/* Period 1 */}
-      <div className="border rounded-lg p-4 space-y-3">
+  const period1Card = (
+    <div className="border rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-sm">Period 1</h4>
           {isPeriodAValid && (
@@ -204,15 +197,9 @@ export function SVVacationSplitMode({
           </Alert>
         )}
       </div>
+  );
 
-      {/* Divider */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 border-t" />
-        <span className="text-xs text-muted-foreground font-medium px-1">PERIOD 2</span>
-        <div className="flex-1 border-t" />
-      </div>
-
-      {/* Period 2 */}
+  const period2Card = (
       <div className={cn('border rounded-lg p-4 space-y-3', !isPeriodAValid && 'opacity-50')}>
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-sm">Period 2</h4>
@@ -310,6 +297,39 @@ export function SVVacationSplitMode({
           </Alert>
         )}
       </div>
+  );
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Back to single request — stacked mode only; columns mode uses banner in parent */}
+      {!isColumns && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Back to single request
+        </button>
+      )}
+
+      {isColumns ? (
+        <div className="grid grid-cols-2 gap-6">
+          {period1Card}
+          {period2Card}
+        </div>
+      ) : (
+        <>
+          {period1Card}
+          {/* Divider */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 border-t" />
+            <span className="text-xs text-muted-foreground font-medium px-1">PERIOD 2</span>
+            <div className="flex-1 border-t" />
+          </div>
+          {period2Card}
+        </>
+      )}
 
       {/* Save Split button */}
       <Button type="button" className="w-full" disabled={!canSaveSplit} onClick={handleSaveSplit}>
