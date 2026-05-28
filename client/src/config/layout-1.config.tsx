@@ -135,7 +135,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Supervisor Time Off',
     icon: Users,
     path: '/supervisor-time-off-v2',
-    permission: 'SupervisorTimeOff',
+    permission: 'SupervisorTimeOffV2',
   },
   {
     title: 'Team Comp Time',
