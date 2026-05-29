@@ -23,11 +23,11 @@ export interface MenuItem {
    */
   permission?: string;
   /**
-   * Role required to view this menu item.
-   * If set, the item will only be visible if the user has this role.
-   * Example: 'admin'
+   * Role(s) required to view this menu item.
+   * A single string requires exactly that role; an array requires the user to have at least one.
+   * Example: 'admin' or ['admin', 'bsa']
    */
-  role?: string;
+  role?: string | string[];
   /**
    * Sub-permissions for dynamic visibility checks beyond role/permission.
    * Supported values:

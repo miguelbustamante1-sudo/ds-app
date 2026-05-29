@@ -14,29 +14,36 @@ export function SidebarHeader() {
 
   return (
     <div className="sidebar-header hidden lg:flex items-center relative justify-between px-3 lg:px-6 shrink-0">
-      <Link to="/">
-        <div className="dark:hidden">
+      {/*
+        The Link wraps both the expanded logo (default-logo) and the mini icon (small-logo).
+        When the sidebar collapses, Metronic's CSS hides `.default-logo` and shows `.small-logo`.
+        We use `flex items-center` so both logos are vertically centred inside the header.
+        The mini logo gets `mx-auto` so it stays horizontally centred in the collapsed sidebar,
+        matching the icon alignment of the menu items below.
+      */}
+      <Link to="/" className="flex items-center w-full">
+        <div className="dark:hidden w-full flex justify-center">
           <img
             src={toAbsoluteUrl('/media/app/telus_ds_rbg.svg')}
-            className="default-logo h-[22px] max-w-none"
-            alt="Default Logo"
+            className="default-logo w-full h-auto max-w-none"
+            alt="TELUS Digital logo"
           />
           <img
             src={toAbsoluteUrl('/media/app/telus_mini.png')}
             className="small-logo h-[22px] max-w-none"
-            alt="Mini Logo"
+            alt="TELUS Digital icon"
           />
         </div>
-        <div className="hidden dark:block">
+        <div className="hidden dark:flex dark:items-center dark:justify-center w-full">
           <img
             src={toAbsoluteUrl('/media/app/telus_ds_white.svg')}
-            className="default-logo h-[22px] max-w-none"
-            alt="Default Dark Logo"
+            className="default-logo w-full h-auto max-w-none"
+            alt="TELUS Digital logo (dark)"
           />
           <img
             src={toAbsoluteUrl('/media/app/telus_mini.png')}
             className="small-logo h-[22px] max-w-none"
-            alt="Mini Logo"
+            alt="TELUS Digital icon"
           />
         </div>
       </Link>

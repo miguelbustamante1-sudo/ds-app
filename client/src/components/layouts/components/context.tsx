@@ -7,6 +7,8 @@ interface LayoutState {
   setSidebarCollapse: (open: boolean) => void;
   sidebarTheme: SidebarTheme;
   setSidebarTheme: (theme: SidebarTheme) => void;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
 }
 
 const LayoutContext = createContext<LayoutState | undefined>(undefined);
@@ -18,6 +20,7 @@ interface LayoutProviderProps {
 export function LayoutProvider({ children }: LayoutProviderProps) {
   const [sidebarCollapse, setSidebarCollapse] = useState(true);
   const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>('light');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <LayoutContext.Provider
@@ -26,6 +29,8 @@ export function LayoutProvider({ children }: LayoutProviderProps) {
         setSidebarCollapse,
         sidebarTheme,
         setSidebarTheme,
+        mobileMenuOpen,
+        setMobileMenuOpen,
       }}
     >
       {children}

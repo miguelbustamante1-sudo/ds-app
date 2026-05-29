@@ -76,12 +76,26 @@ import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
 import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
+// Hub Landing Pages
+import { UdsColorDemoPage } from '@/pages/uds-color-demo';
+import TimeOffHubPage from '@/pages/time-off-hub';
+import HiringHubPage from '@/pages/hiring-hub';
+import SecurityHubPage from '@/pages/security-hub';
+import MaintenanceHubPage from '@/pages/maintenance-hub';
+import ProjectManagementHubPage from '@/pages/project-management-hub';
+import SelfServiceHubPage from '@/pages/self-service-hub';
+import ReportsHubPage from '@/pages/reports-hub';
+import CommunicationsHubPage from '@/pages/communications-hub';
+import OperationsHubPage from '@/pages/operations-hub';
+import GovernanceHubPage from '@/pages/governance-hub';
 
 export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      {/* Design System — UDS Color Reference (no auth required) */}
+      <Route path="/uds-colors" element={<UdsColorDemoPage />} />
       <Route
         element={
           <RequireAuth>
@@ -147,16 +161,15 @@ export function AppRoutingSetup() {
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/run" element={<RunReportPage />} />
+        {/* Template & Data Import */}
+        <Route path="/template-builder" element={<TemplateBuilderPage />} />
+        <Route path="/data-import" element={<DataImportPage />} />
+        <Route path="/data-import/new" element={<DataImportNewPage />} />
+        <Route path="/data-import/:id" element={<DataImportDetailPage />} />
         {/* Security - RBAC management */}
         <Route path="/security/roles" element={<RolesPage />} />
         <Route path="/security/options" element={<OptionsPage />} />
         <Route path="/security/permissions" element={<PermissionsPage />} />
-        {/* Persistence Templates */}
-        <Route path="/template-builder" element={<TemplateBuilderPage />} />
-        {/* Data Import - Persistence Jobs */}
-        <Route path="/data-import" element={<DataImportPage />} />
-        <Route path="/data-import/new" element={<DataImportNewPage />} />
-        <Route path="/data-import/:id" element={<DataImportDetailPage />} />
         {/* Shifts */}
         <Route path="/shifts" element={<ShiftsPage />} />
         {/* Approval Management */}
@@ -174,6 +187,17 @@ export function AppRoutingSetup() {
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
+        {/* Hub Landing Pages */}
+        <Route path="/time-off-hub" element={<TimeOffHubPage />} />
+        <Route path="/hiring-hub" element={<HiringHubPage />} />
+        <Route path="/security-hub" element={<SecurityHubPage />} />
+        <Route path="/maintenance-hub" element={<MaintenanceHubPage />} />
+        <Route path="/project-management-hub" element={<ProjectManagementHubPage />} />
+        <Route path="/self-service-hub" element={<SelfServiceHubPage />} />
+        <Route path="/reports-hub" element={<ReportsHubPage />} />
+        <Route path="/communications-hub" element={<CommunicationsHubPage />} />
+        <Route path="/operations-hub" element={<OperationsHubPage />} />
+        <Route path="/governance-hub" element={<GovernanceHubPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -405,6 +405,9 @@ model AuthUser {
   lastName      String?        @map("last_name") @db.VarChar(255)
   avatarUrl     String?        @map("avatar_url") @db.VarChar(500)
   roles         String[]       @default(["user"])
+  /// JSON blob storing per-user UI preferences (favorites, future settings).
+  /// Shape: { favorites: Array<{ id: string; label: string; path: string }> }
+  preferences   Json?          @default("{}") @map("preferences")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt     DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
   lastLogin     DateTime?      @map("last_login") @db.Timestamp(6)

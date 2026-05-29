@@ -30,25 +30,9 @@ import {
   Ban,
 } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
+import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeOffDetail } from '@/hooks/useTimeOffDetail';
-
-type StatusVariant = 'primary' | 'secondary' | 'destructive' | 'outline';
-
-function getStatusBadge(statusId: number | null): { variant: StatusVariant; className?: string } {
-  switch (statusId) {
-    case 1: // Tentative
-      return { variant: 'outline', className: 'border-yellow-500 text-yellow-700 bg-yellow-50' };
-    case 2: // Acknowledged
-      return { variant: 'outline', className: 'border-green-500 text-green-700 bg-green-50' };
-    case 4: // Cancelled
-      return { variant: 'secondary' };
-    case 5: // Rejected
-      return { variant: 'destructive' };
-    default:
-      return { variant: 'primary' };
-  }
-}
 
 export function TimeOffDetailPage() {
   const { timeOffId: timeOffIdParam } = useParams<{ timeOffId: string }>();
@@ -290,7 +274,7 @@ export function TimeOffDetailPage() {
 
   if (!detail) return null;
 
-  const statusBadge = getStatusBadge(detail.statusId);
+  const statusBadge = getStatusBadgeProps(detail.statusId);
   const canAcknowledge = detail.availableActions.includes('acknowledge') && recipientId !== null;
   const canDecline = detail.availableActions.includes('decline') && recipientId !== null;
   const canCancel = detail.availableActions.includes('cancel');
@@ -398,7 +382,7 @@ export function TimeOffDetailPage() {
                   <Button
                     onClick={() => setApproveDialogOpen(true)}
                     disabled={actionLoading}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-uds-system-green-600 hover:bg-uds-system-green-700 text-white"
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Approve
@@ -518,7 +502,7 @@ export function TimeOffDetailPage() {
             <Button
               onClick={handleApproveConfirm}
               disabled={actionLoading || !comment.trim()}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-uds-system-green-600 hover:bg-uds-system-green-700 text-white"
             >
               {actionLoading ? 'Approving...' : 'Approve'}
             </Button>

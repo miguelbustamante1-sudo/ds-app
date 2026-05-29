@@ -1,0 +1,122 @@
+/**
+ * uds-theme.css  –  AUTO-GENERATED. DO NOT EDIT MANUALLY.
+ * Generated : 2026-05-07T21:22:08.459Z
+ * Source    : .design-system/uds-tokens.json
+ * Regenerate: node ds-app/scripts/generate-uds-theme.js
+ */
+
+/* ---------------------------------------------------------------
+   UDS Color Tokens — available as Tailwind utilities:
+     bg-uds-telus-purple-500
+     text-uds-system-grey-300
+     border-uds-system-red-500
+--------------------------------------------------------------- */
+@theme inline {
+  --color-uds-telus-purple-50: #f4f2ff;
+  --color-uds-telus-purple-100: #efedff;
+  --color-uds-telus-purple-200: #bbafd0;
+  --color-uds-telus-purple-300: #7c53a5;
+  --color-uds-telus-purple-400: #613889;
+  --color-uds-telus-purple-500: #4b286d;
+  --color-uds-telus-purple-600: #3f2a54;
+  --color-uds-telus-purple-700: #342149;
+  --color-uds-telus-purple-800: #2b1d39;
+  --color-uds-telus-purple-900: #160e1b;
+  --color-uds-telus-green-50: #f6f9f5;
+  --color-uds-telus-green-100: #f4f9f2;
+  --color-uds-telus-green-200: #e3f6d1;
+  --color-uds-telus-green-300: #bfe797;
+  --color-uds-telus-green-400: #66cc00;
+  --color-uds-telus-green-500: #4eaa18;
+  --color-uds-telus-green-600: #2b8000;
+  --color-uds-telus-green-700: #1f5c09;
+  --color-uds-telus-green-800: #163e06;
+  --color-uds-telus-green-900: #172710;
+  --color-uds-system-grey-0: #ffffff;
+  --color-uds-system-grey-50: #fafafa;
+  --color-uds-system-grey-100: #f4f4f7;
+  --color-uds-system-grey-200: #e3e6e8;
+  --color-uds-system-grey-300: #d6dade;
+  --color-uds-system-grey-400: #b2b9bf;
+  --color-uds-system-grey-500: #676e73;
+  --color-uds-system-grey-600: #414547;
+  --color-uds-system-grey-700: #333739;
+  --color-uds-system-grey-800: #2c2e30;
+  --color-uds-system-grey-900: #17181a;
+  --color-uds-system-grey-1000: #000000;
+  --color-uds-system-amber-50: #fffdfa;
+  --color-uds-system-amber-100: #fff9ee;
+  --color-uds-system-amber-200: #fdedc8;
+  --color-uds-system-amber-300: #fbda8c;
+  --color-uds-system-amber-400: #faca69;
+  --color-uds-system-amber-500: #c77539;
+  --color-uds-system-amber-600: #924e39;
+  --color-uds-system-amber-700: #7d4539;
+  --color-uds-system-amber-800: #63362e;
+  --color-uds-system-amber-900: #381b16;
+  --color-uds-system-overlay: #f4f4f7f7;
+  --color-uds-system-red-50: #fffafb;
+  --color-uds-system-red-100: #fff6f8;
+  --color-uds-system-red-200: #fce9eb;
+  --color-uds-system-red-300: #f9d3d7;
+  --color-uds-system-red-400: #fda6a8;
+  --color-uds-system-red-500: #e12339;
+  --color-uds-system-red-600: #c12335;
+  --color-uds-system-red-700: #a70b1d;
+  --color-uds-system-red-800: #560c0c;
+  --color-uds-system-red-900: #420202;
+  --color-uds-system-transparent: #ffffff00;
+  --color-uds-system-dark-50: #0000000d;
+  --color-uds-system-dark-100: #0000001a;
+  --color-uds-system-dark-200: #00000033;
+  --color-uds-system-dark-300: #0000004d;
+  --color-uds-system-dark-400: #00000066;
+  --color-uds-system-dark-500: #00000080;
+  --color-uds-system-dark-600: #00000099;
+  --color-uds-system-dark-700: #000000b3;
+  --color-uds-system-dark-800: #000000cc;
+  --color-uds-system-dark-900: #000000e6;
+  --color-uds-system-light-50: #ffffff0d;
+  --color-uds-system-light-100: #ffffff1a;
+  --color-uds-system-light-200: #ffffff33;
+  --color-uds-system-light-300: #ffffff4d;
+  --color-uds-system-light-400: #ffffff66;
+  --color-uds-system-light-500: #ffffff80;
+  --color-uds-system-light-600: #ffffff99;
+  --color-uds-system-light-700: #ffffffb3;
+  --color-uds-system-light-800: #ffffffcc;
+  --color-uds-system-light-900: #ffffffe6;
+  --color-uds-system-blue-50: #eaf2f6;
+  --color-uds-system-blue-100: #d6e5ed;
+  --color-uds-system-blue-200: #c1d8e4;
+  --color-uds-system-blue-300: #99bfd3;
+  --color-uds-system-blue-400: #71a5c2;
+  --color-uds-system-blue-500: #337ea7;
+  --color-uds-system-blue-600: #296586;
+  --color-uds-system-blue-700: #193f53;
+  --color-uds-system-blue-800: #0f2632;
+  --color-uds-system-blue-900: #050d11;
+  --color-uds-system-green-50: #f6f9f5;
+  --color-uds-system-green-100: #f4f9f2;
+  --color-uds-system-green-200: #e3f6d1;
+  --color-uds-system-green-300: #bfe797;
+  --color-uds-system-green-400: #66cc00;
+  --color-uds-system-green-500: #4eaa18;
+  --color-uds-system-green-600: #2b8000;
+  --color-uds-system-green-700: #1f5c09;
+  --color-uds-system-green-800: #163e06;
+  --color-uds-system-green-900: #172710;
+}
+
+/* ---------------------------------------------------------------
+   UDS Gradient Tokens — use as plain CSS vars:
+     background: var(--gradient-uds-telus-gradient-brand)
+     background: var(--gradient-uds-telus-gradient-purple)
+--------------------------------------------------------------- */
+:root {
+  --gradient-uds-telus-gradient-purple: linear-gradient(124deg, #4B286D 38.67%, #E53293 101.33%);
+  --gradient-uds-telus-gradient-green: linear-gradient(124deg, #2B8000 50%, #6C0 90%);
+  --gradient-uds-telus-gradient-brand: linear-gradient(135deg, #4B286D 43.51%, #613889 100%);
+  --gradient-uds-telus-gradient-base: radial-gradient(48.43% 48.43% at 81.13% 36.79%, #FFF 0%, #F4F4F7 100%);
+  --gradient-uds-telus-gradient-neutral: linear-gradient(180deg, #FFF 0%, #F4F4F7 100%);
+}

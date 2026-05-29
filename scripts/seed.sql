@@ -1,9 +1,9 @@
--- ============================================================
+﻿-- ============================================================
 -- Reference Data Seed
 -- Run after Prisma migrations to populate the database with
 -- all reference/lookup data required for the app to function.
 --
--- This script is idempotent — safe to run multiple times.
+-- This script is idempotent ΓÇö safe to run multiple times.
 --
 -- NOTE: The dev-user section at the bottom (section 8+) is
 -- for local development only. Do NOT run those blocks in prod.
@@ -321,10 +321,55 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'CompensatoryTime'    AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('CompensatoryTime',    true, true,  true,  NULL, NOW(), 51, 2); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Shift'               AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Shift',               true, false, false, NULL, NOW(), 46, 2); END IF;
 
+  -- Hub page permissions added with governance/hub restructure (opt_ids 32-43)
+  -- admin (rol_id=1)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PendingRequests'       AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PendingRequests',       true, true,  false, NULL, NOW(), 32, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'ProjectAssignments'    AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('ProjectAssignments',    true, true,  false, NULL, NOW(), 33, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'BenchRemove'           AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BenchRemove',           true, true,  true,  NULL, NOW(), 34, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'HolidaySwaps'          AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('HolidaySwaps',          true, true,  false, NULL, NOW(), 35, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'SupervisorHolidaySwaps'AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorHolidaySwaps',true, true,  false, NULL, NOW(), 36, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TimeOffReview'         AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffReview',         true, true,  false, NULL, NOW(), 37, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TimeOffException'      AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffException',      true, true,  false, NULL, NOW(), 38, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'BonusCategories'       AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BonusCategories',       true, true,  true,  NULL, NOW(), 39, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Clients'               AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Clients',               true, true,  true,  NULL, NOW(), 40, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'FunctionalAreas'       AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('FunctionalAreas',       true, true,  true,  NULL, NOW(), 41, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TierBands'             AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TierBands',             true, true,  true,  NULL, NOW(), 42, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'WorkdayInfo'           AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('WorkdayInfo',           true, true,  false, NULL, NOW(), 43, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Hiring'                AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Hiring',                true, true,  true,  NULL, NOW(), 44, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Endorsements'          AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Endorsements',          true, true,  true,  NULL, NOW(), 45, 1); END IF;
+
+  -- user (rol_id=2)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Notifications'         AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Notifications',         true, true,  false, NULL, NOW(), 20, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'PendingRequests'       AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('PendingRequests',       true, true,  false, NULL, NOW(), 32, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'ProjectAssignments'    AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('ProjectAssignments',    true, true,  false, NULL, NOW(), 33, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'BenchRemove'           AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BenchRemove',           true, false, false, NULL, NOW(), 34, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'HolidaySwaps'          AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('HolidaySwaps',          true, true,  false, NULL, NOW(), 35, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'SupervisorHolidaySwaps'AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorHolidaySwaps',true, true,  false, NULL, NOW(), 36, 2); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TimeOffReview'         AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TimeOffReview',         true, true,  false, NULL, NOW(), 37, 2); END IF;
+
 END $$;
 
+-- Hub permission options (opt_id 31-43) — required for all hub page buttons
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_at) VALUES
+  (31, 'Reports',              NOW()),
+  (32, 'PendingRequests',      NOW()),
+  (33, 'ProjectAssignments',   NOW()),
+  (34, 'BenchRemove',          NOW()),
+  (35, 'HolidaySwaps',         NOW()),
+  (36, 'SupervisorHolidaySwaps', NOW()),
+  (37, 'TimeOffReview',        NOW()),
+  (38, 'TimeOffException',     NOW()),
+  (39, 'BonusCategories',      NOW()),
+  (40, 'Clients',              NOW()),
+  (41, 'FunctionalAreas',      NOW()),
+  (42, 'TierBands',            NOW()),
+  (43, 'WorkdayInfo',          NOW()),
+  (44, 'Hiring',               NOW()),
+  (45, 'Endorsements',         NOW())
+ON CONFLICT (opt_id) DO NOTHING;
+
 -- ============================================================
--- DEV ONLY — do NOT run in production
+-- DEV ONLY ΓÇö do NOT run in production
 -- The blocks below create a local dev user so you can log in
 -- with the dev JWT auth flow. In prod, users are provisioned
 -- automatically on first OneLogin login.
@@ -341,12 +386,15 @@ VALUES (1, 'Dev', 'User', CURRENT_DATE, 1, 'Senior', 1) ON CONFLICT (tms_id) DO 
 INSERT INTO ds.tbl_users (usr_id, usr_name, usr_email, usr_role, usr_stadat, tms_id)
 VALUES (1, 'Dev User', :'dev_email', 'employee', CURRENT_DATE, 1) ON CONFLICT (usr_id) DO NOTHING;
 
--- Dev auth user
+-- Dev auth user — includes 'bsa' so all role-gated sidebar items are visible in dev
 INSERT INTO sec.auth_users (id, onelogin_id, email, first_name, last_name, roles, created_at, updated_at)
 VALUES (1, 'dev-1', :'dev_email', 'Dev', 'User', ARRAY['user', 'admin', 'bsa'], now(), now()) ON CONFLICT (id) DO NOTHING;
 
--- Dev user role assignments (admin + user)
-INSERT INTO sec.uro_user_roles (usr_id, rol_id) VALUES (1, 1) ON CONFLICT (usr_id, rol_id) DO NOTHING;
+-- Ensure existing dev DBs also get the full role set (ON CONFLICT DO NOTHING skips the above on re-runs)
+UPDATE sec.auth_users SET roles = ARRAY['user', 'admin', 'bsa'] WHERE id = 1;
+
+-- Link dev user to roles (required for permission resolver to work)
+INSERT INTO sec.uro_user_roles (usr_id, rol_id) VALUES (1, 1), (1, 2) ON CONFLICT (usr_id, rol_id) DO NOTHING;
 
 -- 10. Persistence Data Types seed data
 INSERT INTO di.pdt_persistence_data_types (pdt_index, pdt_name, pdt_regular_expression, pdt_example)

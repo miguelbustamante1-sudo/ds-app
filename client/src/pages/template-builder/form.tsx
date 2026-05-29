@@ -400,7 +400,7 @@ export function PersistenceTemplateFormDialog({
                   : 'When CSV has no header, columns will be matched by Column Index.'}
               </p>
               {initialCsvHeader !== null && hasCsvHeaderValue !== initialCsvHeader && (
-                <div className="flex items-start gap-2 rounded-md border border-yellow-400 bg-yellow-50 p-3 text-yellow-800">
+                <div className="flex items-start gap-2 rounded-md border border-uds-system-amber-400 bg-uds-system-amber-100 p-3 text-uds-system-amber-700">
                   <AlertTriangle className="mt-0.5 shrink-0" size={15} />
                   <p className="text-xs">
                     CSV column references in the Columns section should be reviewed and updated to
@@ -605,7 +605,7 @@ export function PersistenceTemplateFormDialog({
               <div className="space-y-2">
                 <Label>Columns</Label>
                 {!hasCsvHeaderValue && (
-                  <p className="text-xs text-blue-600">
+                  <p className="text-xs text-uds-system-blue-600">
                     Data mapping begins at Index 0, while Index -1 identifies columns that remain unassigned to CSV fields.
                   </p>
                 )}

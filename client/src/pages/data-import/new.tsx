@@ -573,7 +573,7 @@ export function DataImportNewPage() {
                   const hasIssues = cellErrors.length > 0 || missingCols > 0;
                   if (!hasIssues) {
                     return selectedTemplateId
-                      ? <p className="text-xs text-green-600 font-medium">No validation errors found</p>
+                      ? <p className="text-xs text-uds-system-green-600 font-medium">No validation errors found</p>
                       : null;
                   }
                   return (

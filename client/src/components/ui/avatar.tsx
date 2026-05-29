@@ -8,10 +8,10 @@ import { Avatar as AvatarPrimitive } from 'radix-ui';
 const avatarStatusVariants = cva('flex items-center rounded-full size-2 border-2 border-background', {
   variants: {
     variant: {
-      online: 'bg-green-600',
-      offline: 'bg-zinc-600 dark:bg-zinc-300',
-      busy: 'bg-yellow-600',
-      away: 'bg-blue-600',
+      online: 'bg-uds-system-green-500',
+      offline: 'bg-uds-system-grey-500',
+      busy: 'bg-uds-system-amber-500',
+      away: 'bg-uds-system-blue-500',
     },
   },
   defaultVariants: {

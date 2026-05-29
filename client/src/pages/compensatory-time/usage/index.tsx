@@ -529,7 +529,7 @@ export function CompensatoryTimeUsagePage() {
           </div>
           <div className="rounded-lg border px-5 py-3 min-w-36 text-center" style={{ borderColor: balance.balanceHours >= 0 ? 'oklch(var(--success, 0.7 0.15 150))' : 'oklch(var(--destructive, 0.6 0.2 20))' }}>
             <p className="text-xs text-muted-foreground mb-1">Balance</p>
-            <p className={`text-xl font-bold ${balance.balanceHours >= 0 ? 'text-green-600' : 'text-destructive'}`}>{balance.balanceHours}</p>
+            <p className={`text-xl font-bold ${balance.balanceHours >= 0 ? 'text-uds-system-green-600' : 'text-destructive'}`}>{balance.balanceHours}</p>
             <p className="text-xs text-muted-foreground">hrs</p>
           </div>
           <div className="w-px self-stretch bg-border" />
@@ -753,11 +753,11 @@ export function CompensatoryTimeUsagePage() {
                     onChange={(e) =>
                       setColumnSearches((prev) => ({ ...prev, [id]: e.target.value }))
                     }
-                    className={`h-8 pr-7 text-sm${isPending ? ' border-amber-400 dark:border-amber-500' : ''}`}
+                    className={`h-8 pr-7 text-sm${isPending ? ' border-uds-system-amber-400 dark:border-uds-system-amber-500' : ''}`}
                   />
                   {hasValue && (
                     isPending ? (
-                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-amber-500" />
+                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-uds-system-amber-500" />
                     ) : (
                       <button
                         type="button"

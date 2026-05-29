@@ -12,20 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
+import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useExceptionTimeOffDetail } from '@/hooks/useExceptionTimeOff';
-
-type StatusVariant = 'primary' | 'secondary' | 'destructive' | 'outline';
-
-function getStatusBadge(statusId: number | null): { variant: StatusVariant; className?: string } {
-  switch (statusId) {
-    case 1: return { variant: 'outline', className: 'border-yellow-500 text-yellow-700 bg-yellow-50' };
-    case 2: return { variant: 'outline', className: 'border-green-500 text-green-700 bg-green-50' };
-    case 4: return { variant: 'secondary' };
-    case 5: return { variant: 'destructive' };
-    default: return { variant: 'primary' };
-  }
-}
 
 export function TimeOffExceptionDetailPage() {
   const { timeOffId: timeOffIdParam } = useParams<{ timeOffId: string }>();
@@ -103,7 +92,7 @@ export function TimeOffExceptionDetailPage() {
 
   if (!detail) return null;
 
-  const statusBadge = getStatusBadge(detail.statusId);
+  const statusBadge = getStatusBadgeProps(detail.statusId);
 
   const allChangeLogs = [
     ...(detail.creationComment

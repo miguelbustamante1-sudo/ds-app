@@ -3,63 +3,78 @@
 
 @import 'tw-animate-css';
 
+/* UDS Design System Tokens (auto-generated) */
+@import './uds-theme.css';
+
 /** Dark Mode Variant **/
 @custom-variant dark (&:is(.dark *));
 
-/** Colors - https://tailwindcss.com/docs/colors **/
+/** Colors - UDS TELUS tokens mapped to Metronic semantic variables **/
 :root {
-  --background: var(--color-white);
-  --foreground: var(--color-zinc-950);
-  --card: var(--color-white);
-  --card-foreground: var(--color-zinc-950);
-  --popover: var(--color-white);
-  --popover-foreground: var(--color-zinc-950);
-  --primary: var(--color-zinc-900);
-  --primary-foreground: var(--color-white);
-  --secondary: var(--color-zinc-100);
-  --secondary-foreground: var(--color-zinc-900);
-  --muted: var(--color-zinc-100);
-  --muted-foreground: var(--color-zinc-500);
-  --accent: var(--color-zinc-100);
-  --accent-foreground: var(--color-zinc-900);
-  --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-white);
-  --chart-1: var(--color-blue-500);
-  --chart-2: var(--color-green-500);
-  --chart-3: var(--color-yellow-500);
-  --chart-4: var(--color-red-500);
-  --chart-5: var(--color-purple-500);
-  --border: oklch(94% 0.004 286.32); /* between --color-zinc-100 and --color-zinc-200 */
-  --input: var(--color-zinc-200);
-  --ring: var(--color-zinc-400);
+  --background: var(--color-uds-system-grey-0);
+  --foreground: var(--color-uds-system-grey-900);
+  --card: var(--color-uds-system-grey-0);
+  --card-foreground: var(--color-uds-system-grey-900);
+  --popover: var(--color-uds-system-grey-0);
+  --popover-foreground: var(--color-uds-system-grey-900);
+  /* Primary → UDS TELUS Purple */
+  --primary: var(--color-uds-telus-purple-500);
+  --primary-foreground: var(--color-uds-system-grey-0);
+  /* Secondary → UDS System Grey light */
+  --secondary: var(--color-uds-system-grey-100);
+  --secondary-foreground: var(--color-uds-system-grey-800);
+  --muted: var(--color-uds-system-grey-100);
+  --muted-foreground: var(--color-uds-system-grey-500);
+  --accent: var(--color-uds-telus-purple-50);
+  --accent-foreground: var(--color-uds-telus-purple-500);
+  /* Destructive → UDS System Red */
+  --destructive: var(--color-uds-system-red-500);
+  --destructive-foreground: var(--color-uds-system-grey-0);
+  /* Charts → UDS semantic colors */
+  --chart-1: var(--color-uds-system-blue-500);
+  --chart-2: var(--color-uds-telus-green-500);
+  --chart-3: var(--color-uds-system-amber-400);
+  --chart-4: var(--color-uds-system-red-500);
+  --chart-5: var(--color-uds-telus-purple-400);
+  /* Borders & inputs */
+  --border: var(--color-uds-system-grey-200);
+  --input: var(--color-uds-system-grey-200);
+  --ring: var(--color-uds-telus-purple-400);
   --radius: 0.5rem;
 }
 
+/** Dark Mode — UDS TELUS Deep Purple palette **/
 .dark {
-  --background: var(--color-zinc-950);
-  --foreground: var(--color-zinc-50);
-  --card: var(--color-zinc-950);
-  --card-foreground: var(--color-zinc-50);
-  --popover: var(--color-zinc-950);
-  --popover-foreground: var(--color-zinc-50);
-  --primary: var(--color-zinc-300);
-  --primary-foreground: var(--color-zinc-950);
-  --secondary: var(--color-zinc-800);
-  --secondary-foreground: var(--color-zinc-50);
-  --muted: var(--color-zinc-900);
-  --muted-foreground: var(--color-zinc-500);
-  --accent: var(--color-zinc-900);
-  --accent-foreground: var(--color-zinc-50);
-  --destructive: var(--color-red-600);
-  --destructive-foreground: var(--color-white);
-  --chart-1: var(--color-blue-500);
-  --chart-2: var(--color-green-500);
-  --chart-3: var(--color-yellow-500);
-  --chart-4: var(--color-red-500);
-  --chart-5: var(--color-purple-500);
-  --border: var(--color-zinc-800);
-  --input: var(--color-zinc-800);
-  --ring: var(--color-zinc-600);
+  /* Backgrounds: deep plum brand colors instead of generic zinc */
+  --background: var(--color-uds-telus-purple-900);
+  --foreground: var(--color-uds-system-grey-50);
+  --card: var(--color-uds-telus-purple-800);
+  --card-foreground: var(--color-uds-system-grey-50);
+  --popover: var(--color-uds-telus-purple-800);
+  --popover-foreground: var(--color-uds-system-grey-100);
+  /* Primary: lighter purple so it pops on dark backgrounds */
+  --primary: var(--color-uds-telus-purple-300);
+  --primary-foreground: var(--color-uds-system-grey-0);
+  /* Secondary */
+  --secondary: var(--color-uds-telus-purple-700);
+  --secondary-foreground: var(--color-uds-system-grey-100);
+  --muted: var(--color-uds-telus-purple-700);
+  --muted-foreground: var(--color-uds-system-grey-400);
+  --accent: var(--color-uds-telus-purple-600);
+  --accent-foreground: var(--color-uds-telus-purple-200);
+  /* Destructive → UDS System Red (same, readable in dark) */
+  --destructive: var(--color-uds-system-red-400);
+  --destructive-foreground: var(--color-uds-system-grey-0);
+  /* Charts */
+  --chart-1: var(--color-uds-system-blue-400);
+  --chart-2: var(--color-uds-telus-green-400);
+  --chart-3: var(--color-uds-system-amber-300);
+  --chart-4: var(--color-uds-system-red-400);
+  --chart-5: var(--color-uds-telus-purple-300);
+  /* Borders: semi-transparent light overlay for subtle elevation */
+  --border: var(--color-uds-telus-purple-600);
+  --input: var(--color-uds-telus-purple-700);
+  --ring: var(--color-uds-telus-purple-300);
 }
 
 /** Theme Setup **/
@@ -90,6 +105,11 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /** UDS Card Shadows — purple-tinted elevation **/
+  --shadow-uds-card: 0 2px 12px 0 rgba(75, 40, 109, 0.10), 0 1px 3px 0 rgba(75, 40, 109, 0.06);
+  --shadow-uds-card-hover: 0 6px 24px 0 rgba(75, 40, 109, 0.16), 0 2px 6px 0 rgba(75, 40, 109, 0.08);
+  --shadow-uds-card-elevated: 0 10px 40px 0 rgba(75, 40, 109, 0.20), 0 4px 12px 0 rgba(75, 40, 109, 0.10);
 
   /** Animations **/
   --animate-marquee: marquee var(--duration) infinite linear;
@@ -150,10 +170,6 @@ html {
 /** Custom Containers **/
 @utility container {
   @apply mx-auto max-w-none px-4 lg:px-5;
-
-  @media (width >= --theme(--breakpoint-xl)) {
-    @apply max-w-(--breakpoint-xl);
-  }
 }
 
 @utility container-fluid {

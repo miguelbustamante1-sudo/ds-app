@@ -220,7 +220,7 @@ export function ReportWizard() {
                   active
                     ? 'bg-primary text-primary-foreground'
                     : done
-                    ? 'bg-emerald-500 text-white'
+                    ? 'bg-uds-system-green-500 text-white'
                     : 'bg-muted text-muted-foreground'
                 }`}
               >

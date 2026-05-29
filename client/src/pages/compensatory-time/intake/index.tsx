@@ -809,11 +809,11 @@ export function CompensatoryTimeIntakePage() {
                     onChange={(e) =>
                       setColumnSearches((prev) => ({ ...prev, [id]: e.target.value }))
                     }
-                    className={`h-8 pr-7 text-sm${isPending ? ' border-amber-400 dark:border-amber-500' : ''}`}
+                    className={`h-8 pr-7 text-sm${isPending ? ' border-uds-system-amber-400 dark:border-uds-system-amber-500' : ''}`}
                   />
                   {hasValue && (
                     isPending ? (
-                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-amber-500" />
+                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-uds-system-amber-500" />
                     ) : (
                       <button
                         type="button"

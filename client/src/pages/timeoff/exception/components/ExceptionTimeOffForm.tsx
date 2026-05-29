@@ -323,7 +323,7 @@ function ExceptionTimeOffFormInner({
                         return false;
                       }}
                       modifiers={{ holiday: holidayDatesForCalendar }}
-                      modifiersClassNames={{ holiday: 'bg-amber-100 text-amber-800 font-medium' }}
+                      modifiersClassNames={{ holiday: 'bg-uds-system-amber-100 text-uds-system-amber-700 font-medium' }}
                     />
                   </PopoverContent>
                 </Popover>

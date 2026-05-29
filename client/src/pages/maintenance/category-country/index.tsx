@@ -98,8 +98,8 @@ export function CategoryCountryPage() {
           <span
             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
               row.original.categoryCountryStatus === 1
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
+                ? 'bg-uds-system-green-100 text-uds-system-green-700'
+                : 'bg-uds-system-red-100 text-uds-system-red-700'
             }`}
           >
             {row.original.categoryCountryStatus === 1 ? 'Active' : 'Inactive'}
@@ -115,8 +115,8 @@ export function CategoryCountryPage() {
           <span
             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
               row.original.categoryCountryAllowHalfDay
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-gray-50 text-gray-600'
+                ? 'bg-uds-system-blue-100 text-uds-system-blue-700'
+                : 'bg-uds-system-grey-100 text-uds-system-grey-600'
             }`}
           >
             {row.original.categoryCountryAllowHalfDay ? 'Yes' : 'No'}
@@ -132,8 +132,8 @@ export function CategoryCountryPage() {
           <span
             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
               row.original.categoryCountryIsFixedDuration
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-gray-50 text-gray-600'
+                ? 'bg-uds-system-blue-100 text-uds-system-blue-700'
+                : 'bg-uds-system-grey-100 text-uds-system-grey-600'
             }`}
           >
             {row.original.categoryCountryIsFixedDuration ? 'Yes' : 'No'}
@@ -156,8 +156,8 @@ export function CategoryCountryPage() {
           <span
             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
               row.original.categoryCountryIsCalendar
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-gray-50 text-gray-600'
+                ? 'bg-uds-system-blue-100 text-uds-system-blue-700'
+                : 'bg-uds-system-grey-100 text-uds-system-grey-600'
             }`}
           >
             {row.original.categoryCountryIsCalendar ? 'Yes' : 'No'}

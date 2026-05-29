@@ -39,8 +39,11 @@ export function SidebarMenu() {
     (items: MenuConfig): MenuConfig => {
       return items
         .filter((item) => {
-          // Check role requirement first
-          if (item.role && !user?.roles.includes(item.role)) return false;
+          // Check role requirement — supports single string or array (OR logic)
+          if (item.role) {
+            const required = Array.isArray(item.role) ? item.role : [item.role];
+            if (!required.some((r) => user?.roles.includes(r))) return false;
+          }
           // If no permission specified, show (role/subPermission already passed)
           if (!item.permission) return true;
           // Otherwise, check if user has read permission

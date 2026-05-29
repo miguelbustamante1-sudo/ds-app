@@ -21,11 +21,8 @@ export function SignInPage() {
 
   useEffect(() => {
     fetch('/api/auth/dev-config')
-      .then((r) => (r.ok ? r.json() : { enableDevLogin: false, devUsername: '' }))
-      .then((cfg) => {
-        setEnableDevLogin(cfg.enableDevLogin);
-        if (cfg.devUsername) setEmail(cfg.devUsername);
-      })
+      .then((r) => (r.ok ? r.json() : { enableDevLogin: false }))
+      .then((cfg) => { setEnableDevLogin(cfg.enableDevLogin); })
       .catch(() => {});
   }, []);
 
@@ -71,7 +68,7 @@ export function SignInPage() {
 
           <div className="mt-8 space-y-4">
             <Button
-              className="w-full gap-3 bg-[#0073e6] hover:bg-[#005bb5] text-white"
+              className="w-full gap-3 bg-uds-system-blue-500 hover:bg-uds-system-blue-600 text-white"
               size="lg"
               onClick={() => window.location.href = '/api/auth/login'}
               disabled={loading}
