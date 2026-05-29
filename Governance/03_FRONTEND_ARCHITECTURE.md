@@ -131,3 +131,109 @@ Do not use:
 - non-searchable custom dropdowns
 
 The expected standard is a searchable ComboBox for every form select input.
+
+---
+
+## UDS Color Tokens
+
+All color styling must use UDS TELUS semantic tokens — never Tailwind primitive colors (`green-500`, `amber-300`, `blue-600`, etc.) or hardcoded hex values.
+
+### Token categories
+| Prefix | Example utilities |
+|---|---|
+| `uds-telus-purple-*` | `bg-uds-telus-purple-500`, `text-uds-telus-purple-300` |
+| `uds-telus-green-*` | `text-uds-telus-green-400` |
+| `uds-system-grey-*` | `bg-uds-system-grey-100`, `text-uds-system-grey-500` |
+| `uds-system-red-*` | `border-uds-system-red-500` |
+| `uds-system-amber-*` | `bg-uds-system-amber-100` |
+| `uds-system-blue-*` | `text-uds-system-blue-500` |
+| `uds-system-green-*` | `border-uds-system-green-500` |
+
+### Source of truth
+- Token definitions: `.design-system/uds-tokens.json`
+- Generated CSS: `client/src/styles/uds-theme.css` (do not edit manually)
+- Regenerate with: `node ds-app/scripts/generate-uds-theme.js`
+- Imported globally in `client/src/styles/globals.css`
+
+### Metronic semantic vars are mapped to UDS
+`globals.css` remaps Metronic's CSS vars (`--primary`, `--destructive`, `--muted`, etc.) to UDS tokens. Prefer Metronic semantic utilities (`bg-primary`, `text-muted-foreground`) when they express intent; use raw UDS tokens only when a specific shade is required.
+
+### Status badge helper
+For status-based badge styling, always use the shared helper — never repeat the switch inline:
+
+```tsx
+import { getStatusBadgeProps } from '@/lib/badge-utils';
+
+const { variant, className } = getStatusBadgeProps(record.statusId);
+<Badge variant={variant} className={className}>
+  {record.statusName}
+</Badge>
+```
+
+`getStatusBadgeProps(statusId, defaultVariant?)` maps status IDs (1 Tentative, 2 Approved, 3 Taken, 4 Cancelled, 5 Rejected) to UDS-token badge props.
+
+---
+
+## Hub Navigation Pattern
+
+The sidebar uses a **hub-based navigation** model. Each sidebar entry links to a hub landing page that displays role-filtered option cards. Pages are NOT added directly to the sidebar anymore.
+
+### Adding a new page
+
+1. Identify which hub the page belongs to (time-off, self-service, hiring, project-management, operations, communications, governance, security, maintenance, reports).
+2. Add a `HubButton` entry to the relevant config file in `client/src/config/hubs/`.
+3. Register the route in `client/src/routing/app-routing-setup.tsx` inside `<RequireAuth>`.
+4. Do NOT add a new sidebar entry — only add to the hub config.
+
+### Hub config structure
+
+```ts
+// client/src/config/hubs/<domain>.hub.config.ts
+import { HubConfig } from './hub.types';
+
+export const myHubConfig: HubConfig = {
+  key: 'my-domain',
+  title: 'My Domain Hub',
+  subtitle: 'Optional subtitle shown on the landing page.',
+  buttons: [
+    {
+      title: 'Feature Name',
+      description: 'Short description shown on the card.',
+      path: '/feature-route',
+      permission: 'PermissionResourceName', // optional — mirrors MenuItem.permission
+      role: 'bsa',                          // optional — mirrors MenuItem.role
+    },
+  ],
+};
+```
+
+For hubs that group buttons into named sections, use `sections` instead of `buttons`:
+
+```ts
+sections: [
+  {
+    title: 'Section Heading',
+    description: 'Optional muted text below heading.',
+    buttons: [ /* HubButton[] */ ],
+  },
+]
+```
+
+### Hub page component
+
+All hub landing pages use the shared `HubPage` component — never build a custom landing page:
+
+```tsx
+// client/src/pages/my-domain-hub/index.tsx
+import { HubPage } from '@/components/hub/HubPage';
+import { myHubConfig } from '@/config/hubs/my-domain.hub.config';
+
+export default function MyDomainHubPage() {
+  return <HubPage config={myHubConfig} />;
+}
+```
+
+`HubPage` handles RBAC filtering, skeleton loader, empty state, and a11y automatically.
+
+### RBAC filtering
+`HubPage` uses the `useVisibleHubButtons` hook (`client/src/hooks/use-visible-hub-buttons.ts`) which reads from the existing auth context. No new permission logic needed — just set `permission` and/or `role` on the `HubButton`.

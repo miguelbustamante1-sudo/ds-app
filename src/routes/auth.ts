@@ -4,12 +4,13 @@ import jwt from "jsonwebtoken";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import oneloginService from "../services/oneloginService";
 import userService from "../services/userService";
-import googleOidcService from "../services/googleOidcService";
+import googleOidcService, { GoogleIdTokenPayload } from "../services/googleOidcService";
 import {
   resolvePermissions,
   PermissionSource,
 } from "../services/permissionResolver";
 import { getDsUserByEmail } from "../db/users";
+import authUserDb from "../db/authUsers";
 import preferencesRouter from "./preferences.routes";
 
 const router = express.Router();
@@ -560,7 +561,6 @@ router.post("/dev-login", async (req: AuthenticatedRequest, res: Response) => {
 
     if (!user) {
       // Fallback: try to find by email
-      const authUserDb = (await import("../db/authUsers")).default;
       user = await authUserDb.getUserByEmail(DEV_USER_EMAIL);
     }
 

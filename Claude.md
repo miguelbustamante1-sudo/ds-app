@@ -83,6 +83,8 @@ IF the task involves creating or modifying a route:
 - If touching a legacy route or service that uses a different error pattern, propose migration but do not apply automatically
 - **Frontend never manually unwraps `.data`** — `api.ts` handles this automatically for both new `{ data: T }` routes and legacy raw-`T` routes. Do not add `.data` accessors in frontend consumers.
 
+**Exception — `POST /api/mcp`**: This route returns JSON-RPC protocol responses, not REST. Do NOT wrap its responses in `{ data: T }`. Applying the REST envelope would break the MCP protocol. This is the only route exempt from the success envelope rule.
+
 ---
 
 ## Forms
@@ -185,6 +187,11 @@ You MUST call:
 - NEVER use non-null assertions (`!`) unless the nullability is structurally impossible and you can explain why in a comment.
 - All function parameters, return types, and shared interfaces must be explicitly typed.
 - Type inference inside a function body is fine; exported shapes must be declared.
+- Do NOT add `.js` extensions to relative imports anywhere in `src/` — the codebase uses CommonJS resolution and they are neither required nor conventional here.
+
+**Exception — `@modelcontextprotocol/sdk` imports in `src/mcp/`**: The MCP SDK uses subpath exports, which require the `.js` extension in the import path (e.g., `from '@modelcontextprotocol/sdk/server/index.js'`). These `.js` suffixes are correct and required — do NOT remove them. This applies only to `@modelcontextprotocol/sdk/...` package paths, not to relative imports.
+
+**Exception — dynamic imports under `node16` moduleResolution**: TypeScript's `node16` resolver requires explicit `.js` extensions on dynamic `import()` calls for relative paths. The two existing cases are `src/index.ts` (`import('./db/timeOffCategoriesXCountry.js')`) and `src/routes/auth.ts` (resolved by converting to a static import). If you add a new dynamic `import()` for a relative path, add the `.js` extension — this is required by the resolver, not optional.
 
 ---
 

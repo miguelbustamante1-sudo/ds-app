@@ -20,6 +20,8 @@ import { processAttritionTimeOffs } from './services/attrition';
 import { processCountdownNotifications } from './services/timeoff/countdownNotifications/processCountdownNotifications';
 import { backfillTimeOffDays } from './services/timeoff/backfill/backfillTimeOffDays';
 import { processSlaBreaches } from './services/workflow/components/SlaBreachScanner';
+import mcpRouter from './routes/mcp.routes';
+import { mcpApiKeyMiddleware } from './mcp/middleware';
 
 import type { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
@@ -151,6 +153,7 @@ app.get('/api/dbhealth', async (req: Request, res: Response) => {
 // Auth routes are public; all other routes require JWT auth
 app.use('/api', cors(corsOptions));
 app.use('/api/auth', authRoutes);
+app.use('/api/mcp', mcpApiKeyMiddleware, mcpRouter);
 app.use('/api', authMiddleware, registerRoutes());
 
 // SPA fallback (avoid hijacking API/docs routes or asset requests)
@@ -184,7 +187,7 @@ app.get(/.*/, (req: Request, res: Response, next) => {
 
 /*
 // Verify categories, countries and regions tables exist (non-destructive)
-Promise.all([ensureCategoriesTableExists(), ensureCountriesTableExists(), ensureRegionsTableExists(), (async() => { try { const m = await import('./db/timeOffCategoriesXCountry'); return m.ensureTableExists(); } catch (e) { return false; } })()]).then(([catExists, countryExists, regionExists, categoriesXCountryExists]) => {
+Promise.all([ensureCategoriesTableExists(), ensureCountriesTableExists(), ensureRegionsTableExists(), (async() => { try { const m = await import('./db/timeOffCategoriesXCountry.js'); return m.ensureTableExists(); } catch (e) { return false; } })()]).then(([catExists, countryExists, regionExists, categoriesXCountryExists]) => {
   if (!catExists) {
     console.error('Categories table ds.toc_time_of_categories not found - API may fail until table is created.');
   } else {
