@@ -632,29 +632,6 @@ function EditTimeOffPageInner({
                   </Alert>
                 )}
 
-                {/* Comment */}
-                <div className="space-y-2">
-                  <Label htmlFor="comment">
-                    Comment <span className="text-destructive">*</span>
-                  </Label>
-                  <Controller
-                    name="comment"
-                    control={control}
-                    rules={{ required: 'Comment is required' }}
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        id="comment"
-                        placeholder="Add a note about this change..."
-                        rows={2}
-                      />
-                    )}
-                  />
-                  {errors.comment && (
-                    <p className="text-sm text-destructive">{errors.comment.message}</p>
-                  )}
-                </div>
-
                 {/* Buttons */}
                 {isSV15DayMode ? (
                   <div className="flex gap-2">
@@ -678,6 +655,29 @@ function EditTimeOffPageInner({
                 )}
               </>
             )}
+
+            {/* Comment — shown in both normal and split mode */}
+            <div className="space-y-2">
+              <Label htmlFor="comment">
+                Comment <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="comment"
+                control={control}
+                rules={{ required: 'Comment is required' }}
+                render={({ field }) => (
+                  <Textarea
+                    {...field}
+                    id="comment"
+                    placeholder="Add a note about this change..."
+                    rows={2}
+                  />
+                )}
+              />
+              {errors.comment && (
+                <p className="text-sm text-destructive">{errors.comment.message}</p>
+              )}
+            </div>
           </form>
         </div>
       </div>
