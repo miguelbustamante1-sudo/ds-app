@@ -56,6 +56,7 @@ import {
   Umbrella,
   Zap,
   Hammer,
+  Mail,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -306,6 +307,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Type of TimeOff by Country', path: '/maintenance/category-country', icon: Flag, permission: 'TimeOffCategoriesByCountry' },
       { title: 'Users', path: '/maintenance/users', icon: UserCircle, permission: 'Users' },
       { title: 'Workday Info', path: '/maintenance/workday-info', icon: WorkIcon, permission: 'WorkdayInfo' },
+      { title: 'Email Test', path: '/maintenance/email-test', icon: Mail, permission: 'Users' },
     ],
   },
 ];

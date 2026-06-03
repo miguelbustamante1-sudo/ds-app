@@ -47,6 +47,7 @@ import workflowTemplatesRouter from '../services/workflow/routes/templates';
 import workflowInstancesRouter from '../services/workflow/routes/instances';
 import workflowTasksRouter from '../services/workflow/routes/tasks';
 import workflowAdminRouter from '../services/workflow/routes/admin';
+import emailTestRouter from './email-test.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -99,6 +100,7 @@ export default function registerRoutes() {
   router.use('/workflow/instances', workflowInstancesRouter);
   router.use('/workflow', workflowTasksRouter);
   router.use('/workflow', workflowAdminRouter);
+  router.use('/email-test', emailTestRouter);
 
   return router;
 }
