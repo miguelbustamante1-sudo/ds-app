@@ -31,6 +31,9 @@ export interface CreateNotificationDTO {
   payload: Record<string, unknown>;
   recipients: CreateRecipientDTO[];
   createdBy?: string;
+  emailSubject?: string;  // if provided, sends email alongside in-app notification
+  emailBody?: string;
+  emailIsHtml?: boolean;
 }
 
 /** CreateRecipientDTO - Recipient assignment within a notification */

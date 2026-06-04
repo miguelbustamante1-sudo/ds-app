@@ -216,7 +216,7 @@ export function NotificationCenterPage() {
                 <NotificationItem
                   notification={notification}
                   onMarkAsRead={activeTab === 'unread' ? handleMarkAsRead : () => {}}
-                  onAcknowledge={handleAcknowledge}
+                  onAccept={handleAcknowledge}
                   onDecline={handleDecline}
                 />
               </div>

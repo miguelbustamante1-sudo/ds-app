@@ -57,12 +57,12 @@ function FallbackItem({ itemType }: { itemType: string }) {
 interface NotificationItemProps {
   notification: NotificationDTO;
   onMarkAsRead: (recipientId: number) => void;
-  onAcknowledge?: (timeOffId: number, recipientId: number) => void;
-  onDecline?: (timeOffId: number, recipientId: number) => void;
+  onAccept?: (sourceId: number, recipientId: number) => void;
+  onDecline?: (sourceId: number, recipientId: number) => void;
   onNavigate?: () => void;
 }
 
-export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, onDecline, onNavigate }: NotificationItemProps) {
+export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecline, onNavigate }: NotificationItemProps) {
   const { itemType, payload, createdAt, isRead, actionType, id } = notification;
   const ItemComponent = ITEM_COMPONENTS[itemType];
   const timeDisplay = timeAgo(createdAt);
@@ -78,13 +78,15 @@ export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, on
   }
 
   const typedPayload = payload as Record<string, unknown>;
-  const isTimeOffAction = typedPayload.sourceEntity === 'TimeOff' && actionType === 'actionable';
+  const isActionable = typedPayload.isActionable === true && actionType === 'actionable';
 
   const extraProps: Record<string, unknown> = { onNavigate, notificationRecipientId: id };
-  if (isTimeOffAction && onAcknowledge && onDecline) {
-    const sourceId = typedPayload.sourceId as number;
-    extraProps.onAccept = () => onAcknowledge(sourceId, id);
-    extraProps.onDecline = () => onDecline(sourceId, id);
+  if (isActionable && onAccept && onDecline) {
+    const sourceId = typedPayload.sourceId;
+    if (typeof sourceId === 'number') {
+      extraProps.onAccept = () => onAccept(sourceId, id);
+      extraProps.onDecline = () => onDecline(sourceId, id);
+    }
   }
 
   return (

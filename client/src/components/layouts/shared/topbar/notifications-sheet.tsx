@@ -106,7 +106,7 @@ export function NotificationsSheet({ trigger, refetchUnreadCount }: Notification
             <NotificationItem
               notification={notification}
               onMarkAsRead={handleMarkAsRead}
-              onAcknowledge={handleAcknowledge}
+              onAccept={handleAcknowledge}
               onDecline={handleDecline}
               onNavigate={() => setOpen(false)}
             />

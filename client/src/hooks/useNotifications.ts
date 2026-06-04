@@ -21,6 +21,7 @@ interface UseNotificationsReturn {
   refetch: () => Promise<void>;
   acknowledgeTimeOff: (timeOffId: number, recipientId: number) => Promise<void>;
   declineTimeOff: (timeOffId: number, recipientId: number) => Promise<void>;
+  resolveTaskFromNotification: (tskId: number, status: 'APPROVED' | 'REJECTED', recipientId: number) => Promise<void>;
 }
 
 export function useNotifications(options?: UseNotificationsOptions): UseNotificationsReturn {
@@ -149,6 +150,16 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     }
   }, [refetch, options]);
 
+  const resolveTaskFromNotification = useCallback(async (tskId: number, status: 'APPROVED' | 'REJECTED', recipientId: number) => {
+    try {
+      await apiPatch<void, { status: 'APPROVED' | 'REJECTED' }>(`/api/standalone-tasks/${tskId}/resolve`, { status });
+      await markAsRead(recipientId);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to resolve task';
+      options?.onError?.(message);
+    }
+  }, [markAsRead, options]);
+
   return {
     notifications,
     loading,
@@ -164,5 +175,6 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     refetch,
     acknowledgeTimeOff,
     declineTimeOff,
+    resolveTaskFromNotification,
   };
 }

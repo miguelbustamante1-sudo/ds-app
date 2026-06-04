@@ -295,6 +295,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
             info: `${formatDateDDMMYYYY(timeOffStartDate)} to ${formatDateDDMMYYYY(timeOffEndDate)}`,
             sourceId: created.timeOffId,
             sourceEntity: 'TimeOff',
+            isActionable: true,
           },
           recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
         });
@@ -506,6 +507,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
             info: `${formatDateDDMMYYYY(periodA.startDate)} to ${formatDateDDMMYYYY(periodB.endDate)}`,
             sourceId: createdA.timeOffId,
             sourceEntity: 'TimeOff',
+            isActionable: true,
           },
           recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
         });
@@ -1132,6 +1134,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
             info: `${formatDateDDMMYYYY(periodA.startDate)} to ${formatDateDDMMYYYY(periodB.endDate)}`,
             sourceId: createdA.timeOffId,
             sourceEntity: 'TimeOff',
+            isActionable: true,
           },
           recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
         });
