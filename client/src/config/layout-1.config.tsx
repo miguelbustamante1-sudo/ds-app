@@ -32,6 +32,7 @@ import {
   HelpCircle,
   Inbox,
   Kanban,
+  ClipboardList,
   Key,
   Layout,
   LayoutGrid,
@@ -246,6 +247,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/holiday-swap-exception',
     role: 'bsa',
     permission: 'HolidaySwapException',
+  },
+  { heading: 'Standalone Tasks', permission: 'StandaloneTaskAdmin' },
+  {
+    title: 'Standalone Tasks',
+    icon: ClipboardList,
+    path: '/admin/standalone-tasks',
+    permission: 'StandaloneTaskAdmin',
   },
   { heading: 'Workflow', permission: 'WorkflowAdmin' },
   {

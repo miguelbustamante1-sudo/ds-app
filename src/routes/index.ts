@@ -48,6 +48,8 @@ import workflowInstancesRouter from '../services/workflow/routes/instances';
 import workflowTasksRouter from '../services/workflow/routes/tasks';
 import workflowAdminRouter from '../services/workflow/routes/admin';
 import emailTestRouter from './email-test.routes';
+import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
+import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
 
 export default function registerRoutes() {
   const router = Router();
@@ -101,6 +103,8 @@ export default function registerRoutes() {
   router.use('/workflow', workflowTasksRouter);
   router.use('/workflow', workflowAdminRouter);
   router.use('/email-test', emailTestRouter);
+  router.use('/standalone-tasks', standaloneTasksRouter);
+  router.use('/standalone-tasks', standaloneTaskCommentsRouter);
 
   return router;
 }

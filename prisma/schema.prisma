@@ -135,6 +135,7 @@ model TeamMember {
   supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
   compensatoryTimes                 CompensatoryTime[]
   phoneAssignments                  CorporatePhoneAssignment[]
+  standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -390,6 +391,10 @@ model User {
   phoneUpdatedLines            CorporatePhoneLine[]       @relation("CplUpdatedBy")
   phoneCreatedAssignments      CorporatePhoneAssignment[] @relation("CpaCreatedBy")
   phoneUpdatedAssignments      CorporatePhoneAssignment[] @relation("CpaUpdatedBy")
+  standaloneTasksCreated        StandaloneTask[]        @relation("tbl_standalone_tasks_tsk_created_byTotbl_users")
+  standaloneTasksUpdated        StandaloneTask[]        @relation("tbl_standalone_tasks_tsk_updated_byTotbl_users")
+  standaloneTasksResolved       StandaloneTask[]        @relation("tbl_standalone_tasks_tsk_resolved_byTotbl_users")
+  standaloneTaskCommentsCreated StandaloneTaskComment[] @relation("tbl_standalone_task_comments_tco_created_byTotbl_users")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1417,6 +1422,50 @@ model CorporatePhoneAssignment {
   @@index([createdBy],    map: "idx_cpa_created_by")
   @@index([updatedBy],    map: "idx_cpa_updated_by")
   @@map("cpa_corporate_phone_assignments")
+  @@schema("ds")
+}
+
+model StandaloneTask {
+  taskId            Int       @id @default(autoincrement()) @map("tsk_id") @db.Integer
+  taskTitle         String    @map("tsk_title") @db.Text
+  taskDescription   String?   @map("tsk_description") @db.Text
+  taskStatus        String    @default("PENDING") @map("tsk_status") @db.Text
+  taskPriority      String    @default("MEDIUM") @map("tsk_priority") @db.Text
+  taskDueDate       DateTime? @map("tsk_due_date") @db.Timestamptz(6)
+  teamMemberId      Int       @map("tsk_team_member_id") @db.Integer
+  taskReferenceType String?   @map("tsk_reference_type") @db.Text
+  taskReferenceId   String?   @map("tsk_reference_id") @db.Text
+  taskSource        String    @default("INTERNAL") @map("tsk_source") @db.Text
+  apiKeyId          Int?      @map("tsk_api_key_id") @db.Integer
+  createdBy         Int       @map("tsk_created_by") @db.Integer
+  createdDate       DateTime  @default(now()) @map("tsk_created_date") @db.Timestamptz(6)
+  updatedBy         Int?      @map("tsk_updated_by") @db.Integer
+  updatedDate       DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
+  resolvedBy        Int?      @map("tsk_resolved_by") @db.Integer
+  resolvedDate      DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
+  resolutionComment String?   @map("tsk_resolution_comment") @db.Text
+
+  teamMember     TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
+  createdByUser  User                    @relation("tbl_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
+  updatedByUser  User?                   @relation("tbl_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
+  resolvedByUser User?                   @relation("tbl_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
+  comments       StandaloneTaskComment[]
+
+  @@map("tbl_standalone_tasks")
+  @@schema("ds")
+}
+
+model StandaloneTaskComment {
+  commentId   Int      @id @default(autoincrement()) @map("tco_id") @db.Integer
+  taskId      Int      @map("tsk_id") @db.Integer
+  commentText String   @map("tco_comment") @db.Text
+  createdBy   Int      @map("tco_created_by") @db.Integer
+  createdDate DateTime @default(now()) @map("tco_created_date") @db.Timestamptz(6)
+
+  task          StandaloneTask @relation(fields: [taskId], references: [taskId], map: "fk_tco_task")
+  createdByUser User           @relation("tbl_standalone_task_comments_tco_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tco_created_by")
+
+  @@map("tbl_standalone_task_comments")
   @@schema("ds")
 }
 

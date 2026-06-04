@@ -59,3 +59,6 @@ export * from './ShiftDetail';
 
 // Supervisor V2 DTOs
 export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
+
+// Standalone Tasks DTOs
+export * from './StandaloneTask';

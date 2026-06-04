@@ -77,6 +77,7 @@ import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
 import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
+import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 
 export function AppRoutingSetup() {
   return (
@@ -167,6 +168,8 @@ export function AppRoutingSetup() {
         <Route path="/compensatory-time/intake" element={<CompensatoryTimeIntakePage />} />
         <Route path="/compensatory-time/usage" element={<CompensatoryTimeUsagePage />} />
         <Route path="/comp-time/supervisor" element={<SupervisorCompTimePage />} />
+        {/* Standalone Tasks Admin */}
+        <Route path="/admin/standalone-tasks" element={<StandaloneTasksAdminPage />} />
         {/* Workflow Admin */}
         <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
         <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />

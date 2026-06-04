@@ -166,11 +166,12 @@ You MUST call:
 
 ---
 
-## 3.8 Date Handling
-- NEVER use `new Date(rawDate)`
-- ALWAYS use:
+## 3.8 Date Handling (Frontend only)
+- In frontend code, NEVER use `new Date(rawDate)` for parsing or display
+- ALWAYS use the frontend utilities:
   - `parseUTCDateAsLocal`
   - `formatUTCDate`
+- Backend services writing to Prisma may use `new Date(string)` directly — these utilities do not exist in the backend
 
 ---
 
@@ -192,6 +193,7 @@ You MUST call:
 - ALWAYS use `tbl_users.usr_id` (exposed as `req.user.dsUserId`) for `createdBy` and `updatedBy` fields
 - NEVER use a team member ID, email, or any other identifier for these fields
 - The value is already resolved by middleware — read it from `req.user.dsUserId` directly, do not re-query
+- NEVER use a `?? 0` (or any numeric fallback) when reading identity fields from `req.user` — throw `new AppError('Unauthenticated', 401)` instead. A fallback of `0` silently writes a phantom user ID to the DB and the request appears to succeed.
 
 ---
 
@@ -220,6 +222,12 @@ Do not implement a workaround silently. A workaround that is invisible is a hidd
 - NEVER add `Co-Authored-By: Claude` (or any AI attribution) to commit messages or PR descriptions
 - NEVER include a `Test Plan` section in PR descriptions
 - PR descriptions must contain only: a summary of what changed and why
+
+---
+
+## 3.15 Permission Actions
+The only valid `PermissionAction` values are `'read'`, `'create'`, and `'delete'`.
+There is no `'update'` action — use `'create'` for any mutation that is not a deletion.
 
 ---
 
