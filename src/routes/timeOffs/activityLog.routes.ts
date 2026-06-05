@@ -22,8 +22,8 @@ activityLogRouter.get(
     let teamMemberIds: number[];
 
     if (scope === 'team') {
-      // §12: hierarchy traversal via canonical wrapper
-      teamMemberIds = await getReportsForActivityLog(teamMemberId);
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
+      teamMemberIds = await getReportsForActivityLog(teamMemberId, viewAll);
       if (teamMemberIds.length === 0) {
         return res.json({ data: [], total: 0, page, pageSize });
       }

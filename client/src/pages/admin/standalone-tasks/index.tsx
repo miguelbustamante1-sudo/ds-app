@@ -29,6 +29,7 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPatch } from '@/lib/api';
 import { formatUTCDate } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -108,6 +109,7 @@ function CancelTaskButton({ taskId, onCancelled }: CancelTaskButtonProps) {
 }
 
 export function StandaloneTasksAdminPage() {
+  const navigate = useNavigate();
   const { canRead, canCreate } = usePermissions();
   const { toast } = useToast();
 
@@ -259,11 +261,16 @@ export function StandaloneTasksAdminPage() {
           <ToolbarPageTitle>Standalone Tasks</ToolbarPageTitle>
           <ToolbarDescription>Tasks assigned to team members outside of workflows</ToolbarDescription>
         </ToolbarHeading>
-        {canCreate('StandaloneTaskAdmin') && (
-          <ToolbarActions>
+        <ToolbarActions>
+          {canRead('StandaloneTaskAdmin') && (
+            <Button variant="outline" onClick={() => navigate('/admin/standalone-tasks/api-keys')}>
+              API Keys
+            </Button>
+          )}
+          {canCreate('StandaloneTaskAdmin') && (
             <Button onClick={() => setCreateOpen(true)}>Create Task</Button>
-          </ToolbarActions>
-        )}
+          )}
+        </ToolbarActions>
       </Toolbar>
 
       <div className="flex items-center gap-4 mt-6">

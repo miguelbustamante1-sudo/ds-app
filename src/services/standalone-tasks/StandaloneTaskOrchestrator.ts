@@ -14,7 +14,7 @@ import type {
   StandaloneTaskCommentDTO,
 } from '@shared/dto';
 
-const TASK_TABLE = 'ds.tbl_standalone_tasks';
+const TASK_TABLE = 'ds.tsk_standalone_tasks';
 
 function taskToAuditRecord(dto: StandaloneTaskDTO): Record<string, unknown> {
   return {
@@ -47,14 +47,15 @@ function commentToAuditRecord(dto: StandaloneTaskCommentDTO): Record<string, unk
     createdDate: dto.createdDate,
   };
 }
-const COMMENT_TABLE = 'ds.tbl_standalone_task_comments';
+const COMMENT_TABLE = 'ds.tco_standalone_task_comments';
 
 async function orchestrateCreateTask(
   input: CreateStandaloneTaskDTO,
   createdBy: number,
   createdByEmail: string,
+  options: { taskSource?: string; apiKeyId?: number } = {},
 ): Promise<StandaloneTaskDTO> {
-  const task = await createTask(input, createdBy);
+  const task = await createTask(input, createdBy, options);
   await auditOrchestrator.log({
     entityName: TASK_TABLE,
     entityId: String(task.taskId),

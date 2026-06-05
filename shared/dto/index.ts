@@ -36,9 +36,11 @@ export * from './FunctionalArea';
 export * from './Notification';
 
 export * from './Bench';
+export * from './BonusCategory';
 export * from './HolidaySwap';
 export * from './PendingRequest';
 export * from './TierBand';
+export * from './TeamMemberBonus';
 export * from './CompensatoryTime';
 export * from './TimeOffChangeLog';
 export * from './DynamicReport';
@@ -47,6 +49,7 @@ export * from './DynamicReport';
 export * from './Permission';
 export * from './SecurityRole';
 export * from './Option';
+export * from './AuthUserWithRoles';
 
 // Persistence DTOs
 export * from './PersistenceTemplate';
@@ -62,3 +65,4 @@ export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 
 // Standalone Tasks DTOs
 export * from './StandaloneTask';
+export * from './ApiKey';

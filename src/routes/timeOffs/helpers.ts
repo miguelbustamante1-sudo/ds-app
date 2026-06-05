@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest } from '../../middleware/auth';
+import { verifySupervisorRelationship } from '../../services/timeoff/supervisor';
 
 export interface ResolvedAuthRequest extends AuthenticatedRequest {
   teamMemberId: number;
@@ -25,4 +26,18 @@ export function parseIdParam(value: string | undefined): number | null {
   if (value === undefined) return null;
   const id = Number(value);
   return Number.isNaN(id) ? null : id;
+}
+
+/**
+ * Checks whether the requesting user has authority over a given team member.
+ * TLTeam users bypass the hierarchy check — they have authority over everyone.
+ * All other users are verified via the supervisor hierarchy.
+ */
+export async function checkSupervisorAuthority(
+  req: AuthenticatedRequest,
+  supervisorTeamMemberId: number,
+  targetTeamMemberId: number,
+): Promise<boolean> {
+  if (req.user?.permissions?.TLTeam?.read === true) return true;
+  return verifySupervisorRelationship(supervisorTeamMemberId, targetTeamMemberId);
 }

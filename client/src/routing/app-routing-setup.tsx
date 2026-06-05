@@ -30,6 +30,7 @@ import { EndorsementCreatePage } from '@/pages/endorsements/create';
 import { EndorsementDetailPage } from '@/pages/endorsements/detail';
 import { TierBandsPage } from '@/pages/maintenance/tier-bands';
 import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
+import { TeamMemberBonusesPage } from '@/pages/maintenance/team-member-bonuses';
 import { BonusSubcategoriesPage } from '@/pages/maintenance/bonus-subcategories';
 import { ClientsPage } from '@/pages/maintenance/clients';
 import { ClientContactsPage } from '@/pages/maintenance/client-contacts';
@@ -44,6 +45,7 @@ import { EmailTestPage } from '@/pages/maintenance/email-test';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { UpcomingVacationPage } from '@/pages/reports/time-off/upcoming-vacation';
+import { WorkdayReconciliationPage } from '@/pages/reports/time-off/workday-reconciliation';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
@@ -60,6 +62,7 @@ import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
 import { OptionsPage } from '@/pages/security/options';
 import { PermissionsPage } from '@/pages/security/permissions';
+import { UserRolesPage } from '@/pages/security/user-roles';
 import { TemplateBuilderPage } from '@/pages/template-builder';
 import { DataImportPage } from '@/pages/data-import';
 import { DataImportDetailPage } from '@/pages/data-import/detail';
@@ -78,6 +81,7 @@ import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
+import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 
 export function AppRoutingSetup() {
   return (
@@ -125,6 +129,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
         <Route path="/maintenance/users" element={<UsersPage />} />
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
+        <Route path="/maintenance/team-member-bonuses" element={<TeamMemberBonusesPage />} />
         <Route path="/maintenance/holidays" element={<HolidaysPage />} />
         <Route path="/maintenance/category-country" element={<CategoryCountryPage />} />
         <Route path="/maintenance/tier-bands" element={<TierBandsPage />} />
@@ -146,6 +151,7 @@ export function AppRoutingSetup() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
         <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />
+        <Route path="/reports/time-off/workday-reconciliation" element={<WorkdayReconciliationPage />} />
         <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
@@ -154,6 +160,7 @@ export function AppRoutingSetup() {
         <Route path="/security/roles" element={<RolesPage />} />
         <Route path="/security/options" element={<OptionsPage />} />
         <Route path="/security/permissions" element={<PermissionsPage />} />
+        <Route path="/security/user-roles" element={<UserRolesPage />} />
         {/* Persistence Templates */}
         <Route path="/template-builder" element={<TemplateBuilderPage />} />
         {/* Data Import - Persistence Jobs */}
@@ -170,6 +177,7 @@ export function AppRoutingSetup() {
         <Route path="/comp-time/supervisor" element={<SupervisorCompTimePage />} />
         {/* Standalone Tasks Admin */}
         <Route path="/admin/standalone-tasks" element={<StandaloneTasksAdminPage />} />
+        <Route path="/admin/standalone-tasks/api-keys" element={<ApiKeysAdminPage />} />
         {/* Workflow Admin */}
         <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
         <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />

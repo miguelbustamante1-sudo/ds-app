@@ -1,26 +1,28 @@
 /**
  * Dedicated wrapper for holiday swaps visible to a supervisor.
  * Follows the canonical pattern: calls getReports() then applies its own filtering.
+ * When viewAll is true, skips the hierarchy check and allows any active team member.
  */
 
 import { prisma } from '../../../db/prisma';
 import { getReports } from './getReports';
+import { getAllActiveTeamMembers } from './getAllActiveTeamMembers';
 import type { HolidaySwapDTO } from '@shared/dto/HolidaySwap';
 
 export async function getSwapsForSupervisor(
   supervisorTeamMemberId: number,
-  targetTeamMemberId: number
+  targetTeamMemberId: number,
+  viewAll = false,
 ): Promise<HolidaySwapDTO[]> {
-  // 1. Get all team members under this supervisor (direct + indirect)
-  const reports = await getReports(supervisorTeamMemberId, true);
+  const reports = viewAll
+    ? await getAllActiveTeamMembers()
+    : await getReports(supervisorTeamMemberId, true);
   const reportIds = new Set(reports.map((r) => r.teamMemberId));
 
-  // 2. Verify the target is a report of this supervisor
   if (!reportIds.has(targetTeamMemberId)) {
     throw new Error('Access denied: team member is not in your reporting hierarchy.');
   }
 
-  // 3. Query swaps for the target
   const swaps = await prisma.holidaySwap.findMany({
     where: { teamMemberId: targetTeamMemberId },
     include: {

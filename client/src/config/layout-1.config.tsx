@@ -289,6 +289,12 @@ export const MENU_SIDEBAR: MenuConfig = [
         icon: ShieldCheck,
         permission: 'RBACPermissions',
       },
+      {
+        title: 'User Roles',
+        path: '/security/user-roles',
+        icon: Users,
+        permission: 'RBACUserRoles',
+      },
     ],
   },
   { heading: 'Maintenance', role: 'bsa' },
@@ -299,6 +305,7 @@ export const MENU_SIDEBAR: MenuConfig = [
     children: [
       { title: 'Bonus Categories', path: '/maintenance/bonus-categories', icon: Star, permission: 'Endorsements' },
       { title: 'Bonus Subcategories', path: '/maintenance/bonus-subcategories', icon: Star, permission: 'Endorsements' },
+      { title: 'Team Member Bonuses', path: '/maintenance/team-member-bonuses', icon: Star, permission: 'TeamMemberBonuses' },
       { title: 'Clients', path: '/maintenance/clients', icon: Building, permission: 'Clients' },
       { title: 'Client Contacts', path: '/maintenance/client-contacts', icon: Building, permission: 'Clients' },
       { title: 'Countries', path: '/maintenance/countries', icon: Globe, permission: 'Countries' },

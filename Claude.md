@@ -101,6 +101,14 @@ IF the task requires adding or modifying tables, columns, indexes, or constraint
 
 ---
 
+## AI / LLM Integration
+IF the task involves calling an external AI model (completions, embeddings, image generation, audio):
+- ALWAYS load `Governance/15_FUELIX_AI_API.md`
+- Use the Fuel iX API (`https://api.fuelix.ai/v1/chat/completions`) — do NOT call provider APIs (Anthropic, OpenAI, Google) directly
+- Select the model from the approved list in that file; default to `claude-sonnet-4-6` for general use
+
+---
+
 ## Cross-domain or unclear tasks
 LOAD ALL files.
 
@@ -135,6 +143,8 @@ You MUST call:
 `auditOrchestrator.log(...)`
 
 **Exception — `es` schema tables**: The `es` schema holds transient tables that are created and dropped dynamically by technical users as part of persistence operations against the `ds` schema. These tables can appear and disappear at runtime and are exempt from audit logging unless explicitly directed to add it. All other schemas (`ds`, `public`, etc.) require audit logging without exception.
+
+**Passing values to `auditOrchestrator.log`**: `oldValues` and `newValues` are typed as `Record<string, unknown>`. When passing a Prisma result object, cast it with `as unknown as Record<string, unknown>` — this is correct and intentional. `auditOrchestrator.log` is the only place this cast is acceptable; do NOT use it elsewhere to escape the type system.
 
 ---
 

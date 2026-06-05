@@ -9,6 +9,7 @@ import {
   getMyOwnProfile, getSupervisorList, getSupervisorChain,
   createTeamMember, updateTeamMember, deleteTeamMember,
   TeamMemberNotFoundError, InvalidTierBandError,
+  getAllActiveTeamMembers,
 } from '../services/teamMember';
 import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
 import { getReportsForTeamOverview } from '../services/teamMember/queries/getReportsForTeamOverview';
@@ -90,6 +91,12 @@ router.get('/my-reports', requirePermission('TeamMembers', 'read'), async (req: 
       return res.status(404).json({ error: 'Team member not found for current user' });
     }
 
+    const viewAll = req.user?.permissions?.TLTeam?.read === true;
+    if (viewAll) {
+      const reports = await getAllActiveTeamMembers();
+      return res.json(reports);
+    }
+
     const includeFullHierarchy = req.query.hierarchy === 'complete';
     const reports = await getReports(teamMemberId, includeFullHierarchy);
     res.json(reports);
@@ -108,7 +115,8 @@ router.get('/my-reports-overview', requirePermission('TeamMembers', 'read'), asy
       return res.status(404).json({ error: 'Team member not found for current user' });
     }
 
-    const overview = await getReportsForTeamOverview(teamMemberId);
+    const viewAll = req.user?.permissions?.TLTeam?.read === true;
+    const overview = await getReportsForTeamOverview(teamMemberId, viewAll);
     res.json({ data: overview });
   } catch (err: unknown) {
     if (err instanceof AppError) {
@@ -182,8 +190,9 @@ router.get('/available-under-supervisor', requirePermission('ProjectAssignments'
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
 
     const isBsa = req.user?.roles.includes('bsa') ?? false;
+    const isTLTeam = req.user?.permissions?.TLTeam?.read === true;
 
-    if (isBsa) {
+    if (isBsa || isTLTeam) {
       const resources = await getAvailableForProjectAll(projectId, q);
       return res.json(resources);
     }
@@ -226,6 +235,11 @@ router.get('/supervisors-with-user-id', requirePermission('TeamMembers', 'read')
 // GET /team-members/is-supervisor — returns { isSupervisor: boolean } for the current user
 router.get('/is-supervisor', requirePermission('TeamMembers', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // TLTeam users are always considered supervisors
+    if (req.user?.permissions?.TLTeam?.read === true) {
+      return res.json({ isSupervisor: true });
+    }
+
     const teamMemberId = req.user?.teamMemberId;
     if (!teamMemberId) {
       return res.json({ isSupervisor: false });

@@ -10,7 +10,6 @@ import { requirePermission } from '../../middleware/auth';
 import { validateTimeOff, DEFAULTS } from '../../services/timeoff/validation';
 import {
   getTeamMembersBySupervisor,
-  verifySupervisorRelationship,
   getTeamTimeOffByMonth,
   getTeamTimeOffByCountry,
   getTeamTimeOffCurrentMonth,
@@ -21,7 +20,7 @@ import {
 import { createTimeOffChangeLog, fetchRawTimeOffRow } from '../../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCalculation';
 import { getStatusByName } from '../../db/timeOffStatuses';
-import { resolveAuthUser, parseIdParam, type ResolvedAuthRequest } from './helpers';
+import { resolveAuthUser, parseIdParam, checkSupervisorAuthority, type ResolvedAuthRequest } from './helpers';
 import { notificationOrchestrator } from '../../services/notifications/NotificationOrchestrator';
 import { getUserIdsByTeamMemberIds } from '../../services/notifications/repository';
 import { prisma } from '../../db/prisma';
@@ -123,7 +122,7 @@ router.get('/team-member/:teamMemberId/yearly-breakdown', requirePermission('Tim
       return res.status(400).json({ error: 'Invalid team member id' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to view time-off breakdown for this team member' });
     }
@@ -147,7 +146,7 @@ router.get('/team-member/:teamMemberId/workday-balance', requirePermission('Time
       return res.status(400).json({ error: 'Invalid team member id' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorId, targetTeamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorId, targetTeamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to view workday balance for this team member' });
     }
@@ -169,7 +168,7 @@ router.get('/team-member/:teamMemberId', requirePermission('TimeOffs', 'read'), 
       return res.status(400).json({ error: 'Invalid team member id' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to view time-offs for this team member' });
     }
@@ -208,7 +207,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       return res.status(400).json({ error: 'categoryId is required' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to create time-off for this team member' });
     }
@@ -338,7 +337,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       return res.status(400).json({ error: 'periodB startDate and endDate are required' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to create time-off for this team member' });
     }
@@ -553,7 +552,7 @@ router.patch('/:timeOffId/acknowledge', requirePermission('TimeOffs', 'create'),
     if (!timeOff.teamMemberId) {
       return res.status(400).json({ error: 'Time-off has no associated team member' });
     }
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, timeOff.teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to acknowledge this time-off' });
     }
@@ -648,7 +647,7 @@ router.patch('/:timeOffId/reject', requirePermission('TimeOffs', 'create'), reso
     if (!timeOff.teamMemberId) {
       return res.status(400).json({ error: 'Time-off has no associated team member' });
     }
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, timeOff.teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to reject this time-off' });
     }
@@ -737,7 +736,7 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
     if (!timeOff.teamMemberId) {
       return res.status(400).json({ error: 'Time-off has no associated team member' });
     }
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, timeOff.teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to cancel this time-off' });
     }
@@ -823,7 +822,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
     if (!timeOff.teamMemberId) {
       return res.status(400).json({ error: 'Time-off has no associated team member' });
     }
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, timeOff.teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, timeOff.teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to edit this time-off' });
     }
@@ -937,7 +936,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
       return res.status(400).json({ error: 'Time-off has no associated team member' });
     }
 
-    const hasAuthority = await verifySupervisorRelationship(supervisorTeamMemberId, original.teamMemberId);
+    const hasAuthority = await checkSupervisorAuthority(req,supervisorTeamMemberId, original.teamMemberId);
     if (!hasAuthority) {
       return res.status(403).json({ error: 'Not authorized to edit this time-off' });
     }

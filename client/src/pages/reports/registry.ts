@@ -25,5 +25,13 @@ export const REPORTS_REGISTRY: ReportEntry[] = [
     group: 'Time Off',
     permission: 'Reports',
   },
+  {
+    id: 'timeoff-workday-reconciliation',
+    title: 'Workday Reconciliation',
+    description: 'Vacation days recorded in the application that are not yet reflected in Workday, starting in the next 45 days.',
+    path: '/reports/time-off/workday-reconciliation',
+    group: 'Time Off',
+    permission: 'Reports',
+  },
   // Future reports are added here — no other files need to change.
 ];

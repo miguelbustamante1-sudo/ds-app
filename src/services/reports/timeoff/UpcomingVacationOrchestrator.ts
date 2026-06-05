@@ -1,5 +1,6 @@
 import { AppError } from '../../../errors/AppError';
 import { getReports } from '../../teamMember/queries/getReports';
+import { getAllActiveTeamMembers } from '../../teamMember/queries/getAllActiveTeamMembers';
 import { queryUpcomingVacation } from './components/QueryUpcomingVacation';
 import type { UpcomingVacationRowDTO } from '@shared/dto/UpcomingVacation';
 
@@ -10,10 +11,13 @@ export async function getUpcomingVacation(
   supervisorTmId: number,
   teamMemberIdRaw: number | null,
   daysRaw: number,
+  viewAll = false,
 ): Promise<UpcomingVacationRowDTO[]> {
   const days = Math.min(MAX_DAYS, Math.max(1, daysRaw || DEFAULT_DAYS));
 
-  const reports = await getReports(supervisorTmId, true);
+  const reports = viewAll
+    ? await getAllActiveTeamMembers()
+    : await getReports(supervisorTmId, true);
   const supervisedIds = reports.map((r) => r.teamMemberId);
 
   let teamMemberId: number | null = null;

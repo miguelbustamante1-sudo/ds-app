@@ -1,0 +1,60 @@
+import type { Response, NextFunction } from 'express';
+import bcrypt from 'bcrypt';
+import { prisma } from '../db/prisma';
+import type { AuthenticatedRequest } from './auth';
+import type { PermissionMap } from '../services/permissionResolver';
+
+export async function validateApiKey(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const rawKey = req.headers['x-api-key'];
+  if (!rawKey || typeof rawKey !== 'string') {
+    // No API key header — let the existing JWT auth path proceed
+    next();
+    return;
+  }
+
+  const serviceAccountId = Number(process.env.API_SERVICE_ACCOUNT_DS_USER_ID);
+  if (!serviceAccountId) {
+    console.error('API_SERVICE_ACCOUNT_DS_USER_ID is not configured');
+    res.status(500).json({ error: 'Server misconfiguration' });
+    return;
+  }
+
+  const activeKeys = await prisma.apiKey.findMany({
+    where: { apkIsActive: true },
+    select: { apkId: true, apkKeyHash: true },
+  });
+
+  for (const key of activeKeys) {
+    const match = await bcrypt.compare(rawKey, key.apkKeyHash);
+    if (match) {
+      // fire-and-forget: update last used date — never blocks the request
+      void prisma.apiKey.update({
+        where: { apkId: key.apkId },
+        data: { apkLastUsedDate: new Date() },
+      }).catch((err: unknown) => {
+        console.error('Failed to update apk_last_used_date:', err);
+      });
+
+      const permissions: PermissionMap = {
+        StandaloneTaskAdmin: { read: false, create: true, delete: false },
+      };
+
+      req.user = {
+        id: serviceAccountId,
+        email: 'api-service@internal',
+        roles: [],
+        permissions,
+        dsUserId: serviceAccountId,
+      };
+      req.apiKeyId = key.apkId;
+      next();
+      return;
+    }
+  }
+
+  res.status(401).json({ error: 'Unauthorized' });
+}

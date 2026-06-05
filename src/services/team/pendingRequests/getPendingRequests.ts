@@ -15,10 +15,13 @@ import { loadPendingTimeOffs } from './loaders/loadPendingTimeOffs';
 import { loadPendingHolidaySwaps } from './loaders/loadPendingHolidaySwaps';
 import type { PendingRequest } from '@shared/dto/PendingRequest';
 
-export async function getPendingRequests(supervisorId: number): Promise<PendingRequest[]> {
+export async function getPendingRequests(
+  supervisorId: number,
+  viewAll = false,
+): Promise<PendingRequest[]> {
   const [statuses, members] = await Promise.all([
     loadStatusIds(),
-    getReportsForPendingRequests(supervisorId),
+    getReportsForPendingRequests(supervisorId, viewAll),
   ]);
 
   const tentativeStatusId = statuses.pending;
@@ -30,7 +33,6 @@ export async function getPendingRequests(supervisorId: number): Promise<PendingR
 
   const merged: PendingRequest[] = [...timeOffs, ...swaps];
 
-  // Sort newest first; null createdAt falls to the end
   merged.sort((a, b) => {
     if (a.createdAt == null && b.createdAt == null) return 0;
     if (a.createdAt == null) return 1;

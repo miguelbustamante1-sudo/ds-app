@@ -1,20 +1,30 @@
 import { Router, Response } from 'express';
 import { requirePermission } from '../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../middleware/auth';
+import { validateApiKey } from '../../../middleware/apiKey';
 import { standaloneTaskOrchestrator } from '../StandaloneTaskOrchestrator';
 import type { CreateStandaloneTaskDTO, ResolveStandaloneTaskDTO } from '@shared/dto';
-import { dsUserId, tmId, catchHandler } from './routeUtils';
+import { dsUserId, tmId, actorEmail, catchHandler } from './routeUtils';
 
 const router = Router();
 
 // POST /api/standalone-tasks
 router.post(
   '/',
+  validateApiKey,
   requirePermission('StandaloneTaskAdmin', 'create'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const body = req.body as CreateStandaloneTaskDTO;
-      const task = await standaloneTaskOrchestrator.createTask(body, dsUserId(req), req.user?.email ?? '');
+      const apiKeyId = req.apiKeyId;
+      const task = await standaloneTaskOrchestrator.createTask(
+        body,
+        dsUserId(req),
+        actorEmail(req),
+        apiKeyId !== undefined
+          ? { taskSource: 'API', apiKeyId }
+          : { taskSource: 'INTERNAL' },
+      );
       res.status(201).json({ data: task });
     } catch (err) {
       catchHandler(err, res);
@@ -82,7 +92,7 @@ router.patch(
         return;
       }
       const body = req.body as ResolveStandaloneTaskDTO;
-      const task = await standaloneTaskOrchestrator.resolveTask(tskId, body, dsUserId(req), req.user?.email ?? '');
+      const task = await standaloneTaskOrchestrator.resolveTask(tskId, body, dsUserId(req), actorEmail(req));
       res.json({ data: task });
     } catch (err) {
       catchHandler(err, res);

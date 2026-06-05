@@ -1,32 +1,30 @@
 import { getReports } from './getReports';
+import { getAllActiveTeamMembers } from './getAllActiveTeamMembers';
 import { getWorkdayInfoById } from '../../../db/workdayInfo';
 import type { TeamMemberProfileDTO } from '../../../../shared/dto/TeamMemberProfile';
 
 /**
- * Returns the full profile for a single team member who must be in the
- * supervisor's reporting hierarchy (direct or indirect).
- *
- * Returns null when:
- *  - the target team member is not found under the given supervisor, or
- *  - the supervisorId itself is not a valid team member ID.
+ * Returns the full profile for a single team member.
+ * When viewAll is false, the target must be in the supervisor's reporting
+ * hierarchy — returns null otherwise.
+ * When viewAll is true, any active team member can be retrieved.
  */
 export async function getProfileForSupervisor(
   supervisorId: number,
   targetTeamMemberId: number,
+  viewAll = false,
 ): Promise<TeamMemberProfileDTO | null> {
-  // 1. Fetch full hierarchy via the canonical function
-  const reports = await getReports(supervisorId, true);
+  const reports = viewAll
+    ? await getAllActiveTeamMembers()
+    : await getReports(supervisorId, true);
 
-  // 2. Confirm access — null means this supervisor cannot view the requested member
   const supervised = reports.find((r) => r.teamMemberId === targetTeamMemberId) ?? null;
   if (!supervised) return null;
 
-  // 3. Fetch Workday info (null-safe — workdayId may be absent)
   const workdayInfo = supervised.workdayId
     ? await getWorkdayInfoById(supervised.workdayId)
     : null;
 
-  // 4. Merge into combined DTO
   return {
     ...supervised,
     hireDate: workdayInfo?.hireDate ?? null,
