@@ -29,7 +29,8 @@ router.get(
         return res.status(400).json({ error: 'Invalid days' });
       }
 
-      const data = await getUpcomingVacation(supervisorTmId, teamMemberIdRaw, daysRaw);
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
+      const data = await getUpcomingVacation(supervisorTmId, teamMemberIdRaw, daysRaw, viewAll);
 
       if (req.query.export === 'true') {
         return res.json(data);

@@ -40,6 +40,14 @@ Treat login identity and domain identity as separate concepts.
 Permission middleware should consume the resolved permission map attached during authentication.
 Do not rebuild authorization state inside each route unless absolutely necessary.
 
+## Permission Actions
+The only valid `PermissionAction` values are:
+- `'read'`
+- `'create'`
+- `'delete'`
+
+There is no `'update'` action. Use `'create'` for any mutation that is not a deletion.
+
 ---
 
 ## Frontend Auth Pattern (Memory Token Pattern)

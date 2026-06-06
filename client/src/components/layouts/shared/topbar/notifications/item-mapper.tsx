@@ -50,12 +50,12 @@ const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
 interface NotificationItemProps {
   notification: NotificationDTO;
   onMarkAsRead: (recipientId: number) => void;
-  onAcknowledge?: (timeOffId: number, recipientId: number) => void;
-  onDecline?: (timeOffId: number, recipientId: number) => void;
+  onAccept?: (sourceId: number, recipientId: number) => void;
+  onDecline?: (sourceId: number, recipientId: number) => void;
   onNavigate?: () => void;
 }
 
-export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, onDecline, onNavigate }: NotificationItemProps) {
+export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecline, onNavigate }: NotificationItemProps) {
   const { itemType, payload, createdAt, isRead, actionType, id } = notification;
   const ItemComponent = ITEM_COMPONENTS[itemType];
   const timeDisplay = timeAgo(createdAt);
@@ -69,33 +69,19 @@ export function NotificationItem({ notification, onMarkAsRead, onAcknowledge, on
   const typedPayload = payload as Record<string, unknown>;
 
   if (!ItemComponent) {
-    return (
-      <div
-        className={cn(
-          'cursor-pointer',
-          !isRead && 'bg-primary/5 border-l-2 border-primary',
-        )}
-        onClick={handleClick}
-      >
-        <GenericNotificationItem
-          title={typedPayload.title as string | undefined}
-          message={typedPayload.message as string | undefined}
-          link={typedPayload.link as string | null | undefined}
-          timeDisplay={timeDisplay}
-          itemType={itemType}
-          actionType={actionType}
-        />
-      </div>
-    );
+    return <FallbackItem itemType={itemType} />;
   }
 
-  const isTimeOffAction = typedPayload.sourceEntity === 'TimeOff' && actionType === 'actionable';
+  const typedPayload = payload as Record<string, unknown>;
+  const isActionable = typedPayload.isActionable === true && actionType === 'actionable';
 
   const extraProps: Record<string, unknown> = { onNavigate, notificationRecipientId: id };
-  if (isTimeOffAction && onAcknowledge && onDecline) {
-    const sourceId = typedPayload.sourceId as number;
-    extraProps.onAccept = () => onAcknowledge(sourceId, id);
-    extraProps.onDecline = () => onDecline(sourceId, id);
+  if (isActionable && onAccept && onDecline) {
+    const sourceId = typedPayload.sourceId;
+    if (typeof sourceId === 'number') {
+      extraProps.onAccept = () => onAccept(sourceId, id);
+      extraProps.onDecline = () => onDecline(sourceId, id);
+    }
   }
 
   return (

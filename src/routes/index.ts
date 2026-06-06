@@ -14,6 +14,7 @@ import rbacPermissionsRouter from './rbacPermissions';
 import rbacRolesRouter from './rbacRoles';
 import rbacUserRolesRouter from './rbacUserRoles';
 import rbacOptionsRouter from './rbacOptions';
+import rbacAuthUsersRouter from './rbacAuthUsers';
 import supervisorAssignmentsRouter from './supervisorAssignments';
 import holidaysRouter from './holidays';
 import timeOffHolidaysRouter from './timeOffHolidays';
@@ -27,6 +28,7 @@ import tierBandsRouter from './tierBands';
 import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import upcomingVacationRouter from './reports/upcomingVacation';
+import workdayReconciliationRouter from './reports/workdayReconciliation';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
@@ -48,6 +50,11 @@ import workflowInstancesRouter from '../services/workflow/routes/instances';
 import workflowTasksRouter from '../services/workflow/routes/tasks';
 import workflowAdminRouter from '../services/workflow/routes/admin';
 import dashboardRouter from './dashboard.routes';
+import emailTestRouter from './email-test.routes';
+import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
+import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
+import apiKeysAdminRouter from '../services/api-keys/routes/admin';
+import teamMemberBonusRouter from './teamMemberBonus';
 
 export default function registerRoutes() {
   const router = Router();
@@ -67,6 +74,7 @@ export default function registerRoutes() {
   router.use('/rbac/roles', rbacRolesRouter);
   router.use('/rbac/user-roles', rbacUserRolesRouter);
   router.use('/rbac/options', rbacOptionsRouter);
+  router.use('/rbac/auth-users', rbacAuthUsersRouter);
   router.use('/supervisor-assignments', supervisorAssignmentsRouter);
   router.use('/holidays', holidaysRouter);
   router.use('/time-off-holidays', timeOffHolidaysRouter);
@@ -80,6 +88,7 @@ export default function registerRoutes() {
   router.use('/bonus-subcategories', bonusSubcategoriesRouter);
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
   router.use('/reports/time-off/upcoming-vacation', upcomingVacationRouter);
+  router.use('/reports/time-off/workday-reconciliation', workdayReconciliationRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/client-contacts', clientContactsRouter);
@@ -101,6 +110,11 @@ export default function registerRoutes() {
   router.use('/workflow', workflowTasksRouter);
   router.use('/workflow', workflowAdminRouter);
   router.use('/dashboard', dashboardRouter);
+  router.use('/email-test', emailTestRouter);
+  router.use('/standalone-tasks', standaloneTasksRouter);
+  router.use('/standalone-tasks', standaloneTaskCommentsRouter);
+  router.use('/admin/api-keys', apiKeysAdminRouter);
+  router.use('/team-member-bonuses', teamMemberBonusRouter);
 
   return router;
 }

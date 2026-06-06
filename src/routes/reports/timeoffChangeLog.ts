@@ -4,6 +4,7 @@ import { requirePermission } from '../../middleware/auth';
 import type { AuthenticatedRequest } from '../../middleware/auth';
 import { getTimeOffChangeLog } from '../../services/reports/timeoff/changeLogQueries';
 import { getReports } from '../../services/teamMember/queries/getReports';
+import { getAllActiveTeamMembers } from '../../services/teamMember/queries/getAllActiveTeamMembers';
 import type {
   TimeOffChangeLogQueryDTO,
   TimeOffChangeLogResponseDTO,
@@ -22,8 +23,11 @@ router.get(
         return res.status(403).json({ error: 'No team member profile associated with your account' });
       }
 
-      const reports = await getReports(supervisorTmId, true);
-      const supervisedIds = reports.map((r) => r.teamMemberId);
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
+      const members = viewAll
+        ? await getAllActiveTeamMembers()
+        : await getReports(supervisorTmId, true);
+      const supervisedIds = members.map((r) => r.teamMemberId);
 
       const params = req.query as TimeOffChangeLogQueryDTO;
       const { rows, total, capped } = await getTimeOffChangeLog(params, supervisedIds);

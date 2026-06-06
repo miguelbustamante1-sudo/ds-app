@@ -135,6 +135,8 @@ model TeamMember {
   supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
   compensatoryTimes                 CompensatoryTime[]
   phoneAssignments                  CorporatePhoneAssignment[]
+  standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
+  teamMemberBonuses                 TeamMemberBonus[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -390,6 +392,13 @@ model User {
   phoneUpdatedLines            CorporatePhoneLine[]       @relation("CplUpdatedBy")
   phoneCreatedAssignments      CorporatePhoneAssignment[] @relation("CpaCreatedBy")
   phoneUpdatedAssignments      CorporatePhoneAssignment[] @relation("CpaUpdatedBy")
+  standaloneTasksCreated        StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_created_byTotbl_users")
+  standaloneTasksUpdated        StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users")
+  standaloneTasksResolved       StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users")
+  standaloneTaskCommentsCreated StandaloneTaskComment[] @relation("tco_standalone_task_comments_tco_created_byTotbl_users")
+  apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
+  teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
+  teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -580,6 +589,7 @@ model BonusCategory {
   bonusCategoryId    Int                @id @default(autoincrement()) @map("bca_id") @db.Integer
   bonusCategoryName  String             @unique @map("bca_name") @db.Text
   bonusSubcategories BonusSubcategory[]
+  teamMemberBonuses  TeamMemberBonus[]
 
   @@map("bca_bonus_categories")
   @@schema("ds")
@@ -624,6 +634,31 @@ model EndorsementBonus {
   bonusSubcategory          BonusSubcategory? @relation(fields: [bonusSubcategoryId], references: [bonusSubcategoryId], onDelete: Restrict, map: "fk_ebn_bsc")
 
   @@map("ebn_endorsement_bonus")
+  @@schema("ds")
+}
+
+model TeamMemberBonus {
+  teamMemberBonusId Int           @id @default(autoincrement()) @map("tmb_id") @db.Integer
+  teamMemberId      Int           @map("tms_id") @db.Integer
+  bonusCategoryId   Int           @map("bca_id") @db.Integer
+  bonusAmount       Decimal       @map("tmb_amount") @db.Decimal(15, 2)
+  bonusPeriodicity  String        @map("tmb_periodicity") @db.VarChar(50)
+  bonusStartDate    DateTime?     @map("tmb_start_date") @db.Date
+  bonusEndDate      DateTime?     @map("tmb_end_date") @db.Date
+  bonusCreatedBy    Int           @map("tmb_created_by") @db.Integer
+  bonusCreatedAt    DateTime      @default(now()) @map("tmb_created_at") @db.Timestamptz(6)
+  bonusUpdatedBy    Int?          @map("tmb_updated_by") @db.Integer
+  bonusUpdatedAt    DateTime?     @map("tmb_updated_at") @db.Timestamptz(6)
+
+  teamMember        TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmb_tms")
+  bonusCategory     BonusCategory @relation(fields: [bonusCategoryId], references: [bonusCategoryId], onDelete: Restrict, map: "fk_tmb_bca")
+  createdByUser     User          @relation("tmb_team_member_bonus_tmb_created_byTotbl_users", fields: [bonusCreatedBy], references: [userId], map: "fk_tmb_cby")
+  updatedByUser     User?         @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users", fields: [bonusUpdatedBy], references: [userId], map: "fk_tmb_uby")
+
+  @@index([teamMemberId], map: "idx_tmb_tms_id")
+  @@index([bonusCategoryId], map: "idx_tmb_bca_id")
+  @@index([bonusCreatedBy], map: "idx_tmb_cby")
+  @@map("tmb_team_member_bonus")
   @@schema("ds")
 }
 
@@ -1420,6 +1455,67 @@ model CorporatePhoneAssignment {
   @@index([createdBy],    map: "idx_cpa_created_by")
   @@index([updatedBy],    map: "idx_cpa_updated_by")
   @@map("cpa_corporate_phone_assignments")
+  @@schema("ds")
+}
+
+model StandaloneTask {
+  taskId            Int       @id @default(autoincrement()) @map("tsk_id") @db.Integer
+  taskTitle         String    @map("tsk_title") @db.Text
+  taskDescription   String?   @map("tsk_description") @db.Text
+  taskStatus        String    @default("PENDING") @map("tsk_status") @db.Text
+  taskPriority      String    @default("MEDIUM") @map("tsk_priority") @db.Text
+  taskDueDate       DateTime? @map("tsk_due_date") @db.Timestamptz(6)
+  teamMemberId      Int       @map("tsk_team_member_id") @db.Integer
+  taskReferenceType String?   @map("tsk_reference_type") @db.Text
+  taskReferenceId   String?   @map("tsk_reference_id") @db.Text
+  taskSource        String    @default("INTERNAL") @map("tsk_source") @db.Text
+  apiKeyId          Int?      @map("tsk_api_key_id") @db.Integer
+  createdBy         Int       @map("tsk_created_by") @db.Integer
+  createdDate       DateTime  @default(now()) @map("tsk_created_date") @db.Timestamptz(6)
+  updatedBy         Int?      @map("tsk_updated_by") @db.Integer
+  updatedDate       DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
+  resolvedBy        Int?      @map("tsk_resolved_by") @db.Integer
+  resolvedDate      DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
+  resolutionComment String?   @map("tsk_resolution_comment") @db.Text
+
+  teamMember     TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
+  createdByUser  User                    @relation("tsk_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
+  updatedByUser  User?                   @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
+  resolvedByUser User?                   @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
+  apiKey         ApiKey?                 @relation(fields: [apiKeyId], references: [apkId], map: "fk_tsk_api_key")
+  comments       StandaloneTaskComment[]
+
+  @@map("tsk_standalone_tasks")
+  @@schema("ds")
+}
+
+model StandaloneTaskComment {
+  commentId   Int      @id @default(autoincrement()) @map("tco_id") @db.Integer
+  taskId      Int      @map("tsk_id") @db.Integer
+  commentText String   @map("tco_comment") @db.Text
+  createdBy   Int      @map("tco_created_by") @db.Integer
+  createdDate DateTime @default(now()) @map("tco_created_date") @db.Timestamptz(6)
+
+  task          StandaloneTask @relation(fields: [taskId], references: [taskId], map: "fk_tco_task")
+  createdByUser User           @relation("tco_standalone_task_comments_tco_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tco_created_by")
+
+  @@map("tco_standalone_task_comments")
+  @@schema("ds")
+}
+
+model ApiKey {
+  apkId           Int       @id @default(autoincrement()) @map("apk_id") @db.Integer
+  apkName         String    @map("apk_name") @db.Text
+  apkKeyHash      String    @map("apk_key_hash") @db.Text
+  apkIsActive     Boolean   @default(true) @map("apk_is_active")
+  apkCreatedBy    Int       @map("apk_created_by") @db.Integer
+  apkCreatedDate  DateTime  @default(now()) @map("apk_created_date") @db.Timestamptz(6)
+  apkLastUsedDate DateTime? @map("apk_last_used_date") @db.Timestamptz(6)
+
+  createdByUser   User             @relation("apk_api_keys_apk_created_byTotbl_users", fields: [apkCreatedBy], references: [userId], map: "fk_apk_created_by")
+  standaloneTasks StandaloneTask[]
+
+  @@map("apk_api_keys")
   @@schema("ds")
 }
 

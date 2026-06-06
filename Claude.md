@@ -103,6 +103,14 @@ IF the task requires adding or modifying tables, columns, indexes, or constraint
 
 ---
 
+## AI / LLM Integration
+IF the task involves calling an external AI model (completions, embeddings, image generation, audio):
+- ALWAYS load `Governance/15_FUELIX_AI_API.md`
+- Use the Fuel iX API (`https://api.fuelix.ai/v1/chat/completions`) — do NOT call provider APIs (Anthropic, OpenAI, Google) directly
+- Select the model from the approved list in that file; default to `claude-sonnet-4-6` for general use
+
+---
+
 ## Cross-domain or unclear tasks
 LOAD ALL files.
 
@@ -138,6 +146,8 @@ You MUST call:
 
 **Exception — `es` schema tables**: The `es` schema holds transient tables that are created and dropped dynamically by technical users as part of persistence operations against the `ds` schema. These tables can appear and disappear at runtime and are exempt from audit logging unless explicitly directed to add it. All other schemas (`ds`, `public`, etc.) require audit logging without exception.
 
+**Passing values to `auditOrchestrator.log`**: `oldValues` and `newValues` are typed as `Record<string, unknown>`. When passing a Prisma result object, cast it with `as unknown as Record<string, unknown>` — this is correct and intentional. `auditOrchestrator.log` is the only place this cast is acceptable; do NOT use it elsewhere to escape the type system.
+
 ---
 
 ## 3.5 req.user is COMPLETE
@@ -168,11 +178,12 @@ You MUST call:
 
 ---
 
-## 3.8 Date Handling
-- NEVER use `new Date(rawDate)`
-- ALWAYS use:
+## 3.8 Date Handling (Frontend only)
+- In frontend code, NEVER use `new Date(rawDate)` for parsing or display
+- ALWAYS use the frontend utilities:
   - `parseUTCDateAsLocal`
   - `formatUTCDate`
+- Backend services writing to Prisma may use `new Date(string)` directly — these utilities do not exist in the backend
 
 ---
 
@@ -199,6 +210,7 @@ You MUST call:
 - ALWAYS use `tbl_users.usr_id` (exposed as `req.user.dsUserId`) for `createdBy` and `updatedBy` fields
 - NEVER use a team member ID, email, or any other identifier for these fields
 - The value is already resolved by middleware — read it from `req.user.dsUserId` directly, do not re-query
+- NEVER use a `?? 0` (or any numeric fallback) when reading identity fields from `req.user` — throw `new AppError('Unauthenticated', 401)` instead. A fallback of `0` silently writes a phantom user ID to the DB and the request appears to succeed.
 
 ---
 
@@ -227,6 +239,12 @@ Do not implement a workaround silently. A workaround that is invisible is a hidd
 - NEVER add `Co-Authored-By: Claude` (or any AI attribution) to commit messages or PR descriptions
 - NEVER include a `Test Plan` section in PR descriptions
 - PR descriptions must contain only: a summary of what changed and why
+
+---
+
+## 3.15 Permission Actions
+The only valid `PermissionAction` values are `'read'`, `'create'`, and `'delete'`.
+There is no `'update'` action — use `'create'` for any mutation that is not a deletion.
 
 ---
 

@@ -20,8 +20,10 @@ import {
   getUserIdsByTeamMemberIds,
   getSentBroadcasts,
   getBroadcastRecipients,
+  getUserEmailById,
 } from './repository';
 import { getTeamMembersBySupervisor } from '../../db/teamMembers';
+import { emailOrchestrator } from '../email';
 import { validatePayload, PayloadValidationError } from './components/ValidatePayload';
 import type { CreateNotificationDTO, NotificationDTO, UnreadCountDTO } from '@shared/dto/Notification';
 import type { RecipientWithNotification } from './types';
@@ -87,6 +89,24 @@ export class NotificationOrchestrator {
       dto.createdBy ?? null,
       recipients
     );
+
+    // 4. Fire-and-forget email — not awaited, so create() returns immediately regardless of SES outcome
+    if (dto.emailSubject) {
+      const emailSubject = dto.emailSubject;
+      void Promise.allSettled(
+        recipients.map(async (recipient) => {
+          const email = await getUserEmailById(recipient.userId);
+          if (email) {
+            await emailOrchestrator.send({
+              to: email,
+              subject: emailSubject,
+              body: dto.emailBody ?? '',
+              isHtml: dto.emailIsHtml ?? false,
+            });
+          }
+        })
+      );
+    }
   }
 
   /** Mark a notification as read for user */

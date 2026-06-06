@@ -227,6 +227,7 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
             info: `${formatDateDDMMYYYY(timeOffStartDate)} to ${formatDateDDMMYYYY(timeOffEndDate)}`,
             sourceId: created.timeOffId,
             sourceEntity: 'TimeOff',
+            isActionable: true,
           },
           recipients: [{ userId: employeeUserId, actionType: 'actionable' }],
         });

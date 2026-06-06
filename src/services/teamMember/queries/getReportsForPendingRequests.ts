@@ -5,6 +5,7 @@
  */
 
 import { getReports } from './getReports';
+import { getAllActiveTeamMembers } from './getAllActiveTeamMembers';
 
 export interface PendingRequestsTeamMember {
   teamMemberId: number;
@@ -14,8 +15,11 @@ export interface PendingRequestsTeamMember {
 
 export async function getReportsForPendingRequests(
   supervisorId: number,
+  viewAll = false,
 ): Promise<PendingRequestsTeamMember[]> {
-  const reports = await getReports(supervisorId, true);
+  const reports = viewAll
+    ? await getAllActiveTeamMembers()
+    : await getReports(supervisorId, true);
   return reports.map((r) => ({
     teamMemberId: r.teamMemberId,
     teamMemberNames: r.teamMemberNames,

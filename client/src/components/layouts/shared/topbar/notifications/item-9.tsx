@@ -8,6 +8,7 @@ import {
   AvatarStatus,
 } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface TaskItem {
   label: string;
@@ -24,6 +25,8 @@ interface Item9Props {
   info?: string;
   tasks?: TaskItem[];
   actionType?: string;
+  onAccept?: () => void;
+  onDecline?: () => void;
 }
 
 export default function Item9({
@@ -38,6 +41,9 @@ export default function Item9({
     { label: 'Feature Prioritization', variant: 'success' },
     { label: 'Last Month User Research', variant: 'outline' },
   ],
+  actionType,
+  onAccept,
+  onDecline,
 }: Item9Props) {
   return (
     <div className="flex gap-2.5 px-5">
@@ -84,6 +90,13 @@ export default function Item9({
             </Badge>
           ))}
         </div>
+
+        {actionType === 'actionable' && onAccept && onDecline && (
+          <div className="flex flex-wrap gap-2.5">
+            <Button size="sm" variant="outline" onClick={onDecline}>Reject</Button>
+            <Button size="sm" variant="mono" onClick={onAccept}>Approve</Button>
+          </div>
+        )}
       </div>
     </div>
   );

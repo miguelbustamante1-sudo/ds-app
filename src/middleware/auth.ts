@@ -25,6 +25,7 @@ export interface AuthenticatedRequest extends Request {
     dsUserId?: number;
     teamMemberId?: number;
   };
+  apiKeyId?: number;
 }
 
 /**
@@ -52,6 +53,20 @@ export const authMiddleware = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  // API key auth is opt-in per route. Only bypass JWT validation for the specific
+  // routes that have validateApiKey applied — a blanket bypass would allow revoked
+  // tokens to skip revocation checks on every other route.
+  const API_KEY_ROUTES: Array<{ method: string; path: string }> = [
+    { method: 'POST', path: '/api/standalone-tasks' },
+  ];
+  const isApiKeyRoute = API_KEY_ROUTES.some(
+    (r) => req.method === r.method && req.path === r.path,
+  );
+  if (req.headers['x-api-key'] && isApiKeyRoute) {
+    next();
+    return;
+  }
+
   try {
     const permissionsSource = (process.env.PERMISSIONS_SOURCE as PermissionSource | undefined) || 'db';
 

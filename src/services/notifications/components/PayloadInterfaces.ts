@@ -105,6 +105,9 @@ export interface Item9Payload {
   link: string;
   info: string;
   tasks: Array<{ label: string; variant?: string }>;
+  isActionable?: boolean;
+  sourceEntity?: string;
+  sourceId?: number;
 }
 
 export interface Item10Payload {

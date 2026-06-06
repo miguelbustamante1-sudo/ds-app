@@ -16,7 +16,8 @@ router.get(
         res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
         return;
       }
-      const requests = await getPendingRequests(supervisorId);
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
+      const requests = await getPendingRequests(supervisorId, viewAll);
       res.json(requests);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal server error';

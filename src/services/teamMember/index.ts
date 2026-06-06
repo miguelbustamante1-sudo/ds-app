@@ -15,3 +15,4 @@ export { getMyOwnProfile } from './queries/getMyOwnProfile';
 export { getSupervisorList } from './queries/getSupervisorList';
 export type { SupervisorListItemDTO } from './queries/getSupervisorList';
 export { getSupervisorChain } from './queries/getSupervisorChain';
+export { getAllActiveTeamMembers } from './queries/getAllActiveTeamMembers';

@@ -3,6 +3,7 @@ import type {
   SecurityRoleDTO,
   OptionDTO,
   PermissionDTO,
+  AuthUserWithRolesDTO,
 } from '@shared/dto';
 
 // ─── Options ──────────────────────────────────────────────────────────────────
@@ -71,3 +72,17 @@ export const updatePermission = (id: number, payload: {
 
 export const deletePermission = (id: number) =>
   apiDelete(`/api/rbac/permissions/${id}`);
+
+// ─── Auth Users (with assigned roles) ────────────────────────────────────────
+
+export const getAuthUsersWithRoles = () =>
+  apiGet<AuthUserWithRolesDTO[]>('/api/rbac/auth-users');
+
+export const assignRoleToUser = (userId: number, roleId: number) =>
+  apiPost<unknown, { usr_id: number; rol_id: number }>(
+    '/api/rbac/user-roles',
+    { usr_id: userId, rol_id: roleId },
+  );
+
+export const removeRoleFromUser = (userId: number, roleId: number) =>
+  apiDelete(`/api/rbac/user-roles/user/${userId}/role/${roleId}`);

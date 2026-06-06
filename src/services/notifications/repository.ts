@@ -26,6 +26,15 @@ export async function getUserIdsByTeamMemberIds(teamMemberIds: number[]): Promis
   return users.map((u) => u.userId);
 }
 
+/** Resolve a user's email address (stored as userName) by their userId */
+export async function getUserEmailById(userId: number): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { userId },
+    select: { userName: true },
+  });
+  return user?.userName ?? null;
+}
+
 /** Get sent broadcasts with read statistics */
 export async function getSentBroadcasts(createdBy: string) {
   const notifications = await prisma.notification.findMany({

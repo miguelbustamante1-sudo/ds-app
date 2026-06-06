@@ -25,6 +25,7 @@ import {
   Heart,
   HelpCircle,
   Kanban,
+  ClipboardList,
   Key,
   Layout,
   LayoutGrid,
@@ -47,6 +48,7 @@ import {
   Database,
   FolderGit2,
   Zap,
+  Mail,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 

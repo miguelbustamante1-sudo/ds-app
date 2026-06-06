@@ -149,18 +149,25 @@ The parent owns the API call, loading state, and error surfacing (e.g. via toast
 ## Shared Mechanics (Both Patterns)
 
 ### ComboBox wiring in react-hook-form
-ComboBox is not a native input and cannot use `register`. Wire it with `watch` + `setValue`:
+ComboBox is not a native input and cannot use `register`. Wire it with `Controller` from react-hook-form:
 
 ```tsx
-const watchedCountryId = watch('countryId');
-
-<ComboBox
-  options={countryOptions}
-  value={watchedCountryId}
-  onValueChange={(value) => setValue('countryId', value)}
-  placeholder="Select..."
+<Controller
+  name="countryId"
+  control={control}
+  rules={{ required: 'Country is required' }}
+  render={({ field }) => (
+    <ComboBox
+      options={countryOptions}
+      value={field.value}
+      onValueChange={field.onChange}
+      placeholder="Select..."
+    />
+  )}
 />
 ```
+
+`Controller` integrates validation, error state, touched/dirty tracking, and reset natively — no hidden inputs or `watch` calls needed.
 
 ### Date inputs
 Always use `type="date"`. The browser produces a safe ISO string (`yyyy-MM-dd`) that can be sent directly to the API.

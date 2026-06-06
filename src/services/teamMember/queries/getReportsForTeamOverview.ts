@@ -1,11 +1,15 @@
 import type { SupervisorTeamOverviewDTO } from '@shared/dto/SupervisorTeamOverview';
 import { getWorkdayBalance } from '../../timeoff/components/GetWorkdayBalance';
 import { getReports } from './getReports';
+import { getAllActiveTeamMembers } from './getAllActiveTeamMembers';
 
 export async function getReportsForTeamOverview(
-  supervisorTeamMemberId: number
+  supervisorTeamMemberId: number,
+  viewAll = false,
 ): Promise<SupervisorTeamOverviewDTO[]> {
-  const reports = await getReports(supervisorTeamMemberId, true);
+  const reports = viewAll
+    ? await getAllActiveTeamMembers()
+    : await getReports(supervisorTeamMemberId, true);
 
   const enriched = await Promise.all(
     reports.map(async (member) => {
