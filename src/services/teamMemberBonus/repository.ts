@@ -1,8 +1,3 @@
-/**
- * Team Member Bonus Repository
- * Database access layer for ds.tmb_team_member_bonus
- */
-
 import { prisma } from '../../db/prisma';
 import type { Prisma } from '@prisma/client';
 import type { TeamMemberBonusDTO } from '@shared/dto/TeamMemberBonus';
@@ -26,12 +21,32 @@ const includeRelations = {
   },
 } satisfies Prisma.TeamMemberBonusInclude;
 
+type BonusWithRelations = Prisma.TeamMemberBonusGetPayload<{ include: typeof includeRelations }>;
+
+function toDTO(r: BonusWithRelations): TeamMemberBonusDTO {
+  return {
+    teamMemberBonusId: r.teamMemberBonusId,
+    teamMemberId: r.teamMemberId,
+    bonusCategoryId: r.bonusCategoryId,
+    bonusAmount: r.bonusAmount.toString(),
+    bonusPeriodicity: r.bonusPeriodicity,
+    bonusStartDate: r.bonusStartDate?.toISOString() ?? null,
+    bonusEndDate: r.bonusEndDate?.toISOString() ?? null,
+    bonusCreatedBy: r.bonusCreatedBy,
+    bonusCreatedAt: r.bonusCreatedAt.toISOString(),
+    bonusUpdatedBy: r.bonusUpdatedBy ?? null,
+    bonusUpdatedAt: r.bonusUpdatedAt?.toISOString() ?? null,
+    teamMember: r.teamMember,
+    bonusCategory: r.bonusCategory,
+  };
+}
+
 export async function getAllTeamMemberBonuses(): Promise<TeamMemberBonusDTO[]> {
   const results = await prisma.teamMemberBonus.findMany({
     include: includeRelations,
     orderBy: { teamMemberBonusId: 'asc' },
   });
-  return results as unknown as TeamMemberBonusDTO[];
+  return results.map(toDTO);
 }
 
 export async function getTeamMemberBonusById(id: number): Promise<TeamMemberBonusDTO | null> {
@@ -39,7 +54,7 @@ export async function getTeamMemberBonusById(id: number): Promise<TeamMemberBonu
     where: { teamMemberBonusId: id },
     include: includeRelations,
   });
-  return result as unknown as TeamMemberBonusDTO | null;
+  return result ? toDTO(result) : null;
 }
 
 export async function getTeamMemberBonusesByMember(
@@ -50,7 +65,7 @@ export async function getTeamMemberBonusesByMember(
     include: includeRelations,
     orderBy: { teamMemberBonusId: 'asc' },
   });
-  return results as unknown as TeamMemberBonusDTO[];
+  return results.map(toDTO);
 }
 
 export async function createTeamMemberBonus(
@@ -60,7 +75,7 @@ export async function createTeamMemberBonus(
     data: payload,
     include: includeRelations,
   });
-  return result as unknown as TeamMemberBonusDTO;
+  return toDTO(result);
 }
 
 export async function updateTeamMemberBonus(
@@ -72,7 +87,7 @@ export async function updateTeamMemberBonus(
     data: payload,
     include: includeRelations,
   });
-  return result as unknown as TeamMemberBonusDTO;
+  return toDTO(result);
 }
 
 export async function deleteTeamMemberBonus(id: number): Promise<void> {

@@ -58,6 +58,7 @@ import {
   Zap,
   Hammer,
   Mail,
+  Sparkles,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -126,6 +127,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Inbox,
     path: '/my-tasks',
     permission: 'Workflow',
+  },
+  {
+    title: 'AI Assistant',
+    icon: Sparkles,
+    path: '/ai/chat',
+    permission: 'AiChat',
   },
   {
     title: 'Supervisor Time Off',

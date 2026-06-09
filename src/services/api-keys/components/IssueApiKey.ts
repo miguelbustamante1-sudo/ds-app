@@ -16,11 +16,13 @@ export async function issueApiKey(
 
   const rawKey = crypto.randomBytes(32).toString('hex');
   const apkKeyHash = await bcrypt.hash(rawKey, BCRYPT_COST);
+  const apkPrefix = rawKey.substring(0, 8);
 
   const created = await prisma.apiKey.create({
     data: {
       apkName: input.apkName.trim(),
       apkKeyHash,
+      apkPrefix,
       apkIsActive: true,
       apkCreatedBy: createdBy,
     },

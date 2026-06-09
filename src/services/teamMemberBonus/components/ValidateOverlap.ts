@@ -1,9 +1,4 @@
-/**
- * Overlap Validation Component
- * No two bonuses of the same BCA for the same team member may cover an overlapping period.
- * Null startDate = −Infinity. Null endDate = +Infinity.
- */
-
+// Null startDate = −Infinity. Null endDate = +Infinity. No two bonuses of the same category may overlap.
 import { TeamMemberBonusOverlapError } from '../errors';
 
 interface DateRange {

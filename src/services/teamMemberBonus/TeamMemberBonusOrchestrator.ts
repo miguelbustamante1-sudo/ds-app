@@ -1,8 +1,3 @@
-/**
- * Team Member Bonus Orchestrator
- * Coordinates all operations for ds.tmb_team_member_bonus
- */
-
 import {
   getAllTeamMemberBonuses,
   getTeamMemberBonusById,

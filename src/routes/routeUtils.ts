@@ -8,6 +8,12 @@ export function dsUserId(req: AuthenticatedRequest): number {
   return id;
 }
 
+export function tmId(req: AuthenticatedRequest): number {
+  const id = req.user?.teamMemberId;
+  if (!id) throw new AppError('Unauthenticated', 401);
+  return id;
+}
+
 export function actorEmail(req: AuthenticatedRequest): string {
   const email = req.user?.email;
   if (!email) throw new AppError('Unauthenticated', 401);
