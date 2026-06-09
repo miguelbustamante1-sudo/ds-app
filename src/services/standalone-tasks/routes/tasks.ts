@@ -4,7 +4,7 @@ import type { AuthenticatedRequest } from '../../../middleware/auth';
 import { validateApiKey } from '../../../middleware/apiKey';
 import { standaloneTaskOrchestrator } from '../StandaloneTaskOrchestrator';
 import type { CreateStandaloneTaskDTO, ResolveStandaloneTaskDTO } from '@shared/dto';
-import { dsUserId, tmId, actorEmail, catchHandler } from './routeUtils';
+import { dsUserId, tmId, actorEmail, catchHandler } from '../../../routes/routeUtils';
 
 const router = Router();
 

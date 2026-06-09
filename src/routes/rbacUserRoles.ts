@@ -8,11 +8,12 @@ import {
   createRbacUserRole,
   deleteRbacUserRole,
 } from '../db/rbacUserRoles';
-import { error } from '../logger';
 import { requirePermission } from '../middleware/auth';
 import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 import type { AuthenticatedRequest } from '../middleware/auth';
+import { actorEmail, catchHandler } from './routeUtils';
 import { Prisma } from '@prisma/client';
+import { error } from '../logger';
 
 const router = express.Router();
 
@@ -22,8 +23,7 @@ router.get('/', requirePermission('RBACUserRoles', 'read'), async (_req: Request
     const items: UserRole[] = await getAllRbacUserRoles();
     res.json({ data: items });
   } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to fetch user roles' });
+    catchHandler(err, res);
   }
 });
 
@@ -36,8 +36,7 @@ router.get('/user/:usr_id', requirePermission('RBACUserRoles', 'read'), async (r
     const items = await getRbacUserRolesByUser(usrId);
     res.json({ data: items });
   } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to fetch user roles by user' });
+    catchHandler(err, res);
   }
 });
 
@@ -50,8 +49,7 @@ router.get('/role/:rol_id', requirePermission('RBACUserRoles', 'read'), async (r
     const items = await getRbacUserRolesByRole(rolId);
     res.json({ data: items });
   } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to fetch user roles by role' });
+    catchHandler(err, res);
   }
 });
 
@@ -70,7 +68,7 @@ router.post('/', requirePermission('RBACUserRoles', 'create'), async (req: Reque
       .log({
         entityName: 'uro_user_roles',
         entityId: `${created.userId}_${created.roleId}`,
-        createdBy: (req as AuthenticatedRequest).user?.email ?? 'unknown',
+        createdBy: actorEmail(req as AuthenticatedRequest),
         oldValues: null,
         newValues: created as unknown as Record<string, unknown>,
         comment: `Role ${created.roleId} assigned to user ${created.userId}`,
@@ -79,8 +77,7 @@ router.post('/', requirePermission('RBACUserRoles', 'create'), async (req: Reque
 
     res.status(201).json({ data: created });
   } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to create user role' });
+    catchHandler(err, res);
   }
 });
 
@@ -108,7 +105,7 @@ router.delete('/user/:usr_id/role/:rol_id', requirePermission('RBACUserRoles', '
       .log({
         entityName: 'uro_user_roles',
         entityId: `${usrId}_${rolId}`,
-        createdBy: (req as AuthenticatedRequest).user?.email ?? 'unknown',
+        createdBy: actorEmail(req as AuthenticatedRequest),
         oldValues: record as unknown as Record<string, unknown>,
         newValues: null,
         comment: `Role ${rolId} removed from user ${usrId}`,
@@ -120,8 +117,7 @@ router.delete('/user/:usr_id/role/:rol_id', requirePermission('RBACUserRoles', '
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
       return res.status(404).json({ error: 'User role assignment not found' });
     }
-    error(err);
-    res.status(500).json({ error: 'Failed to delete user role' });
+    catchHandler(err, res);
   }
 });
 

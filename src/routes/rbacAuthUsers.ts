@@ -1,8 +1,8 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import { getAllAuthUsersWithRoles } from '../db/rbacAuthUsers';
-import { error } from '../logger';
 import { requirePermission } from '../middleware/auth';
+import { catchHandler } from './routeUtils';
 
 const router = express.Router();
 
@@ -12,8 +12,7 @@ router.get('/', requirePermission('RBACUserRoles', 'read'), async (_req: Request
     const items = await getAllAuthUsersWithRoles();
     res.json({ data: items });
   } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to fetch auth users' });
+    catchHandler(err, res);
   }
 });
 

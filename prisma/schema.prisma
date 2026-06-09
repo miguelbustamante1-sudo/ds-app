@@ -1507,6 +1507,7 @@ model ApiKey {
   apkId           Int       @id @default(autoincrement()) @map("apk_id") @db.Integer
   apkName         String    @map("apk_name") @db.Text
   apkKeyHash      String    @map("apk_key_hash") @db.Text
+  apkPrefix       String?   @map("apk_prefix") @db.VarChar(8)
   apkIsActive     Boolean   @default(true) @map("apk_is_active")
   apkCreatedBy    Int       @map("apk_created_by") @db.Integer
   apkCreatedDate  DateTime  @default(now()) @map("apk_created_date") @db.Timestamptz(6)

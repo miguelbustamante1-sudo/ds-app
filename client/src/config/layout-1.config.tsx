@@ -49,6 +49,7 @@ import {
   FolderGit2,
   Zap,
   Mail,
+  Sparkles,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 

@@ -23,14 +23,19 @@ export async function validateApiKey(
     return;
   }
 
-  const activeKeys = await prisma.apiKey.findMany({
-    where: { apkIsActive: true },
+  // Use the stored 8-char prefix to fetch at most one candidate row.
+  // Rows created before the prefix column was added have apkPrefix = null and
+  // are excluded here; they will fail validation until rotated (expected).
+  const prefix = rawKey.substring(0, 8);
+  const candidate = await prisma.apiKey.findFirst({
+    where: { apkIsActive: true, apkPrefix: prefix },
     select: { apkId: true, apkKeyHash: true },
   });
 
-  for (const key of activeKeys) {
-    const match = await bcrypt.compare(rawKey, key.apkKeyHash);
+  if (candidate) {
+    const match = await bcrypt.compare(rawKey, candidate.apkKeyHash);
     if (match) {
+      const key = candidate;
       // fire-and-forget: update last used date — never blocks the request
       void prisma.apiKey.update({
         where: { apkId: key.apkId },

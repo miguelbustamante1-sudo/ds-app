@@ -3,7 +3,7 @@ import { requirePermission } from '../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../middleware/auth';
 import { standaloneTaskOrchestrator } from '../StandaloneTaskOrchestrator';
 import type { AddStandaloneTaskCommentDTO } from '@shared/dto';
-import { dsUserId, catchHandler } from './routeUtils';
+import { dsUserId, catchHandler } from '../../../routes/routeUtils';
 
 const router = Router();
 

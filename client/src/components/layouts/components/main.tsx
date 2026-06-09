@@ -4,6 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useLayout } from './context';
 import { Footer } from './footer';
 import { Header } from './header';
+import { InsightStrip } from './InsightStrip';
 import { Sidebar } from './sidebar';
 import { SidebarMenu } from './sidebar-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -58,6 +59,7 @@ export function Main() {
 
       <div className="wrapper flex grow flex-col">
         <Header />
+        <InsightStrip />
 
         <main className="grow pt-5" role="content">
           <Outlet />

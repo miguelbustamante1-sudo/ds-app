@@ -55,6 +55,7 @@ import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
 import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
+import aiInsightsRouter from '../services/aiInsights/routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -115,6 +116,7 @@ export default function registerRoutes() {
   router.use('/standalone-tasks', standaloneTaskCommentsRouter);
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
+  router.use('/ai', aiInsightsRouter);
 
   return router;
 }

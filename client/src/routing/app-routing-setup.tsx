@@ -94,6 +94,7 @@ import OperationsHubPage from '@/pages/operations-hub';
 import GovernanceHubPage from '@/pages/governance-hub';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
+import { AiChatPage } from '@/pages/ai-chat';
 
 export function AppRoutingSetup() {
   return (
@@ -211,6 +212,7 @@ export function AppRoutingSetup() {
         <Route path="/communications-hub" element={<CommunicationsHubPage />} />
         <Route path="/operations-hub" element={<OperationsHubPage />} />
         <Route path="/governance-hub" element={<GovernanceHubPage />} />
+        <Route path="/ai/chat" element={<AiChatPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
