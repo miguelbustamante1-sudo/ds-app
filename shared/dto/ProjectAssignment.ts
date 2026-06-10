@@ -49,3 +49,23 @@ export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   clientName: string | null;
   clientContacts: { id: number; name: string }[];
 }
+
+export interface BenchAvailableMemberDTO {
+  teamMemberId: number;
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+  teamMemberSeniority: string | null;
+  totalAllocation: number;
+}
+
+export interface BulkRemoveAssignmentsDTO {
+  assignmentIds: number[];
+  lastBillableDate: string;
+}
+
+export interface BulkChangeRateDTO {
+  assignmentIds: number[];
+  newBillRate: number;
+  newBillRateCurrency: string;
+  startDate: string;
+}

@@ -9,6 +9,8 @@ export interface AssignmentValidationInput {
   projectAssignmentEndDate?: Date | string | null;
   projectAssignmentBillRate: number | null;
   projectAssignmentAllocation: number | null;
+  excludeAssignmentId?: number;
+  excludeProjectId?: number;
 }
 
 export interface ValidationResult {

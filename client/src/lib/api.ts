@@ -130,13 +130,14 @@ export async function apiPatch<TResponse, TBody = unknown>(
 }
 
 /**
- * DELETE request
+ * DELETE request — body is optional (used for bulk operations)
  */
-export async function apiDelete(endpoint: string): Promise<void> {
+export async function apiDelete<TBody = unknown>(endpoint: string, data?: TBody): Promise<void> {
   const response = await fetch(endpoint, {
     method: 'DELETE',
     headers: getHeaders(),
     credentials: 'include',
+    ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
   });
 
   return handleResponse<void>(response, endpoint);
