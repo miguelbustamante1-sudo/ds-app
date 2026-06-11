@@ -10,6 +10,7 @@ import {
   createTeamMember, updateTeamMember, deleteTeamMember,
   TeamMemberNotFoundError, InvalidTierBandError,
   getAllActiveTeamMembers,
+  getActiveTeamMemberSummaries,
 } from '../services/teamMember';
 import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
 import { getReportsForTeamOverview } from '../services/teamMember/queries/getReportsForTeamOverview';
@@ -53,6 +54,17 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch team members' });
+  }
+});
+
+// GET /team-members/active — all active team members (name + id only, for nomination selectors)
+router.get('/active', requirePermission('TeamMembers', 'read'), async (_req: Request, res: Response) => {
+  try {
+    const items = await getActiveTeamMemberSummaries();
+    res.json({ data: items });
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch active team members' });
   }
 });
 

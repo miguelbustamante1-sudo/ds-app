@@ -88,6 +88,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'SupervisorTimeOff',
   },
   {
+    title: 'Top Performers',
+    icon: Star,
+    path: '/top-performers-hub',
+    permission: 'TopPerformers',
+  },
+  {
     title: 'Data & Intelligence',
     icon: BarChart2,
     path: '/reports-hub',

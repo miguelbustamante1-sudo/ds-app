@@ -140,3 +140,21 @@ export async function getAllActiveTeamMembers(): Promise<TeamMemberReportDTO[]> 
     };
   });
 }
+
+export interface ActiveTeamMemberSummary {
+  teamMemberId: number;
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+}
+
+export async function getActiveTeamMemberSummaries(): Promise<ActiveTeamMemberSummary[]> {
+  const today = new Date();
+  return prisma.teamMember.findMany({
+    where: {
+      teamMemberStartDate: { lte: today },
+      OR: [{ teamMemberEndDate: null }, { teamMemberEndDate: { gte: today } }],
+    },
+    select: { teamMemberId: true, teamMemberNames: true, teamMemberSurnames: true },
+    orderBy: [{ teamMemberSurnames: 'asc' }, { teamMemberNames: 'asc' }],
+  });
+}

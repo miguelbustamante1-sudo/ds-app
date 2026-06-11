@@ -56,6 +56,12 @@ import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/co
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
+import uploadsRouter from './uploads';
+import tpCyclesRouter from './topPerformers/cycles';
+import tpNominationsRouter from './topPerformers/nominations';
+import tpAnonymizationRouter from './topPerformers/anonymization';
+import tpVotingRouter from './topPerformers/voting';
+import tpResultsRouter from './topPerformers/results';
 
 export default function registerRoutes() {
   const router = Router();
@@ -117,6 +123,12 @@ export default function registerRoutes() {
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);
+  router.use('/uploads', uploadsRouter);
+  router.use('/top-performers/cycles', tpCyclesRouter);
+  router.use('/top-performers/nominations', tpNominationsRouter);
+  router.use('/top-performers/anonymization', tpAnonymizationRouter);
+  router.use('/top-performers/voting', tpVotingRouter);
+  router.use('/top-performers/results', tpResultsRouter);
 
   return router;
 }

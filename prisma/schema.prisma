@@ -137,6 +137,10 @@ model TeamMember {
   phoneAssignments                  CorporatePhoneAssignment[]
   standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
   teamMemberBonuses                 TeamMemberBonus[]
+  tpNominationsAsNominee            TpNomination[]      @relation("TpNominee")
+  tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
+  tpVotes                           TpVote[]            @relation("TpVoter")
+  tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -399,6 +403,7 @@ model User {
   apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
   teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
   teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
+  uploads                       Upload[]                @relation("UploadCreatedByUser")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1517,6 +1522,151 @@ model ApiKey {
   standaloneTasks StandaloneTask[]
 
   @@map("apk_api_keys")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Uploads
+// =============================================================================
+
+model Upload {
+  uploadId           Int      @id @default(autoincrement()) @map("upl_id")
+  uploadOriginalName String   @map("upl_original_name")
+  uploadMimeType     String   @map("upl_mime_type")
+  uploadSizeBytes    Int      @map("upl_size_bytes")
+  uploadStorageKey   String   @map("upl_storage_key")
+  uploadCreatedBy    Int      @map("upl_created_by")
+  uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
+
+  createdByUser User @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+
+  @@map("upl_uploads")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Top Performers
+// =============================================================================
+
+model TpCycle {
+  cycId               Int       @id @default(autoincrement()) @map("cyc_id")
+  cycName             String    @map("cyc_name")
+  cycNominationsStart DateTime  @map("cyc_nominations_start")
+  cycNominationsEnd   DateTime  @map("cyc_nominations_end")
+  cycVotingStart      DateTime  @map("cyc_voting_start")
+  cycVotingEnd        DateTime  @map("cyc_voting_end")
+  cycStatus           String    @default("DRAFT") @map("cyc_status")
+  cycCreatedBy        Int       @map("cyc_created_by")
+  cycCreatedDate      DateTime  @default(now()) @map("cyc_created_date")
+  cycUpdatedBy        Int?      @map("cyc_updated_by")
+  cycUpdatedDate      DateTime? @map("cyc_updated_date")
+
+  nominations       TpNomination[]
+  votes             TpVote[]
+  committeeDecision TpCommitteeDecision?
+
+  @@map("cyc_cycles")
+  @@schema("ds")
+}
+
+model TpNomination {
+  nomId                    Int       @id @default(autoincrement()) @map("nom_id")
+  cycId                    Int       @map("cyc_id")
+  nomNomineeId             Int       @map("nom_nominee_id")
+  nomNominatorId           Int       @map("nom_nominator_id")
+  nomType                  String    @map("nom_type")
+  nomAchievementText       String    @map("nom_achievement_text")
+  nomQuantitativeData      String?   @map("nom_quantitative_data")
+  nomValuesSelected        Json?     @map("nom_values_selected")
+  nomValuesDescription     String?   @map("nom_values_description")
+  nomNominatorRelationship String?   @map("nom_nominator_relationship")
+  nomAdminExceedsRole      String?   @map("nom_admin_exceeds_role")
+  nomAdminClientImpact     String?   @map("nom_admin_client_impact")
+  nomAdminConfidenceLevel  Int?      @map("nom_admin_confidence_level")
+  nomAnonymizedText        String?   @map("nom_anonymized_text")
+  nomAnonymizationStatus   String    @default("PENDING") @map("nom_anonymization_status")
+  nomStatus                String    @default("DRAFT") @map("nom_status")
+  nomIsVozDelCliente       Boolean   @default(false) @map("nom_is_voz_del_cliente")
+  nomCreatedBy             Int       @map("nom_created_by")
+  nomCreatedDate           DateTime  @default(now()) @map("nom_created_date")
+  nomUpdatedBy             Int?      @map("nom_updated_by")
+  nomUpdatedDate           DateTime? @map("nom_updated_date")
+
+  cycle     TpCycle    @relation(fields: [cycId], references: [cycId])
+  nominee   TeamMember @relation("TpNominee", fields: [nomNomineeId], references: [teamMemberId])
+  nominator TeamMember @relation("TpNominator", fields: [nomNominatorId], references: [teamMemberId])
+  metrics   TpNominationMetric[]
+  voteItems TpVoteItem[]
+
+  @@unique([cycId, nomNominatorId, nomNomineeId])
+  @@map("nom_nominations")
+  @@schema("ds")
+}
+
+model TpNominationMetric {
+  nmeId              Int     @id @default(autoincrement()) @map("nme_id")
+  nomId              Int     @map("nom_id")
+  nmeMetricName      String  @map("nme_metric_name")
+  nmeMetricValue     String  @map("nme_metric_value")
+  nmeMetricBenchmark String? @map("nme_metric_benchmark")
+  nmeSortOrder       Int     @default(0) @map("nme_sort_order")
+
+  nomination TpNomination @relation(fields: [nomId], references: [nomId], onDelete: Cascade)
+
+  @@map("nme_nomination_metrics")
+  @@schema("ds")
+}
+
+model TpVote {
+  votId          Int      @id @default(autoincrement()) @map("vot_id")
+  cycId          Int      @map("cyc_id")
+  votVoterId     Int      @map("vot_voter_id")
+  votSubmittedAt DateTime @map("vot_submitted_at")
+  votCreatedBy   Int      @map("vot_created_by")
+  votCreatedDate DateTime @default(now()) @map("vot_created_date")
+
+  cycle TpCycle    @relation(fields: [cycId], references: [cycId])
+  voter TeamMember @relation("TpVoter", fields: [votVoterId], references: [teamMemberId])
+  items TpVoteItem[]
+
+  @@unique([cycId, votVoterId])
+  @@map("vot_votes")
+  @@schema("ds")
+}
+
+model TpVoteItem {
+  vtiId             Int     @id @default(autoincrement()) @map("vti_id")
+  votId             Int     @map("vot_id")
+  nomId             Int     @map("nom_id")
+  vtiRank           Int     @map("vti_rank")
+  vtiRawPoints      Int     @map("vti_raw_points")
+  vtiMultiplier     Decimal @map("vti_multiplier") @db.Decimal(3, 1)
+  vtiWeightedPoints Decimal @map("vti_weighted_points") @db.Decimal(6, 2)
+
+  vote       TpVote       @relation(fields: [votId], references: [votId], onDelete: Cascade)
+  nomination TpNomination @relation(fields: [nomId], references: [nomId])
+
+  @@unique([votId, vtiRank])
+  @@unique([votId, nomId])
+  @@map("vti_vote_items")
+  @@schema("ds")
+}
+
+model TpCommitteeDecision {
+  decId            Int       @id @default(autoincrement()) @map("dec_id")
+  cycId            Int       @unique @map("cyc_id")
+  decWinnerId      Int       @map("dec_winner_id")
+  decJustification String    @map("dec_justification")
+  decConfirmedBy1  Int?      @map("dec_confirmed_by_1")
+  decConfirmedBy2  Int?      @map("dec_confirmed_by_2")
+  decConfirmedAt   DateTime? @map("dec_confirmed_at")
+  decCreatedBy     Int       @map("dec_created_by")
+  decCreatedDate   DateTime  @default(now()) @map("dec_created_date")
+
+  cycle  TpCycle    @relation(fields: [cycId], references: [cycId])
+  winner TeamMember @relation("TpWinner", fields: [decWinnerId], references: [teamMemberId])
+
+  @@map("dec_decisions")
   @@schema("ds")
 }
 

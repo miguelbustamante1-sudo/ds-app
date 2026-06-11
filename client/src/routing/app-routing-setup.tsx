@@ -92,9 +92,17 @@ import ReportsHubPage from '@/pages/reports-hub';
 import CommunicationsHubPage from '@/pages/communications-hub';
 import OperationsHubPage from '@/pages/operations-hub';
 import GovernanceHubPage from '@/pages/governance-hub';
+import TopPerformersHubPage from '@/pages/top-performers-hub';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
+import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
+import AnonymizationReviewPage from '@/pages/top-performers/admin/anonymization';
+import VotingPage from '@/pages/top-performers/vote';
+import CommitteePage from '@/pages/top-performers/committee';
+import PeerNominationPage from '@/pages/top-performers/nominations/peer';
+import AdminNominationPage from '@/pages/top-performers/nominations/admin';
+import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 
 export function AppRoutingSetup() {
   return (
@@ -212,7 +220,16 @@ export function AppRoutingSetup() {
         <Route path="/communications-hub" element={<CommunicationsHubPage />} />
         <Route path="/operations-hub" element={<OperationsHubPage />} />
         <Route path="/governance-hub" element={<GovernanceHubPage />} />
+        <Route path="/top-performers-hub" element={<TopPerformersHubPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
+        {/* Top Performers */}
+        <Route path="/top-performers/admin/cycles" element={<TpCyclesPage />} />
+        <Route path="/top-performers/admin/anonymization" element={<AnonymizationReviewPage />} />
+        <Route path="/top-performers/vote" element={<VotingPage />} />
+        <Route path="/top-performers/committee" element={<CommitteePage />} />
+        <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />
+        <Route path="/top-performers/nominations/admin" element={<AdminNominationPage />} />
+        <Route path="/top-performers/nominations/customer" element={<CustomerNominationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

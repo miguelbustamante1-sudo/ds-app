@@ -2,7 +2,6 @@ import React from 'react';
 import { timeAgo } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { NotificationDTO } from '@shared/dto';
-import GenericNotificationItem from './item-generic';
 import Item1 from './item-1';
 import Item2 from './item-2';
 import Item3 from './item-3';
@@ -47,6 +46,14 @@ const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'item-20': Item20,
 };
 
+function FallbackItem({ itemType }: { itemType: string }) {
+  return (
+    <div className="px-4 py-3 text-sm text-muted-foreground">
+      Unknown notification type: {itemType}
+    </div>
+  );
+}
+
 interface NotificationItemProps {
   notification: NotificationDTO;
   onMarkAsRead: (recipientId: number) => void;
@@ -65,8 +72,6 @@ export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecli
       onMarkAsRead(id);
     }
   };
-
-  const typedPayload = payload as Record<string, unknown>;
 
   if (!ItemComponent) {
     return <FallbackItem itemType={itemType} />;

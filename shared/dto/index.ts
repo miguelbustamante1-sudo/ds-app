@@ -66,3 +66,13 @@ export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 // Standalone Tasks DTOs
 export * from './StandaloneTask';
 export * from './ApiKey';
+
+// Uploads DTOs
+export * from './Upload';
+
+// Top Performers DTOs
+export * from './TopPerformersCycle';
+export * from './TpNomination';
+export * from './TpAnonymization';
+export * from './TpVoting';
+export * from './TpResults';
