@@ -76,3 +76,9 @@ export * from './TpNomination';
 export * from './TpAnonymization';
 export * from './TpVoting';
 export * from './TpResults';
+
+// Gift Card DTOs
+export * from './GiftCardPool';
+export * from './GiftCardReason';
+export * from './GiftCardType';
+export * from './GiftCardValue';

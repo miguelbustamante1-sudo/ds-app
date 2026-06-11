@@ -166,6 +166,11 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/gift-cards/pools" element={<GiftCardPoolsPage />} />
+        <Route path="/maintenance/gift-cards/reasons" element={<GiftCardReasonsPage />} />
+        <Route path="/maintenance/gift-cards/card-types" element={<GiftCardTypesPage />} />
+        <Route path="/maintenance/gift-cards/card-values" element={<GiftCardValuesPage />} />
         <Route path="/maintenance/timeoff-period-backfill" element={<TimeOffPeriodBackfillPage />} />
         <Route path="/maintenance/email-test" element={<EmailTestPage />} />
         <Route path="/hiring" element={<HiringPage />} />
@@ -232,6 +237,7 @@ export function AppRoutingSetup() {
         <Route path="/top-performers/nominations/customer" element={<CustomerNominationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
+      
     </Routes>
   );
 }

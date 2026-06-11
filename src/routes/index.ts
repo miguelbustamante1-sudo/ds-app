@@ -62,6 +62,10 @@ import tpNominationsRouter from './topPerformers/nominations';
 import tpAnonymizationRouter from './topPerformers/anonymization';
 import tpVotingRouter from './topPerformers/voting';
 import tpResultsRouter from './topPerformers/results';
+import giftCardPoolsRouter from '../services/giftcards/catalogs/pools/pools.routes';
+import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reasons.routes';
+import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
+import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -129,6 +133,11 @@ export default function registerRoutes() {
   router.use('/top-performers/anonymization', tpAnonymizationRouter);
   router.use('/top-performers/voting', tpVotingRouter);
   router.use('/top-performers/results', tpResultsRouter);
+  router.use('/giftcards/catalogs/pools', giftCardPoolsRouter);
+  router.use('/giftcards/catalogs/reasons', giftCardReasonsRouter);
+  router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
+  router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
+  
 
   return router;
 }

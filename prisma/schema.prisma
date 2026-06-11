@@ -404,6 +404,10 @@ model User {
   teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
   teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
   uploads                       Upload[]                @relation("UploadCreatedByUser")
+  giftCardPoolsCreated         GiftCardPool[]
+  giftCardReasonsCreated       GiftCardReason[]
+  giftCardTypesCreated         GiftCardType[]
+  giftCardValuesCreated        GiftCardValue[]
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1670,3 +1674,72 @@ model TpCommitteeDecision {
   @@schema("ds")
 }
 
+// =============================================================================
+// GIFT CARDS — Catalog tables
+// =============================================================================
+
+model GiftCardPool {
+  poolId        Int      @id @default(autoincrement()) @map("gcp_id") @db.Integer
+  poolCode      String   @unique @map("gcp_code") @db.VarChar(50)
+  poolName      String   @map("gcp_name") @db.VarChar(200)
+  poolIsActive  Boolean  @default(true) @map("gcp_is_active")
+  poolCreatedBy Int      @map("gcp_created_by") @db.Integer
+  poolCreatedAt DateTime @default(now()) @map("gcp_created_at") @db.Timestamptz(6)
+
+  createdBy User @relation(fields: [poolCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcp_usr")
+
+  @@index([poolIsActive], map: "idx_tbl_gcp_pools_is_active")
+  @@index([poolCreatedBy], map: "idx_tbl_gcp_pools_created_by")
+  @@map("tbl_gcp_pools")
+  @@schema("ds")
+}
+
+model GiftCardReason {
+  reasonId        Int      @id @default(autoincrement()) @map("gcr_id") @db.Integer
+  reasonName      String   @unique @map("gcr_name") @db.VarChar(200)
+  reasonIsActive  Boolean  @default(true) @map("gcr_is_active")
+  reasonCreatedBy Int      @map("gcr_created_by") @db.Integer
+  reasonCreatedAt DateTime @default(now()) @map("gcr_created_at") @db.Timestamptz(6)
+
+  createdBy User @relation(fields: [reasonCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcr_usr")
+
+  @@index([reasonIsActive], map: "idx_tbl_gcr_reasons_is_active")
+  @@index([reasonCreatedBy], map: "idx_tbl_gcr_reasons_created_by")
+  @@map("tbl_gcr_reasons")
+  @@schema("ds")
+}
+
+model GiftCardType {
+  cardTypeId        Int              @id @default(autoincrement()) @map("gct_id") @db.Integer
+  cardTypeName      String           @unique @map("gct_name") @db.VarChar(200)
+  cardTypeIsActive  Boolean          @default(true) @map("gct_is_active")
+  cardTypeCreatedBy Int              @map("gct_created_by") @db.Integer
+  cardTypeCreatedAt DateTime         @default(now()) @map("gct_created_at") @db.Timestamptz(6)
+
+  createdBy  User             @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
+  cardValues GiftCardValue[]
+
+  @@index([cardTypeIsActive], map: "idx_tbl_gct_card_types_is_active")
+  @@index([cardTypeCreatedBy], map: "idx_tbl_gct_card_types_created_by")
+  @@map("tbl_gct_card_types")
+  @@schema("ds")
+}
+
+model GiftCardValue {
+  cardValueId        Int          @id @default(autoincrement()) @map("gcv_id") @db.Integer
+  cardTypeId         Int          @map("gct_id") @db.Integer
+  cardValueAmount    Decimal      @map("gcv_amount") @db.Decimal(15, 2)
+  cardValueCurrency  String       @default("USD") @map("gcv_currency") @db.VarChar(10)
+  cardValueIsActive  Boolean      @default(true) @map("gcv_is_active")
+  cardValueCreatedBy Int          @map("gcv_created_by") @db.Integer
+  cardValueCreatedAt DateTime     @default(now()) @map("gcv_created_at") @db.Timestamptz(6)
+
+  cardType  GiftCardType @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
+  createdBy User         @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
+
+  @@index([cardTypeId], map: "idx_tbl_gcv_card_values_gct_id")
+  @@index([cardValueIsActive], map: "idx_tbl_gcv_card_values_is_active")
+  @@index([cardValueCreatedBy], map: "idx_tbl_gcv_card_values_created_by")
+  @@map("tbl_gcv_card_values")
+  @@schema("ds")
+}
