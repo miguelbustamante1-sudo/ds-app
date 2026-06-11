@@ -58,23 +58,23 @@ export default function VotingPage() {
       await votingApi.submitVote(activeCycle.cycId, items);
       setSubmitted(true);
       setConfirmOpen(false);
-      toast({ title: '¡Tu voto fue registrado!' });
+      toast({ title: 'Your vote was registered!' });
     } catch {
-      toast({ title: 'Error al enviar tu voto', variant: 'destructive' });
+      toast({ title: 'Error submitting your vote', variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
   }
 
   if (!activeCycle || activeCycle.cycStatus !== 'VOTING_OPEN') {
-    return <div className="p-6 text-muted-foreground">La votación no está abierta en este momento.</div>;
+    return <div className="p-6 text-muted-foreground">Voting is not open at this time.</div>;
   }
 
   if (alreadyVoted || submitted) {
     return (
       <div className="p-6 text-center space-y-3">
-        <p className="text-2xl font-bold text-green-600">¡Gracias por votar!</p>
-        <p className="text-muted-foreground">Tu voto fue registrado para el ciclo {activeCycle.cycName}.</p>
+        <p className="text-2xl font-bold text-green-600">Thank you for voting!</p>
+        <p className="text-muted-foreground">Your vote was registered for cycle {activeCycle.cycName}.</p>
       </div>
     );
   }
@@ -89,12 +89,12 @@ export default function VotingPage() {
               style={{ width: `${(selectedCount / 5) * 100}%` }}
             />
           </div>
-          <span className="text-sm text-muted-foreground">{selectedCount} de 5 seleccionados</span>
+          <span className="text-sm text-muted-foreground">{selectedCount} of 5 selected</span>
         </div>
 
         <div className="flex gap-4">
           <div className="flex-1 space-y-3 overflow-y-auto max-h-screen">
-            <h2 className="font-semibold">Candidatos</h2>
+            <h2 className="font-semibold">Candidates</h2>
             {nominations.map((nom) => (
               <NominationCard
                 key={nom.nomId}
@@ -119,7 +119,7 @@ export default function VotingPage() {
               disabled={!isComplete}
               onClick={() => setConfirmOpen(true)}
             >
-              Enviar mi voto
+              Submit my vote
             </Button>
           </div>
         </div>
@@ -127,9 +127,9 @@ export default function VotingPage() {
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Confirmar tu voto</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Confirm your vote</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Una vez enviado, tu voto no puede modificarse.
+            Once submitted, your vote cannot be changed.
           </p>
           <ol className="text-sm space-y-1 mt-2">
             {slots.map((s) => {
@@ -142,9 +142,9 @@ export default function VotingPage() {
             })}
           </ol>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Volver</Button>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Back</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Enviando...' : 'Confirmar voto'}
+              {submitting ? 'Submitting...' : 'Confirm vote'}
             </Button>
           </DialogFooter>
         </DialogContent>

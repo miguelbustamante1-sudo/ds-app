@@ -474,11 +474,14 @@ function NotificationCenterPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<NotifTab>("unread");
+  const { canRead } = usePermissions();
+  const hasAccess = canRead('Notifications');
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications", tab],
     queryFn: () => fetchNotifications(tab),
     staleTime: 30_000,
+    enabled: hasAccess,
   });
 
   const markReadMutation = useMutation({

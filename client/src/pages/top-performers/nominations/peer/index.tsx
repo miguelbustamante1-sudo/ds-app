@@ -15,11 +15,10 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { PeerNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
-
-const TELUS_VALUES = ['Cuidado', 'Coraje', 'Confianza', 'Trabajo en equipo'];
+import { TELUS_VALUES } from '@/constants/telusValues';
 const DRAFT_KEY = 'tp-peer-nomination-draft';
 
-interface ActiveMember { teamMemberId: number; teamMemberNames: string; teamMemberSurnames: string; }
+interface ActiveMember { teamMemberId: number; workdayId: string | null; teamMemberNames: string; teamMemberSurnames: string; }
 
 export default function PeerNominationPage() {
   const { toast } = useToast();
@@ -37,6 +36,8 @@ export default function PeerNominationPage() {
     useForm<PeerNominationPayload>({ mode: 'onChange' });
 
   const achievementText = watch('achievementText', '');
+  register('nomineeId', { required: 'Select a nominee', validate: (v) => !isNaN(v) || 'Select a nominee' });
+  const watchedNomineeId = watch('nomineeId');
 
   useEffect(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
@@ -59,23 +60,23 @@ export default function PeerNominationPage() {
       localStorage.removeItem(DRAFT_KEY);
       setSubmitted(true);
       setConfirmOpen(false);
-      toast({ title: `Nominación enviada para ${activeCycle.cycName}` });
+      toast({ title: `Nomination submitted for ${activeCycle.cycName}` });
     } catch {
-      toast({ title: 'Error al enviar la nominación', variant: 'destructive' });
+      toast({ title: 'Error submitting nomination', variant: 'destructive' });
     }
   };
 
   const memberOptions = activeMembers.map((m) => ({
     value: String(m.teamMemberId),
-    label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+    label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
 
   if (submitted) {
     return (
       <div className="p-6 text-center space-y-4">
-        <p className="text-2xl font-bold text-green-600">¡Nominación enviada!</p>
-        <p className="text-muted-foreground">Tu nominación fue registrada correctamente.</p>
-        <Button onClick={() => setSubmitted(false)}>Enviar otra nominación</Button>
+        <p className="text-2xl font-bold text-green-600">Nomination submitted!</p>
+        <p className="text-muted-foreground">Your nomination was registered successfully.</p>
+        <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
       </div>
     );
   }
@@ -84,35 +85,28 @@ export default function PeerNominationPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-4">
       <Card>
         <CardContent className="pt-6 space-y-5">
-          <CardTitle>Nominar a un Par</CardTitle>
+          <CardTitle>Nominate a Peer</CardTitle>
 
           <div>
-            <Label>¿A quién deseas nominar?</Label>
-            <Controller
-              name="nomineeId"
-              control={control}
-              rules={{ required: 'Selecciona un nominado' }}
-              render={({ field }) => (
-                <ComboBox
-                  options={memberOptions}
-                  value={field.value ? String(field.value) : ''}
-                  onChange={(v) => field.onChange(parseInt(v, 10))}
-                  placeholder="Busca por nombre..."
-                />
-              )}
+            <Label>Who do you want to nominate?</Label>
+            <ComboBox
+              options={memberOptions}
+              value={watchedNomineeId ? String(watchedNomineeId) : ''}
+              onValueChange={(v) => setValue('nomineeId', parseInt(v, 10), { shouldValidate: true })}
+              placeholder="Search by name..."
             />
             {errors.nomineeId && <p className="text-destructive text-sm mt-1">{errors.nomineeId.message}</p>}
           </div>
 
           <div>
-            <Label>¿Qué hizo esta persona para merecer ser Top Performer?</Label>
+            <Label>What did this person do to deserve being a Top Performer?</Label>
             <Textarea
               {...register('achievementText', {
-                required: 'Requerido',
-                minLength: { value: 80, message: 'Mínimo 80 caracteres' },
-                maxLength: { value: 800, message: 'Máximo 800 caracteres' },
+                required: 'Required',
+                minLength: { value: 80, message: 'Minimum 80 characters' },
+                maxLength: { value: 800, message: 'Maximum 800 characters' },
               })}
-              placeholder="Describe el logro, situación o contribución específica que observaste..."
+              placeholder="Describe the achievement, situation, or specific contribution you observed..."
               rows={5}
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -121,23 +115,23 @@ export default function PeerNominationPage() {
             </div>
             {achievementText.length > 0 && achievementText.length < 80 && (
               <p className="text-amber-600 text-xs mt-1">
-                Consejo: agrega más detalle para fortalecer la nominación.
+                Tip: add more detail to strengthen the nomination.
               </p>
             )}
           </div>
 
           <div>
-            <Label>¿Tienes algún dato cuantitativo? (opcional)</Label>
+            <Label>Do you have any quantitative data? (optional)</Label>
             <Textarea
               {...register('quantitativeData')}
-              placeholder="Ej. Logró un CSAT del 95% ese mes, o resolvió 40 tickets en un día."
+              placeholder="e.g. Achieved 95% CSAT that month, or resolved 40 tickets in a day."
               rows={2}
             />
           </div>
 
           <div>
-            <Label>¿Cómo refleja este logro los valores de TELUS? (opcional)</Label>
-            <div className="flex flex-wrap gap-3 mt-2">
+            <Label>How does this achievement reflect TELUS values? (optional)</Label>
+            <div className="flex flex-col gap-2 mt-2">
               {TELUS_VALUES.map((v) => (
                 <Controller
                   key={v}
@@ -146,7 +140,7 @@ export default function PeerNominationPage() {
                   render={({ field }) => {
                     const selected: string[] = field.value ?? [];
                     return (
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-start gap-2 cursor-pointer">
                         <Checkbox
                           checked={selected.includes(v)}
                           onCheckedChange={(checked) =>
@@ -162,7 +156,7 @@ export default function PeerNominationPage() {
             </div>
             <Textarea
               {...register('valuesDescription')}
-              placeholder="Describe brevemente cómo refleja estos valores (opcional, máx 200 chars)"
+              placeholder="Briefly describe how it reflects these values (optional, max 200 chars)"
               maxLength={200}
               rows={2}
               className="mt-2"
@@ -170,17 +164,17 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>¿Cuál es tu relación con el nominado?</Label>
+            <Label>What is your relationship with the nominee?</Label>
             <Controller
               name="nominatorRelationship"
               control={control}
-              rules={{ required: 'Selecciona una opción' }}
+              rules={{ required: 'Select an option' }}
               render={({ field }) => (
                 <RadioGroup value={field.value} onValueChange={field.onChange} className="mt-2 space-y-1">
                   {[
-                    { value: 'SAME_TEAM', label: 'Mismo equipo / LOB' },
-                    { value: 'OTHER_TEAM', label: 'Otro equipo / LOB' },
-                    { value: 'PROJECT', label: 'Interacción por proyecto puntual' },
+                    { value: 'SAME_TEAM', label: 'Same team / LOB' },
+                    { value: 'OTHER_TEAM', label: 'Other team / LOB' },
+                    { value: 'PROJECT', label: 'Project-based interaction' },
                   ].map((opt) => (
                     <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                       <RadioGroupItem value={opt.value} />
@@ -201,21 +195,21 @@ export default function PeerNominationPage() {
             onClick={() => setConfirmOpen(true)}
             className="w-full"
           >
-            Revisar y enviar nominación
+            Review and submit nomination
           </Button>
         </CardContent>
       </Card>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Confirmar nominación</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Confirm nomination</DialogTitle></DialogHeader>
           <div className="text-sm space-y-2 max-h-60 overflow-y-auto">
-            <p><strong>Logro:</strong> {watch('achievementText')}</p>
-            {watch('quantitativeData') && <p><strong>Métricas:</strong> {watch('quantitativeData')}</p>}
+            <p><strong>Achievement:</strong> {watch('achievementText')}</p>
+            {watch('quantitativeData') && <p><strong>Metrics:</strong> {watch('quantitativeData')}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Editar</Button>
-            <Button onClick={handleSubmit(onSubmit)}>Confirmar y enviar</Button>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Edit</Button>
+            <Button onClick={handleSubmit(onSubmit)}>Confirm and submit</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

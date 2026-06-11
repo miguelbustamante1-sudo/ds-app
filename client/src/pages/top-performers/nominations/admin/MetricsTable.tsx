@@ -18,16 +18,16 @@ export function MetricsTable({ control, register }: MetricsTableProps) {
         <div key={field.id} className="grid grid-cols-3 gap-2 items-center">
           <Input
             {...register(`metrics.${i}.metricName`, { required: true })}
-            placeholder="Métrica (ej. CSAT)"
+            placeholder="Metric (e.g. CSAT)"
           />
           <Input
             {...register(`metrics.${i}.metricValue`, { required: true })}
-            placeholder="Valor (ej. 94%)"
+            placeholder="Value (e.g. 94%)"
           />
           <div className="flex gap-1">
             <Input
               {...register(`metrics.${i}.metricBenchmark`)}
-              placeholder="Meta (ej. 88%)"
+              placeholder="Goal (e.g. 88%)"
             />
             {fields.length > 1 && (
               <Button type="button" variant="destructive" size="sm" onClick={() => remove(i)}>✕</Button>
@@ -41,7 +41,7 @@ export function MetricsTable({ control, register }: MetricsTableProps) {
         size="sm"
         onClick={() => append({ metricName: '', metricValue: '', metricBenchmark: '' })}
       >
-        + Agregar métrica
+        + Add metric
       </Button>
     </div>
   );

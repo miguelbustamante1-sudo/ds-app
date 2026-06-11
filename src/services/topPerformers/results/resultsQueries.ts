@@ -3,7 +3,7 @@ import { AppError } from '../../../errors/AppError';
 import type { LeaderboardEntry, CandidateDetail } from '@shared/dto/TpResults';
 
 export function buildLeaderboardCsv(cycId: number, leaderboard: LeaderboardEntry[]): string {
-  const header = 'Posición,Nombre,Apellidos,Puntaje Bruto,Puntaje Ponderado,Votos,Nominaciones\n';
+  const header = 'Position,First Name,Last Name,Raw Points,Weighted Points,Votes,Nominations\n';
   const rows = leaderboard
     .map(
       (e, i) =>

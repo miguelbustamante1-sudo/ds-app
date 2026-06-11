@@ -46,19 +46,19 @@ export default function CommitteePage() {
     initialState: { pagination: { pageSize: 20 } },
   });
 
-  if (!activeCycle) return <div className="p-6 text-muted-foreground">No hay ciclo activo.</div>;
+  if (!activeCycle) return <div className="p-6 text-muted-foreground">No active cycle.</div>;
 
   return (
     <div className="p-6 space-y-4">
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
-            <CardTitle>Resultados Top Performers — {activeCycle.cycName}</CardTitle>
+            <CardTitle>Top Performers Results — {activeCycle.cycName}</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => cycId && resultsApi.exportCsv(cycId)}>
-                Exportar CSV
+                Export CSV
               </Button>
-              <Button onClick={() => setShowDecision(true)}>Decisión del Comité</Button>
+              <Button onClick={() => setShowDecision(true)}>Committee Decision</Button>
             </div>
           </div>
 

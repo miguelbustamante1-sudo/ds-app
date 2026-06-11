@@ -15,7 +15,7 @@ export function buildLeaderboardColumns(
     },
     {
       id: 'name',
-      header: 'Colaborador',
+      header: 'Team Member',
       cell: ({ row }) => (
         <button
           className="text-left hover:underline font-medium"
@@ -25,13 +25,13 @@ export function buildLeaderboardColumns(
         </button>
       ),
     },
-    { accessorKey: 'totalRawPoints', header: 'Pts Brutos' },
+    { accessorKey: 'totalRawPoints', header: 'Raw Points' },
     {
       accessorKey: 'totalWeightedPoints',
-      header: 'Pts Ponderados',
+      header: 'Weighted Points',
       cell: ({ row }) => <span className="font-semibold">{row.original.totalWeightedPoints}</span>,
     },
-    { accessorKey: 'totalVotesReceived', header: 'Votos' },
-    { accessorKey: 'totalNominationsReceived', header: 'Nominaciones' },
+    { accessorKey: 'totalVotesReceived', header: 'Votes' },
+    { accessorKey: 'totalNominationsReceived', header: 'Nominations' },
   ];
 }

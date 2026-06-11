@@ -16,15 +16,15 @@ import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
 
 const CHANNELS = [
-  { value: 'EMAIL', label: 'Correo electrónico' },
-  { value: 'CHAT', label: 'Chat en vivo' },
-  { value: 'CSAT', label: 'Encuesta CSAT/NPS' },
-  { value: 'CALL', label: 'Llamada telefónica (transcripción)' },
-  { value: 'SOCIAL', label: 'Redes sociales' },
-  { value: 'OTHER', label: 'Otro' },
+  { value: 'EMAIL', label: 'Email' },
+  { value: 'CHAT', label: 'Live chat' },
+  { value: 'CSAT', label: 'CSAT/NPS survey' },
+  { value: 'CALL', label: 'Phone call (transcript)' },
+  { value: 'SOCIAL', label: 'Social media' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
-interface ActiveMember { teamMemberId: number; teamMemberNames: string; teamMemberSurnames: string; }
+interface ActiveMember { teamMemberId: number; workdayId: string | null; teamMemberNames: string; teamMemberSurnames: string; }
 
 type CustomerFormValues = CustomerNominationPayload & { showClientName: boolean; clientName?: string };
 
@@ -36,17 +36,21 @@ export default function CustomerNominationPage() {
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } =
     useForm<CustomerFormValues>({
       defaultValues: { showClientName: false },
     });
 
   const feedbackText = watch('achievementText', '');
   const showClientName = watch('showClientName');
+  register('nomineeId', { required: 'Select a team member', validate: (v) => !isNaN(v) || 'Select a team member' });
+  register('customerChannel', { required: 'Select a channel' });
+  const watchedNomineeId = watch('nomineeId');
+  const watchedChannel = watch('customerChannel');
 
   const memberOptions = members.map((m) => ({
     value: String(m.teamMemberId),
-    label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+    label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
 
   const onSubmit = async (data: CustomerFormValues) => {
@@ -61,9 +65,9 @@ export default function CustomerNominationPage() {
         attachments: data.attachments,
       };
       await nominationsApi.createCustomer(payload);
-      toast({ title: 'Feedback de cliente registrado como nominación' });
+      toast({ title: 'Customer feedback recorded as nomination' });
     } catch {
-      toast({ title: 'Error al registrar el feedback', variant: 'destructive' });
+      toast({ title: 'Error recording feedback', variant: 'destructive' });
     }
   };
 
@@ -71,68 +75,54 @@ export default function CustomerNominationPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-4">
       <Card>
         <CardContent className="pt-6 space-y-5">
-          <CardTitle>Voz del Cliente — Nominación</CardTitle>
+          <CardTitle>Voice of Customer — Nomination</CardTitle>
 
           <div>
-            <Label>Colaborador nominado</Label>
-            <Controller
-              name="nomineeId"
-              control={control}
-              rules={{ required: 'Selecciona un colaborador' }}
-              render={({ field }) => (
-                <ComboBox
-                  options={memberOptions}
-                  value={field.value ? String(field.value) : ''}
-                  onChange={(v) => field.onChange(parseInt(v, 10))}
-                  placeholder="Busca por nombre..."
-                />
-              )}
+            <Label>Nominated team member</Label>
+            <ComboBox
+              options={memberOptions}
+              value={watchedNomineeId ? String(watchedNomineeId) : ''}
+              onValueChange={(v) => setValue('nomineeId', parseInt(v, 10), { shouldValidate: true })}
+              placeholder="Search by name..."
             />
             {errors.nomineeId && <p className="text-destructive text-sm mt-1">{errors.nomineeId.message}</p>}
           </div>
 
           {/* Plain textarea — FLAG-02: rich text removed intentionally */}
           <div>
-            <Label>Feedback del cliente (texto original)</Label>
+            <Label>Customer feedback (original text)</Label>
             <Textarea
               {...register('achievementText', {
-                required: 'Requerido',
-                minLength: { value: 50, message: 'Mínimo 50 caracteres' },
+                required: 'Required',
+                minLength: { value: 50, message: 'Minimum 50 characters' },
               })}
-              placeholder="Pega aquí el texto del email, chat, encuesta o comentario exacto del cliente..."
+              placeholder="Paste the exact email, chat, survey, or customer comment text here..."
               rows={6}
             />
             {feedbackText.length > 0 && feedbackText.length < 80 && (
               <p className="text-amber-600 text-xs mt-1">
-                Este feedback es corto. Considera agregar contexto si el cliente compartió información adicional verbalmente.
+                This feedback is short. Consider adding context if the customer shared additional information verbally.
               </p>
             )}
             {errors.achievementText && <p className="text-destructive text-sm mt-1">{errors.achievementText.message}</p>}
           </div>
 
           <div>
-            <Label>Canal de origen del feedback</Label>
-            <Controller
-              name="customerChannel"
-              control={control}
-              rules={{ required: 'Selecciona un canal' }}
-              render={({ field }) => (
-                <ComboBox
-                  options={CHANNELS}
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  placeholder="Selecciona el canal..."
-                />
-              )}
+            <Label>Feedback source channel</Label>
+            <ComboBox
+              options={CHANNELS}
+              value={watchedChannel ?? ''}
+              onValueChange={(v) => setValue('customerChannel', v, { shouldValidate: true })}
+              placeholder="Select a channel..."
             />
             {errors.customerChannel && <p className="text-destructive text-sm mt-1">{errors.customerChannel.message}</p>}
           </div>
 
           <div>
-            <Label>Fecha en que se recibió el feedback</Label>
+            <Label>Date feedback was received</Label>
             <Input
               type="date"
-              {...register('feedbackDate', { required: 'Requerido' })}
+              {...register('feedbackDate', { required: 'Required' })}
               max={new Date().toISOString().split('T')[0]}
             />
             {errors.feedbackDate && <p className="text-destructive text-sm mt-1">{errors.feedbackDate.message}</p>}
@@ -144,14 +134,14 @@ export default function CustomerNominationPage() {
               control={control}
               render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
             />
-            <Label>¿El cliente autorizó compartir su nombre?</Label>
+            <Label>Did the customer authorize sharing their name?</Label>
           </div>
           {showClientName && (
-            <Input {...register('clientName')} placeholder="Nombre del cliente (opcional)" />
+            <Input {...register('clientName')} placeholder="Customer name (optional)" />
           )}
 
           <div>
-            <Label>Archivos de soporte (opcional)</Label>
+            <Label>Support files (optional)</Label>
             <Controller
               name="attachments"
               control={control}
@@ -166,7 +156,7 @@ export default function CustomerNominationPage() {
           </div>
 
           <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Registrando...' : 'Registrar nominación de cliente'}
+            {isSubmitting ? 'Recording...' : 'Record customer nomination'}
           </Button>
         </CardContent>
       </Card>

@@ -6,27 +6,27 @@ import { callFuelIx } from '../../aiInsights/fuelixClient';
 
 const FUELIX_MODEL = 'claude-sonnet-4-6';
 
-const SYSTEM_PROMPT = `Eres un asistente de RRHH especializado en procesos de reconocimiento de personal. Tu tarea es anonimizar nominaciones de empleados para un proceso de votación justo. Debes preservar TODA la información sobre el logro mientras eliminas CUALQUIER dato que permita identificar a la persona nominada.
+const SYSTEM_PROMPT = `You are an HR assistant specializing in employee recognition processes. Your task is to anonymize employee nominations for a fair voting process. You must preserve ALL information about the achievement while removing ANY data that could identify the nominated person.
 
-REGLAS ESTRICTAS:
-1. Reemplaza TODOS los nombres propios de personas con "[colaborador]" o "[colega]" según corresponda.
-2. Reemplaza nombres de proyectos identificables con "[proyecto]".
-3. Reemplaza nombres de clientes o cuentas con "[cliente]".
-4. Si un equipo o LOB es suficientemente específico para revelar identidad, reemplázalo con "[equipo]".
-5. NO elimines métricas numéricas (porcentajes, cantidades, tiempos).
-6. NO cambies el significado, el tono ni el nivel de detalle del logro.
-7. Si el texto ya está anonimizado o no contiene datos identificables, devuélvelo sin cambios.
-8. Devuelve SOLO el texto anonimizado, sin explicaciones ni comentarios adicionales.
-9. Si el logro depende tanto del nombre que sin él pierde contexto, reemplaza el nombre pero agrega entre corchetes el rol genérico: ej. "[agente de soporte]".`;
+STRICT RULES:
+1. Replace ALL proper names of people with "[team member]" or "[colleague]" as appropriate.
+2. Replace identifiable project names with "[project]".
+3. Replace client or account names with "[client]".
+4. If a team or LOB is specific enough to reveal identity, replace it with "[team]".
+5. Do NOT remove numerical metrics (percentages, counts, times).
+6. Do NOT change the meaning, tone, or level of detail of the achievement.
+7. If the text is already anonymized or contains no identifiable data, return it unchanged.
+8. Return ONLY the anonymized text, with no explanations or additional comments.
+9. If the achievement depends so heavily on the name that without it the context is lost, replace the name but add the generic role in brackets: e.g. "[support agent]".`;
 
 function serializeMetrics(
   metrics: Array<{ nmeMetricName: string; nmeMetricValue: string; nmeMetricBenchmark: string | null }>
 ): string {
   if (!metrics.length) return '';
   const rows = metrics.map(
-    (m) => `- ${m.nmeMetricName}: ${m.nmeMetricValue}${m.nmeMetricBenchmark ? ` (meta: ${m.nmeMetricBenchmark})` : ''}`
+    (m) => `- ${m.nmeMetricName}: ${m.nmeMetricValue}${m.nmeMetricBenchmark ? ` (goal: ${m.nmeMetricBenchmark})` : ''}`
   );
-  return `\n\nMétricas:\n${rows.join('\n')}`;
+  return `\n\nMetrics:\n${rows.join('\n')}`;
 }
 
 function buildNominationText(
@@ -36,8 +36,8 @@ function buildNominationText(
   adminClientImpact: string | null
 ): string {
   let text = achievementText + metricsText;
-  if (adminExceedsRole) text += `\n\nCómo superó las expectativas: ${adminExceedsRole}`;
-  if (adminClientImpact) text += `\n\nImpacto en cliente/negocio: ${adminClientImpact}`;
+  if (adminExceedsRole) text += `\n\nHow they exceeded expectations: ${adminExceedsRole}`;
+  if (adminClientImpact) text += `\n\nCustomer/business impact: ${adminClientImpact}`;
   return text;
 }
 
@@ -48,7 +48,7 @@ async function anonymizeText(nominationText: string): Promise<string> {
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Por favor anonimiza el siguiente texto de nominación:\n\n--- INICIO DE NOMINACIÓN ---\n${nominationText}\n--- FIN DE NOMINACIÓN ---`,
+        content: `Please anonymize the following nomination text:\n\n--- START OF NOMINATION ---\n${nominationText}\n--- END OF NOMINATION ---`,
       },
     ],
     temperature: 0.1,

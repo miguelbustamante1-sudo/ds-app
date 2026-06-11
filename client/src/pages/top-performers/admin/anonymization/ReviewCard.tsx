@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { anonymizationApi } from '@/api/topPerformers/anonymization';
 import type { TpAnonymizationReviewDTO } from '@shared/dto/TpAnonymization';
 
-const TYPE_LABELS: Record<string, string> = { PEER: 'Par', ADMIN: 'Administrativo', CUSTOMER: 'Cliente' };
+const TYPE_LABELS: Record<string, string> = { PEER: 'Peer', ADMIN: 'Administrative', CUSTOMER: 'Customer' };
 
 interface ReviewCardProps {
   item: TpAnonymizationReviewDTO;
@@ -25,10 +25,10 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
     setSaving(true);
     try {
       await anonymizationApi.approve(item.nomId, isEdited ? editedText : undefined);
-      toast({ title: 'Nominación aprobada' });
+      toast({ title: 'Nomination approved' });
       onApproved();
     } catch {
-      toast({ title: 'Error al aprobar', variant: 'destructive' });
+      toast({ title: 'Error approving', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -46,17 +46,17 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-1">TEXTO ORIGINAL (solo visible para ti)</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">ORIGINAL TEXT (visible to you only)</p>
             <div className="bg-muted rounded p-3 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
               {item.nomAchievementText}
               {item.nomAdminExceedsRole && (
                 <div className="mt-2 border-t pt-2 text-xs">
-                  <strong>Supera expectativas:</strong> {item.nomAdminExceedsRole}
+                  <strong>Exceeds expectations:</strong> {item.nomAdminExceedsRole}
                 </div>
               )}
               {item.metrics.length > 0 && (
                 <div className="mt-2 border-t pt-2 text-xs">
-                  <strong>Métricas:</strong>
+                  <strong>Metrics:</strong>
                   <ul>{item.metrics.map((m, i) => <li key={i}>{m.nmeMetricName}: {m.nmeMetricValue}</li>)}</ul>
                 </div>
               )}
@@ -64,7 +64,7 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-1">TEXTO ANONIMIZADO (versión que verán los votantes)</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">ANONYMIZED TEXT (version voters will see)</p>
             {item.nomAnonymizedText ? (
               <Textarea
                 value={editedText}
@@ -74,13 +74,13 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
               />
             ) : (
               <div className="rounded p-3 text-sm border border-amber-300 bg-amber-50 text-amber-800">
-                Sin texto anonimizado — la IA no pudo procesar esta nominación. Escribe el texto manualmente abajo.
+                No anonymized text — AI could not process this nomination. Write the text manually below.
                 <Textarea
                   value={editedText}
                   onChange={(e) => setEditedText(e.target.value)}
                   rows={6}
                   className="text-sm mt-2"
-                  placeholder="Escribe aquí la versión anonimizada..."
+                  placeholder="Write the anonymized version here..."
                 />
               </div>
             )}
@@ -88,9 +88,9 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
         </div>
 
         <div className="flex justify-end gap-2">
-          {isEdited && <span className="text-xs text-muted-foreground self-center">Editado manualmente</span>}
+          {isEdited && <span className="text-xs text-muted-foreground self-center">Manually edited</span>}
           <Button onClick={handleApprove} disabled={saving || !editedText.trim()}>
-            {saving ? 'Aprobando...' : 'Aprobar'}
+            {saving ? 'Approving...' : 'Approve'}
           </Button>
         </div>
       </CardContent>

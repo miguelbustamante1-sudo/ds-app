@@ -59,12 +59,12 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
         cycVotingEnd: data.cycVotingEnd,
       };
       await cyclesApi.create(payload);
-      toast({ title: 'Éxito', description: 'Ciclo creado exitosamente.' });
+      toast({ title: 'Success', description: 'Cycle created successfully.' });
       onSuccess();
       onOpenChange(false);
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Error al crear el ciclo.';
+        error instanceof Error ? error.message : 'Error creating cycle.';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
@@ -73,7 +73,7 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nuevo Ciclo</DialogTitle>
+          <DialogTitle>New Cycle</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1">
@@ -82,7 +82,7 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
             </Label>
             <Input
               id="cycName"
-              {...register('cycName', { required: 'El nombre es requerido.' })}
+              {...register('cycName', { required: 'Name is required.' })}
             />
             {errors.cycName && (
               <p className="text-sm text-destructive">{errors.cycName.message}</p>
@@ -91,13 +91,13 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
 
           <div className="space-y-1">
             <Label htmlFor="cycNominationsStart">
-              Inicio Nominaciones <span className="text-destructive">*</span>
+              Nominations Start <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cycNominationsStart"
               type="datetime-local"
               {...register('cycNominationsStart', {
-                required: 'La fecha de inicio de nominaciones es requerida.',
+                required: 'Nominations start date is required.',
               })}
             />
             {errors.cycNominationsStart && (
@@ -109,13 +109,13 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
 
           <div className="space-y-1">
             <Label htmlFor="cycNominationsEnd">
-              Fin Nominaciones <span className="text-destructive">*</span>
+              Nominations End <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cycNominationsEnd"
               type="datetime-local"
               {...register('cycNominationsEnd', {
-                required: 'La fecha de fin de nominaciones es requerida.',
+                required: 'Nominations end date is required.',
               })}
             />
             {errors.cycNominationsEnd && (
@@ -127,13 +127,13 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
 
           <div className="space-y-1">
             <Label htmlFor="cycVotingStart">
-              Inicio Votación <span className="text-destructive">*</span>
+              Voting Start <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cycVotingStart"
               type="datetime-local"
               {...register('cycVotingStart', {
-                required: 'La fecha de inicio de votación es requerida.',
+                required: 'Voting start date is required.',
               })}
             />
             {errors.cycVotingStart && (
@@ -143,13 +143,13 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
 
           <div className="space-y-1">
             <Label htmlFor="cycVotingEnd">
-              Fin Votación <span className="text-destructive">*</span>
+              Voting End <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cycVotingEnd"
               type="datetime-local"
               {...register('cycVotingEnd', {
-                required: 'La fecha de fin de votación es requerida.',
+                required: 'Voting end date is required.',
               })}
             />
             {errors.cycVotingEnd && (
@@ -164,10 +164,10 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando...' : 'Crear'}
+              {isSubmitting ? 'Saving...' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

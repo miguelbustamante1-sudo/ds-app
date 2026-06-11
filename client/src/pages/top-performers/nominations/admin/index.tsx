@@ -14,10 +14,9 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { AdminNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
+import { TELUS_VALUES } from '@/constants/telusValues';
 
-const TELUS_VALUES = ['Cuidado', 'Coraje', 'Confianza', 'Trabajo en equipo'];
-
-interface DirectReport { teamMemberId: number; teamMemberNames: string; teamMemberSurnames: string; }
+interface DirectReport { teamMemberId: number; workdayId: string | null; teamMemberNames: string; teamMemberSurnames: string; }
 
 export default function AdminNominationPage() {
   const { toast } = useToast();
@@ -27,7 +26,7 @@ export default function AdminNominationPage() {
     queryFn: () => apiGet<DirectReport[]>('/api/team-members/my-reports'),
   });
 
-  const { register, handleSubmit, control, watch, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } =
     useForm<AdminNominationPayload>({
       defaultValues: { metrics: [{ metricName: '', metricValue: '', metricBenchmark: '' }] },
       mode: 'onChange',
@@ -35,16 +34,18 @@ export default function AdminNominationPage() {
 
   const reportOptions = reports.map((r) => ({
     value: String(r.teamMemberId),
-    label: `${r.teamMemberNames} ${r.teamMemberSurnames}`,
+    label: `${r.teamMemberNames} ${r.teamMemberSurnames}${r.workdayId ? ` (${r.workdayId})` : ''}`,
   }));
+  register('nomineeId', { required: 'Select a team member', validate: (v) => !isNaN(v) || 'Select a team member' });
+  const watchedNomineeId = watch('nomineeId');
 
   const onSubmit = async (data: AdminNominationPayload) => {
     if (!activeCycle) return;
     try {
       await nominationsApi.createAdmin({ ...data, cycId: activeCycle.cycId });
-      toast({ title: 'Nominación administrativa enviada' });
+      toast({ title: 'Administrative nomination submitted' });
     } catch {
-      toast({ title: 'Error al enviar nominación', variant: 'destructive' });
+      toast({ title: 'Error submitting nomination', variant: 'destructive' });
     }
   };
 
@@ -52,35 +53,28 @@ export default function AdminNominationPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-4">
       <Card>
         <CardContent className="pt-6 space-y-5">
-          <CardTitle>Nominación Administrativa</CardTitle>
+          <CardTitle>Administrative Nomination</CardTitle>
 
           <div>
-            <Label>Colaborador nominado</Label>
-            <Controller
-              name="nomineeId"
-              control={control}
-              rules={{ required: 'Selecciona un colaborador' }}
-              render={({ field }) => (
-                <ComboBox
-                  options={reportOptions}
-                  value={field.value ? String(field.value) : ''}
-                  onChange={(v) => field.onChange(parseInt(v, 10))}
-                  placeholder="Busca en tu equipo..."
-                />
-              )}
+            <Label>Nominated team member</Label>
+            <ComboBox
+              options={reportOptions}
+              value={watchedNomineeId ? String(watchedNomineeId) : ''}
+              onValueChange={(v) => setValue('nomineeId', parseInt(v, 10), { shouldValidate: true })}
+              placeholder="Search your team..."
             />
             {errors.nomineeId && <p className="text-destructive text-sm mt-1">{errors.nomineeId.message}</p>}
           </div>
 
           <div>
-            <Label>Descripción del logro principal</Label>
+            <Label>Main achievement description</Label>
             <Textarea
               {...register('achievementText', {
                 required: true,
-                minLength: { value: 150, message: 'Mínimo 150 caracteres' },
-                maxLength: { value: 1200, message: 'Máximo 1200 caracteres' },
+                minLength: { value: 150, message: 'Minimum 150 characters' },
+                maxLength: { value: 1200, message: 'Maximum 1200 characters' },
               })}
-              placeholder="Describe qué hizo el colaborador, en qué contexto y cuál fue el impacto..."
+              placeholder="Describe what the team member did, in what context, and what the impact was..."
               rows={6}
             />
             <span className="text-xs text-muted-foreground">{watch('achievementText', '').length} / 1200</span>
@@ -88,32 +82,32 @@ export default function AdminNominationPage() {
           </div>
 
           <div>
-            <Label>Métricas cuantitativas de desempeño</Label>
+            <Label>Quantitative performance metrics</Label>
             <MetricsTable control={control} register={register} />
           </div>
 
           <div>
-            <Label>¿Cómo superó las expectativas del rol?</Label>
+            <Label>How did they exceed role expectations?</Label>
             <Textarea
               {...register('adminExceedsRole', { required: true, minLength: 100, maxLength: 600 })}
-              placeholder="Explica en qué fue más allá de su descripción de puesto..."
+              placeholder="Explain how they went beyond their job description..."
               rows={4}
             />
-            {errors.adminExceedsRole && <p className="text-destructive text-sm">Mínimo 100 caracteres</p>}
+            {errors.adminExceedsRole && <p className="text-destructive text-sm">Minimum 100 characters</p>}
           </div>
 
           <div>
-            <Label>Impacto en cliente o en el negocio</Label>
+            <Label>Customer or business impact</Label>
             <Textarea
               {...register('adminClientImpact', { required: true, minLength: 80, maxLength: 500 })}
               rows={3}
             />
-            {errors.adminClientImpact && <p className="text-destructive text-sm">Mínimo 80 caracteres</p>}
+            {errors.adminClientImpact && <p className="text-destructive text-sm">Minimum 80 characters</p>}
           </div>
 
           <div>
-            <Label>Alineación con valores TELUS</Label>
-            <div className="flex flex-wrap gap-3 mt-2">
+            <Label>Alignment with TELUS values</Label>
+            <div className="flex flex-col gap-2 mt-2">
               {TELUS_VALUES.map((v) => (
                 <Controller
                   key={v}
@@ -122,7 +116,7 @@ export default function AdminNominationPage() {
                   render={({ field }) => {
                     const selected: string[] = field.value ?? [];
                     return (
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-start gap-2 cursor-pointer">
                         <Checkbox
                           checked={selected.includes(v)}
                           onCheckedChange={(checked) =>
@@ -138,16 +132,16 @@ export default function AdminNominationPage() {
             </div>
             <Textarea
               {...register('valuesDescription')}
-              placeholder="Justifica brevemente cómo refleja cada valor marcado"
+              placeholder="Briefly justify how it reflects each selected value"
               rows={2}
               className="mt-2"
             />
           </div>
 
           <div>
-            <Label>Nivel de confianza en la nominación (1–5)</Label>
+            <Label>Confidence level in nomination (1–5)</Label>
             <p className="text-xs text-muted-foreground mb-2">
-              1 = Buena pero no excepcional · 3 = Definitivamente merece reconocimiento · 5 = La mejor nominación del ciclo
+              1 = Good but not exceptional · 3 = Definitely deserves recognition · 5 = Best nomination of the cycle
             </p>
             <div className="flex gap-3">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -161,11 +155,11 @@ export default function AdminNominationPage() {
                 </label>
               ))}
             </div>
-            {errors.adminConfidenceLevel && <p className="text-destructive text-sm">Selecciona un nivel de confianza</p>}
+            {errors.adminConfidenceLevel && <p className="text-destructive text-sm">Select a confidence level</p>}
           </div>
 
           <div>
-            <Label>Archivos de soporte (opcional)</Label>
+            <Label>Support files (optional)</Label>
             <Controller
               name="attachments"
               control={control}
@@ -180,7 +174,7 @@ export default function AdminNominationPage() {
           </div>
 
           <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Enviando...' : 'Enviar nominación'}
+            {isSubmitting ? 'Submitting...' : 'Submit nomination'}
           </Button>
         </CardContent>
       </Card>

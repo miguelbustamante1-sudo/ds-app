@@ -37,14 +37,14 @@ export function NominationCard({ nomination, isSelected, isFull, onAdd }: Nomina
         <div className="flex items-center gap-2">
           <span>{TYPE_ICONS[nomination.nomType] ?? '📋'}</span>
           {nomination.nomIsVozDelCliente && (
-            <Badge variant="outline" className="text-xs">✦ Voz del Cliente</Badge>
+            <Badge variant="outline" className="text-xs">✦ Voice of Customer</Badge>
           )}
-          {isSelected && <Badge className="ml-auto text-xs bg-green-600">En mi Top 5</Badge>}
+          {isSelected && <Badge className="ml-auto text-xs bg-green-600">In my Top 5</Badge>}
         </div>
         <p className="text-sm line-clamp-4">{nomination.nomAnonymizedText}</p>
         {!isSelected && !isFull && (
           <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onAdd(); }}>
-            + Agregar a mi Top 5
+            + Add to my Top 5
           </Button>
         )}
       </CardContent>

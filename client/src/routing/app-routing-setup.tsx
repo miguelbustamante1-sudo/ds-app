@@ -80,6 +80,10 @@ import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
 import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
+import { GiftCardPoolsPage } from '@/pages/maintenance/gift-cards/pools';
+import { GiftCardReasonsPage } from '@/pages/maintenance/gift-cards/reasons';
+import { GiftCardTypesPage } from '@/pages/maintenance/gift-cards/card-types';
+import { GiftCardValuesPage } from '@/pages/maintenance/gift-cards/card-values';
 // Hub Landing Pages
 import { UdsColorDemoPage } from '@/pages/uds-color-demo';
 import TimeOffHubPage from '@/pages/time-off-hub';

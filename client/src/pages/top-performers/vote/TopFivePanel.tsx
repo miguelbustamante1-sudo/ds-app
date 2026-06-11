@@ -5,11 +5,11 @@ import type { TopFiveSlot } from './useVotingState';
 import type { ApprovedNominationDTO } from '@/api/topPerformers/voting';
 
 const RANK_LABELS: Record<number, string> = {
-  1: '1er lugar',
-  2: '2do lugar',
-  3: '3er lugar',
-  4: '4to lugar',
-  5: '5to lugar',
+  1: '1st place',
+  2: '2nd place',
+  3: '3rd place',
+  4: '4th place',
+  5: '5th place',
 };
 
 interface SlotProps {
@@ -51,7 +51,7 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
       {nomination ? (
         <p className="text-xs mt-1 line-clamp-2">{nomination.nomAnonymizedText}</p>
       ) : (
-        <p className="text-xs text-muted-foreground mt-1">Arrastra aquí o haz clic en + Agregar</p>
+        <p className="text-xs text-muted-foreground mt-1">Drag here or click + Add</p>
       )}
     </div>
   );
@@ -71,8 +71,8 @@ export function TopFivePanel({ slots, nominations, isComplete, onRemove }: TopFi
   return (
     <div className={`p-4 rounded-xl border-2 transition-colors ${isComplete ? 'border-green-500 bg-green-50/50' : 'border-border'}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm">Mi Top 5</h3>
-        {isComplete && <span className="text-green-600 text-sm font-medium">✓ Listo para enviar</span>}
+        <h3 className="font-semibold text-sm">My Top 5</h3>
+        {isComplete && <span className="text-green-600 text-sm font-medium">✓ Ready to submit</span>}
       </div>
       <SortableContext items={slots.map((s) => `slot-${s.rank}`)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">

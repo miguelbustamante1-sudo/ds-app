@@ -31,12 +31,12 @@ import { cycleColumns } from './cycleColumns';
 import { CycleFormDialog } from './CycleFormDialog';
 
 const STATUS_OPTIONS = [
-  { label: 'Borrador', value: 'DRAFT' },
-  { label: 'Nominaciones Abiertas', value: 'NOMINATIONS_OPEN' },
-  { label: 'Nominaciones Cerradas', value: 'NOMINATIONS_CLOSED' },
-  { label: 'Votación Abierta', value: 'VOTING_OPEN' },
-  { label: 'Votación Cerrada', value: 'VOTING_CLOSED' },
-  { label: 'Resultados Publicados', value: 'RESULTS_PUBLISHED' },
+  { label: 'Draft', value: 'DRAFT' },
+  { label: 'Nominations Open', value: 'NOMINATIONS_OPEN' },
+  { label: 'Nominations Closed', value: 'NOMINATIONS_CLOSED' },
+  { label: 'Voting Open', value: 'VOTING_OPEN' },
+  { label: 'Voting Closed', value: 'VOTING_CLOSED' },
+  { label: 'Results Published', value: 'RESULTS_PUBLISHED' },
 ];
 
 export function TpCyclesPage() {
@@ -74,31 +74,31 @@ export function TpCyclesPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>Ciclos Top Performers</ToolbarPageTitle>
-          <ToolbarDescription>Administración de ciclos de nominación y votación</ToolbarDescription>
+          <ToolbarPageTitle>Top Performers Cycles</ToolbarPageTitle>
+          <ToolbarDescription>Manage nomination and voting cycles</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
           <Button onClick={() => setFormOpen(true)}>
             <Plus size={16} className="me-1" />
-            Nuevo ciclo
+            New Cycle
           </Button>
         </ToolbarActions>
       </Toolbar>
 
       <Card className="mt-4">
         <CardContent>
-          <CardTitle className="mb-4">Ciclos</CardTitle>
+          <CardTitle className="mb-4">Cycles</CardTitle>
 
           <div className="flex items-center gap-2 mb-4">
             <Input
-              placeholder="Buscar por nombre..."
+              placeholder="Search by name..."
               value={(table.getColumn('cycName')?.getFilterValue() as string) ?? ''}
               onChange={(e) => table.getColumn('cycName')?.setFilterValue(e.target.value)}
               className="h-8 w-[180px]"
             />
             <DataGridColumnFilter
               column={table.getColumn('cycStatus')}
-              title="Estado"
+              title="Status"
               options={STATUS_OPTIONS}
             />
             {isFiltered && (
@@ -114,7 +114,7 @@ export function TpCyclesPage() {
           </div>
 
           {isLoading ? (
-            <div className="text-muted-foreground text-sm py-4">Cargando...</div>
+            <div className="text-muted-foreground text-sm py-4">Loading...</div>
           ) : (
             <DataGridContainer>
               <DataGrid table={table} recordCount={cycles.length}>

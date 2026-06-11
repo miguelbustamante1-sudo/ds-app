@@ -34,18 +34,18 @@ export function FileUpload({
     try {
       for (const file of toUpload) {
         if (!accept.includes(file.type)) {
-          toast({ title: 'Tipo de archivo no permitido', variant: 'destructive' });
+          toast({ title: 'File type not allowed', variant: 'destructive' });
           continue;
         }
         if (file.size > maxSizeBytes) {
-          toast({ title: `El archivo excede ${formatBytes(maxSizeBytes)}`, variant: 'destructive' });
+          toast({ title: `File exceeds ${formatBytes(maxSizeBytes)}`, variant: 'destructive' });
           continue;
         }
         try {
           const result = await uploadFile(file);
           uploaded.push(result);
         } catch {
-          toast({ title: 'Error al subir el archivo', variant: 'destructive' });
+          toast({ title: 'Error uploading file', variant: 'destructive' });
         }
       }
     } finally {
@@ -76,8 +76,8 @@ export function FileUpload({
       >
         <p className="text-sm text-muted-foreground">
           {uploading
-            ? 'Subiendo...'
-            : `Arrastra archivos aquí o haz clic. Máx ${maxFiles} archivos, ${formatBytes(maxSizeBytes)} c/u.`}
+            ? 'Uploading...'
+            : `Drag files here or click. Max ${maxFiles} files, ${formatBytes(maxSizeBytes)} each.`}
         </p>
         <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG</p>
       </div>
@@ -104,7 +104,7 @@ export function FileUpload({
                   onClick={() => remove(f.uploadId)}
                   className="ml-2 text-destructive hover:underline text-xs"
                 >
-                  Eliminar
+                  Remove
                 </button>
               )}
             </li>

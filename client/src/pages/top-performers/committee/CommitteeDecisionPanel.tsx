@@ -40,7 +40,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
       await resultsApi.saveDecision(cycId, data.winnerId, data.justification);
       setStep('confirm');
     } catch {
-      toast({ title: 'Error al guardar la decisión', variant: 'destructive' });
+      toast({ title: 'Error saving decision', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -50,10 +50,10 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
     setSaving(true);
     try {
       await resultsApi.confirmDecision(cycId);
-      toast({ title: 'Confirmación registrada' });
+      toast({ title: 'Confirmation recorded' });
       setStep('done');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al confirmar';
+      const msg = err instanceof Error ? err.message : 'Error confirming';
       toast({ title: msg, variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -64,23 +64,23 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Decisión del Comité Evaluador</DialogTitle>
+          <DialogTitle>Evaluator Committee Decision</DialogTitle>
         </DialogHeader>
 
         {step === 'form' && (
           <form onSubmit={handleSubmit(onSaveDecision)} className="space-y-4">
             <div>
-              <Label>Ganador seleccionado (entre el Top 5)</Label>
+              <Label>Selected winner (from Top 5)</Label>
               <Controller
                 name="winnerId"
                 control={control}
-                rules={{ required: 'Selecciona un ganador' }}
+                rules={{ required: 'Select a winner' }}
                 render={({ field }) => (
                   <ComboBox
                     options={winnerOptions}
                     value={field.value ? String(field.value) : ''}
                     onChange={(v) => field.onChange(parseInt(v, 10))}
-                    placeholder="Selecciona al ganador..."
+                    placeholder="Select the winner..."
                   />
                 )}
               />
@@ -88,24 +88,24 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
             </div>
 
             <div>
-              <Label>Justificación de la decisión (mín. 100 caracteres)</Label>
+              <Label>Decision justification (min. 100 characters)</Label>
               <p className="text-xs text-muted-foreground mb-1">
-                Esta justificación se publicará junto con el anuncio del ganador.
+                This justification will be published with the winner announcement.
               </p>
               <Textarea
                 {...register('justification', {
-                  required: 'Requerido',
-                  minLength: { value: 100, message: 'Mínimo 100 caracteres' },
+                  required: 'Required',
+                  minLength: { value: 100, message: 'Minimum 100 characters' },
                 })}
                 rows={5}
               />
-              <p className="text-xs text-muted-foreground mt-1">{justification.length} caracteres</p>
+              <p className="text-xs text-muted-foreground mt-1">{justification.length} characters</p>
               {errors.justification && <p className="text-destructive text-sm">{errors.justification.message}</p>}
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar y continuar'}</Button>
+              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+              <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save and continue'}</Button>
             </DialogFooter>
           </form>
         )}
@@ -113,15 +113,15 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
         {step === 'confirm' && (
           <div className="space-y-4">
             <p className="text-sm">
-              La decisión ha sido guardada. Se requieren <strong>2 confirmaciones</strong> de miembros distintos del Comité para finalizar.
+              Decision saved. <strong>2 confirmations</strong> from different Committee members are required to finalize.
             </p>
             <p className="text-sm font-semibold text-amber-700">
-              ⚠ Esta acción es irreversible. Una vez que dos miembros confirmen, los resultados quedan congelados.
+              ⚠ This action is irreversible. Once two members confirm, results are frozen.
             </p>
             <DialogFooter>
-              <Button variant="outline" onClick={onClose}>Cerrar</Button>
+              <Button variant="outline" onClick={onClose}>Close</Button>
               <Button onClick={onConfirm} disabled={saving} variant="destructive">
-                {saving ? 'Confirmando...' : 'Confirmar mi voto de decisión'}
+                {saving ? 'Confirming...' : 'Confirm my decision vote'}
               </Button>
             </DialogFooter>
           </div>
@@ -129,11 +129,11 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
 
         {step === 'done' && (
           <div className="space-y-3 text-center">
-            <p className="text-green-600 font-bold text-lg">Confirmación registrada</p>
+            <p className="text-green-600 font-bold text-lg">Confirmation recorded</p>
             <p className="text-sm text-muted-foreground">
-              Si un segundo miembro del Comité ya confirmó, los resultados han sido congelados y el ciclo está cerrado.
+              If a second Committee member has already confirmed, results are frozen and the cycle is closed.
             </p>
-            <Button onClick={onClose}>Cerrar</Button>
+            <Button onClick={onClose}>Close</Button>
           </div>
         )}
       </DialogContent>

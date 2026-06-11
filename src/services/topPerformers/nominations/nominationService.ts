@@ -61,8 +61,8 @@ async function sendConfirmationEmail(email: string): Promise<void> {
   await emailOrchestrator
     .send({
       to: email,
-      subject: 'Top Performers — Nominación enviada',
-      body: 'Tu nominación fue registrada correctamente para el ciclo activo.',
+      subject: 'Top Performers — Nomination submitted',
+      body: 'Your nomination was registered successfully for the active cycle.',
     })
     .catch(() => {});
 }
