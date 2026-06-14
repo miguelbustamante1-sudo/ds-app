@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import type { ProjectAssignment, Prisma } from '@prisma/client';
+import type { BenchAvailableMemberDTO } from '@shared/dto';
 
 export const TABLE = 'ds.tmp_team_member_project';
 
@@ -92,6 +93,122 @@ export async function deleteTeamMemberProject(id: number): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function getBenchAvailableMembers(): Promise<BenchAvailableMemberDTO[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  type RawRow = {
+    teamMemberId: number;
+    teamMemberNames: string;
+    teamMemberSurnames: string;
+    teamMemberSeniority: string | null;
+    totalAllocation: string;
+  };
+
+  const rows = await prisma.$queryRaw<RawRow[]>`
+    SELECT
+      tms.tms_id        AS "teamMemberId",
+      tms.tms_names     AS "teamMemberNames",
+      tms.tms_surnames  AS "teamMemberSurnames",
+      tms.tms_seniority AS "teamMemberSeniority",
+      COALESCE(SUM(tmp.tmp_allocation), 0) AS "totalAllocation"
+    FROM ds.tbl_team_members tms
+    LEFT JOIN ds.tmp_team_member_project tmp ON (
+      tmp.tms_id = tms.tms_id
+      AND tmp.tmp_deleted = false
+      AND COALESCE(tmp.tmp_end_date, '2050-12-31'::date) >= ${today}::date
+    )
+    WHERE (tms.tms_enddat IS NULL OR tms.tms_enddat > ${today}::date)
+    GROUP BY tms.tms_id, tms.tms_names, tms.tms_surnames, tms.tms_seniority
+    HAVING COALESCE(SUM(tmp.tmp_allocation), 0) < 100
+    ORDER BY tms.tms_names, tms.tms_surnames
+  `;
+
+  return rows.map((r) => ({
+    teamMemberId: r.teamMemberId,
+    teamMemberNames: r.teamMemberNames,
+    teamMemberSurnames: r.teamMemberSurnames,
+    teamMemberSeniority: r.teamMemberSeniority,
+    totalAllocation: Number(r.totalAllocation),
+  }));
+}
+
+export async function bulkRemoveAssignments(
+  ids: number[],
+  lastBillableDate: Date,
+  updatedBy: number | null,
+): Promise<ProjectAssignment[]> {
+  const now = new Date();
+  return await prisma.$transaction(
+    ids.map((id) =>
+      prisma.projectAssignment.update({
+        where: { projectAssignmentId: id },
+        data: {
+          projectAssignmentEndDate: lastBillableDate,
+          projectAssignmentDeleted: true,
+          projectAssignmentLastUpdatedBy: updatedBy,
+          projectAssignmentLastUpdatedDate: now,
+        },
+      }),
+    ),
+  );
+}
+
+export async function bulkChangeRate(
+  ids: number[],
+  newBillRate: number,
+  newBillRateCurrency: string,
+  startDate: Date,
+  createdBy: number | null,
+): Promise<{ closed: ProjectAssignment; created: ProjectAssignment }[]> {
+  const now = new Date();
+  const closeEndDate = new Date(startDate);
+  closeEndDate.setDate(closeEndDate.getDate() - 1);
+
+  return await prisma.$transaction(async (tx) => {
+    const results: { closed: ProjectAssignment; created: ProjectAssignment }[] = [];
+
+    for (const id of ids) {
+      const current = await tx.projectAssignment.findUnique({
+        where: { projectAssignmentId: id },
+      });
+      if (!current) continue;
+
+      const closed = await tx.projectAssignment.update({
+        where: { projectAssignmentId: id },
+        data: {
+          projectAssignmentEndDate: closeEndDate,
+          projectAssignmentLastUpdatedBy: createdBy,
+          projectAssignmentLastUpdatedDate: now,
+        },
+      });
+
+      const created = await tx.projectAssignment.create({
+        data: {
+          teamMemberId: current.teamMemberId,
+          projectId: current.projectId,
+          projectAssignmentStartDate: startDate,
+          projectAssignmentEndDate: current.projectAssignmentEndDate,
+          projectAssignmentBillRate: newBillRate,
+          projectAssignmentBillRateCurrency: newBillRateCurrency,
+          projectAssignmentAllocation: current.projectAssignmentAllocation,
+          projectAssignmentCreatedBy: createdBy,
+          projectAssignmentCreatedDate: now,
+          projectAssignmentLastUpdatedBy: createdBy,
+          projectAssignmentLastUpdatedDate: now,
+          projectAssignmentDeleted: false,
+          clientContactId: current.clientContactId,
+          shiftId: current.shiftId,
+        },
+      });
+
+      results.push({ closed, created });
+    }
+
+    return results;
+  });
 }
 
 export async function closeAndCreateAssignment(
