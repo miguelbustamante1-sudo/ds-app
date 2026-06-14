@@ -135,9 +135,9 @@ export function MyTeamPage() {
         accessorKey: 'reportLevel',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Report Level" />,
         cell: ({ row }) => (
-          <Badge variant="secondary">
+          <span className="inline-flex items-center rounded-md border border-uds-system-blue-200 bg-uds-system-blue-50 px-2 py-0.5 text-xs font-medium text-uds-system-blue-700">
             Level {row.original.reportLevel}
-          </Badge>
+          </span>
         ),
         size: 120,
         meta: { headerTitle: 'Report Level', skeleton: <Skeleton className="h-4 w-16" /> },

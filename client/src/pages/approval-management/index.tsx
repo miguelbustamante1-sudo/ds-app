@@ -239,7 +239,7 @@ export function ApprovalManagementPage() {
               onCheckedChange={(value) => row.toggleSelected(!!value)}
               aria-label="Select row"
               disabled={disabledByRole}
-              className={disabledByRole ? 'bg-gray-400 border-gray-500 dark:bg-gray-500 dark:border-gray-400 opacity-100' : ''}
+              className={disabledByRole ? 'bg-uds-system-gray-400 border-uds-system-gray-500 dark:bg-uds-system-gray-500 dark:border-uds-system-gray-400 opacity-100' : ''}
             />
           );
         },
@@ -583,7 +583,7 @@ export function ApprovalManagementPage() {
                   />
                   {hasValue && (
                     isPending ? (
-                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-amber-500" />
+                      <Loader2 size={12} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-uds-system-amber-500" />
                     ) : (
                       <button
                         type="button"
@@ -634,7 +634,7 @@ export function ApprovalManagementPage() {
 
       {isUserRole && records.some((r) => (r.reportLevel ?? 0) > 1) && (
         <div className="mt-3 flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-gray-400 border border-gray-500" />
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-uds-system-gray-400 border border-uds-system-gray-500" />
           <p>
             <span className="font-medium text-foreground">Grayed-out rows</span> are visible for your reference but cannot be actioned by you.
             These records belong to team members who do not report to you directly &mdash; they fall under a different supervisory level.

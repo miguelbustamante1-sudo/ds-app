@@ -10,12 +10,14 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "create-demo-user": "tsx scripts/create-demo-user.js",
-    "debug-auth": "tsx scripts/debug-auth.js"
+    "debug-auth": "tsx scripts/debug-auth.js",
+    "theme:generate": "tsx ../scripts/generate-uds-theme.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@headless-tree/core": "^1.4.0",
     "@headless-tree/react": "^1.4.0",
     "@hookform/resolvers": "^5.2.1",

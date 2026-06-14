@@ -19,6 +19,8 @@ res.json({ data: updated });
 
 The frontend `api.ts` unwraps this automatically. Frontend consumers call `apiGet<HolidayDTO[]>('/api/holidays')` and receive `HolidayDTO[]` directly — they never see the envelope.
 
+**Exception — `POST /api/mcp`**: This route returns JSON-RPC protocol responses, not REST. Do NOT wrap its responses in `{ data: T }`. Applying the REST envelope would break the MCP protocol. This is the only route exempt from the success envelope rule.
+
 ## HTTP Status Codes
 
 | Operation | Status | Body |

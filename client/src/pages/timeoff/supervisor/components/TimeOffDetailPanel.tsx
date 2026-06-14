@@ -15,25 +15,9 @@ import {
 } from '@/components/ui/dialog';
 import { Calendar, Clock, User, Ban, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
+import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeOffDetail } from '@/hooks/useTimeOffDetail';
-
-type StatusVariant = 'primary' | 'secondary' | 'destructive' | 'outline';
-
-function getStatusBadge(statusId: number | null): { variant: StatusVariant; className?: string } {
-  switch (statusId) {
-    case 1:
-      return { variant: 'outline', className: 'border-yellow-500 text-yellow-700 bg-yellow-50' };
-    case 2:
-      return { variant: 'outline', className: 'border-green-500 text-green-700 bg-green-50' };
-    case 4:
-      return { variant: 'secondary' };
-    case 5:
-      return { variant: 'destructive' };
-    default:
-      return { variant: 'primary' };
-  }
-}
 
 interface TimeOffDetailPanelProps {
   timeOffId: number;
@@ -161,7 +145,7 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
 
   if (!detail) return null;
 
-  const statusBadge = getStatusBadge(detail.statusId);
+  const statusBadge = getStatusBadgeProps(detail.statusId);
   const canApprove = detail.availableActions.includes('supervisor_approve');
   const canReject = detail.availableActions.includes('supervisor_reject');
   const canCancel = detail.availableActions.includes('cancel');

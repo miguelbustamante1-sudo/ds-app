@@ -236,10 +236,10 @@ export function PendingRequestsPage() {
                     key={t}
                     onClick={() => setTypeFilter(t)}
                     className={[
-                      'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-colors border',
                       typeFilter === t
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                        ? 'bg-uds-telus-purple-500 text-white border-uds-telus-purple-500'
+                        : 'bg-muted text-muted-foreground border-transparent hover:border-uds-system-grey-300 hover:bg-muted/80',
                     ].join(' ')}
                   >
                     {t === 'All' ? 'All' : t === 'TimeOff' ? 'Time Off' : 'Holiday Swaps'}

@@ -77,19 +77,19 @@ export function SupervisorCompTimePage() {
         <>
           {balance && (
             <div className="flex flex-wrap gap-3 px-1">
-              <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-800">
+              <span className="rounded-full bg-uds-system-green-100 px-3 py-1 text-sm text-uds-system-green-700">
                 Earned: {balance.earnedHours.toFixed(2)}h
               </span>
-              <span className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-800">
+              <span className="rounded-full bg-uds-system-orange-100 px-3 py-1 text-sm text-uds-system-orange-700">
                 Used: {balance.usedHours.toFixed(2)}h
               </span>
-              <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-800">
+              <span className="rounded-full bg-uds-system-amber-100 px-3 py-1 text-sm text-uds-system-amber-700">
                 Pending: {balance.pendingHours.toFixed(2)}h
               </span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800">
+              <span className="rounded-full bg-uds-system-blue-100 px-3 py-1 text-sm text-uds-system-blue-700">
                 Balance: {balance.balanceHours.toFixed(2)}h
               </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+              <span className="rounded-full bg-uds-system-gray-100 px-3 py-1 text-sm text-uds-system-gray-600">
                 Night multiplier: {balance.nightMultiplier}×
               </span>
             </div>

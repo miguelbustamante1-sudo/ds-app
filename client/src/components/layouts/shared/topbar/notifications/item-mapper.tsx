@@ -48,7 +48,7 @@ const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
 
 function FallbackItem({ itemType }: { itemType: string }) {
   return (
-    <div className="flex items-center px-5 py-2 text-sm text-muted-foreground">
+    <div className="px-4 py-3 text-sm text-muted-foreground">
       Unknown notification type: {itemType}
     </div>
   );

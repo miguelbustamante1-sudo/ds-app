@@ -40,11 +40,11 @@ function fmtDate(val: string | null | undefined): string {
 
 function ChangeIcon({ type }: { type: ChangeType }) {
   switch (type) {
-    case 'approved':      return <CheckCircle  className="h-4 w-4 text-green-500" />;
-    case 'created':       return <PlusCircle   className="h-4 w-4 text-blue-500" />;
+    case 'approved':      return <CheckCircle  className="h-4 w-4 text-uds-system-green-500" />;
+    case 'created':       return <PlusCircle   className="h-4 w-4 text-uds-system-blue-500" />;
     case 'declined':      return <XCircle      className="h-4 w-4 text-destructive" />;
     case 'cancelled':     return <XCircle      className="h-4 w-4 text-muted-foreground" />;
-    case 'dates-changed': return <CalendarDays className="h-4 w-4 text-orange-500" />;
+    case 'dates-changed': return <CalendarDays className="h-4 w-4 text-uds-system-amber-600" />;
     default:              return <Pencil       className="h-4 w-4 text-muted-foreground" />;
   }
 }

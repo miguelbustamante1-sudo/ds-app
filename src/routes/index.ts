@@ -49,12 +49,23 @@ import workflowTemplatesRouter from '../services/workflow/routes/templates';
 import workflowInstancesRouter from '../services/workflow/routes/instances';
 import workflowTasksRouter from '../services/workflow/routes/tasks';
 import workflowAdminRouter from '../services/workflow/routes/admin';
+import dashboardRouter from './dashboard.routes';
 import emailTestRouter from './email-test.routes';
 import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
 import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
+import uploadsRouter from './uploads';
+import tpCyclesRouter from './topPerformers/cycles';
+import tpNominationsRouter from './topPerformers/nominations';
+import tpAnonymizationRouter from './topPerformers/anonymization';
+import tpVotingRouter from './topPerformers/voting';
+import tpResultsRouter from './topPerformers/results';
+import giftCardPoolsRouter from '../services/giftcards/catalogs/pools/pools.routes';
+import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reasons.routes';
+import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
+import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -109,12 +120,23 @@ export default function registerRoutes() {
   router.use('/workflow/instances', workflowInstancesRouter);
   router.use('/workflow', workflowTasksRouter);
   router.use('/workflow', workflowAdminRouter);
+  router.use('/dashboard', dashboardRouter);
   router.use('/email-test', emailTestRouter);
   router.use('/standalone-tasks', standaloneTasksRouter);
   router.use('/standalone-tasks', standaloneTaskCommentsRouter);
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);
+  router.use('/uploads', uploadsRouter);
+  router.use('/top-performers/cycles', tpCyclesRouter);
+  router.use('/top-performers/nominations', tpNominationsRouter);
+  router.use('/top-performers/anonymization', tpAnonymizationRouter);
+  router.use('/top-performers/voting', tpVotingRouter);
+  router.use('/top-performers/results', tpResultsRouter);
+  router.use('/giftcards/catalogs/pools', giftCardPoolsRouter);
+  router.use('/giftcards/catalogs/reasons', giftCardReasonsRouter);
+  router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
+  router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
 
   return router;
 }

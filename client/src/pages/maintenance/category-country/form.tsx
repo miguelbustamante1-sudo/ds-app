@@ -274,7 +274,7 @@ export function CategoryCountryFormDialog({
               <input
                 id="categoryCountryAllowHalfDay"
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-uds-system-grey-300"
                 {...register('categoryCountryAllowHalfDay')}
               />
               <Label htmlFor="categoryCountryAllowHalfDay">Allow Half Day</Label>
@@ -284,7 +284,7 @@ export function CategoryCountryFormDialog({
               <input
                 id="categoryCountryIsFixedDuration"
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-uds-system-grey-300"
                 {...register('categoryCountryIsFixedDuration')}
               />
               <Label htmlFor="categoryCountryIsFixedDuration">Fixed Duration</Label>
@@ -316,7 +316,7 @@ export function CategoryCountryFormDialog({
               <input
                 id="categoryCountryIsCalendar"
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-uds-system-grey-300"
                 {...register('categoryCountryIsCalendar')}
               />
               <Label htmlFor="categoryCountryIsCalendar">Calendar Days</Label>

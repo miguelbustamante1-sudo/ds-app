@@ -73,14 +73,14 @@ export function Step1SqlEditor({
         </Button>
 
         {isValid && (
-          <span className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
+          <span className="flex items-center gap-1 text-sm text-uds-system-green-600">
             <CheckCircle2 className="h-4 w-4" />
             SQL validated
           </span>
         )}
 
         {sqlDirtyAfterValidation && validationResult?.valid && (
-          <span className="text-sm text-amber-500">SQL changed — please re-validate</span>
+          <span className="text-sm text-uds-system-amber-500">SQL changed — please re-validate</span>
         )}
       </div>
 

@@ -35,9 +35,14 @@ export async function getMyOwnProfile(
 
   const assignment = teamMember.supervisorAssignments[0] ?? null;
 
-  const workdayInfo = teamMember.workdayId
-    ? await getWorkdayInfoById(teamMember.workdayId)
-    : null;
+  let workdayInfo = null;
+  if (teamMember.workdayId) {
+    try {
+      workdayInfo = await getWorkdayInfoById(teamMember.workdayId);
+    } catch (workdayErr) {
+      console.error('[Profile] Failed to fetch workday info, continuing without it:', workdayErr);
+    }
+  }
 
   const projectAssignments = await prisma.projectAssignment.findMany({
     where: {

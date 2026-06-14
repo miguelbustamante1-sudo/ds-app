@@ -1,4 +1,4 @@
-import { Bell, BookUser, Bug, Search } from 'lucide-react';
+import { Bell, BookUser, Bug, Menu, Search } from 'lucide-react';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
@@ -11,6 +11,7 @@ import { PocDirectoryDialog } from '@/components/layouts/shared/dialogs/poc-dire
 import { useAuth } from '@/auth/auth-provider';
 import { PermissionGate } from '@/components/PermissionGate';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useLayout } from './context';
 
 export function Header() {
   const scrollPosition = useScrollPosition();
@@ -19,6 +20,7 @@ export function Header() {
   const avatar = user?.avatarUrl || toAbsoluteUrl('/media/avatars/blank.png');
   const { canRead } = usePermissions();
   const { unreadCount, refetch: refetchUnreadCount } = useUnreadCount({ enabled: canRead('NotificationCenter') });
+  const { setMobileMenuOpen } = useLayout();
 
   return (
     <header
@@ -27,9 +29,21 @@ export function Header() {
         headerSticky && 'border-b border-border',
       )}
     >
-      <div className="container-fluid flex justify-end items-stretch lg:gap-4">
+      <div className="container-fluid flex justify-between items-stretch lg:gap-4">
+        <div className="flex items-center lg:hidden">
+          <Button
+            variant="ghost"
+            mode="icon"
+            shape="circle"
+            className="size-9 hover:bg-primary/10 hover:[&_svg]:text-primary"
+            onClick={() => setMobileMenuOpen(true)}
+            title="Abrir menú"
+          >
+            <Menu className="size-5!" />
+          </Button>
+        </div>
         {/* HeaderTopbar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ms-auto">
           <PocDirectoryDialog
             trigger={
               <Button
@@ -93,7 +107,7 @@ export function Header() {
           <UserDropdownMenu
             trigger={
               <img
-                className="size-9 rounded-full border-2 border-green-500 shrink-0 cursor-pointer"
+                className="size-9 rounded-full border-2 border-uds-system-green-500 shrink-0 cursor-pointer"
                 src={avatar}
                 alt="User Avatar"
               />

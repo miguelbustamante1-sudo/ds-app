@@ -44,7 +44,7 @@ export function AvatarInput() {
             </Tooltip>
           </TooltipProvider>
           <div
-            className="relative border-2 border-green-500 rounded-full overflow-hidden"
+            className="relative border-2 border-uds-system-green-500 rounded-full overflow-hidden"
             style={{
               backgroundImage: `url(${toAbsoluteUrl(`/media/avatars/blank.png`)})`,
             }}

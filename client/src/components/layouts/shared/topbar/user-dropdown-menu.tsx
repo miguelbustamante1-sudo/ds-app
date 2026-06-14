@@ -33,7 +33,7 @@ export function UserDropdownMenu({ trigger }: { trigger: ReactNode }) {
         {/* Header */}
         <div className="flex items-center gap-2 p-3">
           <img
-            className="size-9 rounded-full border-2 border-green-500"
+            className="size-9 rounded-full border-2 border-uds-system-green-500"
             src={avatar}
             alt="User avatar"
           />

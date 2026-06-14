@@ -11,7 +11,8 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "CommonJS",
+    "module": "node16",
+    "moduleResolution": "node16",
     "target": "es2020",
     "types": [],
     // For nodejs:

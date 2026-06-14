@@ -22,31 +22,13 @@ import {
 } from '@/components/ui/dialog';
 import { ArrowLeft, Calendar, User, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
+import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useHolidaySwapDetail } from '../hooks/useHolidaySwapDetail';
 
 // Status IDs are seed/DB data shared with tbl_to_statuses
 const STATUS_ID_ACKNOWLEDGED = 2; // approve action
 const STATUS_ID_REJECTED = 5;     // reject action
-
-type StatusVariant = 'primary' | 'secondary' | 'destructive' | 'outline';
-
-function getStatusBadge(statusId: number): { variant: StatusVariant; className?: string } {
-  switch (statusId) {
-    case 1: // Tentative
-      return { variant: 'outline', className: 'border-yellow-500 text-yellow-700 bg-yellow-50' };
-    case 2: // Acknowledged
-      return { variant: 'outline', className: 'border-green-500 text-green-700 bg-green-50' };
-    case 3: // Taken
-      return { variant: 'primary' };
-    case 4: // Cancelled
-      return { variant: 'secondary' };
-    case 5: // Rejected
-      return { variant: 'destructive' };
-    default:
-      return { variant: 'outline' };
-  }
-}
 
 export function HolidaySwapDetailPage() {
   const { swapId: swapIdParam } = useParams<{ swapId: string }>();
@@ -212,7 +194,7 @@ export function HolidaySwapDetailPage() {
 
   if (!detail) return null;
 
-  const statusBadge = getStatusBadge(detail.statusId);
+  const statusBadge = getStatusBadgeProps(detail.statusId, 'outline');
   const canCancel = detail.availableActions.includes('cancel');
   const canApprove = detail.availableActions.includes('approve');
   const canReject = detail.availableActions.includes('reject');

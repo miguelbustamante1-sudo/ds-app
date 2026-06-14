@@ -6,10 +6,12 @@ import { Footer } from './footer';
 import { Header } from './header';
 import { InsightStrip } from './InsightStrip';
 import { Sidebar } from './sidebar';
+import { SidebarMenu } from './sidebar-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export function Main() {
   const isMobile = useIsMobile();
-  const { sidebarCollapse } = useLayout();
+  const { sidebarCollapse, mobileMenuOpen, setMobileMenuOpen } = useLayout();
 
   useEffect(() => {
     const bodyClass = document.body.classList;
@@ -45,6 +47,15 @@ export function Main() {
   return (
     <>
       {!isMobile && <Sidebar />}
+
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-[280px] p-0 overflow-y-auto">
+          <SheetHeader className="px-5 pt-5 pb-2">
+            <SheetTitle>Navegación</SheetTitle>
+          </SheetHeader>
+          <SidebarMenu />
+        </SheetContent>
+      </Sheet>
 
       <div className="wrapper flex grow flex-col">
         <Header />

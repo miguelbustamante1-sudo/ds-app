@@ -146,7 +146,7 @@ export function ClientContactsPage() {
                     <TableCell>{contact.phoneNumber}</TableCell>
                     <TableCell>{contact.position ?? '—'}</TableCell>
                     <TableCell>
-                      <span className={contact.active ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                      <span className={contact.active ? 'text-uds-system-green-600 font-medium' : 'text-muted-foreground'}>
                         {contact.active ? 'Active' : 'Inactive'}
                       </span>
                     </TableCell>

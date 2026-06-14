@@ -18,6 +18,8 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.1045.0",
+    "@google-cloud/storage": "^7.21.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "axios": "^1.13.2",

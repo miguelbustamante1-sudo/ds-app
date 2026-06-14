@@ -80,15 +80,41 @@ import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
 import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
+import { GiftCardPoolsPage } from '@/pages/maintenance/gift-cards/pools';
+import { GiftCardReasonsPage } from '@/pages/maintenance/gift-cards/reasons';
+import { GiftCardTypesPage } from '@/pages/maintenance/gift-cards/card-types';
+import { GiftCardValuesPage } from '@/pages/maintenance/gift-cards/card-values';
+// Hub Landing Pages
+import { UdsColorDemoPage } from '@/pages/uds-color-demo';
+import TimeOffHubPage from '@/pages/time-off-hub';
+import HiringHubPage from '@/pages/hiring-hub';
+import SecurityHubPage from '@/pages/security-hub';
+import MaintenanceHubPage from '@/pages/maintenance-hub';
+import ProjectManagementHubPage from '@/pages/project-management-hub';
+import SelfServiceHubPage from '@/pages/self-service-hub';
+import ReportsHubPage from '@/pages/reports-hub';
+import CommunicationsHubPage from '@/pages/communications-hub';
+import OperationsHubPage from '@/pages/operations-hub';
+import GovernanceHubPage from '@/pages/governance-hub';
+import TopPerformersHubPage from '@/pages/top-performers-hub';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
+import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
+import AnonymizationReviewPage from '@/pages/top-performers/admin/anonymization';
+import VotingPage from '@/pages/top-performers/vote';
+import CommitteePage from '@/pages/top-performers/committee';
+import PeerNominationPage from '@/pages/top-performers/nominations/peer';
+import AdminNominationPage from '@/pages/top-performers/nominations/admin';
+import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 
 export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      {/* Design System — UDS Color Reference (no auth required) */}
+      <Route path="/uds-colors" element={<UdsColorDemoPage />} />
       <Route
         element={
           <RequireAuth>
@@ -144,6 +170,11 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/gift-cards/pools" element={<GiftCardPoolsPage />} />
+        <Route path="/maintenance/gift-cards/reasons" element={<GiftCardReasonsPage />} />
+        <Route path="/maintenance/gift-cards/card-types" element={<GiftCardTypesPage />} />
+        <Route path="/maintenance/gift-cards/card-values" element={<GiftCardValuesPage />} />
         <Route path="/maintenance/timeoff-period-backfill" element={<TimeOffPeriodBackfillPage />} />
         <Route path="/maintenance/email-test" element={<EmailTestPage />} />
         <Route path="/hiring" element={<HiringPage />} />
@@ -157,17 +188,16 @@ export function AppRoutingSetup() {
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/run" element={<RunReportPage />} />
+        {/* Template & Data Import */}
+        <Route path="/template-builder" element={<TemplateBuilderPage />} />
+        <Route path="/data-import" element={<DataImportPage />} />
+        <Route path="/data-import/new" element={<DataImportNewPage />} />
+        <Route path="/data-import/:id" element={<DataImportDetailPage />} />
         {/* Security - RBAC management */}
         <Route path="/security/roles" element={<RolesPage />} />
         <Route path="/security/options" element={<OptionsPage />} />
         <Route path="/security/permissions" element={<PermissionsPage />} />
         <Route path="/security/user-roles" element={<UserRolesPage />} />
-        {/* Persistence Templates */}
-        <Route path="/template-builder" element={<TemplateBuilderPage />} />
-        {/* Data Import - Persistence Jobs */}
-        <Route path="/data-import" element={<DataImportPage />} />
-        <Route path="/data-import/new" element={<DataImportNewPage />} />
-        <Route path="/data-import/:id" element={<DataImportDetailPage />} />
         {/* Shifts */}
         <Route path="/shifts" element={<ShiftsPage />} />
         {/* Approval Management */}
@@ -188,9 +218,30 @@ export function AppRoutingSetup() {
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
+        {/* Hub Landing Pages */}
+        <Route path="/time-off-hub" element={<TimeOffHubPage />} />
+        <Route path="/hiring-hub" element={<HiringHubPage />} />
+        <Route path="/security-hub" element={<SecurityHubPage />} />
+        <Route path="/maintenance-hub" element={<MaintenanceHubPage />} />
+        <Route path="/project-management-hub" element={<ProjectManagementHubPage />} />
+        <Route path="/self-service-hub" element={<SelfServiceHubPage />} />
+        <Route path="/reports-hub" element={<ReportsHubPage />} />
+        <Route path="/communications-hub" element={<CommunicationsHubPage />} />
+        <Route path="/operations-hub" element={<OperationsHubPage />} />
+        <Route path="/governance-hub" element={<GovernanceHubPage />} />
+        <Route path="/top-performers-hub" element={<TopPerformersHubPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
+        {/* Top Performers */}
+        <Route path="/top-performers/admin/cycles" element={<TpCyclesPage />} />
+        <Route path="/top-performers/admin/anonymization" element={<AnonymizationReviewPage />} />
+        <Route path="/top-performers/vote" element={<VotingPage />} />
+        <Route path="/top-performers/committee" element={<CommitteePage />} />
+        <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />
+        <Route path="/top-performers/nominations/admin" element={<AdminNominationPage />} />
+        <Route path="/top-performers/nominations/customer" element={<CustomerNominationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
+      
     </Routes>
   );
 }

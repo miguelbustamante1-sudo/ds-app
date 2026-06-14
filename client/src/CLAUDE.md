@@ -123,6 +123,53 @@ Do not use:
 
 ---
 
+# UDS Color Tokens
+
+All color styling must use UDS TELUS semantic tokens — never Tailwind primitive colors (`green-500`, `amber-300`, `blue-600`, etc.) or hardcoded hex values.
+
+Token categories: `uds-telus-purple-*`, `uds-telus-green-*`, `uds-system-grey-*`, `uds-system-red-*`, `uds-system-amber-*`, `uds-system-blue-*`, `uds-system-green-*`.
+
+Source of truth: `.design-system/uds-tokens.json` → generated into `client/src/styles/uds-theme.css` (do not edit manually). Regenerate with `node ds-app/scripts/generate-uds-theme.js`.
+
+Metronic semantic vars (`--primary`, `--destructive`, `--muted`, etc.) are already remapped to UDS in `globals.css`. Prefer Metronic utilities (`bg-primary`, `text-muted-foreground`) when they express intent; use raw UDS tokens only when a specific shade is required.
+
+## Status badge helper
+
+Never repeat status switch logic inline. Use the shared helper:
+
+```tsx
+import { getStatusBadgeProps } from '@/lib/badge-utils';
+
+const { variant, className } = getStatusBadgeProps(record.statusId);
+<Badge variant={variant} className={className}>{record.statusName}</Badge>
+```
+
+---
+
+# Hub Navigation Pattern
+
+The sidebar uses hub-based navigation. Each sidebar entry is a hub landing page; pages are NOT added directly to the sidebar.
+
+**Adding a new page:**
+1. Identify the hub (`client/src/config/hubs/`).
+2. Add a `HubButton` to the correct `.hub.config.ts`.
+3. Register the route in `app-routing-setup.tsx` inside `<RequireAuth>`.
+4. Do NOT add a new sidebar entry.
+
+**Hub page component** — always use the shared `HubPage`, never build custom:
+```tsx
+import { HubPage } from '@/components/hub/HubPage';
+import { myHubConfig } from '@/config/hubs/my-domain.hub.config';
+
+export default function MyDomainHubPage() {
+  return <HubPage config={myHubConfig} />;
+}
+```
+
+See `Governance/03_FRONTEND_ARCHITECTURE.md` for full hub config shape and RBAC filtering details.
+
+---
+
 # Date and Permission Rules
 
 ## Frontend Date Rule

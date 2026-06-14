@@ -6,6 +6,7 @@ import { LoadingBarContainer } from 'react-top-loading-bar';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/auth/auth-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { FavoritesProvider } from '@/contexts/favorites-context';
 
 const { BASE_URL } = import.meta.env;
 
@@ -26,8 +27,10 @@ export function App() {
           <LoadingBarContainer>
             <BrowserRouter basename={BASE_URL}>
               <AuthProvider>
-                <Toaster />
-                <AppRouting />
+                <FavoritesProvider>
+                  <Toaster />
+                  <AppRouting />
+                </FavoritesProvider>
               </AuthProvider>
             </BrowserRouter>
           </LoadingBarContainer>

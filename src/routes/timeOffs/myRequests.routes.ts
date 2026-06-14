@@ -37,6 +37,7 @@ router.get('/', requirePermission('TimeOffs', 'read'), resolveAuthUser, async (r
     const timeOffs = await getTimeOffsByTeamMember(teamMemberId);
     res.json(timeOffs);
   } catch (err) {
+    console.error('[TimeOff] Error fetching my requests:', err);
     res.status(500).json({ error: 'Failed to fetch time offs' });
   }
 });
