@@ -5,11 +5,13 @@ import {
   ToolbarPageTitle,
   ToolbarDescription,
 } from '@/components/ui/toolbar';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet } from '@/lib/api';
 import { useMyTeamMembers } from '@/hooks/useSupervisorTimeOff';
 import { TeamMembersDataGrid } from '@/pages/timeoff/supervisor/components/TeamMembersDataGrid';
-import { SupervisorSwapForm } from './components/SupervisorSwapForm';
+import { SupervisorSwapDialog } from './components/SupervisorSwapDialog';
 import { SupervisorSwapList } from './components/SupervisorSwapList';
 import { CancelSwapDialog } from './components/CancelSwapDialog';
 import { useSupervisorTeamMemberSwaps } from './hooks/useSupervisorTeamMemberSwaps';
@@ -21,6 +23,7 @@ export function SupervisorHolidaySwapsPage() {
   const { toast } = useToast();
 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [editingSwap, setEditingSwap] = useState<HolidaySwapDTO | null>(null);
   const [cancelTarget, setCancelTarget] = useState<HolidaySwapDTO | null>(null);
   const [tentativeStatusId, setTentativeStatusId] = useState<number | null>(null);
@@ -71,7 +74,7 @@ export function SupervisorHolidaySwapsPage() {
     }
   }, [selectedTeamMember, swapsHook]);
 
-  const handleSubmit = useCallback(
+  const handleSave = useCallback(
     async (holidayId: number, replacementDate: string) => {
       if (!selectedTeamMember) return;
       if (editingSwap) {
@@ -90,7 +93,7 @@ export function SupervisorHolidaySwapsPage() {
 
   const handleEditClick = useCallback((swap: HolidaySwapDTO) => {
     setEditingSwap(swap);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSwapDialogOpen(true);
   }, []);
 
   const handleConfirmCancel = useCallback(
@@ -128,6 +131,15 @@ export function SupervisorHolidaySwapsPage() {
             Create, edit, review, and cancel holiday swaps for your team members.
           </ToolbarDescription>
         </ToolbarHeading>
+        {selectedTeamMember && (
+          <Button
+            onClick={() => { setEditingSwap(null); setSwapDialogOpen(true); }}
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            New Swap
+          </Button>
+        )}
       </Toolbar>
 
       {/* Team member selector */}
@@ -153,32 +165,34 @@ export function SupervisorHolidaySwapsPage() {
       {/* Main content */}
       <div className="mt-6">
         {selectedTeamMember ? (
-          <div className="flex flex-col gap-6">
-            <SupervisorSwapForm
-              teamMember={selectedTeamMember}
-              editingSwap={editingSwap}
-              loading={operationsHook.loading}
-              onSubmit={handleSubmit}
-              onCancelEdit={() => setEditingSwap(null)}
-            />
-            <SupervisorSwapList
-              swaps={swapsHook.swaps}
-              loading={swapsHook.loading}
-              operationLoading={operationsHook.loading}
-              tentativeStatusId={tentativeStatusId}
-              acknowledgedStatusId={acknowledgedStatusId}
-              onEditClick={handleEditClick}
-              onCancelClick={setCancelTarget}
-              onApprove={handleApprove}
-              onReject={handleReject}
-            />
-          </div>
+          <SupervisorSwapList
+            swaps={swapsHook.swaps}
+            loading={swapsHook.loading}
+            operationLoading={operationsHook.loading}
+            tentativeStatusId={tentativeStatusId}
+            acknowledgedStatusId={acknowledgedStatusId}
+            onEditClick={handleEditClick}
+            onCancelClick={setCancelTarget}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
         ) : (
           <div className="bg-card rounded-lg border p-8 text-center text-muted-foreground">
             Select a team member to manage their holiday swaps.
           </div>
         )}
       </div>
+
+      {selectedTeamMember && (
+        <SupervisorSwapDialog
+          open={swapDialogOpen}
+          onOpenChange={(v) => { setSwapDialogOpen(v); if (!v) setEditingSwap(null); }}
+          teamMember={selectedTeamMember}
+          editingSwap={editingSwap}
+          loading={operationsHook.loading}
+          onSave={handleSave}
+        />
+      )}
 
       <CancelSwapDialog
         open={cancelTarget !== null}

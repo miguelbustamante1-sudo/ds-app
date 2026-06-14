@@ -24,7 +24,7 @@ export function TaskInboxPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>My Tasks</ToolbarPageTitle>
+          <ToolbarPageTitle>My Tasks — Awaiting Action</ToolbarPageTitle>
           <ToolbarDescription>Tasks assigned to you or available to claim</ToolbarDescription>
         </ToolbarHeading>
       </Toolbar>

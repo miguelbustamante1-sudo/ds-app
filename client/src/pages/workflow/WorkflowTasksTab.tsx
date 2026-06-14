@@ -13,19 +13,27 @@ import {
 } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { X } from 'lucide-react';
+import { AlertCircle, Clock, ListChecks, X } from 'lucide-react';
 import { apiGet, apiPost } from '@/lib/api';
 import { formatUTCDate } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import type { TaskInboxItem } from './types';
 import { TaskExecutionDrawer } from './components/TaskExecutionDrawer';
+
+const PRIORITY_WEIGHT: Record<string, number> = {
+  CRITICAL: 4,
+  HIGH: 3,
+  MEDIUM: 2,
+  LOW: 1,
+};
 
 const STATE_OPTIONS = [
   { label: 'Active', value: 'ACTIVE' },
@@ -45,12 +53,26 @@ const SLA_OPTIONS = [
   { label: 'No SLA', value: 'NO_SLA' },
 ];
 
+function priorityDot(priority: string) {
+  const base = 'inline-block w-2.5 h-2.5 rounded-full shrink-0';
+  if (priority === 'CRITICAL') return <span className={`${base} bg-destructive`} aria-hidden="true" />;
+  if (priority === 'HIGH')     return <span className={`${base} bg-destructive/60`} aria-hidden="true" />;
+  if (priority === 'MEDIUM')   return <span className={`${base} bg-warning`} aria-hidden="true" />;
+  if (priority === 'LOW')      return <span className={`${base} bg-success`} aria-hidden="true" />;
+  return <span className={`${base} bg-muted`} aria-hidden="true" />;
+}
+
 function priorityBadge(priority: string) {
-  if (priority === 'LOW') return <Badge variant="primary" appearance="light">Low</Badge>;
-  if (priority === 'MEDIUM') return <Badge variant="warning" appearance="light">Medium</Badge>;
-  if (priority === 'HIGH') return <Badge variant="destructive" appearance="light">High</Badge>;
-  if (priority === 'CRITICAL') return <Badge variant="destructive">Critical</Badge>;
-  return <Badge variant="outline">{priority}</Badge>;
+  return (
+    <div className="flex items-center gap-2">
+      {priorityDot(priority)}
+      {priority === 'LOW'      && <Badge variant="primary" appearance="light">Low</Badge>}
+      {priority === 'MEDIUM'   && <Badge variant="warning" appearance="light">Medium</Badge>}
+      {priority === 'HIGH'     && <Badge variant="destructive" appearance="light">High</Badge>}
+      {priority === 'CRITICAL' && <Badge variant="destructive">Critical</Badge>}
+      {!['LOW','MEDIUM','HIGH','CRITICAL'].includes(priority) && <Badge variant="outline">{priority}</Badge>}
+    </div>
+  );
 }
 
 function stateBadge(state: string) {
@@ -82,6 +104,26 @@ export function WorkflowTasksTab() {
   const [selectedWitId, setSelectedWitId] = useState<string | null>(null);
   const [selectedWinId, setSelectedWinId] = useState<string | null>(null);
   const [selectedIsClaimedByMe, setSelectedIsClaimedByMe] = useState(false);
+
+  // Default sort: highest priority first, then oldest due date. Overridden when user clicks a column header.
+  const sortedTasks = useMemo(() => {
+    if (sorting.length > 0) return tasks;
+    return [...tasks].sort((a, b) => {
+      const pw = (PRIORITY_WEIGHT[b.priority] ?? 0) - (PRIORITY_WEIGHT[a.priority] ?? 0);
+      if (pw !== 0) return pw;
+      if (!a.dueAt && !b.dueAt) return 0;
+      if (!a.dueAt) return 1;
+      if (!b.dueAt) return -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+    });
+  }, [tasks, sorting]);
+
+  const summary = useMemo(() => ({
+    total: tasks.length,
+    overdue: tasks.filter((t) => t.isOverdue).length,
+    critical: tasks.filter((t) => t.priority === 'CRITICAL' || t.priority === 'HIGH').length,
+    active: tasks.filter((t) => t.state === 'ACTIVE').length,
+  }), [tasks]);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -248,7 +290,7 @@ export function WorkflowTasksTab() {
   );
 
   const table = useReactTable({
-    data: tasks,
+    data: sortedTasks,
     columns,
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
@@ -265,6 +307,50 @@ export function WorkflowTasksTab() {
 
   return (
     <>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2 mb-4">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <ListChecks className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{loading ? '—' : summary.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Overdue</span>
+            </div>
+            <p className={`text-2xl font-bold ${summary.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>
+              {loading ? '—' : summary.overdue}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              {priorityDot('CRITICAL')}
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">High / Critical</span>
+            </div>
+            <p className={`text-2xl font-bold ${summary.critical > 0 ? 'text-destructive' : 'text-foreground'}`}>
+              {loading ? '—' : summary.critical}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{loading ? '—' : summary.active}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex items-center gap-2 mt-2">
         {table.getColumn('state') && (
           <DataGridColumnFilter column={table.getColumn('state')} title="State" options={STATE_OPTIONS} />
@@ -285,7 +371,7 @@ export function WorkflowTasksTab() {
       <DataGridContainer className="mt-4">
         <DataGrid
           table={table}
-          recordCount={tasks.length}
+          recordCount={sortedTasks.length}
           isLoading={loading}
           emptyMessage="No tasks in your inbox."
           tableLayout={{ columnsMovable: true, columnsVisibility: true }}

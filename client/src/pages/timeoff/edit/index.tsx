@@ -86,12 +86,16 @@ export function EditTimeOffPage() {
   );
 }
 
-function EditTimeOffPageInner({
+export function EditTimeOffPageInner({
   timeOffId,
   profile,
+  isModal = false,
+  onClose,
 }: {
   timeOffId: number | null;
   profile: MyTeamMemberProfile | null;
+  isModal?: boolean;
+  onClose?: () => void;
 }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -308,7 +312,7 @@ function EditTimeOffPageInner({
         };
         await apiPatch(`/api/time-offs/my-requests/${timeOffId}`, payload);
         toast({ title: 'Success', description: 'Time off updated successfully' });
-        navigate('/my-time-off');
+        if (isModal) { onClose?.(); } else { navigate('/my-time-off'); }
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to update time off';
         toast({ title: 'Error', description: message, variant: 'destructive' });
@@ -336,7 +340,7 @@ function EditTimeOffPageInner({
           comment: comment || 'SV vacation split via edit',
         });
         toast({ title: 'Success', description: 'Vacation split into two periods successfully' });
-        navigate('/my-time-off');
+        if (isModal) { onClose?.(); } else { navigate('/my-time-off'); }
       } catch (error) {
         const message = error instanceof ApiError ? error.message : 'Failed to convert to split';
         toast({ title: 'Error', description: message, variant: 'destructive' });
@@ -360,9 +364,9 @@ function EditTimeOffPageInner({
 
   if (!editingTimeOff) {
     return (
-      <div className="container mt-6">
+      <div className={isModal ? 'mt-4' : 'container mt-6'}>
         <p className="text-muted-foreground">Time-off record not found.</p>
-        <Button variant="ghost" className="mt-4" onClick={() => navigate('/my-time-off')}>
+        <Button variant="ghost" className="mt-4" onClick={() => isModal ? onClose?.() : navigate('/my-time-off')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to My Time Off
         </Button>
       </div>
@@ -384,20 +388,9 @@ function EditTimeOffPageInner({
       ? 'Period 1'
       : 'Period 2';
 
-  return (
-    <div className="container">
-      <Toolbar>
-        <ToolbarHeading>
-          <ToolbarPageTitle>Edit Time Off</ToolbarPageTitle>
-          <ToolbarDescription>
-            {isHalfOfSplit
-              ? `Editing ${editingLabel} of a split vacation`
-              : 'Update your time off request'}
-          </ToolbarDescription>
-        </ToolbarHeading>
-      </Toolbar>
-
-      <div className="mt-6 space-y-4">
+  const formBody = (
+    <div className="space-y-4">
+      {!isModal && (
         <button
           type="button"
           onClick={() => navigate('/my-time-off')}
@@ -406,6 +399,7 @@ function EditTimeOffPageInner({
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to My Time Off
         </button>
+      )}
 
         {sibling && <SiblingReadOnlyCard sibling={sibling} label={siblingLabel} />}
 
@@ -680,6 +674,25 @@ function EditTimeOffPageInner({
             </div>
           </form>
         </div>
+      </div>
+  );
+
+  if (isModal) return formBody;
+
+  return (
+    <div className="container">
+      <Toolbar>
+        <ToolbarHeading>
+          <ToolbarPageTitle>Edit Time Off</ToolbarPageTitle>
+          <ToolbarDescription>
+            {isHalfOfSplit
+              ? `Editing ${editingLabel} of a split vacation`
+              : 'Update your time off request'}
+          </ToolbarDescription>
+        </ToolbarHeading>
+      </Toolbar>
+      <div className="mt-6">
+        {formBody}
       </div>
     </div>
   );

@@ -474,6 +474,7 @@ function NotificationCenterPanel() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<NotifTab>("unread");
+  const [expanded, setExpanded] = useState(true);
   const { canRead } = usePermissions();
   const hasAccess = canRead('Notifications');
 
@@ -483,6 +484,15 @@ function NotificationCenterPanel() {
     staleTime: 30_000,
     enabled: hasAccess,
   });
+
+  // Unread count for bell badge (always fetched for the indicator)
+  const { data: unreadNotifications = [] } = useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: () => fetchNotifications("unread"),
+    staleTime: 30_000,
+    enabled: hasAccess,
+  });
+  const unreadCount = unreadNotifications.length;
 
   const markReadMutation = useMutation({
     mutationFn: markAllRead,
@@ -513,18 +523,22 @@ function NotificationCenterPanel() {
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-uds-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-uds-card-hover)]">
-      {/* Panel header */}
-      <div className="px-5 pt-5 pb-3">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Bell
-              className="h-4 w-4 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <span className="text-sm font-semibold text-foreground">
-              Notification Center
-            </span>
+      {/* Panel header — always visible */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </div>
+          <span className="text-sm font-semibold text-foreground">
+            Notification Center
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate("/notification-center")}
@@ -532,88 +546,99 @@ function NotificationCenterPanel() {
           >
             View all →
           </button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Review and manage all your notifications
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-border px-5">
-        {tabItems.map((t) => (
           <button
-            key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "pb-2 pt-1 mr-5 text-sm font-medium transition-colors border-b-2 -mb-px",
-              tab === t.key
-                ? "border-uds-telus-purple-500 text-uds-telus-purple-500"
-                : "border-transparent text-muted-foreground hover:text-uds-telus-purple-400",
-            )}
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? "Collapse notifications" : "Expand notifications"}
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-        <button
-          type="button"
-          onClick={() => markReadMutation.mutate()}
-          disabled={markReadMutation.isPending}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
-        >
-          <BellOff className="h-3.5 w-3.5" aria-hidden="true" />
-          Mark all as read
-        </button>
-        <button
-          type="button"
-          onClick={() => archiveMutation.mutate()}
-          disabled={archiveMutation.isPending}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
-        >
-          <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-          Archive all
-        </button>
-      </div>
-
-      {/* Notification list / empty state */}
-      <div className="px-5 py-6 min-h-[140px] flex items-center justify-center">
-        {isLoading ? (
-          <div className="w-full space-y-3 animate-pulse">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-10 rounded bg-muted" />
-            ))}
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            <Bell
-              className="h-8 w-8 text-muted-foreground/40"
-              aria-hidden="true"
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                !expanded && "-rotate-90",
+              )}
             />
-            <p className="text-sm text-muted-foreground">
-              {tab === "unread"
-                ? "No unread notifications"
-                : tab === "read"
-                  ? "No read notifications"
-                  : "No archived notifications"}
-            </p>
-          </div>
-        ) : (
-          <ul className="w-full divide-y divide-border -mx-5">
-            {notifications.slice(0, 5).map((n) => (
-              <li key={n.id}>
-                <NotificationItem
-                  notification={n}
-                  onMarkAsRead={(id) => markOneMutation.mutate(id)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+          </button>
+        </div>
       </div>
+
+      {expanded && (
+        <>
+          {/* Tabs */}
+          <div className="flex border-b border-border px-5">
+            {tabItems.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "pb-2 pt-1 mr-5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                  tab === t.key
+                    ? "border-uds-telus-purple-500 text-uds-telus-purple-500"
+                    : "border-transparent text-muted-foreground hover:text-uds-telus-purple-400",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+            <button
+              type="button"
+              onClick={() => markReadMutation.mutate()}
+              disabled={markReadMutation.isPending}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
+            >
+              <BellOff className="h-3.5 w-3.5" aria-hidden="true" />
+              Mark all as read
+            </button>
+            <button
+              type="button"
+              onClick={() => archiveMutation.mutate()}
+              disabled={archiveMutation.isPending}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
+            >
+              <Archive className="h-3.5 w-3.5" aria-hidden="true" />
+              Archive all
+            </button>
+          </div>
+
+          {/* Notification list / empty state */}
+          <div className="px-5 py-6 min-h-[140px] flex items-center justify-center">
+            {isLoading ? (
+              <div className="w-full space-y-3 animate-pulse">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-10 rounded bg-muted" />
+                ))}
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Bell className="h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
+                <p className="text-sm text-muted-foreground">
+                  {tab === "unread"
+                    ? "No unread notifications"
+                    : tab === "read"
+                      ? "No read notifications"
+                      : "No archived notifications"}
+                </p>
+              </div>
+            ) : (
+              <ul className="w-full divide-y divide-border -mx-5">
+                {notifications.slice(0, 5).map((n) => (
+                  <li key={n.id}>
+                    <NotificationItem
+                      notification={n}
+                      onMarkAsRead={(id) => markOneMutation.mutate(id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
