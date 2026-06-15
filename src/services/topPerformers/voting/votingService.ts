@@ -3,6 +3,7 @@ import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { AppError } from '../../../errors/AppError';
 import { resolveMultiplier } from './multiplierService';
 import { hasVoted } from './votingQueries';
+import type { TpCycleStatus } from '@shared/dto/TopPerformersCycle';
 
 const RANK_POINTS: Record<number, number> = { 1: 10, 2: 8, 3: 6, 4: 4, 5: 2 };
 
@@ -32,7 +33,7 @@ export async function submitVote(input: SubmitVoteInput): Promise<void> {
 
   const cycle = await prisma.tpCycle.findUnique({ where: { cycId: input.cycId }, select: { cycStatus: true } });
   if (!cycle) throw new AppError('Cycle not found', 404);
-  if (cycle.cycStatus !== 'VOTING_OPEN') throw new AppError('Voting is not currently open', 400);
+  if ((cycle.cycStatus as TpCycleStatus) !== 'VOTING_OPEN') throw new AppError('Voting is not currently open', 400);
 
   if (await hasVoted(input.cycId, input.voterTeamMemberId)) {
     throw new AppError('You have already voted in this cycle', 409);

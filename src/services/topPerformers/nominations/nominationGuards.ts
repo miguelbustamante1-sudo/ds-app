@@ -1,6 +1,7 @@
 import { prisma } from '../../../db/prisma';
 import { AppError } from '../../../errors/AppError';
 import { getReportsForTopPerformers } from '../../teamMember/queries/getReportsForTopPerformers';
+import type { TpCycleStatus } from '@shared/dto/TopPerformersCycle';
 
 export function assertNotSelfNomination(nominatorId: number, nomineeId: number): void {
   if (nominatorId === nomineeId) {
@@ -30,7 +31,8 @@ export async function assertNoDuplicateNomination(
 export async function assertNominationsOpen(cycId: number): Promise<void> {
   const cycle = await prisma.tpCycle.findUnique({ where: { cycId }, select: { cycStatus: true } });
   if (!cycle) throw new AppError('Cycle not found', 404);
-  if (cycle.cycStatus !== 'NOMINATIONS_OPEN') {
+  const status = cycle.cycStatus as TpCycleStatus;
+  if (status !== 'NOMINATIONS_OPEN') {
     throw new AppError('Nominations are not currently open for this cycle', 400);
   }
 }

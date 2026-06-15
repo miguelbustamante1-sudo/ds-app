@@ -1,6 +1,7 @@
 import { prisma } from '../../../db/prisma';
 import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { AppError } from '../../../errors/AppError';
+import type { TpCycleStatus } from '@shared/dto/TopPerformersCycle';
 
 export async function createOrUpdateDecision(
   cycId: number,
@@ -83,7 +84,7 @@ export async function confirmDecision(cycId: number, confirmingUserId: number, u
     const cycleBefore = await prisma.tpCycle.findUnique({ where: { cycId } });
     const cycleUpdated = await prisma.tpCycle.update({
       where: { cycId },
-      data: { cycStatus: 'RESULTS_PUBLISHED', cycUpdatedBy: confirmingUserId, cycUpdatedDate: new Date() },
+      data: { cycStatus: 'RESULTS_PUBLISHED' satisfies TpCycleStatus, cycUpdatedBy: confirmingUserId, cycUpdatedDate: new Date() },
     });
     await auditOrchestrator.log({
       entityName: 'cyc_cycles',

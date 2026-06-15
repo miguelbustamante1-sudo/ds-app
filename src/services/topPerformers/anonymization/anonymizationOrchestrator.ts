@@ -11,7 +11,10 @@ export async function anonymizeCycle(
     where: {
       cycId,
       nomStatus: 'SUBMITTED',
-      nomAnonymizationStatus: 'PENDING',
+      OR: [
+        { nomAnonymizationStatus: 'PENDING' },
+        { nomAnonymizationStatus: 'NEEDS_REVIEW', nomAnonymizedText: null },
+      ],
     },
     select: { nomId: true },
   });

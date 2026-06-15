@@ -1,4 +1,5 @@
 import { useForm, Controller } from 'react-hook-form';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { CustomerNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 
 const CHANNELS = [
   { value: 'EMAIL', label: 'Email' },
@@ -36,7 +38,7 @@ export default function CustomerNominationPage() {
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } =
     useForm<CustomerFormValues>({
       defaultValues: { showClientName: false },
     });
@@ -65,6 +67,7 @@ export default function CustomerNominationPage() {
         attachments: data.attachments,
       };
       await nominationsApi.createCustomer(payload);
+      reset({ showClientName: false });
       toast({ title: 'Customer feedback recorded as nomination' });
     } catch {
       toast({ title: 'Error recording feedback', variant: 'destructive' });
@@ -73,8 +76,18 @@ export default function CustomerNominationPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
+      {activeCycle && (
+        <div className="rounded-md border bg-muted/40 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="font-semibold text-foreground">{activeCycle.cycName}</span>
+          <span className="text-muted-foreground">
+            Nominations: {formatUTCDate(activeCycle.cycNominationsStart)} – {formatUTCDate(activeCycle.cycNominationsEnd)}
+          </span>
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6 space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)}>
           <CardTitle>Voice of Customer — Nomination</CardTitle>
 
           <div>
@@ -100,7 +113,7 @@ export default function CustomerNominationPage() {
               rows={6}
             />
             {feedbackText.length > 0 && feedbackText.length < 80 && (
-              <p className="text-amber-600 text-xs mt-1">
+              <p className="text-[--color-uds-system-amber-500] text-xs mt-1">
                 This feedback is short. Consider adding context if the customer shared additional information verbally.
               </p>
             )}
@@ -155,9 +168,10 @@ export default function CustomerNominationPage() {
             />
           </div>
 
-          <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? 'Recording...' : 'Record customer nomination'}
           </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

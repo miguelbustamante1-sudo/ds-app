@@ -1,4 +1,5 @@
 import { useForm, Controller } from 'react-hook-form';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { PeerNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 import { TELUS_VALUES } from '@/constants/telusValues';
 const DRAFT_KEY = 'tp-peer-nomination-draft';
 
@@ -32,7 +34,7 @@ export default function PeerNominationPage() {
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors, isValid } } =
+  const { register, handleSubmit, control, watch, setValue, getValues, reset, formState: { errors } } =
     useForm<PeerNominationPayload>({ mode: 'onChange' });
 
   const achievementText = watch('achievementText', '');
@@ -58,6 +60,7 @@ export default function PeerNominationPage() {
     try {
       await nominationsApi.createPeer({ ...data, cycId: activeCycle.cycId });
       localStorage.removeItem(DRAFT_KEY);
+      reset();
       setSubmitted(true);
       setConfirmOpen(false);
       toast({ title: `Nomination submitted for ${activeCycle.cycName}` });
@@ -74,7 +77,7 @@ export default function PeerNominationPage() {
   if (submitted) {
     return (
       <div className="p-6 text-center space-y-4">
-        <p className="text-2xl font-bold text-green-600">Nomination submitted!</p>
+        <p className="text-2xl font-bold text-[--color-uds-system-green-600]">Nomination submitted!</p>
         <p className="text-muted-foreground">Your nomination was registered successfully.</p>
         <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
       </div>
@@ -83,6 +86,15 @@ export default function PeerNominationPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
+      {activeCycle && (
+        <div className="rounded-md border bg-muted/40 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="font-semibold text-foreground">{activeCycle.cycName}</span>
+          <span className="text-muted-foreground">
+            Nominations: {formatUTCDate(activeCycle.cycNominationsStart)} – {formatUTCDate(activeCycle.cycNominationsEnd)}
+          </span>
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6 space-y-5">
           <CardTitle>Nominate a Peer</CardTitle>
@@ -104,17 +116,17 @@ export default function PeerNominationPage() {
               {...register('achievementText', {
                 required: 'Required',
                 minLength: { value: 80, message: 'Minimum 80 characters' },
-                maxLength: { value: 800, message: 'Maximum 800 characters' },
+                maxLength: { value: 1500, message: 'Maximum 1500 characters' },
               })}
               placeholder="Describe the achievement, situation, or specific contribution you observed..."
               rows={5}
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               {errors.achievementText && <p className="text-destructive">{errors.achievementText.message}</p>}
-              <span className="ml-auto">{achievementText.length} / 800</span>
+              <span className="ml-auto">{achievementText.length} / 1500</span>
             </div>
             {achievementText.length > 0 && achievementText.length < 80 && (
-              <p className="text-amber-600 text-xs mt-1">
+              <p className="text-[--color-uds-system-amber-500] text-xs mt-1">
                 Tip: add more detail to strengthen the nomination.
               </p>
             )}
@@ -191,7 +203,6 @@ export default function PeerNominationPage() {
 
           <Button
             type="button"
-            disabled={!isValid}
             onClick={() => setConfirmOpen(true)}
             className="w-full"
           >

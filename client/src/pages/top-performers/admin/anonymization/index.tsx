@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
 import { ReviewCard } from './ReviewCard';
 import { anonymizationApi } from '@/api/topPerformers/anonymization';
@@ -10,6 +12,7 @@ import { cyclesApi } from '@/api/topPerformers/cycles';
 export default function AnonymizationReviewPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [processing, setProcessing] = useState(false);
   const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
 
   const cycId = activeCycle?.cycId;
@@ -24,12 +27,19 @@ export default function AnonymizationReviewPage() {
 
   async function triggerBatch() {
     if (!cycId) return;
+    setProcessing(true);
     try {
       const result = await anonymizationApi.triggerBatch(cycId);
-      toast({ title: `Processed: ${result.processed} · Failed: ${result.failed}` });
+      if (result.failed > 0) {
+        toast({ title: `Processed: ${result.processed} · Failed: ${result.failed}`, variant: 'destructive' });
+      } else {
+        toast({ title: `Processed ${result.processed} nomination${result.processed !== 1 ? 's' : ''} — review and approve below` });
+      }
       void queryClient.invalidateQueries({ queryKey: ['tp-anonymization', cycId] });
     } catch {
       toast({ title: 'Error processing batch', variant: 'destructive' });
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -39,11 +49,14 @@ export default function AnonymizationReviewPage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle>Anonymization Review — {activeCycle.cycName}</CardTitle>
-            <Button onClick={triggerBatch} disabled={isLoading}>Process with AI</Button>
+            <Button onClick={triggerBatch} disabled={isLoading || processing}>
+              {processing ? 'Processing…' : 'Process with AI'}
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
             {pending.length} pending review · {approved.length} approved

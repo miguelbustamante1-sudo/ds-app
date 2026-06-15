@@ -102,6 +102,7 @@ import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
 import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
 import AnonymizationReviewPage from '@/pages/top-performers/admin/anonymization';
+import NominationsOverviewPage from '@/pages/top-performers/admin/nominations-overview';
 import VotingPage from '@/pages/top-performers/vote';
 import CommitteePage from '@/pages/top-performers/committee';
 import PeerNominationPage from '@/pages/top-performers/nominations/peer';
@@ -234,6 +235,7 @@ export function AppRoutingSetup() {
         {/* Top Performers */}
         <Route path="/top-performers/admin/cycles" element={<TpCyclesPage />} />
         <Route path="/top-performers/admin/anonymization" element={<AnonymizationReviewPage />} />
+        <Route path="/top-performers/admin/nominations-overview" element={<NominationsOverviewPage />} />
         <Route path="/top-performers/vote" element={<VotingPage />} />
         <Route path="/top-performers/committee" element={<CommitteePage />} />
         <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />

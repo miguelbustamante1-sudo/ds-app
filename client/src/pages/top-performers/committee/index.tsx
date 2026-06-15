@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import {
   getCoreRowModel,
   getSortedRowModel,
@@ -24,7 +25,7 @@ export default function CommitteePage() {
   const [showDecision, setShowDecision] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: activeCycle } = useQuery({ queryKey: ['tp-committee-cycle'], queryFn: cyclesApi.getCommitteeActive });
   const cycId = activeCycle?.cycId;
 
   const { data: leaderboard = [], isLoading } = useQuery({
@@ -50,6 +51,7 @@ export default function CommitteePage() {
 
   return (
     <div className="p-6 space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
@@ -62,7 +64,7 @@ export default function CommitteePage() {
             </div>
           </div>
 
-          <DataGrid table={table} loading={isLoading}>
+          <DataGrid table={table} loading={isLoading} recordCount={leaderboard.length}>
             <DataGridContainer>
               <DataGridTable />
               <DataGridPagination />

@@ -1,8 +1,8 @@
 import { apiGet, apiPost } from '@/lib/api';
-import type { TpNominationDTO } from '@shared/dto/TpNomination';
+import type { TpNominationDTO, TpNominationAdminDTO } from '@shared/dto/TpNomination';
 import type { UploadDTO } from '@shared/dto/Upload';
 
-export type { TpNominationDTO, UploadDTO };
+export type { TpNominationDTO, TpNominationAdminDTO, UploadDTO };
 
 export interface PeerNominationPayload {
   cycId: number;
@@ -36,6 +36,9 @@ export interface CustomerNominationPayload {
 export const nominationsApi = {
   getByCycle: (cycId: number): Promise<TpNominationDTO[]> =>
     apiGet<TpNominationDTO[]>(`/api/top-performers/nominations?cycId=${cycId}`),
+
+  getAdminView: (cycId: number): Promise<TpNominationAdminDTO[]> =>
+    apiGet<TpNominationAdminDTO[]>(`/api/top-performers/nominations/admin-view?cycId=${cycId}`),
 
   createPeer: (payload: PeerNominationPayload): Promise<TpNominationDTO> =>
     apiPost<TpNominationDTO, PeerNominationPayload>('/api/top-performers/nominations/peer', payload),

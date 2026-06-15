@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Dialog,
   DialogContent,
@@ -10,18 +10,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ComboBox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { cyclesApi } from '@/api/topPerformers/cycles';
-import { CycleDateTimeField, combineDateAndTime } from './CycleDateTimeField';
+import type { TpCycleDTO } from '@/api/topPerformers/cycles';
+import { TP_CYCLE_STATUSES } from '@shared/dto/TopPerformersCycle';
+import { STATUS_LABELS } from './cycleColumns';
+import { CycleDateTimeField, combineDateAndTime, splitIsoDateTime } from './CycleDateTimeField';
 
-interface CycleFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-}
-
-interface CycleFormData {
+interface CycleEditFormData {
   cycName: string;
+  cycStatus: string;
 }
 
 interface DateTimeState {
@@ -35,33 +34,56 @@ interface DateTimeState {
   voteEndTime: string;
 }
 
-const EMPTY_DT: DateTimeState = {
-  nomStartDate: null, nomStartTime: '',
-  nomEndDate: null,   nomEndTime: '',
-  voteStartDate: null, voteStartTime: '',
-  voteEndDate: null,  voteEndTime: '',
-};
+interface CycleEditDialogProps {
+  cycle: TpCycleDTO;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
 
-export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDialogProps) {
+const STATUS_OPTIONS = TP_CYCLE_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }));
+
+export function CycleEditDialog({ cycle, open, onOpenChange, onSuccess }: CycleEditDialogProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [dt, setDt] = useState<DateTimeState>(EMPTY_DT);
+  const [dt, setDt] = useState<DateTimeState>({
+    nomStartDate: null, nomStartTime: '',
+    nomEndDate: null,   nomEndTime: '',
+    voteStartDate: null, voteStartTime: '',
+    voteEndDate: null,  voteEndTime: '',
+  });
   const [dtErrors, setDtErrors] = useState<Partial<Record<keyof DateTimeState, string>>>({});
 
   const {
     register,
     handleSubmit,
+    control,
+    watch,
     reset,
+    setValue,
     formState: { errors },
-  } = useForm<CycleFormData>();
+  } = useForm<CycleEditFormData>();
+
+  const watchedStatus = watch('cycStatus');
 
   useEffect(() => {
     if (open) {
-      reset({ cycName: '' });
-      setDt(EMPTY_DT);
+      reset({ cycName: cycle.cycName, cycStatus: cycle.cycStatus });
       setDtErrors({});
+
+      const nomStart  = splitIsoDateTime(cycle.cycNominationsStart);
+      const nomEnd    = splitIsoDateTime(cycle.cycNominationsEnd);
+      const voteStart = splitIsoDateTime(cycle.cycVotingStart);
+      const voteEnd   = splitIsoDateTime(cycle.cycVotingEnd);
+
+      setDt({
+        nomStartDate:  nomStart.date,  nomStartTime:  nomStart.time,
+        nomEndDate:    nomEnd.date,    nomEndTime:    nomEnd.time,
+        voteStartDate: voteStart.date, voteStartTime: voteStart.time,
+        voteEndDate:   voteEnd.date,   voteEndTime:   voteEnd.time,
+      });
     }
-  }, [open, reset]);
+  }, [open, cycle, reset]);
 
   function setDate(key: keyof DateTimeState, value: Date | null) {
     setDt((prev) => ({ ...prev, [key]: value }));
@@ -74,30 +96,35 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
 
   function validateDates(): boolean {
     const errs: Partial<Record<keyof DateTimeState, string>> = {};
-    if (!dt.nomStartDate || !dt.nomStartTime) errs.nomStartDate = 'Required.';
-    if (!dt.nomEndDate   || !dt.nomEndTime)   errs.nomEndDate   = 'Required.';
+    if (!dt.nomStartDate  || !dt.nomStartTime)  errs.nomStartDate  = 'Required.';
+    if (!dt.nomEndDate    || !dt.nomEndTime)    errs.nomEndDate    = 'Required.';
     if (!dt.voteStartDate || !dt.voteStartTime) errs.voteStartDate = 'Required.';
-    if (!dt.voteEndDate  || !dt.voteEndTime)  errs.voteEndDate  = 'Required.';
+    if (!dt.voteEndDate   || !dt.voteEndTime)   errs.voteEndDate   = 'Required.';
     setDtErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  const onSubmit = async (data: CycleFormData) => {
+  const onSubmit = async (data: CycleEditFormData) => {
     if (!validateDates()) return;
     setSaving(true);
     try {
-      await cyclesApi.create({
+      await cyclesApi.update(cycle.cycId, {
         cycName: data.cycName.trim(),
         cycNominationsStart: combineDateAndTime(dt.nomStartDate, dt.nomStartTime),
         cycNominationsEnd:   combineDateAndTime(dt.nomEndDate,   dt.nomEndTime),
         cycVotingStart:      combineDateAndTime(dt.voteStartDate, dt.voteStartTime),
         cycVotingEnd:        combineDateAndTime(dt.voteEndDate,   dt.voteEndTime),
       });
-      toast({ title: 'Success', description: 'Cycle created successfully.' });
+
+      if (data.cycStatus !== cycle.cycStatus) {
+        await cyclesApi.updateStatus(cycle.cycId, data.cycStatus);
+      }
+
+      toast({ title: 'Cycle updated successfully' });
       onSuccess();
       onOpenChange(false);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error creating cycle.';
+      const message = error instanceof Error ? error.message : 'Error updating cycle';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -108,7 +135,7 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Cycle</DialogTitle>
+          <DialogTitle>Edit Cycle</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1">
@@ -164,6 +191,26 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
             error={dtErrors.voteEndDate}
           />
 
+          <div className="space-y-1">
+            <Label>Status</Label>
+            <Controller
+              name="cycStatus"
+              control={control}
+              rules={{ required: 'Status is required.' }}
+              render={() => (
+                <ComboBox
+                  options={STATUS_OPTIONS}
+                  value={watchedStatus ?? ''}
+                  onValueChange={(v) => setValue('cycStatus', v, { shouldValidate: true })}
+                  placeholder="Select status..."
+                />
+              )}
+            />
+            {errors.cycStatus && (
+              <p className="text-sm text-destructive">{errors.cycStatus.message}</p>
+            )}
+          </div>
+
           <DialogFooter>
             <Button
               type="button"
@@ -174,7 +221,7 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Saving...' : 'Create'}
+              {saving ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
         </form>

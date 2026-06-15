@@ -1,4 +1,5 @@
 import { useForm, Controller } from 'react-hook-form';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
@@ -14,27 +15,28 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { AdminNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 import { TELUS_VALUES } from '@/constants/telusValues';
 
-interface DirectReport { teamMemberId: number; workdayId: string | null; teamMemberNames: string; teamMemberSurnames: string; }
+interface ActiveMember { teamMemberId: number; workdayId: string | null; teamMemberNames: string; teamMemberSurnames: string; }
 
 export default function AdminNominationPage() {
   const { toast } = useToast();
   const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
-  const { data: reports = [] } = useQuery<DirectReport[]>({
-    queryKey: ['my-reports-for-tp'],
-    queryFn: () => apiGet<DirectReport[]>('/api/team-members/my-reports'),
+  const { data: members = [] } = useQuery<ActiveMember[]>({
+    queryKey: ['active-team-members'],
+    queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } =
     useForm<AdminNominationPayload>({
       defaultValues: { metrics: [{ metricName: '', metricValue: '', metricBenchmark: '' }] },
       mode: 'onChange',
     });
 
-  const reportOptions = reports.map((r) => ({
-    value: String(r.teamMemberId),
-    label: `${r.teamMemberNames} ${r.teamMemberSurnames}${r.workdayId ? ` (${r.workdayId})` : ''}`,
+  const reportOptions = members.map((m) => ({
+    value: String(m.teamMemberId),
+    label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
   register('nomineeId', { required: 'Select a team member', validate: (v) => !isNaN(v) || 'Select a team member' });
   const watchedNomineeId = watch('nomineeId');
@@ -43,6 +45,7 @@ export default function AdminNominationPage() {
     if (!activeCycle) return;
     try {
       await nominationsApi.createAdmin({ ...data, cycId: activeCycle.cycId });
+      reset({ metrics: [{ metricName: '', metricValue: '', metricBenchmark: '' }] });
       toast({ title: 'Administrative nomination submitted' });
     } catch {
       toast({ title: 'Error submitting nomination', variant: 'destructive' });
@@ -51,8 +54,18 @@ export default function AdminNominationPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
+      {activeCycle && (
+        <div className="rounded-md border bg-muted/40 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="font-semibold text-foreground">{activeCycle.cycName}</span>
+          <span className="text-muted-foreground">
+            Nominations: {formatUTCDate(activeCycle.cycNominationsStart)} – {formatUTCDate(activeCycle.cycNominationsEnd)}
+          </span>
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6 space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)}>
           <CardTitle>Administrative Nomination</CardTitle>
 
           <div>
@@ -72,12 +85,12 @@ export default function AdminNominationPage() {
               {...register('achievementText', {
                 required: true,
                 minLength: { value: 150, message: 'Minimum 150 characters' },
-                maxLength: { value: 1200, message: 'Maximum 1200 characters' },
+                maxLength: { value: 1500, message: 'Maximum 1500 characters' },
               })}
               placeholder="Describe what the team member did, in what context, and what the impact was..."
               rows={6}
             />
-            <span className="text-xs text-muted-foreground">{watch('achievementText', '').length} / 1200</span>
+            <span className="text-xs text-muted-foreground">{watch('achievementText', '').length} / 1500</span>
             {errors.achievementText && <p className="text-destructive text-sm">{errors.achievementText.message}</p>}
           </div>
 
@@ -173,9 +186,10 @@ export default function AdminNominationPage() {
             />
           </div>
 
-          <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? 'Submitting...' : 'Submit nomination'}
           </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

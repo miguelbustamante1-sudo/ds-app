@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DndContext } from '@dnd-kit/core';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,15 @@ import { useVotingState } from './useVotingState';
 import { votingApi } from '@/api/topPerformers/voting';
 import type { ApprovedNominationDTO } from '@/api/topPerformers/voting';
 import { cyclesApi } from '@/api/topPerformers/cycles';
+import { formatUTCDate } from '@/lib/utils';
+
+const RANK_LABELS: Record<number, string> = {
+  1: '1st place',
+  2: '2nd place',
+  3: '3rd place',
+  4: '4th place',
+  5: '5th place',
+};
 
 export default function VotingPage() {
   const { toast } = useToast();
@@ -18,7 +28,9 @@ export default function VotingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: cycles } = useQuery({ queryKey: ['tp-cycles'], queryFn: cyclesApi.getAll });
+  const activeCycle = cycles?.find((c) => c.cycStatus === 'VOTING_OPEN') ?? null;
+
   const { data: votingData } = useQuery({
     queryKey: ['tp-voting-nominations', activeCycle?.cycId],
     queryFn: () => votingApi.getNominations(activeCycle!.cycId),
@@ -28,8 +40,19 @@ export default function VotingPage() {
   const nominations: ApprovedNominationDTO[] = votingData?.nominations ?? [];
   const alreadyVoted = votingData?.alreadyVoted ?? false;
 
-  const { slots, isComplete, addToNextEmpty, removeFromSlot, reorder, isSelected } = useVotingState();
+  const { slots, isComplete, removeFromSlot, reorder, isSelected, swapIntoSlot } = useVotingState();
   const selectedCount = slots.filter((s) => s.nomId !== null).length;
+  const emptySlots = slots
+    .filter((s) => s.nomId === null)
+    .map((s) => ({ rank: s.rank, label: RANK_LABELS[s.rank] }));
+
+  function handleAdd(nomId: number, rank: number) {
+    if (emptySlots.length === 0) {
+      toast({ title: 'All 5 positions are taken. Remove one first.' });
+      return;
+    }
+    swapIntoSlot(nomId, rank);
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -40,7 +63,9 @@ export default function VotingPage() {
 
     if (activeId.startsWith('card-') && overId.startsWith('slot-')) {
       const nominationId = active.data.current?.nomId as number | undefined;
-      if (nominationId !== undefined) addToNextEmpty(nominationId);
+      if (nominationId === undefined) return;
+      const targetRank = parseInt(overId.replace('slot-', ''), 10);
+      swapIntoSlot(nominationId, targetRank);
     }
 
     if (activeId.startsWith('slot-') && overId.startsWith('slot-')) {
@@ -50,7 +75,7 @@ export default function VotingPage() {
     }
   }
 
-  async function handleSubmit() {
+  async function handleVoteSubmit() {
     if (!activeCycle || !isComplete) return;
     setSubmitting(true);
     try {
@@ -66,7 +91,7 @@ export default function VotingPage() {
     }
   }
 
-  if (!activeCycle || activeCycle.cycStatus !== 'VOTING_OPEN') {
+  if (!activeCycle) {
     return <div className="p-6 text-muted-foreground">Voting is not open at this time.</div>;
   }
 
@@ -82,6 +107,13 @@ export default function VotingPage() {
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="p-4 space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <div className="rounded-md border bg-muted/40 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="font-semibold text-foreground">{activeCycle.cycName}</span>
+          <span className="text-muted-foreground">
+            Voting: {formatUTCDate(activeCycle.cycVotingStart)} – {formatUTCDate(activeCycle.cycVotingEnd)}
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex-1 bg-muted rounded-full h-2">
             <div
@@ -101,7 +133,8 @@ export default function VotingPage() {
                 nomination={nom}
                 isSelected={isSelected(nom.nomId)}
                 isFull={selectedCount >= 5 && !isSelected(nom.nomId)}
-                onAdd={() => addToNextEmpty(nom.nomId)}
+                emptySlots={emptySlots}
+                onAdd={(rank) => handleAdd(nom.nomId, rank)}
               />
             ))}
           </div>
@@ -143,7 +176,7 @@ export default function VotingPage() {
           </ol>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Back</Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button onClick={handleVoteSubmit} disabled={submitting}>
               {submitting ? 'Submitting...' : 'Confirm vote'}
             </Button>
           </DialogFooter>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,10 @@ export function ReviewCard({ item, onApproved }: ReviewCardProps) {
   const { toast } = useToast();
   const [editedText, setEditedText] = useState(item.nomAnonymizedText ?? '');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setEditedText(item.nomAnonymizedText ?? '');
+  }, [item.nomAnonymizedText]);
 
   const isEdited = editedText !== item.nomAnonymizedText;
 

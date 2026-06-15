@@ -1,4 +1,3 @@
-import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { TopFiveSlot } from './useVotingState';
@@ -19,19 +18,13 @@ interface SlotProps {
 }
 
 function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
-  const { attributes, listeners, setNodeRef: sortableRef, transform, transition } = useSortable({ id: `slot-${slot.rank}` });
-  const { setNodeRef: dropRef, isOver } = useDroppable({ id: `slot-${slot.rank}` });
+  const { attributes, listeners, setNodeRef, transform, transition, isOver } = useSortable({ id: `slot-${slot.rank}` });
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  function mergeRef(node: HTMLDivElement | null) {
-    sortableRef(node);
-    dropRef(node);
-  }
-
   return (
     <div
-      ref={mergeRef}
+      ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
@@ -45,7 +38,11 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
           <span className="ml-2 text-xs text-muted-foreground">({slot.points} pts)</span>
         </div>
         {nomination && (
-          <button onClick={onRemove} className="text-xs text-destructive hover:underline ml-2">✕</button>
+          <button
+            onClick={onRemove}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-xs text-destructive hover:underline ml-2"
+          >✕</button>
         )}
       </div>
       {nomination ? (
