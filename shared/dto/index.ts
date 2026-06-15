@@ -60,6 +60,9 @@ export * from './PersistenceJob';
 export * from './Shift';
 export * from './ShiftDetail';
 
+// Phone Contract DTOs
+export * from './PhoneContract';
+
 // Supervisor V2 DTOs
 export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 

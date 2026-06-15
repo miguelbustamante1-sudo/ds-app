@@ -66,6 +66,7 @@ import giftCardPoolsRouter from '../services/giftcards/catalogs/pools/pools.rout
 import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reasons.routes';
 import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
 import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
+import phoneContractsRouter from './phoneContracts.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -116,6 +117,7 @@ export default function registerRoutes() {
   router.use('/shift', shiftRouter);
   router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
   router.use('/compensatory-time', compensatoryTimeRouter);
+  router.use('/phone-contracts', phoneContractsRouter);
   router.use('/workflow/templates', workflowTemplatesRouter);
   router.use('/workflow/instances', workflowInstancesRouter);
   router.use('/workflow', workflowTasksRouter);
