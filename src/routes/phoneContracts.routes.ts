@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Response } from 'express';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 import { AppError } from '../errors/AppError';
-import { listPhoneContracts, createPhoneContract, updatePhoneContract, deletePhoneContract, renewPhoneContracts } from '../services/phoneContract/PhoneContractService';
+import { phoneContractOrchestrator } from '../services/phoneContract/PhoneContractOrchestrator';
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.get(
   requirePermission('PhoneContracts', 'read'),
   async (_req: AuthenticatedRequest, res: Response) => {
     try {
-      const items = await listPhoneContracts();
+      const items = await phoneContractOrchestrator.list();
       res.json({ data: items });
     } catch (err: unknown) {
       if (err instanceof AppError) {
@@ -31,10 +31,9 @@ router.post(
     try {
       const createdBy = req.user?.dsUserId;
       if (createdBy == null) {
-        res.status(403).json({ error: 'User identity could not be resolved' });
-        return;
+        throw new AppError('Unauthenticated', 401);
       }
-      const created = await createPhoneContract(req.body, createdBy, req.user?.email ?? 'unknown');
+      const created = await phoneContractOrchestrator.create(req.body, createdBy, req.user?.email ?? 'unknown');
       res.status(201).json({ data: created });
     } catch (err: unknown) {
       if (err instanceof AppError) {
@@ -59,10 +58,9 @@ router.put(
       }
       const updatedBy = req.user?.dsUserId;
       if (updatedBy == null) {
-        res.status(403).json({ error: 'User identity could not be resolved' });
-        return;
+        throw new AppError('Unauthenticated', 401);
       }
-      const updated = await updatePhoneContract(id, req.body, updatedBy, req.user?.email ?? 'unknown');
+      const updated = await phoneContractOrchestrator.update(id, req.body, updatedBy, req.user?.email ?? 'unknown');
       res.json({ data: updated });
     } catch (err: unknown) {
       if (err instanceof AppError) {
@@ -82,10 +80,9 @@ router.post(
     try {
       const updatedBy = req.user?.dsUserId;
       if (updatedBy == null) {
-        res.status(403).json({ error: 'User identity could not be resolved' });
-        return;
+        throw new AppError('Unauthenticated', 401);
       }
-      const renewed = await renewPhoneContracts(req.body, updatedBy, req.user?.email ?? 'unknown');
+      const renewed = await phoneContractOrchestrator.renew(req.body, updatedBy, req.user?.email ?? 'unknown');
       res.json({ data: renewed });
     } catch (err: unknown) {
       if (err instanceof AppError) {
@@ -110,10 +107,9 @@ router.delete(
       }
       const updatedBy = req.user?.dsUserId;
       if (updatedBy == null) {
-        res.status(403).json({ error: 'User identity could not be resolved' });
-        return;
+        throw new AppError('Unauthenticated', 401);
       }
-      await deletePhoneContract(id, updatedBy, req.user?.email ?? 'unknown');
+      await phoneContractOrchestrator.delete(id, updatedBy, req.user?.email ?? 'unknown');
       res.status(204).send();
     } catch (err: unknown) {
       if (err instanceof AppError) {

@@ -68,7 +68,6 @@ export function PhoneContractsPage() {
     { id: 'status', value: ['Active'] },
   ]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [phoneFilter, setPhoneFilter] = useState('');
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<PhoneContractDTO | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -294,7 +293,7 @@ export function PhoneContractsPage() {
           const assignment = row.original.activeAssignment;
           if (assignment === null) return <span className="text-muted-foreground">—</span>;
           return assignment.billable
-            ? <Check size={15} className="text-green-600" />
+            ? <Check size={15} className="text-uds-system-green-600" />
             : <X size={15} className="text-destructive" />;
         },
         size: 72,
@@ -366,15 +365,9 @@ export function PhoneContractsPage() {
   });
 
   const selectedCount = table.getSelectedRowModel().rows.length;
-  const isFiltered = columnFilters.length > 0 || phoneFilter !== '';
-
-  const handlePhoneFilterChange = (value: string) => {
-    setPhoneFilter(value);
-    table.getColumn('phoneNumber')?.setFilterValue(value);
-  };
+  const isFiltered = columnFilters.length > 0;
 
   const handleReset = () => {
-    setPhoneFilter('');
     table.resetColumnFilters();
   };
 
@@ -404,8 +397,8 @@ export function PhoneContractsPage() {
       <div className="flex items-center gap-2 mt-6">
         <Input
           placeholder="Search by phone number..."
-          value={phoneFilter}
-          onChange={(e) => handlePhoneFilterChange(e.target.value)}
+          value={(table.getColumn('phoneNumber')?.getFilterValue() as string) ?? ''}
+          onChange={(e) => table.getColumn('phoneNumber')?.setFilterValue(e.target.value)}
           className="h-8 w-[220px]"
         />
         {table.getColumn('assignedTo') && (
