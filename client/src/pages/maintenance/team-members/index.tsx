@@ -38,14 +38,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { TeamMemberFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatUTCDate } from '@/lib/utils';
 
 const formatDate = (date: Date | string | null) => {
   if (!date) return '-';
-  try {
-    return new Date(date).toLocaleDateString();
-  } catch {
-    return String(date);
-  }
+  return formatUTCDate(String(date));
 };
 
 export function TeamMembersPage() {

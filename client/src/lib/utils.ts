@@ -40,3 +40,21 @@ export function parseUTCDateAsLocal(dateInput: string | Date): Date {
 export function formatUTCDate(dateInput: string | Date, formatStr: string = 'dd-MMM-yyyy'): string {
   return format(parseUTCDateAsLocal(dateInput), formatStr);
 }
+
+/**
+ * Returns the preferred display name for a team member.
+ *
+ * Currently returns the formal full name (names + surnames). When the DB team
+ * adds tms_short_name (see ds-app/prisma/scripts/add_tms_short_name.sql) and
+ * the field is added to TeamMemberDTO, update the signature to accept
+ * `teamMemberShortName?: string | null` and use it as the primary value.
+ *
+ * Use this helper across DataGrids, dropdowns, and labels instead of
+ * repeating `${m.teamMemberNames} ${m.teamMemberSurnames}` inline.
+ */
+export function getTeamMemberDisplayName(member: {
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+}): string {
+  return `${member.teamMemberNames} ${member.teamMemberSurnames}`;
+}

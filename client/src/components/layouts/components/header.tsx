@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import { Bell, BookUser, Bug, Menu, Search } from 'lucide-react';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { playNotificationChime } from '@/lib/notification-sound';
 import { Button } from '@/components/ui/button';
 import { SearchDialog } from '@/components/layouts/shared/dialogs/search/search-dialog';
 import { NotificationsSheet } from '@/components/layouts/shared/topbar/notifications-sheet';
@@ -20,7 +22,15 @@ export function Header() {
   const avatar = user?.avatarUrl || toAbsoluteUrl('/media/avatars/blank.png');
   const { canRead } = usePermissions();
   const { unreadCount, refetch: refetchUnreadCount } = useUnreadCount({ enabled: canRead('NotificationCenter') });
+  const prevUnreadCount = useRef<number | undefined>(undefined);
   const { setMobileMenuOpen } = useLayout();
+
+  useEffect(() => {
+    if (prevUnreadCount.current !== undefined && unreadCount > prevUnreadCount.current) {
+      void playNotificationChime();
+    }
+    prevUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
   return (
     <header

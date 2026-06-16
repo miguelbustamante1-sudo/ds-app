@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, ApiError } from '@/lib/api';
+import { format } from 'date-fns';
 
 interface RecipientsDialogProps {
   open: boolean;
@@ -96,7 +97,7 @@ export function RecipientsDialog({
         cell: ({ row }) => (
           <span>
             {row.original.readAt
-              ? new Date(row.original.readAt).toLocaleString()
+              ? format(new Date(row.original.readAt), 'dd-MMM-yyyy HH:mm')
               : '-'}
           </span>
         ),

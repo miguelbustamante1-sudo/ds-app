@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, apiPost, ApiError } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 import { SendAnnouncementDialog } from './send-dialog';
 import { RecipientsDialog } from './recipients-dialog';
 
@@ -87,7 +88,7 @@ export function AnnouncementsPage() {
         accessorKey: 'createdAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Date Sent" />,
         cell: ({ row }) => (
-          <span>{new Date(row.original.createdAt).toLocaleDateString()}</span>
+          <span>{formatUTCDate(row.original.createdAt)}</span>
         ),
         size: 140,
         meta: { headerTitle: 'Date Sent', skeleton: <Skeleton className="h-4 w-24" /> },

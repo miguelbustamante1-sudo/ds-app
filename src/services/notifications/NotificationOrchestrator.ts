@@ -21,9 +21,11 @@ import {
   getSentBroadcasts,
   getBroadcastRecipients,
   getUserEmailById,
+  getRecipientById,
 } from './repository';
 import { getTeamMembersBySupervisor } from '../../db/teamMembers';
 import { emailOrchestrator } from '../email';
+import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import { validatePayload, PayloadValidationError } from './components/ValidatePayload';
 import type { CreateNotificationDTO, NotificationDTO, UnreadCountDTO } from '@shared/dto/Notification';
 import type { RecipientWithNotification } from './types';
@@ -110,43 +112,119 @@ export class NotificationOrchestrator {
   }
 
   /** Mark a notification as read for user */
-  async markAsRead(recipientId: number, userId: number): Promise<void> {
+  async markAsRead(recipientId: number, userId: number, createdBy: string): Promise<void> {
+    const old = await getRecipientById(recipientId, userId);
     await markAsRead(recipientId, userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(recipientId),
+      createdBy,
+      oldValues: old as unknown as Record<string, unknown>,
+      newValues: old
+        ? ({ ...old, isRead: true, readAt: new Date().toISOString() } as unknown as Record<string, unknown>)
+        : null,
+      comment: 'Notification marked as read',
+    });
   }
 
   /** Mark all notifications as read for user */
-  async markAllAsRead(userId: number): Promise<void> {
+  async markAllAsRead(userId: number, createdBy: string): Promise<void> {
     await markAllAsRead(userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(userId),
+      createdBy,
+      oldValues: null,
+      newValues: { action: 'mark-all-as-read', userId, isRead: true } as unknown as Record<string, unknown>,
+      comment: 'All unread notifications marked as read',
+    });
   }
 
   /** Archive a notification for user */
-  async archive(recipientId: number, userId: number): Promise<void> {
+  async archive(recipientId: number, userId: number, createdBy: string): Promise<void> {
+    const old = await getRecipientById(recipientId, userId);
     await archiveRecipient(recipientId, userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(recipientId),
+      createdBy,
+      oldValues: old as unknown as Record<string, unknown>,
+      newValues: old
+        ? ({ ...old, isArchived: true } as unknown as Record<string, unknown>)
+        : null,
+      comment: 'Notification archived',
+    });
   }
 
   /** Archive all notifications for user */
-  async archiveAll(userId: number): Promise<void> {
+  async archiveAll(userId: number, createdBy: string): Promise<void> {
     await archiveAll(userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(userId),
+      createdBy,
+      oldValues: null,
+      newValues: { action: 'archive-all', userId, isArchived: true } as unknown as Record<string, unknown>,
+      comment: 'All notifications archived',
+    });
   }
 
   /** Mark a notification as unread for user */
-  async markAsUnread(recipientId: number, userId: number): Promise<void> {
+  async markAsUnread(recipientId: number, userId: number, createdBy: string): Promise<void> {
+    const old = await getRecipientById(recipientId, userId);
     await repoMarkAsUnread(recipientId, userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(recipientId),
+      createdBy,
+      oldValues: old as unknown as Record<string, unknown>,
+      newValues: old
+        ? ({ ...old, isRead: false, readAt: null } as unknown as Record<string, unknown>)
+        : null,
+      comment: 'Notification marked as unread',
+    });
   }
 
   /** Mark all read notifications as unread for user */
-  async markAllAsUnread(userId: number): Promise<void> {
+  async markAllAsUnread(userId: number, createdBy: string): Promise<void> {
     await repoMarkAllAsUnread(userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(userId),
+      createdBy,
+      oldValues: null,
+      newValues: { action: 'mark-all-as-unread', userId, isRead: false } as unknown as Record<string, unknown>,
+      comment: 'All read notifications marked as unread',
+    });
   }
 
   /** Unarchive a notification for user */
-  async unarchive(recipientId: number, userId: number): Promise<void> {
+  async unarchive(recipientId: number, userId: number, createdBy: string): Promise<void> {
+    const old = await getRecipientById(recipientId, userId);
     await unarchiveRecipient(recipientId, userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(recipientId),
+      createdBy,
+      oldValues: old as unknown as Record<string, unknown>,
+      newValues: old
+        ? ({ ...old, isArchived: false } as unknown as Record<string, unknown>)
+        : null,
+      comment: 'Notification unarchived',
+    });
   }
 
   /** Unarchive all archived notifications for user */
-  async unarchiveAll(userId: number): Promise<void> {
+  async unarchiveAll(userId: number, createdBy: string): Promise<void> {
     await repoUnarchiveAll(userId);
+    await auditOrchestrator.log({
+      entityName: 'rec_recipients',
+      entityId: String(userId),
+      createdBy,
+      oldValues: null,
+      newValues: { action: 'unarchive-all', userId, isArchived: false } as unknown as Record<string, unknown>,
+      comment: 'All archived notifications unarchived',
+    });
   }
 
   /** Get notification counts by status for user */

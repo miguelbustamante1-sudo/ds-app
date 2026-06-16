@@ -1,21 +1,17 @@
 /**
- * Layout1Page — Global Dashboard (Workday-style)
- * ================================================
- *
- * Root landing page ("/"). Redesigned as a Workday-style dashboard.
+ * Layout1Page — Global Dashboard
+ * ================================
  *
  * Sections (top → bottom):
- *   1. Hero: personalised greeting + GlobalSearchBar + FavoriteCards
- *   2. Two-column grid [content | 320px sidebar]:
- *      Left:  NotificationCenterPanel → AwaitingActionPanel
- *      Right: ImportantDatesCard
+ *   1. Hero (Variant B — Split): greeting + GlobalSearchBar (left) | Quick Access favorites (right)
+ *   2. Two-column grid [Awaiting Action | Important Dates+Calendar] (team-access users only)
  *
- * Phase 2: All panels connected to real API via TanStack Query.
+ * Notifications live entirely in the topbar bell slider.
  */
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   ChevronDown,
@@ -28,18 +24,13 @@ import {
   AlertCircle,
   MoreHorizontal,
   FolderOpen,
-  Bell,
-  BellOff,
-  Archive,
   Star,
   Layers,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatUTCDate, parseUTCDateAsLocal } from "@/lib/utils";
 import { useAuth } from "@/auth/auth-provider";
 import { useFavorites } from "@/contexts/favorites-context";
-import { NotificationItem } from "@/components/layouts/shared/topbar/notifications/item-mapper";
-import { NotificationDTO } from "@shared/dto";
 import type { TeamMemberDTO } from "@shared/dto";
 import { usePermissions } from "@/hooks/usePermissions";
 import { MENU_SIDEBAR } from "@/config/layout-1.config";
@@ -53,8 +44,10 @@ import { governanceHubConfig } from "@/config/hubs/governance.hub.config";
 import { securityHubConfig } from "@/config/hubs/security.hub.config";
 import { maintenanceHubConfig } from "@/config/hubs/maintenance.hub.config";
 import { operationsHubConfig } from "@/config/hubs/operations.hub.config";
+import { Calendar } from "@/components/ui/calendar";
+
 // ---------------------------------------------------------------------------
-// API types (mirror backend DTOs)
+// Types
 // ---------------------------------------------------------------------------
 
 interface ActionItem {
@@ -75,6 +68,7 @@ interface ImportantDate {
   day: number;
   title: string;
   description: string;
+  countryCode?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,24 +87,6 @@ async function fetchTasks(): Promise<ActionItem[]> {
 
 async function fetchImportantDates(): Promise<ImportantDate[]> {
   return apiFetch<ImportantDate[]>("/api/dashboard/important-dates");
-}
-
-async function fetchNotifications(
-  status: "unread" | "read" | "archived",
-): Promise<NotificationDTO[]> {
-  return apiFetch<NotificationDTO[]>(`/api/notifications?status=${status}`);
-}
-
-async function markAllRead(): Promise<void> {
-  await apiFetch<unknown>("/api/notifications/read-all", { method: "PATCH" });
-}
-
-async function archiveAll(): Promise<void> {
-  await apiFetch<unknown>("/api/notifications/archive-all", { method: "PATCH" });
-}
-
-async function markOneRead(recipientId: number): Promise<void> {
-  await apiFetch<unknown>(`/api/notifications/${recipientId}/read`, { method: "PATCH" });
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +151,7 @@ function getAllSearchableServices(): SearchableService[] {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-component: GlobalSearchBar
+// Sub-component: GlobalSearchBar (with favorite star on Services)
 // ---------------------------------------------------------------------------
 function GlobalSearchBar() {
   const [query, setQuery] = useState("");
@@ -186,6 +162,7 @@ function GlobalSearchBar() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { canRead } = usePermissions();
+  const { toggleFavorite, isFavorite, isFull } = useFavorites();
 
   const allServices = useMemo(getAllSearchableServices, []);
 
@@ -271,7 +248,7 @@ function GlobalSearchBar() {
   }
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-2xl mx-auto">
+    <div ref={wrapperRef} className="relative w-full">
       <form onSubmit={handleSearch}>
         <div className="relative">
           <Search
@@ -311,34 +288,71 @@ function GlobalSearchBar() {
               <div className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest bg-muted/40 border-b border-border">
                 Services
               </div>
-              {filteredServices.map((s) => (
-                <button
-                  key={s.path}
-                  type="button"
-                  role="option"
-                  onClick={() => handleSelect(s.path)}
-                  className={cn(
-                    "w-full flex items-start gap-3 px-4 py-3 text-left",
-                    "hover:bg-accent/60 transition-colors duration-100",
-                    "border-b border-border last:border-b-0",
-                  )}
-                >
-                  <Layers
-                    className="mt-0.5 h-4 w-4 shrink-0 text-uds-telus-purple-400"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground leading-snug">
-                      {s.title}
-                    </p>
-                    {s.description && s.description !== "Hub" && (
-                      <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                        {s.description}
-                      </p>
+              {filteredServices.map((s) => {
+                const pinned = isFavorite(s.path);
+                const canPin = pinned || !isFull;
+                return (
+                  <div
+                    key={s.path}
+                    className={cn(
+                      "flex items-center gap-0 border-b border-border last:border-b-0",
+                      "hover:bg-accent/60 transition-colors duration-100",
                     )}
+                  >
+                    <button
+                      type="button"
+                      role="option"
+                      onClick={() => handleSelect(s.path)}
+                      className="flex-1 flex items-start gap-3 px-4 py-3 text-left min-w-0"
+                    >
+                      <Layers
+                        className="mt-0.5 h-4 w-4 shrink-0 text-uds-telus-purple-400"
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground leading-snug">
+                          {s.title}
+                        </p>
+                        {s.description && s.description !== "Hub" && (
+                          <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                            {s.description}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canPin}
+                      aria-pressed={pinned}
+                      aria-label={pinned ? `Unpin ${s.title}` : `Pin ${s.title} to Quick Access`}
+                      title={
+                        pinned
+                          ? `Unpin ${s.title}`
+                          : isFull
+                            ? "Quick Access is full (8/8)"
+                            : `Pin ${s.title} to Quick Access`
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite({ id: s.path, label: s.title, path: s.path });
+                      }}
+                      className={cn(
+                        "shrink-0 p-2.5 mr-1 rounded-md transition-colors duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                        pinned
+                          ? "text-uds-system-amber-400 hover:text-uds-system-amber-500"
+                          : "text-muted-foreground/40 hover:text-uds-system-amber-400",
+                        !canPin && "opacity-30 cursor-not-allowed",
+                      )}
+                    >
+                      <Star
+                        className={cn("h-4 w-4", pinned && "fill-current")}
+                        aria-hidden="true"
+                      />
+                    </button>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -390,254 +404,75 @@ function GlobalSearchBar() {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-component: FavoriteCards
+// Sub-component: QuickAccessPanel (favorites, right side of split hero)
 // ---------------------------------------------------------------------------
-function FavoriteCards() {
+function QuickAccessPanel() {
   const navigate = useNavigate();
   const { favorites, toggleFavorite, isFull, isLoading } = useFavorites();
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full">
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="h-[52px] rounded-xl border border-border bg-card animate-pulse"
-            aria-hidden="true"
-          />
+      <div className="flex flex-col gap-1.5 bg-white/10 border border-white/20 rounded-xl px-4 py-3 backdrop-blur-sm">
+        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-1">
+          ⭐ Quick Access
+        </p>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-7 rounded bg-white/10 animate-pulse" />
         ))}
       </div>
     );
   }
 
-  if (favorites.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground text-center">
-        ⭐ Pin shortcuts from any Hub card to see them here.
-      </p>
-    );
-  }
-
   return (
-    <>
-      {isFull && (
-        <p className="text-xs text-muted-foreground text-right mb-1">
-          8 / 8 quick links — unpin one to add another
+    <div className="flex flex-col gap-1.5 bg-white/10 border border-white/20 rounded-xl px-4 py-3 backdrop-blur-sm">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+          ⭐ Quick Access
         </p>
-      )}
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full">
-      {favorites.map((fav) => (
-        <div key={fav.id} className="group relative">
-          <button
-            type="button"
-            onClick={() => navigate(fav.path)}
-            aria-label={`Go to ${fav.label}`}
-            className={cn(
-              "w-full rounded-xl border border-border bg-card shadow-xs",
-              "px-4 py-3",
-              "text-sm font-medium text-foreground text-left",
-              "hover:border-primary/40 hover:bg-accent/50 hover:shadow-sm transition-all duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              "pr-8",
-            )}
-          >
-            {fav.label}
-          </button>
-          <button
-            type="button"
-            title={`Unpin ${fav.label}`}
-            onClick={() => toggleFavorite(fav)}
-            aria-label={`Unpin ${fav.label} from Quick Links`}
-            className={cn(
-              "absolute right-2.5 top-1/2 -translate-y-1/2",
-              "text-uds-system-amber-400 hover:text-uds-system-amber-500",
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-150",
-              "focus-visible:opacity-100 focus-visible:outline-none",
-              "p-0.5 rounded",
-            )}
-          >
-            <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-          </button>
-        </div>
-      ))}
-    </div>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sub-component: NotificationCenterPanel
-// ---------------------------------------------------------------------------
-type NotifTab = "unread" | "read" | "archived";
-
-function NotificationCenterPanel() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [tab, setTab] = useState<NotifTab>("unread");
-  const [expanded, setExpanded] = useState(true);
-  const { canRead } = usePermissions();
-  const hasAccess = canRead('Notifications');
-
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ["notifications", tab],
-    queryFn: () => fetchNotifications(tab),
-    staleTime: 30_000,
-    enabled: hasAccess,
-  });
-
-  // Unread count for bell badge (always fetched for the indicator)
-  const { data: unreadNotifications = [] } = useQuery({
-    queryKey: ["notifications", "unread"],
-    queryFn: () => fetchNotifications("unread"),
-    staleTime: 30_000,
-    enabled: hasAccess,
-  });
-  const unreadCount = unreadNotifications.length;
-
-  const markReadMutation = useMutation({
-    mutationFn: markAllRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: archiveAll,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const markOneMutation = useMutation({
-    mutationFn: markOneRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const tabItems: { key: NotifTab; label: string }[] = [
-    { key: "unread", label: "Unread" },
-    { key: "read", label: "Read" },
-    { key: "archived", label: "Archived" },
-  ];
-
-  return (
-    <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-uds-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-uds-card-hover)]">
-      {/* Panel header — always visible */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </div>
-          <span className="text-sm font-semibold text-foreground">
-            Notification Center
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/notification-center")}
-            className="text-xs text-muted-foreground hover:text-uds-telus-purple-500 transition-colors"
-          >
-            View all →
-          </button>
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            aria-label={expanded ? "Collapse notifications" : "Expand notifications"}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                !expanded && "-rotate-90",
-              )}
-            />
-          </button>
-        </div>
+        {isFull && (
+          <span className="text-[10px] text-white/40 ml-2 shrink-0">8 / 8 — unpin one to add another</span>
+        )}
       </div>
 
-      {expanded && (
-        <>
-          {/* Tabs */}
-          <div className="flex border-b border-border px-5">
-            {tabItems.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  "pb-2 pt-1 mr-5 text-sm font-medium transition-colors border-b-2 -mb-px",
-                  tab === t.key
-                    ? "border-uds-telus-purple-500 text-uds-telus-purple-500"
-                    : "border-transparent text-muted-foreground hover:text-uds-telus-purple-400",
-                )}
-              >
-                {t.label}
-              </button>
+      {favorites.length === 0 ? (
+        <p className="text-xs text-white/50 py-2 text-center">
+          Pin shortcuts from any Hub card to see them here.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-1.5">
+            {favorites.map((fav) => (
+              <div key={fav.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => navigate(fav.path)}
+                  aria-label={`Go to ${fav.label}`}
+                  className={cn(
+                    "w-full rounded-lg px-3 py-2 pr-6",
+                    "text-sm font-medium text-white/90 text-left leading-snug",
+                    "hover:bg-white/15 transition-colors duration-100",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+                  )}
+                >
+                  {fav.label}
+                </button>
+                <button
+                  type="button"
+                  title={`Unpin ${fav.label}`}
+                  onClick={() => toggleFavorite(fav)}
+                  aria-label={`Unpin ${fav.label} from Quick Access`}
+                  className={cn(
+                    "absolute right-1.5 top-1/2 -translate-y-1/2",
+                    "text-uds-system-amber-400 hover:text-uds-system-amber-300",
+                    "opacity-0 group-hover:opacity-100 transition-opacity duration-150",
+                    "focus-visible:opacity-100 focus-visible:outline-none",
+                    "p-0.5 rounded",
+                  )}
+                >
+                  <Star className="h-3 w-3 fill-current" aria-hidden="true" />
+                </button>
+              </div>
             ))}
           </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
-            <button
-              type="button"
-              onClick={() => markReadMutation.mutate()}
-              disabled={markReadMutation.isPending}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
-            >
-              <BellOff className="h-3.5 w-3.5" aria-hidden="true" />
-              Mark all as read
-            </button>
-            <button
-              type="button"
-              onClick={() => archiveMutation.mutate()}
-              disabled={archiveMutation.isPending}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded px-2.5 py-1 disabled:opacity-50"
-            >
-              <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-              Archive all
-            </button>
-          </div>
-
-          {/* Notification list / empty state */}
-          <div className="px-5 py-6 min-h-[140px] flex items-center justify-center">
-            {isLoading ? (
-              <div className="w-full space-y-3 animate-pulse">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-10 rounded bg-muted" />
-                ))}
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Bell className="h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground">
-                  {tab === "unread"
-                    ? "No unread notifications"
-                    : tab === "read"
-                      ? "No read notifications"
-                      : "No archived notifications"}
-                </p>
-              </div>
-            ) : (
-              <ul className="w-full divide-y divide-border -mx-5">
-                {notifications.slice(0, 5).map((n) => (
-                  <li key={n.id}>
-                    <NotificationItem
-                      notification={n}
-                      onMarkAsRead={(id) => markOneMutation.mutate(id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
       )}
     </div>
   );
@@ -650,10 +485,7 @@ function ActionItemCard({ item }: { item: ActionItem }) {
   return (
     <div className="flex items-start gap-3 py-4 border-b border-border last:border-b-0">
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
-        <FolderOpen
-          className="h-4 w-4 text-muted-foreground"
-          aria-hidden="true"
-        />
+        <FolderOpen className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
@@ -710,9 +542,7 @@ function AwaitingActionPanel() {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          aria-label={
-            expanded ? "Collapse action items" : "Expand action items"
-          }
+          aria-label={expanded ? "Collapse action items" : "Expand action items"}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronDown
@@ -767,26 +597,40 @@ function AwaitingActionPanel() {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-component: ImportantDatesCard
+// Sub-component: ImportantDatesCard (with Calendar view)
 // ---------------------------------------------------------------------------
 function getDateIcon(type: ImportantDate["type"]) {
   switch (type) {
     case "TimeOff":
       return <Sun className="h-3.5 w-3.5 text-uds-system-blue-500" aria-hidden="true" />;
     case "Holiday":
-      return (
-        <CalendarDays
-          className="h-3.5 w-3.5 text-uds-system-amber-500"
-          aria-hidden="true"
-        />
-      );
+      return <CalendarDays className="h-3.5 w-3.5 text-uds-system-amber-500" aria-hidden="true" />;
     case "Birthday":
       return <Gift className="h-3.5 w-3.5 text-uds-system-red-400" aria-hidden="true" />;
   }
 }
 
+type ImportantDateFilter = "All" | "Holiday" | "TimeOff" | "Birthday";
+
+const DATE_FILTERS: { value: ImportantDateFilter; label: string }[] = [
+  { value: "All", label: "All" },
+  { value: "Holiday", label: "Holidays" },
+  { value: "TimeOff", label: "Time Off" },
+  { value: "Birthday", label: "Birthdays" },
+];
+
+// UDS color classes for calendar day modifiers
+const MODIFIER_CLASSES: Record<string, string> = {
+  timeOff: "!bg-uds-system-blue-100 !text-uds-system-blue-700 rounded-md font-semibold",
+  holiday: "!bg-uds-system-amber-100 !text-uds-system-amber-700 rounded-md font-semibold",
+  birthday: "!bg-uds-system-red-100 !text-uds-system-red-700 rounded-md font-semibold",
+};
+
 function ImportantDatesCard() {
   const [showAll, setShowAll] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ImportantDateFilter>("All");
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
+  const [view, setView] = useState<'calendar' | 'list'>('calendar');
 
   const { data: dates = [], isLoading } = useQuery({
     queryKey: ["dashboard-important-dates"],
@@ -794,84 +638,238 @@ function ImportantDatesCard() {
     staleTime: 5 * 60_000,
   });
 
-  const visible = showAll ? dates : dates.slice(0, 6);
+  const filtered = useMemo(
+    () => activeFilter === "All" ? dates : dates.filter((d) => d.type === activeFilter),
+    [dates, activeFilter],
+  );
+
+  // Calendar day modifiers — built from the filtered list so pills drive both calendar and list
+  const modifiers = useMemo(() => {
+    const timeOff: Date[] = [];
+    const holiday: Date[] = [];
+    const birthday: Date[] = [];
+    for (const d of filtered) {
+      const parsed = parseUTCDateAsLocal(d.date);
+      if (d.type === "TimeOff") timeOff.push(parsed);
+      else if (d.type === "Holiday") holiday.push(parsed);
+      else birthday.push(parsed);
+    }
+    return { timeOff, holiday, birthday };
+  }, [filtered]);
+
+  // List filtered by the clicked day (if any)
+  const listItems = useMemo(() => {
+    if (!selectedDay) return filtered;
+    const sel = selectedDay.toISOString().split("T")[0];
+    return filtered.filter((d) => d.date.split("T")[0] === sel);
+  }, [filtered, selectedDay]);
+
+  const visible = showAll ? listItems : listItems.slice(0, 6);
+
+  function handleFilterChange(value: ImportantDateFilter) {
+    setActiveFilter(value);
+    setShowAll(false);
+    setSelectedDay(undefined);
+  }
+
+  function handleDayClick(day: Date) {
+    const isSame =
+      selectedDay &&
+      selectedDay.getFullYear() === day.getFullYear() &&
+      selectedDay.getMonth() === day.getMonth() &&
+      selectedDay.getDate() === day.getDate();
+    setSelectedDay(isSame ? undefined : day);
+    setShowAll(false);
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-uds-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-uds-card-hover)]">
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
-        <CalendarDays
-          className="h-4 w-4 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <span className="text-sm font-semibold text-foreground">
-          Important Dates
-        </span>
-      </div>
-
-      <div className="px-5 py-2">
-        {isLoading ? (
-          <div className="py-4 space-y-3 animate-pulse">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-12 rounded bg-muted" />
-            ))}
-          </div>
-        ) : dates.length === 0 ? (
-          <div className="py-8 flex flex-col items-center gap-2 text-center">
-            <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">
-              No upcoming events in the next 60 days.
-            </p>
-          </div>
-        ) : (
-          visible.map((date) => (
-            <div
-              key={date.id}
-              className="flex items-start gap-4 py-3 border-b border-border last:border-b-0"
-            >
-              <div className="flex shrink-0 flex-col items-center w-10 text-center">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {date.month}
-                </span>
-                <span className="text-xl font-bold text-foreground leading-tight">
-                  {date.day}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0 pt-0.5">
-                <div className="flex items-center gap-1.5">
-                  {getDateIcon(date.type)}
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-0.5"
-                  >
-                    {date.title}
-                    <ChevronRight className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
-                  {date.description}
-                </p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {dates.length > 6 && (
-        <div className="px-5 py-3 border-t border-border">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <span className="text-sm font-semibold text-foreground">Important Dates</span>
+        </div>
+        <div className="flex items-center rounded-lg border border-border overflow-hidden">
           <button
             type="button"
-            onClick={() => setShowAll((v) => !v)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            onClick={() => setView('calendar')}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors",
+              view === 'calendar' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            )}
           >
-            <ChevronDown
-              className={cn(
-                "h-3.5 w-3.5 transition-transform duration-200",
-                showAll && "rotate-180",
-              )}
-            />
-            {showAll ? "View Less" : `View More (${dates.length - 6} more)`}
+            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+            Calendar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView('list'); setSelectedDay(undefined); }}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors border-l border-border",
+              view === 'list' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            <Inbox className="h-3.5 w-3.5" aria-hidden="true" />
+            List
           </button>
         </div>
+      </div>
+
+      {/* Filter pills */}
+      <div className="flex items-center gap-1 px-5 pt-3 pb-1 flex-wrap">
+        {DATE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => handleFilterChange(f.value)}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+              activeFilter === f.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Calendar + Legend (calendar view only) */}
+      {view === 'calendar' && (
+        <>
+          <div className="pb-2">
+            <Calendar
+              mode="single"
+              selected={selectedDay}
+              onDayClick={handleDayClick}
+              modifiers={modifiers}
+              modifiersClassNames={MODIFIER_CLASSES}
+              classNames={{
+                caption_label: 'text-base font-semibold',
+                month_caption: 'relative mx-10 mb-2 flex h-9 items-center justify-center z-20',
+                day: 'group size-10 px-0 py-px text-sm',
+                weekday: 'size-10 p-0 text-xs font-medium text-muted-foreground/80',
+              }}
+            />
+          </div>
+          {selectedDay && listItems.length > 0 ? (
+            <div className="px-5 pb-3 border-t border-border">
+              <div className="flex items-center justify-between pt-2 pb-1">
+                <span className="text-xs font-semibold text-foreground">
+                  {formatUTCDate(selectedDay.toISOString())}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDay(undefined)}
+                  className="text-[10px] text-uds-telus-purple-500 hover:underline"
+                >
+                  Clear
+                </button>
+              </div>
+              {listItems.map((date) => (
+                <div
+                  key={date.id}
+                  className="flex items-start gap-2 py-2 border-b border-border last:border-b-0"
+                >
+                  <span className="mt-0.5 shrink-0">{getDateIcon(date.type)}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground leading-snug">{date.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{date.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 px-5 pb-3 flex-wrap">
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-blue-200" />
+                Time Off
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-amber-200" />
+                Holidays
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-red-200" />
+                Birthdays
+              </span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Date list (list view only) */}
+      {view === 'list' && (
+        <>
+          <div className="px-5 py-2 border-t border-border">
+            {isLoading ? (
+              <div className="py-4 space-y-3 animate-pulse">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-12 rounded bg-muted" />
+                ))}
+              </div>
+            ) : listItems.length === 0 ? (
+              <div className="py-8 flex flex-col items-center gap-2 text-center">
+                <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">
+                  {activeFilter === "All"
+                    ? "No upcoming events in the next 60 days."
+                    : `No upcoming ${DATE_FILTERS.find((f) => f.value === activeFilter)?.label.toLowerCase()} in the next 60 days.`}
+                </p>
+              </div>
+            ) : (
+              visible.map((date) => (
+                <div
+                  key={date.id}
+                  className="flex items-start gap-3 py-3 border-b border-border last:border-b-0"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {getDateIcon(date.type)}
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-0.5"
+                      >
+                        {date.title}
+                        <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                      {date.type === "Holiday" && date.countryCode && (
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-uds-system-blue-50 text-uds-system-blue-700 border border-uds-system-blue-200">
+                          {date.countryCode}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
+                      {date.description}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/70 tracking-wide">
+                      {formatUTCDate(date.date)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {listItems.length > 6 && (
+            <div className="px-5 py-3 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    showAll && "rotate-180",
+                  )}
+                />
+                {showAll ? "View Less" : `View More (${listItems.length - 6} more)`}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -882,46 +880,44 @@ function ImportantDatesCard() {
 // ---------------------------------------------------------------------------
 export function Layout1Page() {
   const { user } = useAuth();
+  const { canRead } = usePermissions();
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
+  const hasTeamAccess = canRead('TeamMembers');
 
   return (
     <div className="container pb-10">
-      {/* ── Hero Header ── */}
+      {/* ── Hero: Variant B — Split panel ── */}
       <section
-        className="flex flex-col items-center gap-6 py-10 text-center rounded-2xl mb-4 px-6 shadow-[var(--shadow-uds-card-elevated)]"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-8 rounded-2xl mb-6 px-6 shadow-[var(--shadow-uds-card-elevated)] text-white"
         style={{ background: "var(--gradient-uds-telus-gradient-purple)" }}
       >
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight drop-shadow-sm">
-            Welcome back, {firstName}! 👋
-          </h1>
-          <p className="mt-1 text-sm text-uds-telus-purple-100">
-            Here's what needs your attention today.
-          </p>
+        {/* Left — greeting + search */}
+        <div className="flex flex-col items-center justify-center gap-4 text-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight drop-shadow-sm">
+              Welcome back, {firstName}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-uds-telus-purple-100">
+              Here's what needs your attention today.
+            </p>
+          </div>
+          <div className="w-full max-w-md">
+            <GlobalSearchBar />
+          </div>
         </div>
 
-        <GlobalSearchBar />
+        {/* Right — Quick Access */}
+        <QuickAccessPanel />
       </section>
 
-      {/* ── Quick Links ── */}
-      <div className="mb-6 mt-4">
-        <FavoriteCards />
-      </div>
-
-      {/* ── Main Content ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left column: Awaiting Action only — spans 3 of 4 columns */}
-        <div className="lg:col-span-3">
+      {/* ── Main Content (team-access users only) ── */}
+      {hasTeamAccess && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AwaitingActionPanel />
-        </div>
-
-        {/* Right sidebar: Notification Center + Important Dates — spans 1 column */}
-        <aside className="flex flex-col gap-6">
-          <NotificationCenterPanel />
           <ImportantDatesCard />
-        </aside>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

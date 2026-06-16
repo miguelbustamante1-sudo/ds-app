@@ -2,6 +2,8 @@
 
 import { JSX, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Accordion as AccordionPrimitive } from 'radix-ui';
+import { ChevronDown } from 'lucide-react';
 import { MENU_SIDEBAR } from '@/config/layout-1.config';
 import { MenuConfig, MenuItem } from '@/config/types';
 import { cn } from '@/lib/utils';
@@ -116,12 +118,34 @@ export function SidebarMenu() {
 
   const buildMenuItemRoot = (item: MenuItem, index: number): JSX.Element => {
     if (item.children) {
+      const isActive = matchPath(item.path || '');
       return (
         <AccordionMenuSub key={index} value={item.path || `root-${index}`}>
-          <AccordionMenuSubTrigger className="text-sm font-medium">
-            {item.icon && <item.icon data-slot="accordion-menu-icon" />}
-            <span data-slot="accordion-menu-title">{item.title}</span>
-          </AccordionMenuSubTrigger>
+          <AccordionPrimitive.Header className="flex items-center">
+            <Link
+              to={item.path || '#'}
+              className={cn(
+                'flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium cursor-pointer select-none transition-colors hover:bg-transparent',
+                isActive
+                  ? 'text-primary bg-muted font-medium'
+                  : 'text-accent-foreground hover:text-primary',
+              )}
+            >
+              {item.icon && (
+                <item.icon
+                  data-slot="accordion-menu-icon"
+                  className="size-4 shrink-0 opacity-60"
+                />
+              )}
+              <span data-slot="accordion-menu-title">{item.title}</span>
+            </Link>
+            <AccordionPrimitive.Trigger className="flex items-center justify-center size-8 rounded-lg cursor-pointer text-muted-foreground hover:bg-transparent hover:text-primary transition-colors shrink-0">
+              <ChevronDown
+                data-slot="accordion-menu-sub-indicator"
+                className="size-3.5 transition-transform duration-200 [[data-state=open]>&]:-rotate-180"
+              />
+            </AccordionPrimitive.Trigger>
+          </AccordionPrimitive.Header>
           <AccordionMenuSubContent
             type="single"
             collapsible
@@ -143,7 +167,7 @@ export function SidebarMenu() {
         >
           <Link
             to={item.path || '#'}
-            className="flex items-center justify-between grow gap-2"
+            className="flex items-center gap-2 grow"
           >
             {item.icon && <item.icon data-slot="accordion-menu-icon" />}
             <span data-slot="accordion-menu-title">{item.title}</span>

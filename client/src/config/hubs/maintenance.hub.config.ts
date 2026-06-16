@@ -42,6 +42,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'Projects',
     },
     {
+      title: 'Regions',
+      description: 'Create and manage region definitions used to group countries.',
+      path: '/maintenance/regions',
+      permission: 'Regions',
+    },
+    {
       title: 'Supervisor Assignments',
       description: 'Assign and review supervisor relationships.',
       path: '/maintenance/supervisor-assignments',

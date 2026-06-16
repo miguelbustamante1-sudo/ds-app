@@ -53,8 +53,10 @@ router.patch('/unarchive-all', requirePermission('Notifications', 'read'), async
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
-    await notificationOrchestrator.unarchiveAll(userId);
+    await notificationOrchestrator.unarchiveAll(userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to unarchive all notifications' });
@@ -66,11 +68,13 @@ router.patch('/:recipientId/read', requirePermission('Notifications', 'read'), a
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
 
-    await notificationOrchestrator.markAsRead(recipientId, userId);
+    await notificationOrchestrator.markAsRead(recipientId, userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to mark notification as read' });
@@ -82,8 +86,10 @@ router.patch('/read-all', requirePermission('Notifications', 'read'), async (req
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
-    await notificationOrchestrator.markAllAsRead(userId);
+    await notificationOrchestrator.markAllAsRead(userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to mark all as read' });
@@ -95,11 +101,13 @@ router.patch('/:recipientId/archive', requirePermission('Notifications', 'read')
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
 
-    await notificationOrchestrator.archive(recipientId, userId);
+    await notificationOrchestrator.archive(recipientId, userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to archive notification' });
@@ -111,11 +119,13 @@ router.patch('/:recipientId/unread', requirePermission('Notifications', 'read'),
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
 
-    await notificationOrchestrator.markAsUnread(recipientId, userId);
+    await notificationOrchestrator.markAsUnread(recipientId, userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to mark notification as unread' });
@@ -127,11 +137,13 @@ router.patch('/:recipientId/unarchive', requirePermission('Notifications', 'read
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
     const recipientId = Number(req.params.recipientId);
     if (Number.isNaN(recipientId)) return res.status(400).json({ error: 'Invalid recipient ID' });
 
-    await notificationOrchestrator.unarchive(recipientId, userId);
+    await notificationOrchestrator.unarchive(recipientId, userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to unarchive notification' });
@@ -143,8 +155,10 @@ router.patch('/archive-all', requirePermission('Notifications', 'read'), async (
   try {
     const userId = req.user?.dsUserId;
     if (!userId) return res.status(404).json({ error: 'User not found in ds.tbl_users' });
+    const email = req.user?.email;
+    if (!email) return res.status(401).json({ error: 'User not authenticated' });
 
-    await notificationOrchestrator.archiveAll(userId);
+    await notificationOrchestrator.archiveAll(userId, email);
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to archive all notifications' });
