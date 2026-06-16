@@ -50,6 +50,7 @@ import {
   Zap,
   Mail,
   Sparkles,
+  Smartphone,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -92,6 +93,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Star,
     path: '/top-performers-hub',
     permission: 'TopPerformers',
+  },
+  {
+    title: 'Phone Contracts',
+    icon: Smartphone,
+    path: '/phone-contracts-hub',
+    permission: 'PhoneContracts',
   },
   {
     title: 'Data & Intelligence',

@@ -109,6 +109,7 @@ import PeerNominationPage from '@/pages/top-performers/nominations/peer';
 import AdminNominationPage from '@/pages/top-performers/nominations/admin';
 import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 import { PhoneContractsPage } from '@/pages/phone-contracts';
+import PhoneContractsHubPage from '@/pages/phone-contracts-hub';
 
 export function AppRoutingSetup() {
   return (
@@ -218,6 +219,7 @@ export function AppRoutingSetup() {
         <Route path="/admin/workflow/instances" element={<InstanceListPage />} />
         <Route path="/admin/workflow/instances/:winId" element={<InstanceDetailPage />} />
         {/* Phone Contracts */}
+        <Route path="/phone-contracts-hub" element={<PhoneContractsHubPage />} />
         <Route path="/phone-contracts" element={<PhoneContractsPage />} />
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
