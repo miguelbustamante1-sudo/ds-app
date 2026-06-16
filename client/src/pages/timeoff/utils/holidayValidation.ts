@@ -141,8 +141,11 @@ export function calculateNetVacationDays(
   const grossDays = differenceInCalendarDays(endDate, startDate) + 1;
   const allDays = eachDayOfInterval({ start: startDate, end: endDate });
   const weekendDays = allDays.filter((d) => isWeekend(d)).length;
-  const weekdayHolidays = weekdayHolidaysInRange.length;
-  return grossDays - weekendDays - weekdayHolidays;
+  const weekdayHolidayWeight = weekdayHolidaysInRange.reduce(
+    (sum, { holiday }) => sum + (holiday.holidayIsHalfDay ? 0.5 : 1),
+    0,
+  );
+  return grossDays - weekendDays - weekdayHolidayWeight;
 }
 
 // ---------------------------------------------------------------------------
