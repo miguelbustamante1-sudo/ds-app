@@ -97,6 +97,10 @@ import CommunicationsHubPage from '@/pages/communications-hub';
 import OperationsHubPage from '@/pages/operations-hub';
 import GovernanceHubPage from '@/pages/governance-hub';
 import TopPerformersHubPage from '@/pages/top-performers-hub';
+import PayrolHubPage from '@/pages/payrol-hub';
+import { PayrolManagementPage } from '@/pages/payrol-management';
+import { BonusImpactPage } from '@/pages/bonus-impact';
+import { BonusImpactAdminPage } from '@/pages/bonus-impact-admin';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
@@ -236,6 +240,11 @@ export function AppRoutingSetup() {
         <Route path="/operations-hub" element={<OperationsHubPage />} />
         <Route path="/governance-hub" element={<GovernanceHubPage />} />
         <Route path="/top-performers-hub" element={<TopPerformersHubPage />} />
+        {/* Payrol Hub */}
+        <Route path="/payrol-hub" element={<PayrolHubPage />} />
+        <Route path="/payrol/payrol-management" element={<PayrolManagementPage />} />
+        <Route path="/payrol/bonus-impact" element={<BonusImpactPage />} />
+        <Route path="/payrol/bonus-impact-admin" element={<BonusImpactAdminPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
         {/* Top Performers */}
         <Route path="/top-performers/admin/cycles" element={<TpCyclesPage />} />

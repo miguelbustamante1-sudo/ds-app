@@ -51,6 +51,7 @@ import {
   Mail,
   Sparkles,
   Smartphone,
+  Wallet,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -99,6 +100,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Smartphone,
     path: '/phone-contracts-hub',
     permission: 'PhoneContracts',
+  },
+  {
+    title: 'Payrol',
+    icon: Wallet,
+    path: '/payrol-hub',
+    permission: ['PayrolManagement', 'BonusImpact'],
   },
   {
     title: 'Data & Intelligence',

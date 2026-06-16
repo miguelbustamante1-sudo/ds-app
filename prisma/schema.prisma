@@ -141,6 +141,7 @@ model TeamMember {
   tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
   tpVotes                           TpVote[]            @relation("TpVoter")
   tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
+  bonusImpacts                      BniBonus[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -408,6 +409,11 @@ model User {
   giftCardReasonsCreated       GiftCardReason[]
   giftCardTypesCreated         GiftCardType[]
   giftCardValuesCreated        GiftCardValue[]
+  prlPayrolsCreated            PrlPayrol[]      @relation("prl_payrol_created_byTotbl_users")
+  prlPayrolsUpdated            PrlPayrol[]      @relation("prl_payrol_updated_byTotbl_users")
+  bniBonusesCreated            BniBonus[]       @relation("bni_bonus_impact_created_byTotbl_users")
+  bniBonusesUpdated            BniBonus[]       @relation("bni_bonus_impact_updated_byTotbl_users")
+  biuUploadsCreated            BiuBonusUpload[] @relation("biu_bonus_impact_upload_created_byTotbl_users")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1543,7 +1549,8 @@ model Upload {
   uploadCreatedBy    Int      @map("upl_created_by")
   uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
 
-  createdByUser User @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  createdByUser User           @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  bonusUploads  BiuBonusUpload[]
 
   @@map("upl_uploads")
   @@schema("ds")
@@ -1742,5 +1749,72 @@ model GiftCardValue {
   @@index([cardValueIsActive], map: "idx_tbl_gcv_card_values_is_active")
   @@index([cardValueCreatedBy], map: "idx_tbl_gcv_card_values_created_by")
   @@map("tbl_gcv_card_values")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Payrol / Bonus Impact
+// =============================================================================
+
+model PrlPayrol {
+  prlId          Int       @id @default(autoincrement()) @map("prl_id")
+  prlDescription String    @map("prl_description")
+  prlStartDate   DateTime  @map("prl_start_date") @db.Date
+  prlEndDate     DateTime  @map("prl_end_date") @db.Date
+  prlStatus      String    @default("Open") @map("prl_status")
+  prlCreatedBy   Int       @map("prl_created_by")
+  prlCreatedAt   DateTime  @default(now()) @map("prl_created_at") @db.Timestamptz(6)
+  prlUpdatedBy   Int       @map("prl_updated_by")
+  prlUpdatedAt   DateTime  @updatedAt @map("prl_updated_at") @db.Timestamptz(6)
+  prlDeletedAt   DateTime? @map("prl_deleted_at") @db.Timestamptz(6)
+
+  createdByUser User       @relation("prl_payrol_created_byTotbl_users", fields: [prlCreatedBy], references: [userId])
+  updatedByUser User       @relation("prl_payrol_updated_byTotbl_users", fields: [prlUpdatedBy], references: [userId])
+  bonusImpacts  BniBonus[]
+
+  @@map("prl_payrol")
+  @@schema("ds")
+}
+
+model BniBonus {
+  bniId           Int       @id @default(autoincrement()) @map("bni_id")
+  bniTeamMemberId Int       @map("bni_team_member_id")
+  bniDescription  String    @map("bni_description")
+  bniComment      String?   @map("bni_comment")
+  bniAmount       Decimal   @default(1) @map("bni_amount") @db.Decimal(10, 2)
+  bniCurrency     String    @default("USD") @map("bni_currency")
+  bniMonth        DateTime  @map("bni_month") @db.Date
+  bniStatus       String    @default("Registered") @map("bni_status")
+  bniPrlId        Int?      @map("bni_prl_id")
+  bniNotifiedAt   DateTime? @map("bni_notified_at") @db.Timestamptz(6)
+  bniProcessedAt  DateTime? @map("bni_processed_at") @db.Timestamptz(6)
+  bniCreatedBy    Int       @map("bni_created_by")
+  bniCreatedAt    DateTime  @default(now()) @map("bni_created_at") @db.Timestamptz(6)
+  bniUpdatedBy    Int       @map("bni_updated_by")
+  bniUpdatedAt    DateTime  @updatedAt @map("bni_updated_at") @db.Timestamptz(6)
+  bniDeletedAt    DateTime? @map("bni_deleted_at") @db.Timestamptz(6)
+
+  teamMember    TeamMember       @relation(fields: [bniTeamMemberId], references: [teamMemberId])
+  payrol        PrlPayrol?       @relation(fields: [bniPrlId], references: [prlId])
+  createdByUser User             @relation("bni_bonus_impact_created_byTotbl_users", fields: [bniCreatedBy], references: [userId])
+  updatedByUser User             @relation("bni_bonus_impact_updated_byTotbl_users", fields: [bniUpdatedBy], references: [userId])
+  uploads       BiuBonusUpload[]
+
+  @@map("bni_bonus_impact")
+  @@schema("ds")
+}
+
+model BiuBonusUpload {
+  biuId        Int      @id @default(autoincrement()) @map("biu_id")
+  biuBniId     Int      @map("biu_bni_id")
+  biuUploadId  Int      @map("biu_upload_id")
+  biuCreatedBy Int      @map("biu_created_by")
+  biuCreatedAt DateTime @default(now()) @map("biu_created_at") @db.Timestamptz(6)
+
+  bonusImpact   BniBonus @relation(fields: [biuBniId], references: [bniId])
+  upload        Upload   @relation(fields: [biuUploadId], references: [uploadId])
+  createdByUser User     @relation("biu_bonus_impact_upload_created_byTotbl_users", fields: [biuCreatedBy], references: [userId])
+
+  @@map("biu_bonus_impact_upload")
   @@schema("ds")
 }

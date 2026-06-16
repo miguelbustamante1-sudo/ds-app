@@ -591,6 +591,48 @@ function EditSupervisorTimeOffPageInner({
                   </Alert>
                 )}
 
+                {/* Comment */}
+                <div className="space-y-2">
+                  <Label htmlFor="comment">
+                    Comment <span className="text-destructive">*</span>
+                  </Label>
+                  <Controller
+                    name="comment"
+                    control={control}
+                    rules={{ required: 'Comment is required' }}
+                    render={({ field }) => (
+                      <Textarea
+                        {...field}
+                        id="comment"
+                        placeholder="Add a note about this change..."
+                        rows={2}
+                      />
+                    )}
+                  />
+                  {errors.comment && (
+                    <p className="text-sm text-destructive">{errors.comment.message}</p>
+                  )}
+                </div>
+
+                {/* Blocking reasons — shown only when canSave is false */}
+                {!canSave && !submitting && (
+                  <ul className="text-sm text-muted-foreground space-y-0.5 list-disc list-inside">
+                    {!comment?.trim() && <li>A comment explaining the change is required.</li>}
+                    {!startDate && <li>Start date is required.</li>}
+                    {!endDate && <li>End date is required.</li>}
+                    {startDate && endDate && !isDateRangeValid && <li>End date must be on or after start date.</li>}
+                    {isStartDateHoliday && <li>Start date falls on a public holiday.</li>}
+                    {hasOverlap && <li>Date range overlaps with an existing time-off.</li>}
+                    {exceedsAttritionDate && <li>Dates exceed the team member&apos;s end date.</li>}
+                    {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+                      <li>{daysBeforeValidation.errorMessage}</li>
+                    )}
+                    {isHalfOfSplit && editingTimeOff && hintDays !== Number(editingTimeOff.timeOffDays) && (
+                      <li>Day count must remain {Number(editingTimeOff.timeOffDays)} to match the split constraint.</li>
+                    )}
+                  </ul>
+                )}
+
                 {/* Buttons */}
                 {isSV15DayMode ? (
                   <div className="flex gap-2">
@@ -614,29 +656,6 @@ function EditSupervisorTimeOffPageInner({
                 )}
               </>
             )}
-
-            {/* Comment — shown in both normal and split mode */}
-            <div className="space-y-2">
-              <Label htmlFor="comment">
-                Comment <span className="text-destructive">*</span>
-              </Label>
-              <Controller
-                name="comment"
-                control={control}
-                rules={{ required: 'Comment is required' }}
-                render={({ field }) => (
-                  <Textarea
-                    {...field}
-                    id="comment"
-                    placeholder="Add a note about this change..."
-                    rows={2}
-                  />
-                )}
-              />
-              {errors.comment && (
-                <p className="text-sm text-destructive">{errors.comment.message}</p>
-              )}
-            </div>
           </form>
         </div>
       </div>

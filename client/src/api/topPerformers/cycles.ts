@@ -19,7 +19,7 @@ export const cyclesApi = {
   update: (cycId: number, payload: UpdateTpCycleDTO): Promise<TpCycleDTO> =>
     apiPut<TpCycleDTO, UpdateTpCycleDTO>(`/api/top-performers/cycles/${cycId}`, payload),
 
-  updateStatus: (cycId: number, cycStatus: string): Promise<TpCycleDTO> =>
+  updateStatus: (cycId: number, cycStatus: TpCycleStatus): Promise<TpCycleDTO> =>
     apiPatch<TpCycleDTO, UpdateTpCycleStatusDTO>(
       `/api/top-performers/cycles/${cycId}/status`,
       { cycStatus }
