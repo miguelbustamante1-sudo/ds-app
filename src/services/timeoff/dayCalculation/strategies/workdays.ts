@@ -3,10 +3,12 @@
  * Used for Guatemala (GT)
  */
 
+import type { HolidayCalcEntry } from '../types';
+
 export function calculateWorkdays(
   startDate: Date,
   endDate: Date,
-  weekdayHolidaysToExclude?: Date[],
+  weekdayHolidaysToExclude?: HolidayCalcEntry[],
 ): number {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -29,7 +31,7 @@ export function calculateWorkdays(
 
   // Subtract weekday holidays that fall within the range (UTC year/month/day comparison)
   if (weekdayHolidaysToExclude && weekdayHolidaysToExclude.length > 0) {
-    for (const holiday of weekdayHolidaysToExclude) {
+    for (const { date: holiday, isHalfDay } of weekdayHolidaysToExclude) {
       const hYear = holiday.getUTCFullYear();
       const hMonth = holiday.getUTCMonth();
       const hDay = holiday.getUTCDate();
@@ -38,7 +40,7 @@ export function calculateWorkdays(
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         const hDate = new Date(Date.UTC(hYear, hMonth, hDay));
         if (hDate >= start && hDate <= end) {
-          count--;
+          count -= isHalfDay ? 0.5 : 1;
         }
       }
     }

@@ -14,3 +14,8 @@ export interface DayCalculationResult {
 }
 
 export type DayCalculationStrategy = (startDate: Date, endDate: Date) => number;
+
+export interface HolidayCalcEntry {
+  date: Date;
+  isHalfDay: boolean;
+}
