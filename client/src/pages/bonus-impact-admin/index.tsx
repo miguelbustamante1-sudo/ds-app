@@ -38,6 +38,7 @@ interface TeamMemberOption {
   teamMemberId: number;
   teamMemberNames: string;
   teamMemberSurnames: string;
+  workdayId: string | null;
 }
 
 export function BonusImpactAdminPage() {

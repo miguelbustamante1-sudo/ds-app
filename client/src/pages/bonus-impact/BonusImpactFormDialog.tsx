@@ -19,6 +19,7 @@ interface DirectReport {
   teamMemberId: number;
   teamMemberNames: string;
   teamMemberSurnames: string;
+  workdayId: string | null;
 }
 
 interface BonusImpactFormData {
@@ -67,7 +68,9 @@ export function BonusImpactFormDialog({
 
   const teamMemberOptions = directReports.map((r) => ({
     value: String(r.teamMemberId),
-    label: `${r.teamMemberNames} ${r.teamMemberSurnames}`,
+    label: r.workdayId
+      ? `${r.teamMemberNames} ${r.teamMemberSurnames} (${r.workdayId})`
+      : `${r.teamMemberNames} ${r.teamMemberSurnames}`,
   }));
 
   const onSubmit = async (data: BonusImpactFormData) => {
@@ -78,7 +81,7 @@ export function BonusImpactFormDialog({
         bniComment: data.bniComment.trim() || undefined,
         bniAmount: parseFloat(data.bniAmount),
         bniCurrency: data.bniCurrency.trim().toUpperCase(),
-        bniMonth: data.bniMonth,
+        bniMonth: `${data.bniMonth}-01`,
       };
       await apiPost<BonusImpactDTO, CreateBonusImpactDTO>('/api/bonus-impacts', payload);
       toast({ title: 'Success', description: 'Bonus impact registered' });
@@ -161,7 +164,7 @@ export function BonusImpactFormDialog({
             </Label>
             <Input
               id="bniMonth"
-              type="date"
+              type="month"
               {...register('bniMonth', { required: 'Month is required' })}
             />
             {errors.bniMonth && (
