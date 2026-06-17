@@ -23,26 +23,20 @@ function sameMonthDay(a: Date, b: Date): boolean {
   );
 }
 
-// Same as validateReplacementDay but skips the future-date check (REPLACEMENT_NOT_FUTURE),
-// allowing BSA exception operations on past or future replacement dates.
+// Same as validateReplacementDay but skips the future-date check (REPLACEMENT_NOT_FUTURE)
+// and the after-original check (REPLACEMENT_BEFORE_ORIGINAL), allowing BSA exception
+// operations with any replacement date — including past dates before the original holiday.
 export async function validateReplacementDayException(
   input: ReplacementDayExceptionInput
 ): Promise<SwapEligibilityResult> {
-  const { teamMemberId, countryId, proposedDate, originalHolidayDate, existingSwapId } = input;
+  const { teamMemberId, countryId, proposedDate, existingSwapId } = input;
 
   const proposed = new Date(proposedDate);
   proposed.setHours(0, 0, 0, 0);
-  const original = new Date(originalHolidayDate);
-  original.setHours(0, 0, 0, 0);
 
-  // 1. Must come after the original holiday
-  if (proposed <= original) {
-    return {
-      valid: false,
-      errorCode: 'REPLACEMENT_BEFORE_ORIGINAL',
-      errorMessage: 'The replacement date must be after the original holiday date.',
-    };
-  }
+  // Steps 1 (REPLACEMENT_NOT_FUTURE) and 2 (REPLACEMENT_BEFORE_ORIGINAL) are intentionally
+  // omitted on the exception path — BSAs may record retroactive swaps where the replacement
+  // day falls before or on the same day as the original holiday.
 
   // 2. Not a weekend
   if (isWeekend(proposed)) {
