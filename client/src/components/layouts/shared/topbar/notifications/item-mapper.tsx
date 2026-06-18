@@ -22,6 +22,8 @@ import Item17 from './item-17';
 import Item18 from './item-18';
 import Item19 from './item-19';
 import Item20 from './item-20';
+import ItemHolidaySwap from './item-holiday-swap';
+import ItemBenchMove from './item-bench-move';
 
 const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'item-1': Item1,
@@ -44,6 +46,8 @@ const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'item-18': Item18,
   'item-19': Item19,
   'item-20': Item20,
+  'holiday-swap': ItemHolidaySwap,
+  'bench-move': ItemBenchMove,
 };
 
 function FallbackItem({ itemType }: { itemType: string }) {
