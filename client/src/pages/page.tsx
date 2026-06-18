@@ -13,8 +13,17 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+  addMonths, subMonths,
+  startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek,
+  eachDayOfInterval,
+  isSameMonth, isToday,
+  format,
+} from "date-fns";
+import {
   Search,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CalendarDays,
   Inbox,
@@ -44,7 +53,6 @@ import { governanceHubConfig } from "@/config/hubs/governance.hub.config";
 import { securityHubConfig } from "@/config/hubs/security.hub.config";
 import { maintenanceHubConfig } from "@/config/hubs/maintenance.hub.config";
 import { operationsHubConfig } from "@/config/hubs/operations.hub.config";
-import { Calendar } from "@/components/ui/calendar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -497,12 +505,12 @@ function ActionItemCard({ item }: { item: ActionItem }) {
         {item.isOverdue ? (
           <span className="mt-1 inline-flex items-center gap-1 rounded text-xs font-semibold text-destructive">
             <AlertCircle className="h-3 w-3" aria-hidden="true" />
-            OVERDUE {item.dueDate}
+            OVERDUE {item.dueDate ? formatUTCDate(item.dueDate) : ''}
           </span>
         ) : (
           <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" aria-hidden="true" />
-            Due {item.dueDate}
+            Due {item.dueDate ? formatUTCDate(item.dueDate) : ''}
           </span>
         )}
       </div>
@@ -597,7 +605,184 @@ function AwaitingActionPanel() {
 }
 
 // ---------------------------------------------------------------------------
-// Sub-component: ImportantDatesCard (with Calendar view)
+// Sub-component: DashboardCalendarView — Google Calendar-style monthly grid
+// Replaces both AwaitingActionPanel and ImportantDatesCard when Calendar mode
+// is active at the Layout1Page level.
+// ---------------------------------------------------------------------------
+
+type CalendarEventType = 'timeoff' | 'holiday' | 'birthday' | 'task';
+
+interface CalDayEvent {
+  id: string;
+  title: string;
+  type: CalendarEventType;
+}
+
+const CAL_EVENT_CLASSES: Record<CalendarEventType, string> = {
+  timeoff:  'bg-uds-system-blue-100 text-uds-system-blue-700',
+  holiday:  'bg-uds-system-amber-100 text-uds-system-amber-700',
+  birthday: 'bg-uds-system-red-100 text-uds-system-red-700',
+  task:     'bg-uds-telus-purple-100 text-uds-telus-purple-700',
+};
+
+const CAL_LEGEND: { type: CalendarEventType; label: string }[] = [
+  { type: 'timeoff',  label: 'Time Off' },
+  { type: 'holiday',  label: 'Holidays' },
+  { type: 'birthday', label: 'Birthdays' },
+  { type: 'task',     label: 'Tasks' },
+];
+
+const CAL_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+
+function DashboardCalendarView() {
+  const [month, setMonth] = useState(() => startOfMonth(new Date()));
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['dashboard-tasks'],
+    queryFn: fetchTasks,
+    staleTime: 60_000,
+  });
+
+  const { data: dates = [] } = useQuery({
+    queryKey: ['dashboard-important-dates'],
+    queryFn: fetchImportantDates,
+    staleTime: 5 * 60_000,
+  });
+
+  const gridDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
+    const end   = endOfWeek(endOfMonth(month),   { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  }, [month]);
+
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, CalDayEvent[]>();
+
+    function add(key: string, ev: CalDayEvent) {
+      const arr = map.get(key) ?? [];
+      arr.push(ev);
+      map.set(key, arr);
+    }
+
+    for (const d of dates) {
+      const type: CalendarEventType =
+        d.type === 'Holiday' ? 'holiday' : d.type === 'Birthday' ? 'birthday' : 'timeoff';
+      add(d.date.split('T')[0], { id: d.id, title: d.title, type });
+    }
+
+    for (const t of tasks) {
+      if (!t.dueDate) continue;
+      const parsed = parseUTCDateAsLocal(t.dueDate);
+      add(format(parsed, 'yyyy-MM-dd'), { id: t.id, title: t.title, type: 'task' });
+    }
+
+    return map;
+  }, [dates, tasks]);
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-[var(--shadow-uds-card)]">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setMonth(m => subMonths(m, 1))}
+          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold text-foreground">
+          {format(month, 'MMMM yyyy')}
+        </span>
+        <button
+          type="button"
+          onClick={() => setMonth(m => addMonths(m, 1))}
+          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="Next month"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="p-3">
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {CAL_WEEKDAYS.map(wd => (
+            <div key={wd} className="py-1 text-center text-xs font-medium text-muted-foreground">
+              {wd}
+            </div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7 border-l border-t border-border">
+          {gridDays.map(day => {
+            const key = format(day, 'yyyy-MM-dd');
+            const events = eventsByDay.get(key) ?? [];
+            const visibleEvents = events.slice(0, 3);
+            const overflow = events.length - 3;
+            const inMonth = isSameMonth(day, month);
+            const today = isToday(day);
+
+            return (
+              <div
+                key={key}
+                className={cn(
+                  'min-h-[5.5rem] border-r border-b border-border p-1',
+                  !inMonth && 'bg-muted/20',
+                )}
+              >
+                <div className={cn(
+                  'mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
+                  today
+                    ? 'bg-primary text-primary-foreground'
+                    : inMonth
+                      ? 'text-foreground'
+                      : 'text-muted-foreground/40',
+                )}>
+                  {format(day, 'd')}
+                </div>
+                <div className="space-y-0.5">
+                  {visibleEvents.map(ev => (
+                    <div
+                      key={ev.id}
+                      title={ev.title}
+                      className={cn(
+                        'truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight',
+                        CAL_EVENT_CLASSES[ev.type],
+                      )}
+                    >
+                      {ev.title}
+                    </div>
+                  ))}
+                  {overflow > 0 && (
+                    <div className="px-1 text-[10px] text-muted-foreground">
+                      +{overflow} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          {CAL_LEGEND.map(({ type, label }) => (
+            <span key={type} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span className={cn('inline-block h-2.5 w-2.5 rounded-sm', CAL_EVENT_CLASSES[type])} />
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-component: ImportantDatesCard (list view only — calendar handled globally)
 // ---------------------------------------------------------------------------
 function getDateIcon(type: ImportantDate["type"]) {
   switch (type) {
@@ -610,27 +795,42 @@ function getDateIcon(type: ImportantDate["type"]) {
   }
 }
 
-type ImportantDateFilter = "All" | "Holiday" | "TimeOff" | "Birthday";
+type ImportantDateFilter = "All" | "Holiday" | "TimeOff" | "Birthday" | "Task";
 
 const DATE_FILTERS: { value: ImportantDateFilter; label: string }[] = [
-  { value: "All", label: "All" },
-  { value: "Holiday", label: "Holidays" },
-  { value: "TimeOff", label: "Time Off" },
+  { value: "All",      label: "All"       },
+  { value: "Holiday",  label: "Holidays"  },
+  { value: "TimeOff",  label: "Time Off"  },
   { value: "Birthday", label: "Birthdays" },
+  { value: "Task",     label: "Tasks"     },
 ];
 
-// UDS color classes for calendar day modifiers
-const MODIFIER_CLASSES: Record<string, string> = {
-  timeOff: "!bg-uds-system-blue-100 !text-uds-system-blue-700 rounded-md font-semibold",
-  holiday: "!bg-uds-system-amber-100 !text-uds-system-amber-700 rounded-md font-semibold",
-  birthday: "!bg-uds-system-red-100 !text-uds-system-red-700 rounded-md font-semibold",
-};
+// Unified shape for the list — covers both ImportantDate and ActionItem
+interface ListEvent {
+  id: string;
+  kind: 'date' | 'task';
+  type: ImportantDate['type'] | 'Task';
+  date: string;
+  title: string;
+  description: string;
+  countryCode?: string | null;
+  isOverdue?: boolean;
+}
+
+function getListEventIcon(ev: ListEvent) {
+  if (ev.kind === 'task') {
+    return ev.isOverdue
+      ? <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" aria-hidden="true" />
+      : <Clock className="h-3.5 w-3.5 text-uds-telus-purple-500 shrink-0" aria-hidden="true" />;
+  }
+  return getDateIcon(ev.type as ImportantDate['type']);
+}
 
 function ImportantDatesCard() {
   const [showAll, setShowAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ImportantDateFilter>("All");
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [calMonth, setCalMonth] = useState(() => startOfMonth(new Date()));
 
   const { data: dates = [], isLoading } = useQuery({
     queryKey: ["dashboard-important-dates"],
@@ -638,47 +838,68 @@ function ImportantDatesCard() {
     staleTime: 5 * 60_000,
   });
 
-  const filtered = useMemo(
-    () => activeFilter === "All" ? dates : dates.filter((d) => d.type === activeFilter),
-    [dates, activeFilter],
-  );
+  const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
+    queryKey: ["dashboard-tasks"],
+    queryFn: fetchTasks,
+    staleTime: 60_000,
+  });
 
-  // Calendar day modifiers — built from the filtered list so pills drive both calendar and list
-  const modifiers = useMemo(() => {
-    const timeOff: Date[] = [];
-    const holiday: Date[] = [];
-    const birthday: Date[] = [];
-    for (const d of filtered) {
-      const parsed = parseUTCDateAsLocal(d.date);
-      if (d.type === "TimeOff") timeOff.push(parsed);
-      else if (d.type === "Holiday") holiday.push(parsed);
-      else birthday.push(parsed);
+  // Unified sorted list for list view
+  const allEvents = useMemo<ListEvent[]>(() => {
+    const dateItems: ListEvent[] = dates.map((d) => ({
+      id: d.id, kind: 'date', type: d.type,
+      date: d.date, title: d.title, description: d.description, countryCode: d.countryCode,
+    }));
+    const taskItems: ListEvent[] = tasks
+      .filter((t) => !!t.dueDate)
+      .map((t) => ({
+        id: t.id, kind: 'task', type: 'Task' as const,
+        date: t.dueDate, title: t.title, description: t.source, isOverdue: t.isOverdue,
+      }));
+
+    const combined = [...dateItems, ...taskItems].sort((a, b) => a.date.localeCompare(b.date));
+
+    if (activeFilter === 'All')  return combined;
+    if (activeFilter === 'Task') return taskItems;
+    return dateItems.filter((e) => e.type === activeFilter);
+  }, [dates, tasks, activeFilter]);
+
+  const visible = showAll ? allEvents : allEvents.slice(0, 6);
+
+  // Calendar grid days
+  const gridDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(calMonth), { weekStartsOn: 0 });
+    const end   = endOfWeek(endOfMonth(calMonth),   { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  }, [calMonth]);
+
+  // Calendar event map — important dates + tasks
+  const calEventsByDay = useMemo(() => {
+    const map = new Map<string, CalDayEvent[]>();
+
+    function add(key: string, ev: CalDayEvent) {
+      const arr = map.get(key) ?? [];
+      arr.push(ev);
+      map.set(key, arr);
     }
-    return { timeOff, holiday, birthday };
-  }, [filtered]);
 
-  // List filtered by the clicked day (if any)
-  const listItems = useMemo(() => {
-    if (!selectedDay) return filtered;
-    const sel = selectedDay.toISOString().split("T")[0];
-    return filtered.filter((d) => d.date.split("T")[0] === sel);
-  }, [filtered, selectedDay]);
+    for (const d of dates) {
+      const type: CalendarEventType =
+        d.type === 'Holiday' ? 'holiday' : d.type === 'Birthday' ? 'birthday' : 'timeoff';
+      add(d.date.split('T')[0], { id: d.id, title: d.title, type });
+    }
 
-  const visible = showAll ? listItems : listItems.slice(0, 6);
+    for (const t of tasks) {
+      if (!t.dueDate) continue;
+      const parsed = parseUTCDateAsLocal(t.dueDate);
+      add(format(parsed, 'yyyy-MM-dd'), { id: t.id, title: t.title, type: 'task' });
+    }
+
+    return map;
+  }, [dates, tasks]);
 
   function handleFilterChange(value: ImportantDateFilter) {
     setActiveFilter(value);
-    setShowAll(false);
-    setSelectedDay(undefined);
-  }
-
-  function handleDayClick(day: Date) {
-    const isSame =
-      selectedDay &&
-      selectedDay.getFullYear() === day.getFullYear() &&
-      selectedDay.getMonth() === day.getMonth() &&
-      selectedDay.getDate() === day.getDate();
-    setSelectedDay(isSame ? undefined : day);
     setShowAll(false);
   }
 
@@ -693,123 +914,155 @@ function ImportantDatesCard() {
         <div className="flex items-center rounded-lg border border-border overflow-hidden">
           <button
             type="button"
-            onClick={() => setView('calendar')}
+            onClick={() => setView('list')}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors",
-              view === 'calendar' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
-            )}
-          >
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Calendar
-          </button>
-          <button
-            type="button"
-            onClick={() => { setView('list'); setSelectedDay(undefined); }}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors border-l border-border",
               view === 'list' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
             )}
           >
             <Inbox className="h-3.5 w-3.5" aria-hidden="true" />
             List
           </button>
+          <button
+            type="button"
+            onClick={() => setView('calendar')}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors border-l border-border",
+              view === 'calendar' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+            Calendar
+          </button>
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div className="flex items-center gap-1 px-5 pt-3 pb-1 flex-wrap">
-        {DATE_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            onClick={() => handleFilterChange(f.value)}
-            className={cn(
-              "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
-              activeFilter === f.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Calendar + Legend (calendar view only) */}
+      {/* ── Calendar view ── */}
       {view === 'calendar' && (
-        <>
-          <div className="pb-2">
-            <Calendar
-              mode="single"
-              selected={selectedDay}
-              onDayClick={handleDayClick}
-              modifiers={modifiers}
-              modifiersClassNames={MODIFIER_CLASSES}
-              classNames={{
-                caption_label: 'text-base font-semibold',
-                month_caption: 'relative mx-10 mb-2 flex h-9 items-center justify-center z-20',
-                day: 'group size-10 px-0 py-px text-sm',
-                weekday: 'size-10 p-0 text-xs font-medium text-muted-foreground/80',
-              }}
-            />
+        <div className="p-3">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={() => setCalMonth(m => subMonths(m, 1))}
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-semibold text-foreground">
+              {format(calMonth, 'MMMM yyyy')}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCalMonth(m => addMonths(m, 1))}
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-          {selectedDay && listItems.length > 0 ? (
-            <div className="px-5 pb-3 border-t border-border">
-              <div className="flex items-center justify-between pt-2 pb-1">
-                <span className="text-xs font-semibold text-foreground">
-                  {formatUTCDate(selectedDay.toISOString())}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedDay(undefined)}
-                  className="text-[10px] text-uds-telus-purple-500 hover:underline"
-                >
-                  Clear
-                </button>
+
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 mb-1">
+            {CAL_WEEKDAYS.map(wd => (
+              <div key={wd} className="py-1 text-center text-xs font-medium text-muted-foreground">
+                {wd}
               </div>
-              {listItems.map((date) => (
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div className="grid grid-cols-7 border-l border-t border-border">
+            {gridDays.map(day => {
+              const key = format(day, 'yyyy-MM-dd');
+              const events = calEventsByDay.get(key) ?? [];
+              const visibleEvents = events.slice(0, 2);
+              const overflow = events.length - 2;
+              const inMonth = isSameMonth(day, calMonth);
+              const today = isToday(day);
+
+              return (
                 <div
-                  key={date.id}
-                  className="flex items-start gap-2 py-2 border-b border-border last:border-b-0"
+                  key={key}
+                  className={cn(
+                    'min-h-[4.5rem] border-r border-b border-border p-0.5',
+                    !inMonth && 'bg-muted/20',
+                  )}
                 >
-                  <span className="mt-0.5 shrink-0">{getDateIcon(date.type)}</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground leading-snug">{date.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{date.description}</p>
+                  <div className={cn(
+                    'mb-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium',
+                    today
+                      ? 'bg-primary text-primary-foreground'
+                      : inMonth ? 'text-foreground' : 'text-muted-foreground/40',
+                  )}>
+                    {format(day, 'd')}
+                  </div>
+                  <div className="space-y-0.5">
+                    {visibleEvents.map(ev => (
+                      <div
+                        key={ev.id}
+                        title={ev.title}
+                        className={cn(
+                          'truncate rounded px-0.5 py-0.5 text-[9px] font-medium leading-tight',
+                          CAL_EVENT_CLASSES[ev.type],
+                        )}
+                      >
+                        {ev.title}
+                      </div>
+                    ))}
+                    {overflow > 0 && (
+                      <div className="px-0.5 text-[9px] text-muted-foreground">+{overflow}</div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 px-5 pb-3 flex-wrap">
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-blue-200" />
-                Time Off
+              );
+            })}
+          </div>
+
+          {/* Legend — all 4 categories */}
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            {CAL_LEGEND.map(({ type, label }) => (
+              <span key={type} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className={cn('inline-block h-2 w-2 rounded-sm', CAL_EVENT_CLASSES[type])} />
+                {label}
               </span>
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-amber-200" />
-                Holidays
-              </span>
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-uds-system-red-200" />
-                Birthdays
-              </span>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Date list (list view only) */}
+      {/* ── List view ── */}
       {view === 'list' && (
         <>
+          {/* Filter pills */}
+          <div className="flex items-center gap-1 px-5 pt-3 pb-1 flex-wrap">
+            {DATE_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => handleFilterChange(f.value)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+                  activeFilter === f.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Unified event list */}
           <div className="px-5 py-2 border-t border-border">
-            {isLoading ? (
+            {(isLoading || isLoadingTasks) ? (
               <div className="py-4 space-y-3 animate-pulse">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="h-12 rounded bg-muted" />
                 ))}
               </div>
-            ) : listItems.length === 0 ? (
+            ) : allEvents.length === 0 ? (
               <div className="py-8 flex flex-col items-center gap-2 text-center">
                 <CalendarDays className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
@@ -819,40 +1072,46 @@ function ImportantDatesCard() {
                 </p>
               </div>
             ) : (
-              visible.map((date) => (
+              visible.map((ev) => (
                 <div
-                  key={date.id}
-                  className="flex items-start gap-3 py-3 border-b border-border last:border-b-0"
+                  key={ev.id}
+                  className="flex items-start justify-between gap-3 py-3 border-b border-border last:border-b-0"
                 >
+                  {/* Left: icon + title + description */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {getDateIcon(date.type)}
-                      <button
-                        type="button"
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors flex items-center gap-0.5"
-                      >
-                        {date.title}
-                        <ChevronRight className="h-3 w-3" aria-hidden="true" />
-                      </button>
-                      {date.type === "Holiday" && date.countryCode && (
-                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-uds-system-blue-50 text-uds-system-blue-700 border border-uds-system-blue-200">
-                          {date.countryCode}
+                    <div className="flex items-center gap-1.5">
+                      {getListEventIcon(ev)}
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {ev.title}
+                      </span>
+                      {ev.isOverdue && (
+                        <span className="shrink-0 text-[10px] font-semibold text-destructive">
+                          Overdue
                         </span>
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
-                      {date.description}
+                      {ev.description}
                     </p>
-                    <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/70 tracking-wide">
-                      {formatUTCDate(date.date)}
-                    </p>
+                  </div>
+
+                  {/* Right: country badge + date */}
+                  <div className="shrink-0 flex flex-col items-end gap-1 pt-0.5">
+                    {ev.countryCode && (
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-uds-system-blue-50 text-uds-system-blue-700 border border-uds-system-blue-200">
+                        {ev.countryCode}
+                      </span>
+                    )}
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {ev.date ? formatUTCDate(ev.date) : ''}
+                    </span>
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          {listItems.length > 6 && (
+          {allEvents.length > 6 && (
             <div className="px-5 py-3 border-t border-border">
               <button
                 type="button"
@@ -865,7 +1124,7 @@ function ImportantDatesCard() {
                     showAll && "rotate-180",
                   )}
                 />
-                {showAll ? "View Less" : `View More (${listItems.length - 6} more)`}
+                {showAll ? "View Less" : `View More (${allEvents.length - 6} more)`}
               </button>
             </div>
           )}

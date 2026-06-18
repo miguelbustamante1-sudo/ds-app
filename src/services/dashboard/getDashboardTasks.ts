@@ -38,7 +38,7 @@ function getDueDate(createdAt: Date | null, daysAllowed = 5): { dueDate: string;
   if (!createdAt) return { dueDate: '', isOverdue: false };
   const due = new Date(createdAt.getTime() + daysAllowed * 24 * 60 * 60 * 1000);
   const isOverdue = due < new Date();
-  const dueStr = due.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  const dueStr = due.toISOString().split('T')[0]!;
   return { dueDate: dueStr, isOverdue };
 }
 
