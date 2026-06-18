@@ -29,6 +29,7 @@ import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import upcomingVacationRouter from './reports/upcomingVacation';
 import workdayReconciliationRouter from './reports/workdayReconciliation';
+import gtVacationUnderFiveDaysRouter from './reports/gtVacationUnderFiveDays';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
@@ -89,6 +90,7 @@ export default function registerRoutes() {
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
   router.use('/reports/time-off/upcoming-vacation', upcomingVacationRouter);
   router.use('/reports/time-off/workday-reconciliation', workdayReconciliationRouter);
+  router.use('/reports/time-off/gt-vacation-under-five-days', gtVacationUnderFiveDaysRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/client-contacts', clientContactsRouter);

@@ -46,6 +46,7 @@ import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { UpcomingVacationPage } from '@/pages/reports/time-off/upcoming-vacation';
 import { WorkdayReconciliationPage } from '@/pages/reports/time-off/workday-reconciliation';
+import { GtVacationUnderFiveDaysPage } from '@/pages/reports/time-off/gt-vacation-under-five-days';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
@@ -153,6 +154,7 @@ export function AppRoutingSetup() {
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
         <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />
         <Route path="/reports/time-off/workday-reconciliation" element={<WorkdayReconciliationPage />} />
+        <Route path="/reports/time-off/gt-vacation-under-five-days" element={<GtVacationUnderFiveDaysPage />} />
         <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
