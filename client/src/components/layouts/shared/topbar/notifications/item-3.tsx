@@ -55,8 +55,8 @@ export default function Item3({
   return (
     <div className="flex grow gap-2.5 px-5">
       <Avatar>
-        <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
-        <AvatarFallback>CH</AvatarFallback>
+        <AvatarImage src={avatar?.startsWith('http') ? avatar : `/media/avatars/${avatar}`} alt="avatar" />
+        <AvatarFallback>DS</AvatarFallback>
         <AvatarIndicator className="-end-1.5 -bottom-1.5">
           <AvatarStatus variant={badgeColor} className="size-2.5" />
         </AvatarIndicator>
