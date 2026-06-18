@@ -159,9 +159,9 @@ export function CountriesPage() {
         meta: { headerTitle: 'ISO Code', skeleton: <Skeleton className="h-4 w-12" /> },
       },
       {
-        accessorKey: 'countryCurrencySymbol',
+        accessorKey: 'currencySymbol',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Currency Symbol" />,
-        cell: ({ row }) => row.original.countryCurrencySymbol ?? '-',
+        cell: ({ row }) => row.original.currencySymbol ?? '-',
         size: 140,
         meta: { headerTitle: 'Currency Symbol', skeleton: <Skeleton className="h-4 w-12" /> },
       },
