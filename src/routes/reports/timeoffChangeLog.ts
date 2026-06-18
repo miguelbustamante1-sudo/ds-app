@@ -35,7 +35,7 @@ router.get(
       if (params.export === 'true') {
         if (capped) {
           res.setHeader('X-Export-Capped', 'true');
-          res.setHeader('X-Export-Cap', '50000');
+          res.setHeader('X-Export-Cap', '1000000');
         }
         return res.json(rows);
       }

@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import {
   listActiveReports,
   getAllReports,
@@ -7,7 +8,7 @@ import {
   softDeleteReport,
 } from '../../../db/dynamicReports';
 import { assertSqlSafe, extractParams, getColumnsFromSql } from './components/SqlSafetyGuard';
-import { executeSql } from './components/SqlExecutor';
+import { executeSql, streamCsvToResponse } from './components/SqlExecutor';
 import { resolveOptions } from './components/OptionsResolver';
 import { auditOrchestrator } from '../../audit';
 import type {
@@ -68,6 +69,14 @@ export class DynamicReportOrchestrator {
     body: ExecuteRequestDTO,
   ): Promise<ExecuteResponseDTO> {
     return executeSql(reportId, body.params ?? {}, 0, 50_000);
+  }
+
+  async streamCsv(
+    reportId: number,
+    body: ExecuteRequestDTO,
+    res: Response,
+  ): Promise<void> {
+    return streamCsvToResponse(reportId, body.params ?? {}, res);
   }
 
   async getOptions(
