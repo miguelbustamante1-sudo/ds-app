@@ -29,6 +29,7 @@ import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import upcomingVacationRouter from './reports/upcomingVacation';
 import workdayReconciliationRouter from './reports/workdayReconciliation';
+import gtVacationUnderFiveDaysRouter from './reports/gtVacationUnderFiveDays';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
@@ -56,6 +57,7 @@ import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/co
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
+import sopRouter from './sop.routes';
 import uploadsRouter from './uploads';
 import tpCyclesRouter from './topPerformers/cycles';
 import tpNominationsRouter from './topPerformers/nominations';
@@ -103,6 +105,7 @@ export default function registerRoutes() {
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
   router.use('/reports/time-off/upcoming-vacation', upcomingVacationRouter);
   router.use('/reports/time-off/workday-reconciliation', workdayReconciliationRouter);
+  router.use('/reports/time-off/gt-vacation-under-five-days', gtVacationUnderFiveDaysRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/client-contacts', clientContactsRouter);
@@ -133,6 +136,7 @@ export default function registerRoutes() {
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);
+  router.use('/sop', sopRouter);
   router.use('/uploads', uploadsRouter);
   router.use('/top-performers/cycles', tpCyclesRouter);
   router.use('/top-performers/nominations', tpNominationsRouter);

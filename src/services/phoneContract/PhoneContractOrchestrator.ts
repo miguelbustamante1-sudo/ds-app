@@ -74,8 +74,10 @@ export class PhoneContractOrchestrator {
           assignDateStart: contractStart,
           assignDateEnd:   null,
           billable:        dto.billable,
+          isFree:          dto.isFree,
           billRate:        dto.billRate,
           remarks:         dto.remarks?.trim() ?? null,
+          phoneType:       dto.phoneType?.trim() ?? null,
           createdBy,
           createdAt:       now,
         },
@@ -150,7 +152,8 @@ export class PhoneContractOrchestrator {
       ((dto.teamMemberId !== undefined && dto.teamMemberId !== activeAssignment.teamMemberId) ||
         (dto.billRate !== undefined &&
           Number(dto.billRate) !== Number(activeAssignment.billRate)) ||
-        (dto.billable !== undefined && dto.billable !== activeAssignment.billable));
+        (dto.billable !== undefined && dto.billable !== activeAssignment.billable) ||
+        (dto.isFree !== undefined && dto.isFree !== activeAssignment.isFree));
 
     let remarksOnlyAssign: CorporatePhoneAssignment | null = null;
     let newAssign: CorporatePhoneAssignment | null         = null;
@@ -171,10 +174,15 @@ export class PhoneContractOrchestrator {
       const updatedLine = await patchPhoneLine(phoneLineId, lineData, tx);
 
       if (!needsAssignmentRotation || activeAssignment === null) {
-        if (activeAssignment !== null && dto.remarks !== undefined) {
+        if (activeAssignment !== null && (dto.remarks !== undefined || dto.phoneType !== undefined)) {
           remarksOnlyAssign = await patchPhoneAssignment(
             activeAssignment.phoneAssignmentId,
-            { remarks: dto.remarks?.trim() ?? null, updatedAt: now, updatedBy },
+            {
+              ...(dto.remarks    !== undefined && { remarks:   dto.remarks?.trim()    ?? null }),
+              ...(dto.phoneType  !== undefined && { phoneType: dto.phoneType?.trim()  ?? null }),
+              updatedAt: now,
+              updatedBy,
+            },
             tx,
           );
         }
@@ -194,10 +202,14 @@ export class PhoneContractOrchestrator {
           assignDateStart: today,
           assignDateEnd:   null,
           billable:        dto.billable        ?? activeAssignment.billable,
+          isFree:          dto.isFree          ?? activeAssignment.isFree,
           billRate:        dto.billRate        ?? Number(activeAssignment.billRate),
           remarks:         dto.remarks !== undefined
             ? (dto.remarks?.trim() ?? null)
             : activeAssignment.remarks,
+          phoneType:       dto.phoneType !== undefined
+            ? (dto.phoneType?.trim() ?? null)
+            : activeAssignment.phoneType,
           createdBy:  updatedBy,
           createdAt:  now,
         },
@@ -326,7 +338,9 @@ export class PhoneContractOrchestrator {
               teamMemberId:    oldAssignment.teamMemberId,
               billRate:        Number(oldAssignment.billRate),
               billable:        oldAssignment.billable,
+              isFree:          oldAssignment.isFree,
               remarks:         oldAssignment.remarks,
+              phoneType:       oldAssignment.phoneType,
               assignDateStart: newStart,
               assignDateEnd:   null,
               createdBy:       updatedBy,

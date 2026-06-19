@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { requirePermission } from '../../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../../middleware/auth';
 import { getPools, getPoolById } from './GetPools';
-import { createPool, validateCreatePool, ValidationError } from './CreatePool';
+import { createPool, validateCreatePool } from './CreatePool';
+import { GiftCardValidationError } from '../../errors';
 import { updatePool, validateUpdatePool } from './UpdatePool';
 import { deactivatePool } from './DeactivatePool';
 import { auditOrchestrator } from '../../../audit/AuditOrchestrator';
@@ -51,7 +52,7 @@ router.post(
 
       res.status(201).json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }
@@ -97,7 +98,7 @@ router.put(
 
       res.json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }

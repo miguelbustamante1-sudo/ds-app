@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { createCardValue, updateCardValue } from '@/services/giftCardValue';
 import { getCardTypes } from '@/services/giftCardType';
@@ -32,10 +33,11 @@ interface Props {
 
 export function CardValueFormDialog({ value, open, onOpenChange, onSuccess }: Props) {
   const { toast } = useToast();
-  const [saving, setSaving]         = useState(false);
-  const [cardTypes, setCardTypes]   = useState<GiftCardTypeDTO[]>([]);
+  const [saving, setSaving]               = useState(false);
+  const [cardTypes, setCardTypes]         = useState<GiftCardTypeDTO[]>([]);
+  const [loadingCardTypes, setLoadingCardTypes] = useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     defaultValues: { cardTypeId: 0, cardValueAmount: 0, cardValueCurrency: 'USD' }
   });
 
@@ -43,9 +45,10 @@ export function CardValueFormDialog({ value, open, onOpenChange, onSuccess }: Pr
 
   useEffect(() => {
     if (!open) return;
-    // Cargar card types activos
+    setLoadingCardTypes(true);
     getCardTypes().then(types => {
       setCardTypes(types.filter(t => t.cardTypeIsActive));
+      setLoadingCardTypes(false);
     });
     if (isEdit && value) {
       reset({
@@ -98,15 +101,25 @@ export function CardValueFormDialog({ value, open, onOpenChange, onSuccess }: Pr
           {!isEdit && (
             <div className="space-y-2">
               <Label>Card Type <span className="text-destructive">*</span></Label>
-              <select
-                className="w-full h-9 rounded-md border bg-background px-3 text-sm"
-                {...register('cardTypeId', { required: 'Card type is required', validate: v => Number(v) > 0 || 'Card type is required' })}
-              >
-                <option value={0}>Select a card type...</option>
-                {cardTypes.map(ct => (
-                  <option key={ct.cardTypeId} value={ct.cardTypeId}>{ct.cardTypeName}</option>
-                ))}
-              </select>
+              <ComboBox
+                options={cardTypes.map((ct): ComboBoxOption => ({
+                  value: String(ct.cardTypeId),
+                  label: ct.cardTypeName,
+                }))}
+                value={String(watch('cardTypeId'))}
+                onValueChange={(value) => setValue('cardTypeId', Number(value))}
+                placeholder={loadingCardTypes ? 'Loading...' : 'Select a card type...'}
+                searchPlaceholder="Search card types..."
+                emptyMessage="No card types found."
+                disabled={loadingCardTypes}
+              />
+              <input
+                type="hidden"
+                {...register('cardTypeId', {
+                  required: 'Card type is required',
+                  validate: v => Number(v) > 0 || 'Card type is required'
+                })}
+              />
               {errors.cardTypeId && <p className="text-sm text-destructive">{errors.cardTypeId.message}</p>}
             </div>
           )}

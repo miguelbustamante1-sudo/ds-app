@@ -1,9 +1,6 @@
 import { prisma } from '../../../../db/prisma';
 import type { GiftCardValueDTO } from '../../../../../shared/dto/GiftCardValue';
-
-export class ValidationError extends Error {
-  constructor(message: string) { super(message); this.name = 'ValidationError'; }
-}
+import { GiftCardValidationError } from '../../errors';
 
 export interface CreateCardValueInput {
   cardTypeId:         number;
@@ -19,10 +16,10 @@ export function validateCreateCardValue(
   const { cardTypeId, cardValueAmount, cardValueCurrency } = raw;
 
   if (typeof cardTypeId !== 'number' || !Number.isInteger(cardTypeId)) {
-    throw new ValidationError('`cardTypeId` is required and must be an integer');
+    throw new GiftCardValidationError('`cardTypeId` is required and must be an integer');
   }
   if (typeof cardValueAmount !== 'number' || cardValueAmount <= 0) {
-    throw new ValidationError('`cardValueAmount` is required and must be a positive number');
+    throw new GiftCardValidationError('`cardValueAmount` is required and must be a positive number');
   }
   const currency = typeof cardValueCurrency === 'string' && cardValueCurrency.trim() !== ''
     ? cardValueCurrency.trim().toUpperCase()
@@ -37,7 +34,7 @@ export async function createCardValue(data: CreateCardValueInput): Promise<GiftC
   });
 
   if (!cardType || !cardType.cardTypeIsActive) {
-    throw new ValidationError('Card type does not exist or is inactive');
+    throw new GiftCardValidationError('Card type does not exist or is inactive');
   }
 
   const row = await prisma.giftCardValue.create({

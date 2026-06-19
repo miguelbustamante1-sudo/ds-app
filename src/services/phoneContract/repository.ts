@@ -51,7 +51,9 @@ export function mapToDTO(row: PhoneLineRow, today: Date = utcToday()): PhoneCont
       billRate:           Number(assignment.billRate),
       assignDateStart:    assignment.assignDateStart,
       billable:           assignment.billable,
+      isFree:             assignment.isFree,
       remarks:            assignment.remarks,
+      phoneType:          assignment.phoneType,
     };
   }
 
@@ -184,8 +186,10 @@ export async function insertPhoneAssignment(
     assignDateStart: Date;
     assignDateEnd:   Date | null;
     billable:        boolean;
+    isFree:          boolean;
     billRate:        number;
     remarks:         string | null;
+    phoneType:       string | null;
     createdBy:       number;
     createdAt:       Date;
   },
@@ -219,7 +223,9 @@ export async function patchPhoneAssignment(
     assignDateEnd: Date | null;
     billRate:      number;
     billable:      boolean;
+    isFree:        boolean;
     remarks:       string | null;
+    phoneType:     string | null;
     updatedBy:     number;
     updatedAt:     Date;
     deleted:       boolean;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '@shared/dto';
 import {
@@ -55,6 +56,7 @@ export function TeamMembersPage() {
   const [deletingTeamMember, setDeletingTeamMember] = useState<TeamMemberDTO | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
 
@@ -269,6 +271,7 @@ export function TeamMembersPage() {
             columnsMovable: true,
             columnsVisibility: true,
           }}
+          onRowClick={(row) => navigate(`/maintenance/team-members/${row.teamMemberId}`)}
         >
           <DataGridTable />
           <DataGridPagination sizes={[10, 25, 50]} />

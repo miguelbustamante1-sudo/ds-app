@@ -1423,8 +1423,8 @@ model CorporatePhoneLine {
   deletedAt             DateTime? @map("cpl_deleted_at") @db.Timestamptz(6)
   countryId             Int?      @map("cou_id") @db.Integer
   createdAt             DateTime  @default(now()) @map("cpl_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("usr_id_created_by") @db.Integer
-  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  createdBy             Int       @map("cpl_created_by") @db.Integer
+  updatedBy             Int?      @map("cpl_updated_by") @db.Integer
   updatedAt             DateTime? @map("cpl_updated_at") @db.Timestamptz(6)
   comments              String?   @map("cpl_comments")
   deleted               Boolean?  @default(false) @map("cpl_deleted")
@@ -1453,10 +1453,12 @@ model CorporatePhoneAssignment {
   assignDateStart       DateTime  @map("cpa_assign_date_start") @db.Date
   assignDateEnd         DateTime? @map("cpa_assign_date_end") @db.Date
   billable              Boolean   @default(true) @map("cpa_billable")
+  isFree                Boolean   @default(false) @map("cpa_is_free")
   remarks               String?   @map("cpa_remarks")
+  phoneType             String?   @map("cpa_phone_type") @db.VarChar(100)
   createdAt             DateTime  @default(now()) @map("cpa_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("usr_id_created_by") @db.Integer
-  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  createdBy             Int       @map("cpa_created_by") @db.Integer
+  updatedBy             Int?      @map("cpa_updated_by") @db.Integer
   updatedAt             DateTime? @map("cpa_updated_at") @db.Timestamptz(6)
   deletedAt             DateTime? @map("cpa_deleted_at") @db.Timestamptz(6)
   deleted               Boolean?  @default(false) @map("cpa_deleted")

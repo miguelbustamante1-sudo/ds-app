@@ -52,6 +52,41 @@ export function downloadReport(
   return apiPost(`/api/reports/dynamic/${id}/download`, { params }, false);
 }
 
+export async function downloadReportCsv(
+  id: number,
+  params: Record<string, string | number | boolean | null>,
+  filename: string,
+): Promise<void> {
+  const response = await fetch(`/api/reports/dynamic/${id}/download/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ params }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    let message = 'Export failed';
+    try {
+      const json = JSON.parse(text) as { error?: string };
+      message = json.error ?? message;
+    } catch {
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function getParamOptions(
   id: number,
   paramName: string,

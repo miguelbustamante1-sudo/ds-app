@@ -29,6 +29,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/auth/auth-provider';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -124,11 +125,13 @@ const FavoritesContext = createContext<FavoritesContextValue | null>(null);
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // ── Load preferences from the server ──────────────────────────────────────
   const { data: prefs, isLoading } = useQuery<UserPreferences>({
     queryKey: PREFS_QUERY_KEY,
     queryFn: fetchPreferences,
+    enabled: !!user,
     // Keep stale data visible while revalidating; don't refetch on window focus
     // (preferences change rarely — only when the user explicitly pins/unpins).
     staleTime: 5 * 60 * 1000, // 5 minutes

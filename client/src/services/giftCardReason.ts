@@ -9,10 +9,10 @@ export const getReasons = () =>
   apiGet<GiftCardReasonDTO[]>(`${BASE}/`);
 
 export const createReason = (data: CreateGiftCardReasonDTO) =>
-  apiPost<{ data: GiftCardReasonDTO }, CreateGiftCardReasonDTO>(`${BASE}/`, data).then((r) => r.data);
+  apiPost<GiftCardReasonDTO, CreateGiftCardReasonDTO>(`${BASE}/`, data);
 
 export const updateReason = (id: number, data: UpdateGiftCardReasonDTO) =>
-  apiPut<{ data: GiftCardReasonDTO }, UpdateGiftCardReasonDTO>(`${BASE}/${id}`, data).then((r) => r.data);
+  apiPut<GiftCardReasonDTO, UpdateGiftCardReasonDTO>(`${BASE}/${id}`, data);
 
 export const deactivateReason = (id: number) =>
   apiDelete(`${BASE}/${id}`);

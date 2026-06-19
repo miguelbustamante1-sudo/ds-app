@@ -142,7 +142,7 @@ const SORTABLE_COLUMNS: Record<string, string> = {
   newStatus:        'ns.sta_name',
 };
 
-const EXPORT_ROW_CAP = 50_000;
+const EXPORT_ROW_CAP = 1_000_000;
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 

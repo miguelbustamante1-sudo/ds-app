@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate } from 'react-router-dom';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, BookOpen, MessageSquare, Trash2 } from 'lucide-react';
 import {
   Toolbar,
   ToolbarHeading,
@@ -11,14 +11,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { apiPost } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import Markdown from 'react-markdown';
 
+type ChatMode = 'general' | 'knowledge';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  sources?: string[];
 }
 
 interface ChatFormValues {
@@ -29,8 +33,14 @@ interface ChatReply {
   reply: string;
 }
 
+interface SopAnswer {
+  answer: string;
+  sources: string[];
+}
+
 export function AiChatPage() {
   const { canRead } = usePermissions();
+  const [mode, setMode] = useState<ChatMode>('general');
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -53,6 +63,13 @@ export function AiChatPage() {
     return <Navigate to="/" replace />;
   }
 
+  const handleModeChange = (next: ChatMode) => {
+    if (next === mode) return;
+    setMode(next);
+    setHistory([]);
+    reset();
+  };
+
   const onSubmit = async ({ message }: ChatFormValues) => {
     if (!message.trim() || loading) return;
 
@@ -63,11 +80,21 @@ export function AiChatPage() {
     setLoading(true);
 
     try {
-      const result = await apiPost<ChatReply>('/api/ai/chat', {
-        message: userMessage.content,
-        history,
-      });
-      setHistory([...nextHistory, { role: 'assistant', content: result.reply }]);
+      if (mode === 'knowledge') {
+        const result = await apiPost<SopAnswer>('/api/sop/ask', {
+          question: userMessage.content,
+        });
+        setHistory([
+          ...nextHistory,
+          { role: 'assistant', content: result.answer, sources: result.sources },
+        ]);
+      } else {
+        const result = await apiPost<ChatReply>('/api/ai/chat', {
+          message: userMessage.content,
+          history,
+        });
+        setHistory([...nextHistory, { role: 'assistant', content: result.reply }]);
+      }
     } catch {
       setHistory([
         ...nextHistory,
@@ -78,32 +105,72 @@ export function AiChatPage() {
     }
   };
 
+  const emptyStateText =
+    mode === 'knowledge'
+      ? 'Ask me anything about your company SOPs.'
+      : "Ask me about your team's time-off, upcoming vacations, holiday swaps…";
+
+  const placeholderText =
+    mode === 'knowledge'
+      ? 'Ask a question about your SOPs…'
+      : 'Ask about your team’s time-off, upcoming vacations, holiday swaps…';
+
   return (
     <div className="container flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
       <Toolbar>
         <ToolbarHeading>
           <ToolbarPageTitle>AI Assistant</ToolbarPageTitle>
           <ToolbarDescription>
-            Ask questions about your team and time-off data
+            {mode === 'knowledge'
+              ? 'Answers grounded in your uploaded SOP documents'
+              : 'Ask questions about your team and time-off data'}
           </ToolbarDescription>
         </ToolbarHeading>
       </Toolbar>
+
+      <div className="mb-3 flex items-center gap-2">
+        <Button
+          variant={mode === 'general' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleModeChange('general')}
+        >
+          <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+          General Assistant
+        </Button>
+        <Button
+          variant={mode === 'knowledge' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleModeChange('knowledge')}
+        >
+          <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+          Knowledge Base
+        </Button>
+        {history.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto text-muted-foreground"
+            onClick={() => { setHistory([]); reset(); }}
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Clear chat
+          </Button>
+        )}
+      </div>
 
       <Card className="flex flex-1 flex-col overflow-hidden">
         <CardContent className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
           {history.length === 0 && (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground">
               <Sparkles className="h-8 w-8" />
-              <p className="text-sm">
-                Ask me about your team&apos;s time-off, holiday swaps, or upcoming coverage.
-              </p>
+              <p className="text-sm">{emptyStateText}</p>
             </div>
           )}
 
           {history.map((msg, i) => (
             <div
               key={i}
-              className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
+              className={cn('flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}
             >
               <div
                 className={cn(
@@ -119,6 +186,15 @@ export function AiChatPage() {
                   msg.content
                 )}
               </div>
+              {msg.sources && msg.sources.length > 0 && (
+                <div className="mt-1.5 flex max-w-[75%] flex-wrap gap-1">
+                  {msg.sources.map((src) => (
+                    <Badge key={src} variant="secondary" className="text-xs font-normal">
+                      {src}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 
@@ -137,7 +213,7 @@ export function AiChatPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="mt-3 flex items-end gap-2">
         <Textarea
           {...register('message', { required: true })}
-          placeholder="Ask about your team's time-off, upcoming vacations, holiday swaps…"
+          placeholder={placeholderText}
           className="min-h-[56px] resize-none"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {

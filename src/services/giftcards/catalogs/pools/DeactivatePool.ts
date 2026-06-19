@@ -1,19 +1,15 @@
 import { prisma } from '../../../../db/prisma';
 
 export async function deactivatePool(id: number): Promise<boolean> {
-  try {
-    const existing = await prisma.giftCardPool.findUnique({
-      where:  { poolId: id },
-      select: { poolId: true },
-    });
-    if (!existing) return false;
+  const existing = await prisma.giftCardPool.findUnique({
+    where:  { poolId: id },
+    select: { poolId: true },
+  });
+  if (!existing) return false;
 
-    await prisma.giftCardPool.update({
-      where: { poolId: id },
-      data:  { poolIsActive: false },
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  await prisma.giftCardPool.update({
+    where: { poolId: id },
+    data:  { poolIsActive: false },
+  });
+  return true;
 }

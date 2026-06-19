@@ -96,6 +96,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'Shift',
     },
     {
+      title: 'Knowledge Base',
+      description: 'Upload and manage SOP documents for the AI knowledge base.',
+      path: '/maintenance/knowledge-base',
+      permission: 'SopKnowledge',
+    },
+    {
       title: 'Reports',
       description: 'Access Maintenance and data quality reports.',
       path: '/reports?module=maintenance',

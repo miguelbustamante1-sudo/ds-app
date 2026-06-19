@@ -12,8 +12,10 @@ export interface UpdatePhoneContractDTO {
   comments?: string | null;
   teamMemberId?: number;
   billable?: boolean;
+  isFree?: boolean;
   billRate?: number;
   remarks?: string | null;
+  phoneType?: string | null;
 }
 
 export interface CreatePhoneContractDTO {
@@ -25,8 +27,10 @@ export interface CreatePhoneContractDTO {
   comments?: string | null;
   teamMemberId: number;
   billable: boolean;
+  isFree: boolean;
   billRate: number;
   remarks?: string | null;
+  phoneType?: string | null;
 }
 
 export interface PhoneContractActiveAssignmentDTO {
@@ -37,7 +41,9 @@ export interface PhoneContractActiveAssignmentDTO {
   billRate: number;
   assignDateStart: Date;
   billable: boolean;
+  isFree: boolean;
   remarks: string | null;
+  phoneType: string | null;
 }
 
 export interface PhoneContractDTO {

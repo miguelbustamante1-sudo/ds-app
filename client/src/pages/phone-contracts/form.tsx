@@ -31,8 +31,10 @@ interface PhoneContractFormData {
   comments: string;
   teamMemberId: string;
   billable: boolean;
+  isFree: boolean;
   billRate: string;
   remarks: string;
+  phoneType: string;
 }
 
 interface PhoneContractFormDialogProps {
@@ -73,8 +75,10 @@ export function PhoneContractFormDialog({
       comments:          '',
       teamMemberId:      '',
       billable:          true,
+      isFree:            false,
       billRate:          '',
       remarks:           '',
+      phoneType:         '',
     },
   });
 
@@ -83,7 +87,9 @@ export function PhoneContractFormDialog({
 
   const teamMemberOptions: ComboBoxOption[] = teamMembers.map((m) => ({
     value: m.teamMemberId.toString(),
-    label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+    label: m.workdayId
+      ? `${m.teamMemberNames} ${m.teamMemberSurnames} (${m.workdayId})`
+      : `${m.teamMemberNames} ${m.teamMemberSurnames}`,
   }));
 
   const countryOptions: ComboBoxOption[] = countries.map((c) => ({
@@ -106,8 +112,10 @@ export function PhoneContractFormDialog({
         comments:          record.comments ?? '',
         teamMemberId:      record.activeAssignment?.teamMemberId.toString() ?? '',
         billable:          record.activeAssignment?.billable ?? true,
+        isFree:            record.activeAssignment?.isFree ?? false,
         billRate:          record.activeAssignment?.billRate.toString() ?? '',
         remarks:           record.activeAssignment?.remarks ?? '',
+        phoneType:         record.activeAssignment?.phoneType ?? '',
       });
     } else {
       reset({
@@ -119,8 +127,10 @@ export function PhoneContractFormDialog({
         comments:          '',
         teamMemberId:      '',
         billable:          true,
+        isFree:            false,
         billRate:          '',
         remarks:           '',
+        phoneType:         '',
       });
     }
 
@@ -159,8 +169,10 @@ export function PhoneContractFormDialog({
           comments:          data.comments.trim() || null,
           teamMemberId:      Number(data.teamMemberId),
           billable:          data.billable,
+          isFree:            data.isFree,
           billRate:          Number(data.billRate),
           remarks:           data.remarks.trim() || null,
+          phoneType:         data.phoneType.trim() || null,
         };
         await apiPut<PhoneContractDTO, UpdatePhoneContractDTO>(
           `/api/phone-contracts/${record.phoneLineId}`,
@@ -177,8 +189,10 @@ export function PhoneContractFormDialog({
           comments:          data.comments.trim() || null,
           teamMemberId:      Number(data.teamMemberId),
           billable:          data.billable,
+          isFree:            data.isFree,
           billRate:          Number(data.billRate),
           remarks:           data.remarks.trim() || null,
+          phoneType:         data.phoneType.trim() || null,
         };
         await apiPost<PhoneContractDTO, CreatePhoneContractDTO>('/api/phone-contracts', payload);
         toast({ title: 'Success', description: 'Phone contract created successfully' });
@@ -320,8 +334,8 @@ export function PhoneContractFormDialog({
               />
             </div>
 
-            {/* Bill Rate | Remarks | Billable */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Bill Rate | Phone Type | Billable | Is Free */}
+            <div className="grid grid-cols-4 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="billRate">
                   Bill Rate <span className="text-destructive">*</span>
@@ -344,12 +358,12 @@ export function PhoneContractFormDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="remarks">Remarks</Label>
+                <Label htmlFor="phoneType">Phone Type</Label>
                 <Input
-                  id="remarks"
-                  placeholder="Optional..."
+                  id="phoneType"
+                  placeholder="e.g. Samsung S26"
                   autoComplete="off"
-                  {...register('remarks')}
+                  {...register('phoneType')}
                 />
               </div>
 
@@ -369,6 +383,34 @@ export function PhoneContractFormDialog({
                   />
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="isFree">Free</Label>
+                <div className="flex items-center h-9">
+                  <Controller
+                    name="isFree"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        id="isFree"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Remarks */}
+            <div className="space-y-1.5">
+              <Label htmlFor="remarks">Remarks</Label>
+              <Input
+                id="remarks"
+                placeholder="Optional..."
+                autoComplete="off"
+                {...register('remarks')}
+              />
             </div>
 
           </div>

@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { requirePermission } from '../../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../../middleware/auth';
 import { getCardTypes, getCardTypeById } from './GetCardTypes';
-import { createCardType, validateCreateCardType, ValidationError } from './CreateCardType';
+import { createCardType, validateCreateCardType } from './CreateCardType';
+import { GiftCardValidationError } from '../../errors';
 import { updateCardType, validateUpdateCardType } from './UpdateCardType';
 import { deactivateCardType } from './DeactivateCardType';
 import { auditOrchestrator } from '../../../audit/AuditOrchestrator';
@@ -51,7 +52,7 @@ router.post(
 
       res.status(201).json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }
@@ -89,6 +90,7 @@ router.put(
       await auditOrchestrator.log({
         entityName: 'tbl_gct_card_types',
         entityId:   String(id),
+        // requirePermission guarantees req.user is set at this point
         createdBy:  req.user!.email,
         oldValues:  oldRecord as unknown as Record<string, unknown>,
         newValues:  result as unknown as Record<string, unknown>,
@@ -97,7 +99,7 @@ router.put(
 
       res.json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }
@@ -134,6 +136,7 @@ router.delete(
       await auditOrchestrator.log({
         entityName: 'tbl_gct_card_types',
         entityId:   String(id),
+        // requirePermission guarantees req.user is set at this point
         createdBy:  req.user!.email,
         oldValues:  oldRecord as unknown as Record<string, unknown>,
         newValues:  { ...oldRecord, cardTypeIsActive: false } as unknown as Record<string, unknown>,

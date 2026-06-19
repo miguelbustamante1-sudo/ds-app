@@ -7,6 +7,7 @@ import { RequireAuth } from '@/auth/require-auth';
 import { CountriesPage } from '@/pages/maintenance/countries';
 import { ProjectsPage } from '@/pages/maintenance/projects';
 import { TeamMembersPage } from '@/pages/maintenance/team-members';
+import { MaintenanceTeamMemberDetailPage } from '@/pages/maintenance/team-members/detail';
 import { UsersPage } from '@/pages/maintenance/users';
 import { SupervisorAssignmentsPage } from '@/pages/maintenance/supervisor-assignments';
 import { HolidaysPage } from '@/pages/maintenance/holidays';
@@ -40,12 +41,14 @@ import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
+import { KnowledgeBasePage } from '@/pages/maintenance/knowledge-base';
 import { TimeOffPeriodBackfillPage } from '@/pages/maintenance/timeoff-period-backfill';
 import { EmailTestPage } from '@/pages/maintenance/email-test';
 import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { UpcomingVacationPage } from '@/pages/reports/time-off/upcoming-vacation';
 import { WorkdayReconciliationPage } from '@/pages/reports/time-off/workday-reconciliation';
+import { GtVacationUnderFiveDaysPage } from '@/pages/reports/time-off/gt-vacation-under-five-days';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
@@ -161,6 +164,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/countries" element={<CountriesPage />} />
         <Route path="/maintenance/projects" element={<ProjectsPage />} />
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
+        <Route path="/maintenance/team-members/:id" element={<MaintenanceTeamMemberDetailPage />} />
         <Route path="/maintenance/users" element={<UsersPage />} />
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
         <Route path="/maintenance/team-member-bonuses" element={<TeamMemberBonusesPage />} />
@@ -177,7 +181,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
-        <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/knowledge-base" element={<KnowledgeBasePage />} />
         <Route path="/maintenance/gift-cards/pools" element={<GiftCardPoolsPage />} />
         <Route path="/maintenance/gift-cards/reasons" element={<GiftCardReasonsPage />} />
         <Route path="/maintenance/gift-cards/card-types" element={<GiftCardTypesPage />} />
@@ -191,6 +195,7 @@ export function AppRoutingSetup() {
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
         <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />
         <Route path="/reports/time-off/workday-reconciliation" element={<WorkdayReconciliationPage />} />
+        <Route path="/reports/time-off/gt-vacation-under-five-days" element={<GtVacationUnderFiveDaysPage />} />
         <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
