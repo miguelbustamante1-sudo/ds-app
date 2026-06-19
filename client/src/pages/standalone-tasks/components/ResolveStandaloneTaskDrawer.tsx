@@ -12,10 +12,14 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet';
-import { apiGet, apiPatch, apiPost } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { apiGet, apiPost } from '@/lib/api';
+import { FileUpload } from '@/components/FileUpload/FileUpload';
+import { ApiError } from '@/lib/api';
 import { formatUTCDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { StandaloneTaskDTO, StandaloneTaskCommentDTO } from '@shared/dto';
+import type { UploadDTO } from '@shared/dto/Upload';
 
 interface ResolveStandaloneTaskDrawerProps {
   taskId: number | null;
@@ -26,6 +30,11 @@ interface ResolveStandaloneTaskDrawerProps {
 
 interface CommentFormData {
   comment: string;
+}
+
+interface ResolveFormData {
+  comment: string;
+  executionDate: string;
 }
 
 function priorityBadge(priority: string) {
@@ -49,6 +58,8 @@ export function ResolveStandaloneTaskDrawer({
   const [loadingTask, setLoadingTask] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [addingComment, setAddingComment] = useState(false);
+  const [transcriptUploads, setTranscriptUploads] = useState<UploadDTO[]>([]);
+  const [extractingDate, setExtractingDate] = useState(false);
 
   const {
     register: registerComment,
@@ -61,7 +72,9 @@ export function ResolveStandaloneTaskDrawer({
     register: registerResolve,
     watch: watchResolve,
     reset: resetResolve,
-  } = useForm<CommentFormData>({ defaultValues: { comment: '' } });
+    setValue: setResolveValue,
+    formState: { errors: resolveErrors },
+  } = useForm<ResolveFormData>({ defaultValues: { comment: '', executionDate: '' } });
 
   const loadTask = useCallback(async () => {
     if (!taskId) return;
@@ -89,6 +102,8 @@ export function ResolveStandaloneTaskDrawer({
       setComments([]);
       resetComment();
       resetResolve();
+      setTranscriptUploads([]);
+      setExtractingDate(false);
     }
   }, [open, taskId, loadTask, resetComment, resetResolve]);
 
@@ -113,6 +128,39 @@ export function ResolveStandaloneTaskDrawer({
   });
 
   const resolveWatchedComment = watchResolve('comment');
+  const resolveWatchedExecutionDate = watchResolve('executionDate');
+
+  const handleTranscriptChange = async (uploads: UploadDTO[]) => {
+    setTranscriptUploads(uploads);
+    const upload = uploads[0];
+    if (!upload) return;
+
+    // Step 1: try the filename first (e.g. "2026-06-19-standup.md" or "notes_2026_06_19.txt")
+    const filenameMatch = upload.uploadOriginalName.match(/(\d{4})[-_](\d{2})[-_](\d{2})/);
+    if (filenameMatch) {
+      const isoDate = `${filenameMatch[1]}-${filenameMatch[2]}-${filenameMatch[3]}`;
+      setResolveValue('executionDate', isoDate);
+      toast({ title: 'Date found', description: `Execution date set from file name: ${isoDate}` });
+      return;
+    }
+
+    // Step 2: try content extraction via AI
+    setExtractingDate(true);
+    try {
+      const result = await apiPost<{ date: string | null }>('/api/recurring-task-templates/extract-date', { uploadId: upload.uploadId });
+      if (result.date) {
+        setResolveValue('executionDate', result.date);
+        toast({ title: 'Date extracted', description: `Execution date set from transcript content: ${result.date}` });
+      } else {
+        // Step 3: neither worked — user must enter manually
+        toast({ title: 'Date not found', description: 'Could not find a date in the file name or content. Please enter it manually.', variant: 'default' });
+      }
+    } catch {
+      toast({ title: 'Extraction failed', description: 'Please enter the execution date manually.', variant: 'default' });
+    } finally {
+      setExtractingDate(false);
+    }
+  };
 
   const handleResolve = async (status: 'APPROVED' | 'REJECTED') => {
     if (!taskId) return;
@@ -120,20 +168,38 @@ export function ResolveStandaloneTaskDrawer({
     if (status === 'REJECTED' && !comment) {
       toast({
         title: 'Comment required',
-        description: 'Please enter a comment before rejecting.',
+        description: 'Please enter a comment before dismissing.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (status === 'APPROVED' && task?.recurringTemplateId && !resolveWatchedExecutionDate) {
+      toast({
+        title: 'Execution date required',
+        description: 'Please enter the execution date before marking as complete.',
         variant: 'destructive',
       });
       return;
     }
     setResolving(true);
     try {
-      await apiPatch(`/api/standalone-tasks/${taskId}/resolve`, {
-        status,
-        comment: comment || null,
+      const transcriptUploadId = transcriptUploads[0]?.uploadId ?? null;
+      const executionDate = resolveWatchedExecutionDate || null;
+      const response = await fetch(`/api/standalone-tasks/${taskId}/resolve`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, comment: comment || null, transcriptUploadId, executionDate }),
       });
-      toast({
-        title: status === 'APPROVED' ? 'Task approved' : 'Task rejected',
-      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new ApiError(
+          (errorData as { error?: string }).error ?? `HTTP ${response.status}`,
+          response.status,
+          `/api/standalone-tasks/${taskId}/resolve`,
+        );
+      }
+      toast({ title: status === 'APPROVED' ? 'Task marked complete' : 'Task dismissed' });
       onResolved();
       onOpenChange(false);
     } catch (err: unknown) {
@@ -217,6 +283,39 @@ export function ResolveStandaloneTaskDrawer({
               </form>
             </div>
 
+            {task.recurringTemplateId && (
+              <div className="space-y-4 border-t pt-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Meeting Transcript</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Upload the transcript (.md or .txt) to extract the execution date automatically.
+                  </p>
+                  <FileUpload
+                    maxFiles={1}
+                    accept={['text/markdown', 'text/plain']}
+                    value={transcriptUploads}
+                    onChange={(uploads) => void handleTranscriptChange(uploads)}
+                    disabled={extractingDate}
+                  />
+                  {extractingDate && (
+                    <p className="text-xs text-muted-foreground">Extracting date from transcript...</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">
+                    Execution Date <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    {...registerResolve('executionDate', { required: 'Execution date is required' })}
+                  />
+                  {resolveErrors.executionDate && (
+                    <p className="text-sm text-destructive">{resolveErrors.executionDate.message}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 border-t pt-4">
               <Label className="text-sm font-medium">Resolution</Label>
               <p className="text-xs text-muted-foreground">
@@ -235,14 +334,14 @@ export function ResolveStandaloneTaskDrawer({
                 onClick={() => void handleResolve('REJECTED')}
                 disabled={resolving}
               >
-                {resolving ? 'Saving...' : 'Reject'}
+                {resolving ? 'Saving...' : 'Dismiss'}
               </Button>
               <Button
                 variant="default"
                 onClick={() => void handleResolve('APPROVED')}
                 disabled={resolving}
               >
-                {resolving ? 'Saving...' : 'Approve'}
+                {resolving ? 'Saving...' : 'Mark Complete'}
               </Button>
             </SheetFooter>
           </div>

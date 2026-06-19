@@ -54,6 +54,7 @@ import dashboardRouter from './dashboard.routes';
 import emailTestRouter from './email-test.routes';
 import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
 import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
+import recurringTaskTemplatesRouter from '../services/recurring-task-templates/routes/templates';
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
@@ -133,6 +134,7 @@ export default function registerRoutes() {
   router.use('/email-test', emailTestRouter);
   router.use('/standalone-tasks', standaloneTasksRouter);
   router.use('/standalone-tasks', standaloneTaskCommentsRouter);
+  router.use('/recurring-task-templates', recurringTaskTemplatesRouter);
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);

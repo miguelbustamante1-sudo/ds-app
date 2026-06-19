@@ -29,24 +29,24 @@ export function TaskInboxPage() {
         </ToolbarHeading>
       </Toolbar>
 
-      <Tabs defaultValue={canRead('Workflow') ? 'workflow' : 'standalone'} className="mt-6">
+      <Tabs defaultValue={canRead('StandaloneTask') ? 'standalone' : 'workflow'} className="mt-6">
         <TabsList>
-          {canRead('Workflow') && (
-            <TabsTrigger value="workflow">DTOS Tasks</TabsTrigger>
-          )}
           {canRead('StandaloneTask') && (
             <TabsTrigger value="standalone">Standalone Tasks</TabsTrigger>
           )}
+          {canRead('Workflow') && (
+            <TabsTrigger value="workflow">Workflow Tasks</TabsTrigger>
+          )}
         </TabsList>
 
-        {canRead('Workflow') && (
-          <TabsContent value="workflow">
-            <WorkflowTasksTab />
-          </TabsContent>
-        )}
         {canRead('StandaloneTask') && (
           <TabsContent value="standalone">
             <StandaloneTasksTab />
+          </TabsContent>
+        )}
+        {canRead('Workflow') && (
+          <TabsContent value="workflow">
+            <WorkflowTasksTab />
           </TabsContent>
         )}
       </Tabs>

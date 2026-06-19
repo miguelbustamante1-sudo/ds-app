@@ -136,6 +136,8 @@ model TeamMember {
   compensatoryTimes                 CompensatoryTime[]
   phoneAssignments                  CorporatePhoneAssignment[]
   standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
+  standaloneTaskHierarchyRefs       StandaloneTask[] @relation("StandaloneTaskHierarchyContext")
+  recurringTemplates                RecurringTaskTemplate[] @relation("RecurringTemplateAssignee")
   teamMemberBonuses                 TeamMemberBonus[]
   tpNominationsAsNominee            TpNomination[]      @relation("TpNominee")
   tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
@@ -402,6 +404,8 @@ model User {
   standaloneTasksResolved       StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users")
   standaloneTaskCommentsCreated StandaloneTaskComment[] @relation("tco_standalone_task_comments_tco_created_byTotbl_users")
   apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
+  recurringTemplatesCreated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users")
+  recurringTemplatesUpdated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users")
   teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
   teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
   uploads                       Upload[]                @relation("UploadCreatedByUser")
@@ -1494,14 +1498,21 @@ model StandaloneTask {
   updatedDate       DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
   resolvedBy        Int?      @map("tsk_resolved_by") @db.Integer
   resolvedDate      DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
-  resolutionComment String?   @map("tsk_resolution_comment") @db.Text
+  resolutionComment   String?   @map("tsk_resolution_comment") @db.Text
+  recurringTemplateId Int?      @map("rtt_id") @db.Integer
+  transcriptUploadId  Int?      @map("upl_id") @db.Integer
+  meetingDate         DateTime? @map("tsk_meeting_date") @db.Timestamptz(6)
+  hierarchyContextId  Int?      @map("tms_id_assignee") @db.Integer
 
-  teamMember     TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
-  createdByUser  User                    @relation("tsk_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
-  updatedByUser  User?                   @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
-  resolvedByUser User?                   @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
-  apiKey         ApiKey?                 @relation(fields: [apiKeyId], references: [apkId], map: "fk_tsk_api_key")
-  comments       StandaloneTaskComment[]
+  teamMember        TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
+  createdByUser     User                    @relation("tsk_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
+  updatedByUser     User?                   @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
+  resolvedByUser    User?                   @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
+  apiKey            ApiKey?                 @relation(fields: [apiKeyId], references: [apkId], map: "fk_tsk_api_key")
+  recurringTemplate RecurringTaskTemplate?  @relation(fields: [recurringTemplateId], references: [templateId], map: "fk_rtt_id")
+  transcriptUpload  Upload?                 @relation("StandaloneTaskTranscript", fields: [transcriptUploadId], references: [uploadId], map: "fk_tsk_upl_id")
+  hierarchyContext  TeamMember?             @relation("StandaloneTaskHierarchyContext", fields: [hierarchyContextId], references: [teamMemberId], map: "fk_tsk_tms_id_assignee")
+  comments          StandaloneTaskComment[]
 
   @@map("tsk_standalone_tasks")
   @@schema("ds")
@@ -1518,6 +1529,30 @@ model StandaloneTaskComment {
   createdByUser User           @relation("tco_standalone_task_comments_tco_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tco_created_by")
 
   @@map("tco_standalone_task_comments")
+  @@schema("ds")
+}
+
+model RecurringTaskTemplate {
+  templateId             Int       @id @default(autoincrement()) @map("rtt_id") @db.Integer
+  templateTitle          String    @map("rtt_title") @db.Text
+  templateDescription    String?   @map("rtt_description") @db.Text
+  templatePriority       String    @default("MEDIUM") @map("rtt_priority") @db.Text
+  intervalDays           Int       @default(30) @map("rtt_interval_days") @db.Integer
+  useSupervisorHierarchy Boolean   @default(false) @map("rtt_use_supervisor_hierarchy")
+  teamMemberId           Int?      @map("tms_id") @db.Integer
+  autoGenerateOnCreate   Boolean   @default(true) @map("rtt_auto_generate_on_create")
+  isActive               Boolean   @default(true) @map("rtt_is_active")
+  createdBy              Int       @map("rtt_created_by") @db.Integer
+  createdDate            DateTime  @default(now()) @map("rtt_created_date") @db.Timestamptz(6)
+  updatedBy              Int?      @map("rtt_updated_by") @db.Integer
+  updatedDate            DateTime? @map("rtt_updated_date") @db.Timestamptz(6)
+
+  teamMember    TeamMember?      @relation("RecurringTemplateAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_rtt_tms_id")
+  createdByUser User             @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_rtt_created_by")
+  updatedByUser User?            @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_rtt_updated_by")
+  taskInstances StandaloneTask[]
+
+  @@map("rtt_recurring_task_templates")
   @@schema("ds")
 }
 
@@ -1551,8 +1586,9 @@ model Upload {
   uploadCreatedBy    Int      @map("upl_created_by")
   uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
 
-  createdByUser User           @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
-  bonusUploads  BiuBonusUpload[]
+  createdByUser             User           @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  bonusUploads              BiuBonusUpload[]
+  standaloneTaskTranscripts StandaloneTask[] @relation("StandaloneTaskTranscript")
 
   @@map("upl_uploads")
   @@schema("ds")

@@ -1,3 +1,4 @@
+import { prisma } from '../../db/prisma';
 import { createTask } from './components/CreateTask';
 import { resolveTask } from './components/ResolveTask';
 import { addComment, getComments } from './components/AddComment';
@@ -6,6 +7,7 @@ import { getTaskInbox } from './components/GetTaskInbox';
 import { getAdminTaskList } from './components/GetAdminTaskList';
 import type { AdminTaskListFilters } from './components/GetAdminTaskList';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
+import { generateTaskInstances } from '../recurring-task-templates/components/GenerateTaskInstances';
 import type {
   CreateStandaloneTaskDTO,
   ResolveStandaloneTaskDTO,
@@ -72,8 +74,10 @@ async function orchestrateResolveTask(
   input: ResolveStandaloneTaskDTO,
   resolvedBy: number,
   resolvedByEmail: string,
-): Promise<StandaloneTaskDTO> {
+  resolvedByTeamMemberId: number,
+): Promise<{ task: StandaloneTaskDTO; warning?: string }> {
   const { before, after } = await resolveTask(taskId, input, resolvedBy);
+
   await auditOrchestrator.log({
     entityName: TASK_TABLE,
     entityId: String(taskId),
@@ -82,7 +86,42 @@ async function orchestrateResolveTask(
     newValues: taskToAuditRecord(after),
     comment: 'Standalone task resolved',
   });
-  return after;
+
+  // Non-recurring tasks or rejections — nothing more to do.
+  if (!after.recurringTemplateId || input.status !== 'APPROVED') {
+    return { task: after };
+  }
+
+  if (!input.executionDate) {
+    return { task: after, warning: 'No execution date provided. The next task was not scheduled.' };
+  }
+
+  const meetingDate = new Date(input.executionDate);
+
+  await prisma.standaloneTask.update({
+    where: { taskId },
+    data: { meetingDate },
+  });
+
+  const template = await prisma.recurringTaskTemplate.findUnique({
+    where: { templateId: after.recurringTemplateId },
+    select: { intervalDays: true },
+  });
+  if (!template) return { task: after, warning: 'Template not found; next task not scheduled.' };
+
+  const nextDueDate = new Date(meetingDate);
+  nextDueDate.setDate(nextDueDate.getDate() + template.intervalDays);
+
+  await generateTaskInstances({
+    templateId: after.recurringTemplateId,
+    dueDate: nextDueDate,
+    createdByDsUserId: resolvedBy,
+    createdByEmail: resolvedByEmail,
+    createdByTeamMemberId: resolvedByTeamMemberId,
+    ...(after.hierarchyContextId !== null && { hierarchyContextId: after.hierarchyContextId }),
+  });
+
+  return { task: after };
 }
 
 async function orchestrateAddComment(

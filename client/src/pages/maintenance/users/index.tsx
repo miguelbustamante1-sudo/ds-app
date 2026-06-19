@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import type { UserDTO, CreateUserDTO, UpdateUserDTO } from '@shared/dto';
 import {
@@ -41,8 +42,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatUTCDate } from '@/lib/utils';
 
 export function UsersPage() {
+  const navigate = useNavigate();
   const [formOpen, setFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserDTO | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserDTO | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -58,8 +59,7 @@ export function UsersPage() {
   });
 
   const handleEdit = (user: UserDTO) => {
-    setEditingUser(user);
-    setFormOpen(true);
+    navigate(`/maintenance/users/${user.userId}`);
   };
 
   const handleDeleteClick = (user: UserDTO) => {
@@ -151,7 +151,6 @@ export function UsersPage() {
   }, []);
 
   const handleCreate = () => {
-    setEditingUser(undefined);
     setFormOpen(true);
   };
 
@@ -166,11 +165,6 @@ export function UsersPage() {
       setDeleteDialogOpen(false);
       setDeletingUser(null);
     }
-  };
-
-  const handleFormSuccess = () => {
-    setFormOpen(false);
-    setEditingUser(undefined);
   };
 
   if (!canRead('Users')) {
@@ -230,8 +224,10 @@ export function UsersPage() {
       <UserFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        user={editingUser}
-        onSuccess={handleFormSuccess}
+        onSuccess={() => {
+          setFormOpen(false);
+          users.loadItems();
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

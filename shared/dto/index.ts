@@ -50,6 +50,7 @@ export * from './Permission';
 export * from './SecurityRole';
 export * from './Option';
 export * from './AuthUserWithRoles';
+export * from './AuthUserDetail';
 
 // Persistence DTOs
 export * from './PersistenceTemplate';
@@ -68,6 +69,7 @@ export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 
 // Standalone Tasks DTOs
 export * from './StandaloneTask';
+export * from './RecurringTaskTemplate';
 export * from './ApiKey';
 
 // Uploads DTOs

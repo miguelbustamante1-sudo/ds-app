@@ -1,8 +1,10 @@
-import type { StandaloneTask, TeamMember, User, StandaloneTaskComment } from '@prisma/client';
+import type { StandaloneTask, TeamMember, User, StandaloneTaskComment, RecurringTaskTemplate } from '@prisma/client';
 import type { StandaloneTaskDTO, StandaloneTaskCommentDTO } from '@shared/dto';
 
 type TaskRow = StandaloneTask & {
   teamMember: Pick<TeamMember, 'teamMemberNames' | 'teamMemberSurnames'>;
+  recurringTemplate: Pick<RecurringTaskTemplate, 'templateTitle'> | null;
+  hierarchyContext: Pick<TeamMember, 'teamMemberNames' | 'teamMemberSurnames'> | null;
 };
 
 type CommentRow = StandaloneTaskComment & {
@@ -11,6 +13,8 @@ type CommentRow = StandaloneTaskComment & {
 
 export const TASK_INCLUDE = {
   teamMember: { select: { teamMemberNames: true, teamMemberSurnames: true } },
+  recurringTemplate: { select: { templateTitle: true } },
+  hierarchyContext: { select: { teamMemberNames: true, teamMemberSurnames: true } },
 } as const;
 
 export const COMMENT_INCLUDE = {
@@ -45,6 +49,13 @@ export function toTaskDTO(row: TaskRow): StandaloneTaskDTO {
     resolvedDate: row.resolvedDate ? row.resolvedDate.toISOString() : null,
     resolutionComment: row.resolutionComment,
     isOverdue,
+    recurringTemplateId: row.recurringTemplateId,
+    templateTitle: row.recurringTemplate?.templateTitle ?? null,
+    transcriptUploadId: row.transcriptUploadId,
+    meetingDate: row.meetingDate ? row.meetingDate.toISOString() : null,
+    hierarchyContextId: row.hierarchyContextId,
+    hierarchyContextNames: row.hierarchyContext?.teamMemberNames ?? null,
+    hierarchyContextSurnames: row.hierarchyContext?.teamMemberSurnames ?? null,
   };
 }
 

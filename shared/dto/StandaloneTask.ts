@@ -23,6 +23,13 @@ export interface StandaloneTaskDTO {
   resolvedDate: string | null;
   resolutionComment: string | null;
   isOverdue: boolean;
+  recurringTemplateId: number | null;
+  templateTitle: string | null;
+  transcriptUploadId: number | null;
+  meetingDate: string | null;
+  hierarchyContextId: number | null;
+  hierarchyContextNames: string | null;
+  hierarchyContextSurnames: string | null;
 }
 
 export interface StandaloneTaskCommentDTO {
@@ -46,6 +53,8 @@ export interface CreateStandaloneTaskDTO {
 export interface ResolveStandaloneTaskDTO {
   status: 'APPROVED' | 'REJECTED';
   comment?: string | null;
+  transcriptUploadId?: number | null;
+  executionDate?: string | null;
 }
 
 export interface AddStandaloneTaskCommentDTO {

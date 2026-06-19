@@ -96,6 +96,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     permission: 'TopPerformers',
   },
   {
+    title: 'Tasks',
+    icon: ClipboardList,
+    path: '/tasks-hub',
+    permission: ['Workflow', 'StandaloneTask', 'StandaloneTaskAdmin', 'WorkflowAdmin'],
+  },
+  {
     title: 'Phone Contracts',
     icon: Smartphone,
     path: '/phone-contracts-hub',

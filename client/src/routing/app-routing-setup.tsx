@@ -9,6 +9,7 @@ import { ProjectsPage } from '@/pages/maintenance/projects';
 import { TeamMembersPage } from '@/pages/maintenance/team-members';
 import { MaintenanceTeamMemberDetailPage } from '@/pages/maintenance/team-members/detail';
 import { UsersPage } from '@/pages/maintenance/users';
+import { UserEditPage } from '@/pages/maintenance/users/edit';
 import { SupervisorAssignmentsPage } from '@/pages/maintenance/supervisor-assignments';
 import { HolidaysPage } from '@/pages/maintenance/holidays';
 import { CategoryCountryPage } from '@/pages/maintenance/category-country';
@@ -101,10 +102,12 @@ import OperationsHubPage from '@/pages/operations-hub';
 import GovernanceHubPage from '@/pages/governance-hub';
 import TopPerformersHubPage from '@/pages/top-performers-hub';
 import PayrolHubPage from '@/pages/payrol-hub';
+import TasksHubPage from '@/pages/tasks-hub';
 import { PayrolManagementPage } from '@/pages/payrol-management';
 import { BonusImpactPage } from '@/pages/bonus-impact';
 import { BonusImpactAdminPage } from '@/pages/bonus-impact-admin';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
+import { RecurringTaskTemplatesPage } from '@/pages/admin/recurring-task-templates';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
 import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
@@ -166,6 +169,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
         <Route path="/maintenance/team-members/:id" element={<MaintenanceTeamMemberDetailPage />} />
         <Route path="/maintenance/users" element={<UsersPage />} />
+        <Route path="/maintenance/users/:id" element={<UserEditPage />} />
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
         <Route path="/maintenance/team-member-bonuses" element={<TeamMemberBonusesPage />} />
         <Route path="/maintenance/holidays" element={<HolidaysPage />} />
@@ -221,6 +225,7 @@ export function AppRoutingSetup() {
         {/* Standalone Tasks Admin */}
         <Route path="/admin/standalone-tasks" element={<StandaloneTasksAdminPage />} />
         <Route path="/admin/standalone-tasks/api-keys" element={<ApiKeysAdminPage />} />
+        <Route path="/admin/recurring-task-templates" element={<RecurringTaskTemplatesPage />} />
         {/* Workflow Admin */}
         <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
         <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />
@@ -245,6 +250,7 @@ export function AppRoutingSetup() {
         <Route path="/operations-hub" element={<OperationsHubPage />} />
         <Route path="/governance-hub" element={<GovernanceHubPage />} />
         <Route path="/top-performers-hub" element={<TopPerformersHubPage />} />
+        <Route path="/tasks-hub" element={<TasksHubPage />} />
         {/* Payrol Hub */}
         <Route path="/payrol-hub" element={<PayrolHubPage />} />
         <Route path="/payrol/payrol-management" element={<PayrolManagementPage />} />

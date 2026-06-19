@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import type { UserRole } from '@prisma/client';
+import type { UserRole, SecurityRole } from '@prisma/client';
 
 export const TABLE = 'sec.uro_user_roles';
 
@@ -40,5 +40,15 @@ export async function deleteRbacUserRole(userId: number, roleId: number): Promis
         roleId,
       },
     },
+  });
+}
+
+export type UserRoleWithRole = UserRole & { role: SecurityRole };
+
+export async function getRbacUserRolesByUserWithRole(userId: number): Promise<UserRoleWithRole[]> {
+  return await prisma.userRole.findMany({
+    where: { userId },
+    include: { role: true },
+    orderBy: { roleId: 'asc' },
   });
 }
