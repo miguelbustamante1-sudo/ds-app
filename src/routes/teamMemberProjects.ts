@@ -496,7 +496,7 @@ router.delete('/bulk', requirePermission('ProjectAssignments', 'delete'), async 
         createdBy: req.user!.email,
         oldValues: record,
         newValues: null,
-        comment: 'Bulk removal: assignment closed and deleted',
+        comment: 'Bulk removal: assignment end date set',
       });
     }
 

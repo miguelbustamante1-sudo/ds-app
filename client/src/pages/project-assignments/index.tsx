@@ -15,6 +15,7 @@ import { FloatingToolbar } from './components/FloatingToolbar';
 import { GanttPanel } from './components/GanttPanel';
 import { MemberLookupPanel } from './MemberLookupPanel';
 import { useProjectAssignments } from './useProjectAssignments';
+import { parseUTCDateAsLocal } from '@/lib/utils';
 import { Pencil } from 'lucide-react';
 import { BulkRemoveModal } from './BulkRemoveModal';
 import { BulkChangeRateModal } from './BulkChangeRateModal';
@@ -56,6 +57,12 @@ export function ProjectAssignmentsPage() {
       ),
     [assignments],
   );
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   function setProjectIdParam(val: string) {
     const next = new URLSearchParams(searchParams);
@@ -184,11 +191,15 @@ export function ProjectAssignmentsPage() {
 
               {/* Member rows */}
               {!loading &&
-                sortedAssignments.map((a: ProjectAssignmentWithDetailsDTO) => (
+                sortedAssignments.map((a: ProjectAssignmentWithDetailsDTO) => {
+                  const isEnded = a.projectAssignmentEndDate
+                    ? parseUTCDateAsLocal(a.projectAssignmentEndDate) < today
+                    : false;
+                  return (
                   <div
                     key={a.projectAssignmentId}
                     style={{ height: ROW_HEIGHT }}
-                    className="flex items-center gap-3 px-4 border-b hover:bg-muted/30 cursor-pointer"
+                    className={`flex items-center gap-3 px-4 border-b hover:bg-muted/30 cursor-pointer${isEnded ? ' opacity-50' : ''}`}
                     onClick={() => toggleSelection(a.projectAssignmentId)}
                   >
                     <span onClick={(e) => e.stopPropagation()}>
@@ -221,7 +232,8 @@ export function ProjectAssignmentsPage() {
                       </button>
                     </span>
                   </div>
-                ))}
+                  );
+                })}
             </div>
 
             {/* Right: Gantt panel */}

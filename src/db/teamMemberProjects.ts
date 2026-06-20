@@ -147,7 +147,6 @@ export async function bulkRemoveAssignments(
         where: { projectAssignmentId: id },
         data: {
           projectAssignmentEndDate: lastBillableDate,
-          projectAssignmentDeleted: true,
           projectAssignmentLastUpdatedBy: updatedBy,
           projectAssignmentLastUpdatedDate: now,
         },

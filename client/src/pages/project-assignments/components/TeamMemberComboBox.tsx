@@ -20,10 +20,16 @@ export function TeamMemberComboBox({ value, onValueChange }: TeamMemberComboBoxP
       .finally(() => setLoading(false));
   }, []);
 
-  const options: ComboBoxOption[] = members.map((m) => ({
-    value: m.teamMemberId.toString(),
-    label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
-  }));
+  const options: ComboBoxOption[] = [...members]
+    .sort((a, b) =>
+      `${a.teamMemberNames} ${a.teamMemberSurnames}`.localeCompare(
+        `${b.teamMemberNames} ${b.teamMemberSurnames}`,
+      ),
+    )
+    .map((m) => ({
+      value: m.teamMemberId.toString(),
+      label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+    }));
 
   return (
     <ComboBox
