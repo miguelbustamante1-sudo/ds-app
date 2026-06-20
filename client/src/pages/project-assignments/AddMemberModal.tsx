@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, ApiError } from '@/lib/api';
 import { ContactComboBox } from './components/ContactComboBox';
 import { getShifts } from '@/services/shift';
 import { parseUTCDateAsLocal } from '@/lib/utils';
@@ -137,6 +137,7 @@ export function AddMemberModal({
     const ids = [...selectedIds];
     let successCount = 0;
     let failCount = 0;
+    const failMessages: string[] = [];
 
     for (const teamMemberId of ids) {
       try {
@@ -153,8 +154,9 @@ export function AddMemberModal({
           shiftId: data.shiftId ? Number(data.shiftId) : null,
         });
         successCount++;
-      } catch {
+      } catch (err) {
         failCount++;
+        if (err instanceof ApiError) failMessages.push(err.message);
       }
     }
 
@@ -162,7 +164,11 @@ export function AddMemberModal({
       toast({ title: 'Success', description: `${successCount} member${successCount !== 1 ? 's' : ''} added to project.` });
     }
     if (failCount > 0) {
-      toast({ title: 'Warning', description: `${failCount} assignment${failCount !== 1 ? 's' : ''} failed (member may already be assigned).`, variant: 'destructive' });
+      const uniqueMessages = [...new Set(failMessages)];
+      const description = uniqueMessages.length === 1
+        ? uniqueMessages[0]
+        : `${failCount} assignment${failCount !== 1 ? 's' : ''} failed (member may already be assigned or allocation exceeded).`;
+      toast({ title: 'Warning', description, variant: 'destructive' });
     }
 
     if (successCount > 0) {
@@ -392,7 +398,7 @@ export function AddMemberModal({
                 aria-label="Select all visible"
               />
               <span className="flex-1">Name</span>
-              <span className="w-20 text-right">Allocation</span>
+              <span className="w-20 text-right">Available</span>
             </div>
 
             {/* Member list */}
@@ -438,7 +444,7 @@ export function AddMemberModal({
                       )}
                     </div>
                     <span className="text-sm text-muted-foreground w-20 text-right shrink-0">
-                      {m.totalAllocation}%
+                      {100 - m.totalAllocation}%
                     </span>
                   </div>
                 ))}
