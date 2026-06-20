@@ -18,14 +18,7 @@ export function useProjectAssignments(projectId: number | null) {
         `/api/team-member-projects/project/${projectId}`
       );
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const active = data.filter((a) => {
-        if (a.projectAssignmentDeleted) return false;
-        if (a.projectAssignmentEndDate === null) return true;
-        return new Date(a.projectAssignmentEndDate) >= today;
-      });
+      const active = data.filter((a) => !a.projectAssignmentDeleted);
 
       setAssignments(active);
     } catch {

@@ -23,6 +23,7 @@ interface Props {
 interface FormData {
   newBillRate: string;
   newBillRateCurrency: string;
+  newOnCallRate: string;
   startDate: string;
 }
 
@@ -47,6 +48,7 @@ export function BulkChangeRateModal({ open, onOpenChange, assignmentIds, onSucce
         assignmentIds,
         newBillRate: Number(data.newBillRate),
         newBillRateCurrency: data.newBillRateCurrency.toUpperCase(),
+        newOnCallRate: data.newOnCallRate ? Number(data.newOnCallRate) : null,
         startDate: data.startDate,
       });
       toast({
@@ -110,6 +112,23 @@ export function BulkChangeRateModal({ open, onOpenChange, assignmentIds, onSucce
               />
               {errors.newBillRateCurrency && (
                 <p className="text-sm text-destructive">{errors.newBillRateCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newOnCallRate">On-Call Rate</Label>
+              <Input
+                id="newOnCallRate"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g., 50.00"
+                {...register('newOnCallRate', {
+                  min: { value: 0, message: 'On-call rate must be 0 or greater' },
+                })}
+              />
+              {errors.newOnCallRate && (
+                <p className="text-sm text-destructive">{errors.newOnCallRate.message}</p>
               )}
             </div>
 

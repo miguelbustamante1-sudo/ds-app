@@ -55,7 +55,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
@@ -96,7 +96,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: null,
       teamMemberSeniority: null,
@@ -134,7 +134,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
@@ -182,7 +182,7 @@ router.get('/:id', requirePermission('ProjectAssignments', 'read'), async (req: 
 // POST /team-member-projects/bulk-change-rate
 router.post('/bulk-change-rate', requirePermission('ProjectAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { assignmentIds, newBillRate, newBillRateCurrency, startDate } = req.body as BulkChangeRateDTO;
+    const { assignmentIds, newBillRate, newBillRateCurrency, newOnCallRate, startDate } = req.body as BulkChangeRateDTO;
 
     if (!Array.isArray(assignmentIds) || assignmentIds.length === 0) {
       return res.status(400).json({ error: 'assignmentIds must be a non-empty array' });
@@ -194,7 +194,7 @@ router.post('/bulk-change-rate', requirePermission('ProjectAssignments', 'create
     const startDateObj = new Date(startDate);
     const dsUserId = req.user?.dsUserId ?? null;
 
-    const pairs = await bulkChangeRate(assignmentIds, newBillRate, newBillRateCurrency, startDateObj, dsUserId);
+    const pairs = await bulkChangeRate(assignmentIds, newBillRate, newBillRateCurrency, newOnCallRate ?? null, startDateObj, dsUserId);
 
     for (const { closed, created } of pairs) {
       await auditOrchestrator.log({
@@ -354,11 +354,11 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { newStartDate, newBillRate, newCurrency, newIntercompanyBillRate } = req.body as {
+    const { newStartDate, newBillRate, newCurrency, newOnCallRate } = req.body as {
       newStartDate?: string;
       newBillRate?: number;
       newCurrency?: string;
-      newIntercompanyBillRate?: number | null;
+      newOnCallRate?: number | null;
     };
 
     if (!newStartDate || newBillRate === undefined || !newCurrency) {
@@ -392,7 +392,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
       projectAssignmentLastUpdatedBy: dsUserId,
       projectAssignmentLastUpdatedDate: now,
       projectAssignmentDeleted: false,
-      intercompanyBillRate: newIntercompanyBillRate !== undefined ? newIntercompanyBillRate : currentAssignment.intercompanyBillRate,
+      onCallRate: newOnCallRate !== undefined ? newOnCallRate : currentAssignment.onCallRate,
       shiftId: currentAssignment.shiftId ?? null,
     };
 
@@ -496,7 +496,7 @@ router.delete('/bulk', requirePermission('ProjectAssignments', 'delete'), async 
         createdBy: req.user!.email,
         oldValues: record,
         newValues: null,
-        comment: 'Bulk removal: assignment closed and deleted',
+        comment: 'Bulk removal: assignment end date set',
       });
     }
 
