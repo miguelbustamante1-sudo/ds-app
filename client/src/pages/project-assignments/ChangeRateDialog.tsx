@@ -26,6 +26,7 @@ interface FormData {
   newStartDate: string;
   newBillRate: string;
   newCurrency: string;
+  newOnCallRate: string;
 }
 
 export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: Props) {
@@ -44,6 +45,7 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
         newStartDate: '',
         newBillRate: assignment.projectAssignmentBillRate?.toString() ?? '',
         newCurrency: assignment.projectAssignmentBillRateCurrency ?? '',
+        newOnCallRate: assignment.onCallRate?.toString() ?? '',
       });
     }
   }, [open, assignment, reset]);
@@ -61,6 +63,7 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
         newStartDate: data.newStartDate,
         newBillRate: Number(data.newBillRate),
         newCurrency: data.newCurrency.toUpperCase(),
+        newOnCallRate: data.newOnCallRate ? Number(data.newOnCallRate) : null,
       });
       toast({ title: 'Success', description: 'Bill rate updated successfully.' });
       onSuccess();
@@ -141,6 +144,23 @@ export function ChangeRateDialog({ open, onOpenChange, assignment, onSuccess }: 
               />
               {errors.newCurrency && (
                 <p className="text-sm text-destructive">{errors.newCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newOnCallRate">On-Call Rate</Label>
+              <Input
+                id="newOnCallRate"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g., 50.00"
+                {...register('newOnCallRate', {
+                  min: { value: 0, message: 'On-call rate must be 0 or greater' },
+                })}
+              />
+              {errors.newOnCallRate && (
+                <p className="text-sm text-destructive">{errors.newOnCallRate.message}</p>
               )}
             </div>
 

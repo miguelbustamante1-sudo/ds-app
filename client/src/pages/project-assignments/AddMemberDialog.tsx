@@ -40,6 +40,7 @@ interface FormData {
   projectAssignmentBillRate: string;
   projectAssignmentBillRateCurrency: string;
   projectAssignmentAllocation: string;
+  onCallRate: string;
   functionalAreaId: string;
   clientContactId: string;
   shiftId: string;
@@ -80,6 +81,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
       projectAssignmentBillRate: '',
       projectAssignmentBillRateCurrency: '',
       projectAssignmentAllocation: '',
+      onCallRate: '',
       functionalAreaId: '',
       clientContactId: '',
       shiftId: '',
@@ -125,6 +127,7 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
         projectAssignmentBillRate: Number(data.projectAssignmentBillRate),
         projectAssignmentBillRateCurrency: data.projectAssignmentBillRateCurrency.toUpperCase(),
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
+        onCallRate: data.onCallRate ? Number(data.onCallRate) : null,
         functionalAreaId: Number(data.functionalAreaId),
         clientContactId: data.clientContactId ? Number(data.clientContactId) : null,
         shiftId: data.shiftId ? Number(data.shiftId) : null,
@@ -259,6 +262,23 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
               />
               {errors.projectAssignmentBillRateCurrency && (
                 <p className="text-sm text-destructive">{errors.projectAssignmentBillRateCurrency.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="onCallRate">On-Call Rate</Label>
+              <Input
+                id="onCallRate"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g., 50.00"
+                {...register('onCallRate', {
+                  min: { value: 0, message: 'On-call rate must be 0 or greater' },
+                })}
+              />
+              {errors.onCallRate && (
+                <p className="text-sm text-destructive">{errors.onCallRate.message}</p>
               )}
             </div>
 

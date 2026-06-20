@@ -159,6 +159,7 @@ export async function bulkChangeRate(
   ids: number[],
   newBillRate: number,
   newBillRateCurrency: string,
+  newOnCallRate: number | null,
   startDate: Date,
   createdBy: number | null,
 ): Promise<{ closed: ProjectAssignment; created: ProjectAssignment }[]> {
@@ -198,6 +199,7 @@ export async function bulkChangeRate(
           projectAssignmentLastUpdatedBy: createdBy,
           projectAssignmentLastUpdatedDate: now,
           projectAssignmentDeleted: false,
+          onCallRate: newOnCallRate,
           clientContactId: current.clientContactId,
           shiftId: current.shiftId,
         },
