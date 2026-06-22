@@ -7,13 +7,16 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet, ApiError } from '@/lib/api';
 import { useMyTimeOffOperations } from '@/hooks/useMyTimeOffOperations';
 import { useMyWorkdayBalance } from '@/hooks/useMyWorkdayBalance';
 import { HolidayProvider } from './context/HolidayContext';
 import { MyTimeOffList } from './components/MyTimeOffList';
-import { TimeOffRequestForm } from './components/TimeOffRequestForm';
+import { TimeOffRequestDialog } from './components/TimeOffRequestDialog';
+import { EditTimeOffDialog } from './edit/EditTimeOffDialog';
 import { CancelMyTimeOffDialog } from './components/CancelMyTimeOffDialog';
 
 
@@ -28,6 +31,9 @@ export function MyTimeOffPage() {
   const { balance, loading: balanceLoading, refetchBalance } = useMyWorkdayBalance();
 
   // Dialog state
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTimeOffId, setEditingTimeOffId] = useState<number | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
 
@@ -78,8 +84,9 @@ export function MyTimeOffPage() {
   }, [navigate]);
 
   const handleEditClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
-    navigate(`/my-time-off/edit/${timeOff.timeOffId}`);
-  }, [navigate]);
+    setEditingTimeOffId(timeOff.timeOffId);
+    setEditDialogOpen(true);
+  }, []);
 
   const handleCancelClick = useCallback((timeOff: TimeOffWithDetailsDTO) => {
     setSelectedTimeOff(timeOff);
@@ -103,34 +110,40 @@ export function MyTimeOffPage() {
           <ToolbarPageTitle>My Time Off</ToolbarPageTitle>
           <ToolbarDescription>View and request time off</ToolbarDescription>
         </ToolbarHeading>
+        <Button onClick={() => setRequestDialogOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Request Time Off
+        </Button>
       </Toolbar>
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Time Off List - 2/3 width on large screens */}
-        <div className="lg:col-span-2">
-          <MyTimeOffList
-            timeOffs={timeOffs}
-            loading={loading}
-            balance={balance}
-            balanceLoading={balanceLoading}
-            countryIso={countryIso}
-            onEditClick={handleEditClick}
-            onCancelClick={handleCancelClick}
-            onRowClick={handleRowClick}
-          />
-        </div>
-
-        {/* Request Form - 1/3 width on large screens */}
-        <div className="lg:col-span-1">
-          <TimeOffRequestForm
-            existingTimeOffs={timeOffs}
-            onSuccess={handleSuccess}
-            workdayBalance={balance}
-          />
-        </div>
+      <div className="mt-6">
+        <MyTimeOffList
+          timeOffs={timeOffs}
+          loading={loading}
+          balance={balance}
+          balanceLoading={balanceLoading}
+          countryIso={countryIso}
+          onEditClick={handleEditClick}
+          onCancelClick={handleCancelClick}
+          onRowClick={handleRowClick}
+        />
       </div>
 
-      {/* Cancel Dialog */}
+      <TimeOffRequestDialog
+        open={requestDialogOpen}
+        onOpenChange={setRequestDialogOpen}
+        existingTimeOffs={timeOffs}
+        workdayBalance={balance}
+        onSuccess={handleSuccess}
+      />
+
+      <EditTimeOffDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        timeOffId={editingTimeOffId}
+        onSuccess={handleSuccess}
+      />
+
       <CancelMyTimeOffDialog
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}

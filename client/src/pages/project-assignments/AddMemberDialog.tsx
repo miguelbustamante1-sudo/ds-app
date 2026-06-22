@@ -39,8 +39,8 @@ interface FormData {
   projectAssignmentEndDate: string;
   projectAssignmentBillRate: string;
   projectAssignmentBillRateCurrency: string;
-  intercompanyBillRate: string;
   projectAssignmentAllocation: string;
+  onCallRate: string;
   functionalAreaId: string;
   clientContactId: string;
   shiftId: string;
@@ -80,8 +80,8 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
       projectAssignmentEndDate: '',
       projectAssignmentBillRate: '',
       projectAssignmentBillRateCurrency: '',
-      intercompanyBillRate: '',
       projectAssignmentAllocation: '',
+      onCallRate: '',
       functionalAreaId: '',
       clientContactId: '',
       shiftId: '',
@@ -126,8 +126,8 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
         projectAssignmentEndDate: data.projectAssignmentEndDate || null,
         projectAssignmentBillRate: Number(data.projectAssignmentBillRate),
         projectAssignmentBillRateCurrency: data.projectAssignmentBillRateCurrency.toUpperCase(),
-        intercompanyBillRate: data.intercompanyBillRate ? Number(data.intercompanyBillRate) : null,
         projectAssignmentAllocation: Number(data.projectAssignmentAllocation),
+        onCallRate: data.onCallRate ? Number(data.onCallRate) : null,
         functionalAreaId: Number(data.functionalAreaId),
         clientContactId: data.clientContactId ? Number(data.clientContactId) : null,
         shiftId: data.shiftId ? Number(data.shiftId) : null,
@@ -266,19 +266,19 @@ export function AddMemberDialog({ open, onOpenChange, projectId, clientId, proje
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="intercompanyBillRate">Intercompany Bill Rate</Label>
+              <Label htmlFor="onCallRate">On-Call Rate</Label>
               <Input
-                id="intercompanyBillRate"
+                id="onCallRate"
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="e.g., 45.00"
-                {...register('intercompanyBillRate', {
-                  min: { value: 0, message: 'Rate must be 0 or greater' },
+                placeholder="e.g., 50.00"
+                {...register('onCallRate', {
+                  min: { value: 0, message: 'On-call rate must be 0 or greater' },
                 })}
               />
-              {errors.intercompanyBillRate && (
-                <p className="text-sm text-destructive">{errors.intercompanyBillRate.message}</p>
+              {errors.onCallRate && (
+                <p className="text-sm text-destructive">{errors.onCallRate.message}</p>
               )}
             </div>
 

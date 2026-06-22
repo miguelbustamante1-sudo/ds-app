@@ -52,6 +52,7 @@ import {
   Sparkles,
   Smartphone,
   Wallet,
+  Hammer,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -65,35 +66,72 @@ export const MENU_SIDEBAR: MenuConfig = [
     title: 'Communications & Awareness',
     icon: Bell,
     path: '/communications-hub',
+    children: [
+      { title: 'My Team', path: '/my-team', permission: 'MyTeam' },
+      { title: 'Announcements', path: '/announcements', permission: 'Notifications' },
+      { title: 'Notification Center', path: '/notification-center', permission: 'NotificationCenter' },
+      { title: 'Action Items', path: '/my-team/pending', permission: 'PendingRequests' },
+      { title: 'My Tasks', path: '/my-tasks' },
+    ],
   },
   {
     title: 'Employee Self-Service',
     icon: UserCircle,
     path: '/self-service-hub',
+    children: [
+      { title: 'My Time Off', path: '/my-time-off', permission: 'MyTimeOff' },
+      { title: 'Holiday Swaps', path: '/holiday-swaps', permission: 'HolidaySwaps' },
+      { title: 'Time Off Activity', path: '/timeoff-activity', permission: 'TimeOffActivity' },
+      { title: 'Comp Time — Request', path: '/compensatory-time/intake' },
+      { title: 'Comp Time — Redeem', path: '/compensatory-time/usage' },
+    ],
   },
   {
     title: 'Talent Acquisition',
     icon: UserCheck,
     path: '/hiring-hub',
     role: 'bsa',
+    children: [
+      { title: 'Hiring', path: '/hiring', permission: 'Hiring', role: 'bsa' },
+      { title: 'Endorsements', path: '/endorsements', permission: 'Endorsements', role: 'bsa' },
+    ],
   },
   {
     title: 'Project & Resource Allocation',
     icon: FolderGit2,
     path: '/project-management-hub',
     permission: 'BenchMove',
+    children: [
+      { title: 'Project Assignments', path: '/project-assignments', permission: 'ProjectAssignments' },
+      { title: 'Bench Move', path: '/bench-move', permission: 'BenchMove' },
+      { title: 'End Bench', path: '/end-bench', permission: 'BenchRemove' },
+      { title: 'Clients', path: '/maintenance/clients', permission: 'Clients' },
+    ],
   },
   {
     title: 'Time Off Management',
     icon: Umbrella,
     path: '/time-off-hub',
     permission: 'SupervisorTimeOff',
+    children: [
+      { title: 'Supervisor Time Off', path: '/supervisor-time-off', permission: 'SupervisorTimeOff' },
+      { title: 'Team Holiday Swaps', path: '/supervisor-holiday-swaps', permission: 'SupervisorHolidaySwaps' },
+      { title: 'Time Off Review', path: '/time-off-management', permission: 'TimeOffReview' },
+      { title: 'Approval Management', path: '/approval-management' },
+    ],
   },
   {
     title: 'Top Performers',
     icon: Star,
     path: '/top-performers-hub',
     permission: 'TopPerformers',
+    children: [
+      { title: 'Peer Nomination', path: '/top-performers/nominations/peer', permission: 'TopPerformers' },
+      { title: 'Admin Nomination', path: '/top-performers/nominations/admin', permission: 'TopPerformers' },
+      { title: 'Customer Nomination', path: '/top-performers/nominations/customer', permission: 'TopPerformers' },
+      { title: 'Vote', path: '/top-performers/vote', permission: 'TopPerformers' },
+      { title: 'Committee Results', path: '/top-performers/committee', permission: 'ComitatTopPerformers' },
+    ],
   },
   {
     title: 'Tasks',
@@ -118,18 +156,41 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: BarChart2,
     path: '/reports-hub',
     permission: 'Reports',
+    children: [
+      { title: 'Reports', path: '/reports', permission: 'Reports' },
+      { title: 'Manage Dynamic Reports', path: '/reports/dynamic', permission: 'Reports' },
+    ],
   },
   {
     title: 'System Governance',
     icon: ShieldCheck,
     path: '/security-hub',
     role: 'admin',
+    children: [
+      { title: 'Roles', path: '/security/roles', permission: 'RBACRoles', role: 'admin' },
+      { title: 'Resources', path: '/security/options', permission: 'RBACOptions', role: 'admin' },
+      { title: 'Permissions Matrix', path: '/security/permissions', permission: 'RBACPermissions', role: 'admin' },
+    ],
   },
   {
     title: 'Maintenance',
     icon: Database,
     path: '/maintenance-hub',
     role: 'bsa',
+    children: [
+      { title: 'Projects', path: '/maintenance/projects', permission: 'Projects' },
+      { title: 'Team Members', path: '/maintenance/team-members', permission: 'TeamMembers' },
+      { title: 'Holidays', path: '/maintenance/holidays', permission: 'Holidays' },
+      { title: 'Countries', path: '/maintenance/countries', permission: 'Countries' },
+      { title: 'Clients', path: '/maintenance/clients', permission: 'Clients' },
+      { title: 'Functional Areas', path: '/maintenance/functional-areas', permission: 'FunctionalAreas' },
+      { title: 'Users', path: '/maintenance/users', permission: 'Users' },
+      { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', permission: 'SupervisorAssignments' },
+      { title: 'Type of Time Off', path: '/maintenance/time-off-types', permission: 'TimeOffCategories' },
+      { title: 'Type by Country', path: '/maintenance/category-country', permission: 'TimeOffCategoriesByCountry' },
+      { title: 'Tier Bands', path: '/maintenance/tier-bands', permission: 'TierBands' },
+      { title: 'Workday Info', path: '/maintenance/workday-info', permission: 'WorkdayInfo' },
+    ],
   },
 ];
 

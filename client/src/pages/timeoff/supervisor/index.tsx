@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO } from '@shared/dto/TimeOff';
@@ -8,6 +8,8 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle, Users, Clock, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   useMyTeamMembers,
@@ -15,6 +17,7 @@ import {
   useSupervisorTimeOffOperations,
   useTeamMemberWorkdayBalance,
 } from '@/hooks/useSupervisorTimeOff';
+import { usePendingRequests } from '@/pages/my-team/pending-requests/hooks/usePendingRequests';
 import { WorkdayBalanceBadges } from '../components/WorkdayBalanceBadges';
 import { TeamMembersDataGrid } from './components/TeamMembersDataGrid';
 import { SupervisorTimeOffList } from './components/SupervisorTimeOffList';
@@ -50,6 +53,21 @@ export function SupervisorTimeOffPage() {
 
   const balanceHook = useTeamMemberWorkdayBalance();
   const detailPanelRef = useRef<HTMLDivElement>(null);
+
+  const pendingHook = usePendingRequests();
+  useEffect(() => { pendingHook.loadRequests(); }, []);
+
+  const pendingTimeOffCount = useMemo(
+    () => pendingHook.requests.filter((r) => r.type === 'TimeOff').length,
+    [pendingHook.requests]
+  );
+
+  // Flag members whose Workday balance appears negative (discrepancy indicator)
+  const balanceDiscrepancyFlag = useMemo(() => {
+    const b = balanceHook.balance;
+    if (!b) return false;
+    return b.vacation < 0 || b.personalDays < 0;
+  }, [balanceHook.balance]);
 
   // Load team members on mount
   useEffect(() => {
@@ -125,8 +143,81 @@ export function SupervisorTimeOffPage() {
         </ToolbarHeading>
       </Toolbar>
 
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 mb-6">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Team Size</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {teamMembersHook.loading ? '—' : teamMembersHook.teamMembers.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-warning" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pending Requests</span>
+            </div>
+            <p className={`text-2xl font-bold ${pendingTimeOffCount > 0 ? 'text-warning' : 'text-foreground'}`}>
+              {pendingHook.loading ? '—' : pendingTimeOffCount}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              {balanceDiscrepancyFlag
+                ? <AlertCircle className="h-4 w-4 text-destructive" />
+                : <CheckCircle className="h-4 w-4 text-success" />}
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {selectedTeamMember ? 'Balance Status' : 'Workday Sync'}
+              </span>
+            </div>
+            <p className={`text-sm font-semibold ${balanceDiscrepancyFlag ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {!selectedTeamMember
+                ? 'Select member'
+                : balanceHook.loading
+                  ? '—'
+                  : balanceDiscrepancyFlag
+                    ? 'Discrepancy detected'
+                    : 'OK'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Selected</span>
+            </div>
+            <p className="text-sm font-semibold text-foreground truncate">
+              {selectedTeamMember
+                ? `${selectedTeamMember.teamMemberNames} ${selectedTeamMember.teamMemberSurnames}`
+                : 'None'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Workday discrepancy alert — shown when negative balance detected */}
+      {balanceDiscrepancyFlag && selectedTeamMember && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 mb-4">
+          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-semibold text-destructive">Workday balance discrepancy detected</p>
+            <p className="text-muted-foreground mt-0.5">
+              {selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames} has a negative vacation or personal-day balance. This may indicate a mismatch between Workday data and app records.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Team Member Selector Bar */}
-      <div className="flex items-center gap-4 mt-6">
+      <div className="flex items-center gap-4">
         <div className="w-72 shrink-0">
           <TeamMembersDataGrid
             teamMembers={teamMembersHook.teamMembers}

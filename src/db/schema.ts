@@ -52,7 +52,7 @@ const EXPECTED: Record<string, string[]> = {
     'tmp_delete_reason',
     'far_id',
     'cco_id',
-    'tmp_intercompany_bill_rate',
+    'tmp_on_call_rate',
     'sft_id',
   ],
   'ds.pro_projects': ['pro_id', 'pro_name', 'pro_external_id', 'pro_sow'],

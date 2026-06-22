@@ -5,6 +5,7 @@ import { SignInPage } from '@/pages/auth/signin';
 import { AuthCallbackPage } from '@/pages/auth/callback';
 import { RequireAuth } from '@/auth/require-auth';
 import { CountriesPage } from '@/pages/maintenance/countries';
+import { RegionsPage } from '@/pages/maintenance/regions';
 import { ProjectsPage } from '@/pages/maintenance/projects';
 import { TeamMembersPage } from '@/pages/maintenance/team-members';
 import { MaintenanceTeamMemberDetailPage } from '@/pages/maintenance/team-members/detail';
@@ -165,6 +166,7 @@ export function AppRoutingSetup() {
         <Route path="/endorsements/create" element={<EndorsementCreatePage />} />
         <Route path="/endorsements/:id" element={<EndorsementDetailPage />} />
         <Route path="/maintenance/countries" element={<CountriesPage />} />
+        <Route path="/maintenance/regions" element={<RegionsPage />} />
         <Route path="/maintenance/projects" element={<ProjectsPage />} />
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
         <Route path="/maintenance/team-members/:id" element={<MaintenanceTeamMemberDetailPage />} />

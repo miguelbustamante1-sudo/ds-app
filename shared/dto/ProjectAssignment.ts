@@ -13,7 +13,7 @@ export interface ProjectAssignmentDTO {
   projectAssignmentAllocation: number | null;
   projectAssignmentDeleted: boolean;
   clientContactId: number | null;
-  intercompanyBillRate: number | null;
+  onCallRate: number | null;
   shiftId?: number | null;
 }
 
@@ -26,7 +26,7 @@ export interface CreateProjectAssignmentDTO {
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
-  intercompanyBillRate?: number | null;
+  onCallRate?: number | null;
   shiftId?: number | null;
 }
 
@@ -37,7 +37,7 @@ export interface UpdateProjectAssignmentDTO {
   projectAssignmentBillRateCurrency?: string | null;
   projectAssignmentAllocation?: number | null;
   clientContactId?: number | null;
-  intercompanyBillRate?: number | null;
+  onCallRate?: number | null;
   shiftId?: number | null;
 }
 
@@ -48,4 +48,25 @@ export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   clientContactName: string | null;
   clientName: string | null;
   clientContacts: { id: number; name: string }[];
+}
+
+export interface BenchAvailableMemberDTO {
+  teamMemberId: number;
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+  teamMemberSeniority: string | null;
+  totalAllocation: number;
+}
+
+export interface BulkRemoveAssignmentsDTO {
+  assignmentIds: number[];
+  lastBillableDate: string;
+}
+
+export interface BulkChangeRateDTO {
+  assignmentIds: number[];
+  newBillRate: number;
+  newBillRateCurrency: string;
+  newOnCallRate: number | null;
+  startDate: string;
 }

@@ -40,11 +40,12 @@ import { useEntityList } from '@/hooks/use-entity-list';
 import { ProjectFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/pages/reports/components/ExportButton';
+import { formatUTCDate } from '@/lib/utils';
 
-function formatDate(value: string | null): string {
+const formatDate = (value: string | null): string => {
   if (!value) return '-';
-  return new Date(value).toLocaleDateString();
-}
+  return formatUTCDate(value);
+};
 
 export function ProjectsPage() {
   const [formOpen, setFormOpen] = useState(false);

@@ -6,6 +6,7 @@
 import type { AssignmentValidationInput, ValidationError } from './types';
 import { validateRequiredFields } from './rules/requiredFields.rule';
 import { validateAllocationRange } from './rules/allocationRange.rule';
+import { validateAllocationCap } from './rules/allocationCap.rule';
 
 export interface AssignmentValidationResponse {
   valid: boolean;
@@ -27,6 +28,21 @@ export async function validateAssignment(
   const allocationResult = validateAllocationRange(input.projectAssignmentAllocation!);
   if (!allocationResult.valid && allocationResult.error) {
     errors.push(allocationResult.error);
+  }
+
+  // Rule 3: Cumulative 100% cap — fail fast so the user sees the cap error clearly
+  if (errors.length === 0) {
+    const capResult = await validateAllocationCap(
+      input.teamMemberId!,
+      input.projectAssignmentAllocation!,
+      input.projectAssignmentStartDate,
+      input.projectAssignmentEndDate,
+      input.excludeAssignmentId,
+      input.excludeProjectId,
+    );
+    if (!capResult.valid && capResult.error) {
+      return { valid: false, errors: [capResult.error] };
+    }
   }
 
   return {

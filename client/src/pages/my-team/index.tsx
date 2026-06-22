@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import type { SortingState, ColumnDef } from '@tanstack/react-table';
 import {
   getCoreRowModel,
@@ -9,6 +10,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { SupervisedTeamMemberDTO } from '@shared/dto/SupervisedTeamMember';
+import type { WorkdayReconciliationRowDTO } from '@shared/dto/WorkdayReconciliation';
 import {
   Toolbar,
   ToolbarDescription,
@@ -21,20 +23,25 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Search, CalendarDays } from 'lucide-react';
+import { Search, CalendarDays, Users, Globe, TrendingUp, AlertTriangle, ExternalLink } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { apiGet } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useMyTeamMembers, useTeamYearlySummary } from '@/hooks/useSupervisorTimeOff';
 
-// Extended type with yearly time-off data
+// Extended type with yearly time-off data and reconciliation flags
 interface TeamMemberWithTimeOff extends SupervisedTeamMemberDTO {
   yearlyTimeOffDays: number;
+  reconciliationFlags: string[];
 }
 
 export function MyTeamPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { canRead } = usePermissions();
+  const hasReportsAccess = canRead('Reports');
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -48,6 +55,13 @@ export function MyTeamPage() {
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
+  const { data: reconciliationRows = [] } = useQuery<WorkdayReconciliationRowDTO[]>({
+    queryKey: ['reports', 'workday-reconciliation'],
+    queryFn: () => apiGet<WorkdayReconciliationRowDTO[]>('/api/reports/time-off/workday-reconciliation'),
+    staleTime: 60_000,
+    enabled: hasReportsAccess,
+  });
+
   const loading = loadingMembers || loadingSummaries;
 
   useEffect(() => {
@@ -55,14 +69,27 @@ export function MyTeamPage() {
     loadSummaries();
   }, []);
 
-  // Merge team members with yearly time-off data
+  // workdayId → list of distinct reconciliation flags for that member
+  const reconciliationFlagMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of reconciliationRows) {
+      if (!row.workdayId || !row.reconciliationFlag) continue;
+      const existing = map.get(row.workdayId) ?? [];
+      if (!existing.includes(row.reconciliationFlag)) existing.push(row.reconciliationFlag);
+      map.set(row.workdayId, existing);
+    }
+    return map;
+  }, [reconciliationRows]);
+
+  // Merge team members with yearly time-off data and reconciliation flags
   const teamMembersWithTimeOff = useMemo<TeamMemberWithTimeOff[]>(() => {
     const summaryMap = new Map(summaries.map((s) => [s.teamMemberId, s.totalDays]));
     return teamMembers.map((member) => ({
       ...member,
       yearlyTimeOffDays: summaryMap.get(member.teamMemberId) ?? 0,
+      reconciliationFlags: member.workdayId ? (reconciliationFlagMap.get(member.workdayId) ?? []) : [],
     }));
-  }, [teamMembers, summaries]);
+  }, [teamMembers, summaries, reconciliationFlagMap]);
 
   // Unique sorted levels for the filter buttons
   const availableLevels = useMemo(
@@ -84,6 +111,15 @@ export function MyTeamPage() {
   };
 
   const currentYear = new Date().getFullYear();
+
+  const summaryCards = useMemo(() => {
+    const total = teamMembersWithTimeOff.length;
+    const countries = new Set(teamMembersWithTimeOff.map((m) => m.countryName).filter(Boolean)).size;
+    const totalDays = teamMembersWithTimeOff.reduce((sum, m) => sum + m.yearlyTimeOffDays, 0);
+    const avgDays = total > 0 ? Math.round(totalDays / total) : 0;
+    const flaggedCount = teamMembersWithTimeOff.filter((m) => m.reconciliationFlags.length > 0).length;
+    return { total, countries, avgDays, flaggedCount };
+  }, [teamMembersWithTimeOff]);
 
   const columns = useMemo<ColumnDef<TeamMemberWithTimeOff>[]>(
     () => [
@@ -155,8 +191,24 @@ export function MyTeamPage() {
         size: 140,
         meta: { headerTitle: `Time Off (${currentYear})`, skeleton: <Skeleton className="h-4 w-20" /> },
       },
+      {
+        id: 'reconciliationFlags',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Discrepancies" />,
+        cell: ({ row }) => {
+          const flags = row.original.reconciliationFlags;
+          if (!hasReportsAccess || flags.length === 0) return null;
+          return (
+            <span className="inline-flex items-center gap-1 rounded-md border border-uds-system-red-200 bg-uds-system-red-50 px-2 py-0.5 text-xs font-medium text-uds-system-red-700">
+              <AlertTriangle className="h-3 w-3" />
+              {flags.length} flag{flags.length > 1 ? 's' : ''}
+            </span>
+          );
+        },
+        size: 130,
+        meta: { headerTitle: 'Discrepancies', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
     ],
-    [currentYear]
+    [currentYear, hasReportsAccess]
   );
 
   const table = useReactTable({
@@ -205,6 +257,55 @@ export function MyTeamPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className={`grid gap-4 ${hasReportsAccess ? 'grid-cols-4' : 'grid-cols-3'}`}>
+              <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+                <div className="rounded-full bg-uds-system-blue-50 p-2">
+                  <Users className="h-5 w-5 text-uds-system-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{summaryCards.total}</p>
+                  <p className="text-xs text-muted-foreground">Team Members</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+                <div className="rounded-full bg-uds-system-green-50 p-2">
+                  <Globe className="h-5 w-5 text-uds-system-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{summaryCards.countries}</p>
+                  <p className="text-xs text-muted-foreground">Countries</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+                <div className="rounded-full bg-uds-system-amber-50 p-2">
+                  <TrendingUp className="h-5 w-5 text-uds-system-amber-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{summaryCards.avgDays}</p>
+                  <p className="text-xs text-muted-foreground">Avg. Days Off ({currentYear})</p>
+                </div>
+              </div>
+              {hasReportsAccess && (
+                <div
+                  className={cn(
+                    'rounded-lg border bg-card p-4 flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors',
+                    summaryCards.flaggedCount > 0 && 'border-uds-system-red-300 bg-uds-system-red-50'
+                  )}
+                  onClick={() => navigate('/reports/time-off/workday-reconciliation')}
+                  title="View Workday reconciliation report"
+                >
+                  <div className="rounded-full bg-uds-system-red-50 p-2">
+                    <AlertTriangle className="h-5 w-5 text-uds-system-red-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-2xl font-bold text-foreground">{summaryCards.flaggedCount}</p>
+                    <p className="text-xs text-muted-foreground">Workday Discrepancies</p>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

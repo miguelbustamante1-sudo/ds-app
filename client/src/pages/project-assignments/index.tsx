@@ -1,41 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Plus } from 'lucide-react';
 import type { ProjectAssignmentWithDetailsDTO } from '@shared/dto';
-import {
-  ColumnDef,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
 import {
   Toolbar,
   ToolbarHeading,
   ToolbarPageTitle,
   ToolbarDescription,
 } from '@/components/ui/toolbar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
-import { DataGridTable } from '@/components/ui/data-grid-table';
-import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
-import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatUTCDate } from '@/lib/utils';
 import { ProjectComboBox } from './components/ProjectComboBox';
+import { FloatingToolbar } from './components/FloatingToolbar';
+import { GanttPanel } from './components/GanttPanel';
+import { MemberLookupPanel } from './MemberLookupPanel';
 import { useProjectAssignments } from './useProjectAssignments';
-import { ChangeRateDialog } from './ChangeRateDialog';
-import { RemoveMemberDialog } from './RemoveMemberDialog';
-import { AddMemberDialog } from './AddMemberDialog';
+import { parseUTCDateAsLocal } from '@/lib/utils';
+import { Pencil } from 'lucide-react';
+import { BulkRemoveModal } from './BulkRemoveModal';
+import { BulkChangeRateModal } from './BulkChangeRateModal';
+import { AddMemberModal } from './AddMemberModal';
+import { EditAssignmentDialog } from './EditAssignmentDialog';
 
-type TabValue = 'change-rate' | 'remove' | 'add';
+const ROW_HEIGHT = 52;
+const BENCH_PROJECT_ID = Number(import.meta.env.VITE_BENCH_PROJECT_ID);
 
 export function ProjectAssignmentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeTab = (searchParams.get('tab') ?? 'change-rate') as TabValue;
   const projectIdParam = searchParams.get('projectId');
   const projectId = projectIdParam ? parseInt(projectIdParam, 10) || null : null;
 
@@ -43,24 +35,34 @@ export function ProjectAssignmentsPage() {
 
   const [clientId, setClientId] = useState<number | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const [changeRateOpen, setChangeRateOpen] = useState(false);
-  const [changeRateRow, setChangeRateRow] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
-
-  const [removeOpen, setRemoveOpen] = useState(false);
-  const [removeRow, setRemoveRow] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
-
+  const [bulkRemoveOpen, setBulkRemoveOpen] = useState(false);
+  const [bulkRateOpen, setBulkRateOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
+
+  const isBenchSelected = projectId !== null && projectId === BENCH_PROJECT_ID;
+  const hasSelection = selectedIds.size > 0;
 
   useEffect(() => {
     loadAssignments();
+    setSelectedIds(new Set());
   }, [loadAssignments]);
 
-  function handleTabChange(value: string) {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', value);
-    setSearchParams(next, { replace: false });
-  }
+  const sortedAssignments = useMemo(
+    () =>
+      [...assignments].sort((a, b) =>
+        (a.teamMemberName ?? '').localeCompare(b.teamMemberName ?? ''),
+      ),
+    [assignments],
+  );
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   function setProjectIdParam(val: string) {
     const next = new URLSearchParams(searchParams);
@@ -72,159 +74,32 @@ export function ProjectAssignmentsPage() {
     setSearchParams(next, { replace: false });
   }
 
-  const baseColumns = useMemo<ColumnDef<ProjectAssignmentWithDetailsDTO>[]>(
-    () => [
-      {
-        id: 'teamMemberName',
-        accessorFn: (row) => row.teamMemberName ?? '',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Team Member" />,
-        size: 200,
-        meta: { headerTitle: 'Team Member', skeleton: <Skeleton className="h-4 w-36" /> },
-      },
-      {
-        accessorKey: 'teamMemberSeniority',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Seniority" />,
-        cell: ({ row }) => row.original.teamMemberSeniority ?? '-',
-        size: 130,
-        meta: { headerTitle: 'Seniority', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
-        accessorKey: 'projectAssignmentStartDate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
-        cell: ({ row }) =>
-          row.original.projectAssignmentStartDate
-            ? formatUTCDate(row.original.projectAssignmentStartDate)
-            : '-',
-        size: 130,
-        meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-      {
-        accessorKey: 'projectAssignmentEndDate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
-        cell: ({ row }) =>
-          row.original.projectAssignmentEndDate
-            ? formatUTCDate(row.original.projectAssignmentEndDate)
-            : '–',
-        size: 130,
-        meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-      {
-        accessorKey: 'projectAssignmentBillRate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Bill Rate" />,
-        cell: ({ row }) => {
-          const rate = row.original.projectAssignmentBillRate;
-          const currency = row.original.projectAssignmentBillRateCurrency ?? '';
-          return rate != null ? `${currency} ${rate}` : '-';
-        },
-        size: 130,
-        meta: { headerTitle: 'Bill Rate', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
-        accessorKey: 'projectAssignmentAllocation',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Allocation" />,
-        cell: ({ row }) =>
-          row.original.projectAssignmentAllocation != null
-            ? `${row.original.projectAssignmentAllocation}%`
-            : '-',
-        size: 110,
-        meta: { headerTitle: 'Allocation', skeleton: <Skeleton className="h-4 w-16" /> },
-      },
-      {
-        accessorKey: 'clientContactName',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Contact" />,
-        cell: ({ row }) => row.original.clientContactName ?? '–',
-        size: 160,
-        meta: { headerTitle: 'Contact', skeleton: <Skeleton className="h-4 w-28" /> },
-      },
-    ],
-    [],
-  );
+  function toggleSelection(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
-  const changeRateColumns = useMemo<ColumnDef<ProjectAssignmentWithDetailsDTO>[]>(
-    () => [
-      ...baseColumns,
-      {
-        id: 'actions',
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setChangeRateRow(row.original);
-              setChangeRateOpen(true);
-            }}
-          >
-            Change Rate
-          </Button>
-        ),
-        size: 130,
-        enableSorting: false,
-        meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-28 ml-auto" /> },
-      },
-    ],
-    [baseColumns],
-  );
+  function toggleAll() {
+    if (selectedIds.size === sortedAssignments.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedAssignments.map((a) => a.projectAssignmentId)));
+    }
+  }
 
-  const removeColumns = useMemo<ColumnDef<ProjectAssignmentWithDetailsDTO>[]>(
-    () => [
-      ...baseColumns,
-      {
-        id: 'actions',
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive"
-            onClick={() => {
-              setRemoveRow(row.original);
-              setRemoveOpen(true);
-            }}
-          >
-            Remove
-          </Button>
-        ),
-        size: 100,
-        enableSorting: false,
-        meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
-      },
-    ],
-    [baseColumns],
-  );
+  const allSelected =
+    sortedAssignments.length > 0 && selectedIds.size === sortedAssignments.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < sortedAssignments.length;
 
-  const addColumns = useMemo<ColumnDef<ProjectAssignmentWithDetailsDTO>[]>(
-    () => baseColumns,
-    [baseColumns],
-  );
-
-  const changeRateTable = useReactTable({
-    data: assignments,
-    columns: changeRateColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  const removeTable = useReactTable({
-    data: assignments,
-    columns: removeColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  const addTable = useReactTable({
-    data: assignments,
-    columns: addColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
-
-  const emptyMessage = projectId === null
-    ? 'Select a project above to manage its team members.'
-    : 'No active team members assigned to this project.';
+  const emptyMessage =
+    projectId === null ? 'Select a project above.' : 'No active members assigned.';
 
   return (
     <div className="container">
@@ -235,104 +110,170 @@ export function ProjectAssignmentsPage() {
         </ToolbarHeading>
       </Toolbar>
 
-      <div className="mt-6 max-w-sm">
-        <Label>Select Project</Label>
-        <ProjectComboBox
-          value={projectId?.toString() ?? ''}
-          onValueChange={(val) => setProjectIdParam(val)}
-          onSelectFull={(project) => {
-            setClientId(project?.clientId ?? null);
-            setProjectName(project?.projectName ?? null);
-          }}
-          placeholder="Search and select a project…"
-        />
+      <div className="mt-6 border rounded-xl p-6">
+        <MemberLookupPanel />
       </div>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
-        <TabsList variant="line">
-          <TabsTrigger value="change-rate">Change Rate</TabsTrigger>
-          <TabsTrigger value="remove">Remove Team Member</TabsTrigger>
-          <TabsTrigger value="add">Add Team Member</TabsTrigger>
-        </TabsList>
+      <div className="mt-6 border rounded-xl p-6">
+        <p className="text-sm font-semibold mb-4">Project Assignments</p>
 
-        <TabsContent value="change-rate">
-          <DataGridContainer className="mt-4">
-            <DataGrid
-              table={changeRateTable}
-              recordCount={assignments.length}
-              isLoading={loading}
-              emptyMessage={emptyMessage}
-              tableLayout={{ width: 'fixed', columnsResizable: true }}
-            >
-              <DataGridTable />
-              <DataGridPagination sizes={[10, 25, 50]} />
-            </DataGrid>
-          </DataGridContainer>
-        </TabsContent>
+        <div className="max-w-sm">
+          <Label>Select Project</Label>
+          <ProjectComboBox
+            value={projectId?.toString() ?? ''}
+            onValueChange={(val) => setProjectIdParam(val)}
+            onSelectFull={(project) => {
+              setClientId(project?.clientId ?? null);
+              setProjectName(project?.projectName ?? null);
+            }}
+            placeholder="Search and select a project…"
+          />
+        </div>
 
-        <TabsContent value="remove">
-          <DataGridContainer className="mt-4">
-            <DataGrid
-              table={removeTable}
-              recordCount={assignments.length}
-              isLoading={loading}
-              emptyMessage={emptyMessage}
-              tableLayout={{ width: 'fixed', columnsResizable: true }}
-            >
-              <DataGridTable />
-              <DataGridPagination sizes={[10, 25, 50]} />
-            </DataGrid>
-          </DataGridContainer>
-        </TabsContent>
+        <FloatingToolbar
+          hasSelection={hasSelection}
+          projectId={projectId}
+          isBenchSelected={isBenchSelected}
+          onRemove={() => setBulkRemoveOpen(true)}
+          onChangeRate={() => setBulkRateOpen(true)}
+          onAddMember={() => setAddOpen(true)}
+          onAssignToProject={() => {
+            // Sprint 3C: "Assign to project" flow for Bench members
+          }}
+        />
 
-        <TabsContent value="add">
-          <div className="mt-4 mb-3">
-            <Button
-              size="sm"
-              disabled={projectId === null}
-              onClick={() => setAddOpen(true)}
-            >
-              <Plus className="me-1" size={16} />
-              Add Team Member
-            </Button>
-          </div>
-          <DataGridContainer>
-            <DataGrid
-              table={addTable}
-              recordCount={assignments.length}
-              isLoading={loading}
-              emptyMessage={emptyMessage}
-              tableLayout={{ width: 'fixed', columnsResizable: true }}
-            >
-              <DataGridTable />
-              <DataGridPagination sizes={[10, 25, 50]} />
-            </DataGrid>
-          </DataGridContainer>
-        </TabsContent>
-      </Tabs>
+        {/* Split panel: left member list + right Gantt */}
+        <div className="mt-4 flex border rounded-lg">
+            {/* Left: member list with checkboxes */}
+            <div className="w-72 shrink-0 border-r">
+              {/* Column header */}
+              <div
+                style={{ height: ROW_HEIGHT }}
+                className="flex items-center gap-3 px-4 border-b bg-muted/50"
+              >
+                <Checkbox
+                  checked={someSelected ? 'indeterminate' : allSelected}
+                  onCheckedChange={toggleAll}
+                  disabled={sortedAssignments.length === 0}
+                  aria-label="Select all"
+                />
+                <span className="text-sm font-medium text-muted-foreground">Team Member</span>
+              </div>
 
-      <ChangeRateDialog
-        open={changeRateOpen}
-        onOpenChange={setChangeRateOpen}
-        assignment={changeRateRow}
+              {/* Loading skeletons */}
+              {loading && (
+                <div className="divide-y">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      style={{ height: ROW_HEIGHT }}
+                      className="flex items-center gap-3 px-4"
+                    >
+                      <Skeleton className="h-4 w-4 shrink-0" />
+                      <div className="space-y-1 flex-1">
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!loading && sortedAssignments.length === 0 && (
+                <div
+                  style={{ height: ROW_HEIGHT }}
+                  className="flex items-center px-4 text-sm text-muted-foreground"
+                >
+                  {emptyMessage}
+                </div>
+              )}
+
+              {/* Member rows */}
+              {!loading &&
+                sortedAssignments.map((a: ProjectAssignmentWithDetailsDTO) => {
+                  const isEnded = a.projectAssignmentEndDate
+                    ? parseUTCDateAsLocal(a.projectAssignmentEndDate) < today
+                    : false;
+                  return (
+                  <div
+                    key={a.projectAssignmentId}
+                    style={{ height: ROW_HEIGHT }}
+                    className={`flex items-center gap-3 px-4 border-b hover:bg-muted/30 cursor-pointer${isEnded ? ' opacity-50' : ''}`}
+                    onClick={() => toggleSelection(a.projectAssignmentId)}
+                  >
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(a.projectAssignmentId)}
+                        onCheckedChange={() => toggleSelection(a.projectAssignmentId)}
+                        aria-label={`Select ${a.teamMemberName}`}
+                      />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{a.teamMemberName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[
+                          a.teamMemberSeniority,
+                          a.projectAssignmentAllocation != null
+                            ? `${a.projectAssignmentAllocation}%`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="p-1 opacity-40 hover:opacity-100 transition-opacity"
+                        onClick={() => setEditingAssignment(a)}
+                        aria-label="Edit assignment"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    </span>
+                  </div>
+                  );
+                })}
+            </div>
+
+            {/* Right: Gantt panel */}
+            <div className="flex-1 overflow-x-auto">
+              {projectId === null ? (
+                <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
+                  Select a project to view the timeline
+                </div>
+              ) : (
+                <GanttPanel assignments={sortedAssignments} rowHeight={ROW_HEIGHT} />
+              )}
+            </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <BulkRemoveModal
+        open={bulkRemoveOpen}
+        onOpenChange={setBulkRemoveOpen}
+        assignmentIds={[...selectedIds]}
         onSuccess={() => {
-          setChangeRateOpen(false);
+          setBulkRemoveOpen(false);
+          setSelectedIds(new Set());
           loadAssignments();
         }}
       />
 
-      <RemoveMemberDialog
-        open={removeOpen}
-        onOpenChange={setRemoveOpen}
-        assignment={removeRow}
+      <BulkChangeRateModal
+        open={bulkRateOpen}
+        onOpenChange={setBulkRateOpen}
+        assignmentIds={[...selectedIds]}
         onSuccess={() => {
-          setRemoveOpen(false);
+          setBulkRateOpen(false);
+          setSelectedIds(new Set());
           loadAssignments();
         }}
       />
 
       {projectId !== null && (
-        <AddMemberDialog
+        <AddMemberModal
           open={addOpen}
           onOpenChange={setAddOpen}
           projectId={projectId}
@@ -344,6 +285,17 @@ export function ProjectAssignmentsPage() {
           }}
         />
       )}
+
+      <EditAssignmentDialog
+        open={editingAssignment !== null}
+        onOpenChange={(open) => { if (!open) setEditingAssignment(null); }}
+        assignment={editingAssignment}
+        clientId={clientId}
+        onSuccess={() => {
+          setEditingAssignment(null);
+          loadAssignments();
+        }}
+      />
     </div>
   );
 }

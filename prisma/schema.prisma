@@ -231,7 +231,7 @@ model ProjectAssignment {
   projectAssignmentDeleteReason     String?         @map("tmp_delete_reason") @db.VarChar(255)
   functionalAreaId                  Int?            @map("far_id")
   clientContactId                   Int?            @map("cco_id")
-  intercompanyBillRate              Decimal?        @map("tmp_intercompany_bill_rate")
+  onCallRate                        Decimal?        @map("tmp_on_call_rate")
   createdByUser                     User?           @relation("tmp_team_member_project_tmp_created_byTotbl_users", fields: [projectAssignmentCreatedBy], references: [userId], map: "fk_tmp_team_member_project_cby")
   project                           Project         @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_tmp_team_member_project_pro")
   teamMember                        TeamMember      @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmp_team_member_project_tms")

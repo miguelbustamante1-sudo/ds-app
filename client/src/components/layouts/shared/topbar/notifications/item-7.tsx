@@ -1,4 +1,4 @@
-import { AvatarGroup } from '@/components/layouts/shared/common/avatar-group';
+﻿import { AvatarGroup } from '@/components/layouts/shared/common/avatar-group';
 import {
   CalendarDays,
   Lock,
@@ -64,7 +64,7 @@ export default function Item7({
   onDecline,
 }: Item7Props) {
   return (
-    <div className="flex grow gap-2.5 px-5">
+    <div className="flex grow gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>

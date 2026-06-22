@@ -22,4 +22,10 @@ export const AssignmentValidationErrors = {
     message: 'Allocation must be between 0.01 and 100.00 with at most 2 decimal places',
     metadata: { allocation },
   }),
+
+  ALLOCATION_EXCEEDS_CAP: (total: number, newAllocation: number, existingSum: number): ValidationError => ({
+    code: 'ALLOCATION_EXCEEDS_CAP',
+    message: `This assignment would bring the total allocation to ${total}%. Maximum allowed is 100%.`,
+    metadata: { total, newAllocation, existingSum },
+  }),
 } as const;

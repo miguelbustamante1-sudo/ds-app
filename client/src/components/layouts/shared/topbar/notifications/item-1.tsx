@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -35,7 +35,7 @@ export default function Item1({
 }: ItemProps) {
   const [emailInput, setEmailInput] = useState('');
   return (
-    <div className="flex grow gap-2.5 px-5">
+    <div className="flex grow gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>

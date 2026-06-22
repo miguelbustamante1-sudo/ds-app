@@ -185,11 +185,13 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_create
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (36, 'PersistenceTables',       'miguel.bustamante01@telusinternational.com',  '2026-04-15 03:57:47.255+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (37, 'NotificationCenter',      'miguel.bustamante01@telusinternational.com',  '2026-04-15 03:58:11.757+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (38, 'TimeOffReview',           'miguel.bustamante01@telusinternational.com',  '2026-04-15 23:00:04.459+00')    ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (39, 'BonusCategories',         'miguel.bustamante01@telusinternational.com',  '2026-04-15 23:01:00.000+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (40, 'TimeOffException',        'miguel.bustamante01@telusinternational.com',  '2026-04-24 18:05:30.559+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (41, 'SupervisorHolidaySwaps',  'miguel.bustamante01@telusinternational.com',  '2026-04-27 12:24:15.468+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (42, 'HolidaySwapException',    'miguel.bustamante01@telusinternational.com',  '2026-04-27 18:23:25.937+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (43, 'PersistenceTemplates',    'miguel.bustamante01@telusinternational.com',  '2026-04-28 17:46:32.401+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (44, 'PersistenceDataTypes',    'miguel.bustamante01@telusinternational.com',  '2026-04-28 17:46:49.706+00')    ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (45, 'Endorsements',            'miguel.bustamante01@telusinternational.com',  '2026-04-30 00:00:00.000+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (46, 'Shift',                   'miguel.bustamante01@telusinternational.com',  '2026-05-07 23:39:34.007+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (47, 'Positions',               'miguel.bustamante01@telusinternational.com',  '2026-05-10 01:42:07.545+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (49, 'Workflow',                'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:50:35.456+00')    ON CONFLICT (opt_id) DO NOTHING;
@@ -521,8 +523,47 @@ INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring
 INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_updated_by, hol_deleted_at, hol_is_active, hol_is_half_day) VALUES (54, 3, 'Día de la Independencia',                           '2026-09-16', false, '2026-04-30 16:10:21.535239+00', 'system',       '2026-04-30 16:10:21.535239+00', NULL,                              NULL, true, false) ON CONFLICT (hol_id) DO NOTHING;
 INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_updated_by, hol_deleted_at, hol_is_active, hol_is_half_day) VALUES (55, 3, 'Día de la Revolución',                              '2026-11-16', false, '2026-04-30 16:10:21.535239+00', 'system',       '2026-04-30 16:10:21.535239+00', NULL,                              NULL, true, false) ON CONFLICT (hol_id) DO NOTHING;
 INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_updated_by, hol_deleted_at, hol_is_active, hol_is_half_day) VALUES (56, 3, 'Navidad',                                           '2026-12-25', false, '2026-04-30 16:10:21.535239+00', 'system',       '2026-04-30 16:10:21.535239+00', NULL,                              NULL, true, false) ON CONFLICT (hol_id) DO NOTHING;
--- Advance the sequence past the manually inserted IDs
-SELECT setval(pg_get_serial_sequence('ds.hol_holiday', 'hol_id'), (SELECT MAX(hol_id) FROM ds.hol_holiday));
+
+-- Sprint 1: Festivos faltantes de insert_holidays.sql (fusionados aquí; el archivo separado fue eliminado)
+
+-- El Salvador 2025 — fechas no cubiertas en los IDs 27-37
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (57, 1, 'Año Nuevo',                    '2025-01-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (58, 1, 'Fiestas Agostinas (1)',        '2025-08-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (59, 1, 'Fiestas Agostinas (2)',        '2025-08-04', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (60, 1, 'Fiestas Agostinas (3)',        '2025-08-05', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (61, 1, 'Día de la Raza',               '2025-10-12', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+
+-- El Salvador 2026 — fechas no cubiertas en los IDs 14-26
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (62, 1, 'Fiestas Agostinas (1)',        '2026-08-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (63, 1, 'Fiestas Agostinas (2)',        '2026-08-04', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (64, 1, 'Fiestas Agostinas (4)',        '2026-08-05', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (65, 1, 'Día del Padre',                '2026-06-21', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (66, 1, 'Día de la Raza',               '2026-10-12', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (67, 1, 'Día del Trabajo',              '2026-05-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (68, 1, 'Día de la Madre',              '2026-05-10', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+
+-- Guatemala 2026 — año completo no presente en seed (solo 2026 IDs 1-13 que corresponden a inglés)
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (69, 2, 'Día del Ejército',             '2026-06-30', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (70, 2, 'Día del Trabajo',              '2026-05-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (71, 2, 'Año Nuevo',                    '2026-01-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+
+-- México 2025 — año completo faltante en seed
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (72, 3, 'Año Nuevo',                    '2025-01-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (73, 3, 'Día de la Constitución',       '2025-02-03', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (74, 3, 'Natalicio de Benito Juárez',   '2025-03-17', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (75, 3, 'Jueves Santo',                 '2025-04-17', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (76, 3, 'Viernes Santo',                '2025-04-18', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (77, 3, 'Día del Trabajo',              '2025-05-01', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (78, 3, 'Día de la Independencia',      '2025-09-16', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (79, 3, 'Día de la Revolución',         '2025-11-17', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (80, 3, 'Navidad',                      '2025-12-25', true,  NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+
+-- México 2026 — Jueves/Viernes Santo faltantes (seed ya tenía IDs 50-56 pero sin Semana Santa)
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (81, 3, 'Jueves Santo',                 '2026-04-02', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+INSERT INTO ds.hol_holiday (hol_id, cou_id, hol_name, hol_date, hol_is_recurring, hol_created_at, hol_created_by, hol_updated_at, hol_is_active, hol_is_half_day) VALUES (82, 3, 'Viernes Santo',                '2026-04-03', false, NOW(), 'seed', NOW(), true, false) ON CONFLICT (hol_id) DO NOTHING;
+
+-- Resetea la secuencia al mayor ID insertado para evitar colisiones en futuros inserts por aplicación
+SELECT setval(pg_get_serial_sequence('ds.hol_holiday', 'hol_id'), GREATEST(MAX(hol_id), 82), true) FROM ds.hol_holiday;
 
 -- ============================================================
 -- DEV ONLY — Fictional team members for local development
@@ -599,11 +640,153 @@ VALUES
 ON CONFLICT (cpl_id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('ds.cpl_corporate_phone_lines', 'cpl_id'), GREATEST((SELECT MAX(cpl_id) FROM ds.cpl_corporate_phone_lines), 3));
 
+-- Sprint 2: Clientes (cli_clients)
+-- Derivado de schema.prisma — Client: cli_id (PK), cli_name (Text)
+INSERT INTO ds.cli_clients (cli_id, cli_name) VALUES (1, 'TELUS International')    ON CONFLICT (cli_id) DO NOTHING;
+INSERT INTO ds.cli_clients (cli_id, cli_name) VALUES (2, 'Mastercard')              ON CONFLICT (cli_id) DO NOTHING;
+INSERT INTO ds.cli_clients (cli_id, cli_name) VALUES (3, 'Charter Communications')  ON CONFLICT (cli_id) DO NOTHING;
+INSERT INTO ds.cli_clients (cli_id, cli_name) VALUES (4, 'Dolby Labs')              ON CONFLICT (cli_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.cli_clients', 'cli_id'), GREATEST(MAX(cli_id), 4), true) FROM ds.cli_clients;
+
+-- Sprint 3: Áreas funcionales (far_functional_areas)
+-- Schema: far_id (PK), far_name (Text), cou_id (FK nullable)
+-- SV=1, GT=2, MX=3
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (1,  'Ingeniería',        1) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (2,  'QA',                1) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (3,  'DevOps',            1) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (4,  'Scrum Master',      1) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (5,  'Arquitectura',      1) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (6,  'Ingeniería',        2) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (7,  'QA',                2) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (8,  'DevOps',            2) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (9,  'Scrum Master',      2) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (10, 'Arquitectura',      2) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (11, 'Ingeniería',        3) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (12, 'QA',                3) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (13, 'DevOps',            3) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (14, 'Scrum Master',      3) ON CONFLICT (far_id) DO NOTHING;
+INSERT INTO ds.far_functional_areas (far_id, far_name, cou_id) VALUES (15, 'Arquitectura',      3) ON CONFLICT (far_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.far_functional_areas', 'far_id'), GREATEST(MAX(far_id), 15), true) FROM ds.far_functional_areas;
+
+-- Sprint 3: Categorías de bono (bca_bonus_categories)
+-- Schema: bca_id (PK), bca_name (Text UNIQUE)
+INSERT INTO ds.bca_bonus_categories (bca_id, bca_name) VALUES (1, 'Referido')    ON CONFLICT (bca_id) DO NOTHING;
+INSERT INTO ds.bca_bonus_categories (bca_id, bca_name) VALUES (2, 'Desempeño')   ON CONFLICT (bca_id) DO NOTHING;
+INSERT INTO ds.bca_bonus_categories (bca_id, bca_name) VALUES (3, 'Firma')       ON CONFLICT (bca_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.bca_bonus_categories', 'bca_id'), GREATEST(MAX(bca_id), 3), true) FROM ds.bca_bonus_categories;
+
+-- Sprint 3: Subcategorías de bono (bsc_bonus_subcategories)
+-- Schema: bsc_id (PK), bca_id (FK), bsc_name (Text), cou_id (FK)
+-- Unique constraint: (bca_id, cou_id, bsc_name)
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (1,  1, 'Referido Externo',    1, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (2,  1, 'Referido Interno',    1, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (3,  2, 'Bono Anual',          1, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (4,  3, 'Firma Estándar',      1, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (5,  1, 'Referido Externo',    2, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (6,  2, 'Bono Anual',          2, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (7,  3, 'Firma Estándar',      2, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (8,  1, 'Referido Externo',    3, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (9,  2, 'Bono Anual',          3, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+INSERT INTO ds.bsc_bonus_subcategories (bsc_id, bca_id, bsc_name, cou_id, bsc_metadata) VALUES (10, 3, 'Firma Estándar',      3, '{}') ON CONFLICT (bsc_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.bsc_bonus_subcategories', 'bsc_id'), GREATEST(MAX(bsc_id), 10), true) FROM ds.bsc_bonus_subcategories;
+
+-- Sprint 4: Categorías de notificación (com.cat_categories)
+-- Schema: cat_id (PK), cat_name (VarChar 100), cat_color (VarChar 50 nullable)
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (1, 'Tiempo Libre',          'blue')   ON CONFLICT (cat_id) DO NOTHING;
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (2, 'Endosos',               'green')  ON CONFLICT (cat_id) DO NOTHING;
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (3, 'Contratación',          'purple') ON CONFLICT (cat_id) DO NOTHING;
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (4, 'Sistema',               'gray')   ON CONFLICT (cat_id) DO NOTHING;
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (5, 'Intercambio de Días',   'orange') ON CONFLICT (cat_id) DO NOTHING;
+INSERT INTO com.cat_categories (cat_id, cat_name, cat_color) VALUES (6, 'Inbox',                 'teal')   ON CONFLICT (cat_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('com.cat_categories', 'cat_id'), GREATEST(MAX(cat_id), 6), true) FROM com.cat_categories;
+
+-- Sprint 4: Nuevas opciones RBAC (módulos agregados después de opt_id 52)
+-- GiftCards, TopPerformers, Uploads, ClientContacts, BonusSubcategories
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (53, 'GiftCards',          'system', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (54, 'TopPerformers',      'system', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (55, 'Uploads',            'system', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (56, 'ClientContacts',     'system', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (57, 'BonusSubcategories', 'system', NOW()) ON CONFLICT (opt_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('sec.opt_options', 'opt_id'), GREATEST(MAX(opt_id), 57), true) FROM sec.opt_options;
+
+-- Sprint 4: Permisos admin (rol_id=1) para los nuevos módulos
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'GiftCards'          AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('GiftCards',          true, true, true,  NULL, NOW(), 53, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'TopPerformers'      AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('TopPerformers',      true, true, true,  NULL, NOW(), 54, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Uploads'            AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Uploads',            true, true, true,  NULL, NOW(), 55, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'ClientContacts'     AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('ClientContacts',     true, true, true,  NULL, NOW(), 56, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'BonusSubcategories' AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('BonusSubcategories', true, true, true,  NULL, NOW(), 57, 1); END IF;
+END $$;
+
+-- Sprint 6: Catálogo de Gift Cards
+-- Pools (tbl_gcp_pools) — gcp_code es UNIQUE; gcp_id es PK
+INSERT INTO ds.tbl_gcp_pools (gcp_id, gcp_code, gcp_name, gcp_is_active, gcp_created_by) VALUES (1, 'POOL-Q1-2025', 'Pool Q1 2025', true, 1) ON CONFLICT (gcp_id) DO NOTHING;
+INSERT INTO ds.tbl_gcp_pools (gcp_id, gcp_code, gcp_name, gcp_is_active, gcp_created_by) VALUES (2, 'POOL-Q2-2025', 'Pool Q2 2025', true, 1) ON CONFLICT (gcp_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.tbl_gcp_pools', 'gcp_id'), GREATEST(MAX(gcp_id), 2), true) FROM ds.tbl_gcp_pools;
+
+-- Reasons (tbl_gcr_reasons) — gcr_name es UNIQUE
+INSERT INTO ds.tbl_gcr_reasons (gcr_id, gcr_name, gcr_is_active, gcr_created_by) VALUES (1, 'Aniversario',    true, 1) ON CONFLICT (gcr_id) DO NOTHING;
+INSERT INTO ds.tbl_gcr_reasons (gcr_id, gcr_name, gcr_is_active, gcr_created_by) VALUES (2, 'Desempeño',      true, 1) ON CONFLICT (gcr_id) DO NOTHING;
+INSERT INTO ds.tbl_gcr_reasons (gcr_id, gcr_name, gcr_is_active, gcr_created_by) VALUES (3, 'Reconocimiento', true, 1) ON CONFLICT (gcr_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.tbl_gcr_reasons', 'gcr_id'), GREATEST(MAX(gcr_id), 3), true) FROM ds.tbl_gcr_reasons;
+
+-- Card Types (tbl_gct_card_types) — gct_name es UNIQUE
+INSERT INTO ds.tbl_gct_card_types (gct_id, gct_name, gct_is_active, gct_created_by) VALUES (1, 'Amazon',    true, 1) ON CONFLICT (gct_id) DO NOTHING;
+INSERT INTO ds.tbl_gct_card_types (gct_id, gct_name, gct_is_active, gct_created_by) VALUES (2, 'Netflix',   true, 1) ON CONFLICT (gct_id) DO NOTHING;
+INSERT INTO ds.tbl_gct_card_types (gct_id, gct_name, gct_is_active, gct_created_by) VALUES (3, 'Uber Eats', true, 1) ON CONFLICT (gct_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.tbl_gct_card_types', 'gct_id'), GREATEST(MAX(gct_id), 3), true) FROM ds.tbl_gct_card_types;
+
+-- Card Values (tbl_gcv_card_values) — sin unique natural, usa gcp_id como guard
+INSERT INTO ds.tbl_gcv_card_values (gcv_id, gct_id, gcv_amount, gcv_currency, gcv_is_active, gcv_created_by) VALUES (1, 1, 25.00, 'USD', true, 1) ON CONFLICT (gcv_id) DO NOTHING;
+INSERT INTO ds.tbl_gcv_card_values (gcv_id, gct_id, gcv_amount, gcv_currency, gcv_is_active, gcv_created_by) VALUES (2, 1, 50.00, 'USD', true, 1) ON CONFLICT (gcv_id) DO NOTHING;
+INSERT INTO ds.tbl_gcv_card_values (gcv_id, gct_id, gcv_amount, gcv_currency, gcv_is_active, gcv_created_by) VALUES (3, 2, 25.00, 'USD', true, 1) ON CONFLICT (gcv_id) DO NOTHING;
+INSERT INTO ds.tbl_gcv_card_values (gcv_id, gct_id, gcv_amount, gcv_currency, gcv_is_active, gcv_created_by) VALUES (4, 2, 50.00, 'USD', true, 1) ON CONFLICT (gcv_id) DO NOTHING;
+INSERT INTO ds.tbl_gcv_card_values (gcv_id, gct_id, gcv_amount, gcv_currency, gcv_is_active, gcv_created_by) VALUES (5, 3, 25.00, 'USD', true, 1) ON CONFLICT (gcv_id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ds.tbl_gcv_card_values', 'gcv_id'), GREATEST(MAX(gcv_id), 5), true) FROM ds.tbl_gcv_card_values;
+
+-- Sprint 6: Contactos de cliente (cco_client_contact)
+-- Schema: cco_id (PK), cli_id (FK), cco_name, cco_email, cco_phone_number, cco_position, cco_active
+-- Depende de cli_clients (Sprint 2) — un contacto por cliente
+INSERT INTO ds.cco_client_contact (cco_id, cli_id, cco_name, cco_email, cco_phone_number, cco_position, cco_active)
+VALUES (1, 1, 'TELUS Contact',   'contact@telusinternational.com', '+1-800-000-0001', 'Account Manager', true)
+ON CONFLICT (cco_id) DO NOTHING;
+
+INSERT INTO ds.cco_client_contact (cco_id, cli_id, cco_name, cco_email, cco_phone_number, cco_position, cco_active)
+VALUES (2, 2, 'Mastercard Contact', 'contact@mastercard.com', '+1-800-000-0002', 'Account Manager', true)
+ON CONFLICT (cco_id) DO NOTHING;
+
+INSERT INTO ds.cco_client_contact (cco_id, cli_id, cco_name, cco_email, cco_phone_number, cco_position, cco_active)
+VALUES (3, 3, 'Charter Contact', 'contact@charter.com', '+1-800-000-0003', 'Account Manager', true)
+ON CONFLICT (cco_id) DO NOTHING;
+
+INSERT INTO ds.cco_client_contact (cco_id, cli_id, cco_name, cco_email, cco_phone_number, cco_position, cco_active)
+VALUES (4, 4, 'Dolby Contact',   'contact@dolby.com', '+1-800-000-0004', 'Account Manager', true)
+ON CONFLICT (cco_id) DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('ds.cco_client_contact', 'cco_id'), GREATEST(MAX(cco_id), 4), true) FROM ds.cco_client_contact;
+
 -- 17. Corporate Phone Assignments
-INSERT INTO ds.cpa_corporate_phone_assignments (cpa_id, cpl_id, tms_id, cpa_bill_rate, cpa_assign_date_start, cpa_assign_date_end, cpa_billable, cpa_remarks, cpa_created_at, usr_id_created_by, usr_id_updated_by, cpa_deleted_at, cpa_deleted)
-VALUES
-  (1, 1, 61, 25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Ernesto Menjívar Colorado (10083492)', NOW(), 1, NULL, NULL, false),
-  (2, 2, 87, 25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Roberto Pineda Urrutia (10029794)',    NOW(), 1, NULL, NULL, false),
-  (3, 3, 5,  25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Josue Guillen Rosales (10100154)',     NOW(), 1, NULL, NULL, false)
-ON CONFLICT (cpa_id) DO NOTHING;
-SELECT setval(pg_get_serial_sequence('ds.cpa_corporate_phone_assignments', 'cpa_id'), GREATEST((SELECT MAX(cpa_id) FROM ds.cpa_corporate_phone_assignments), 3));
+-- Guard: solo inserta si el TM existe (los TMs reales se cargan en un paso posterior al seed.sql)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM ds.tbl_team_members WHERE tms_id = 61)
+  AND NOT EXISTS (SELECT 1 FROM ds.cpa_corporate_phone_assignments WHERE cpa_id = 1) THEN
+    INSERT INTO ds.cpa_corporate_phone_assignments (cpa_id, cpl_id, tms_id, cpa_bill_rate, cpa_assign_date_start, cpa_assign_date_end, cpa_billable, cpa_remarks, cpa_created_at, usr_id_created_by, usr_id_updated_by, cpa_deleted_at, cpa_deleted)
+    VALUES (1, 1, 61, 25.00, '2026-01-01', NULL, true, 'Initial migration, assigning starting 1 Jan 2026 to Ernesto Menjívar Colorado (10083492)', NOW(), 1, NULL, NULL, false);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM ds.tbl_team_members WHERE tms_id = 87)
+  AND NOT EXISTS (SELECT 1 FROM ds.cpa_corporate_phone_assignments WHERE cpa_id = 2) THEN
+    INSERT INTO ds.cpa_corporate_phone_assignments (cpa_id, cpl_id, tms_id, cpa_bill_rate, cpa_assign_date_start, cpa_assign_date_end, cpa_billable, cpa_remarks, cpa_created_at, usr_id_created_by, usr_id_updated_by, cpa_deleted_at, cpa_deleted)
+    VALUES (2, 2, 87, 25.00, '2026-01-01', NULL, true, 'Initial migration, assigning starting 1 Jan 2026 to Roberto Pineda Urrutia (10029794)', NOW(), 1, NULL, NULL, false);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM ds.tbl_team_members WHERE tms_id = 5)
+  AND NOT EXISTS (SELECT 1 FROM ds.cpa_corporate_phone_assignments WHERE cpa_id = 3) THEN
+    INSERT INTO ds.cpa_corporate_phone_assignments (cpa_id, cpl_id, tms_id, cpa_bill_rate, cpa_assign_date_start, cpa_assign_date_end, cpa_billable, cpa_remarks, cpa_created_at, usr_id_created_by, usr_id_updated_by, cpa_deleted_at, cpa_deleted)
+    VALUES (3, 3, 5, 25.00, '2026-01-01', NULL, true, 'Initial migration, assigning starting 1 Jan 2026 to Josue Guillen Rosales (10100154)', NOW(), 1, NULL, NULL, false);
+  END IF;
+END $$;
+SELECT setval(pg_get_serial_sequence('ds.cpa_corporate_phone_assignments', 'cpa_id'), GREATEST((SELECT COALESCE(MAX(cpa_id), 0) FROM ds.cpa_corporate_phone_assignments), 3));

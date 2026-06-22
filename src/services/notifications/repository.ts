@@ -147,6 +147,22 @@ export async function getCategoryByName(name: string) {
   });
 }
 
+/** Fetch a single recipient row by ID and ownership (for audit pre-state capture) */
+export async function getRecipientById(recipientId: number, userId: number) {
+  return prisma.recipient.findFirst({
+    where: { id: recipientId, userId },
+    select: {
+      id: true,
+      notificationId: true,
+      userId: true,
+      actionType: true,
+      isRead: true,
+      isArchived: true,
+      readAt: true,
+    },
+  });
+}
+
 // --- Write Operations ---
 
 /** Create a notification with recipients (single transaction) */

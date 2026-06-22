@@ -13,11 +13,12 @@ import { getReportsForPendingRequests } from '../teamMember/queries/getReportsFo
 export interface ImportantDateItem {
   id: string;
   type: 'TimeOff' | 'Holiday' | 'Birthday';
-  date: string;   // ISO date string YYYY-MM-DD
-  month: string;  // e.g. "APR"
+  date: string;       // ISO date string YYYY-MM-DD
+  month: string;      // e.g. "APR"
   day: number;
   title: string;
   description: string;
+  countryCode?: string | null; // ISO-2 code for holidays (GT/SV/MX), null for other types
 }
 
 interface TeamMemberRecord {
@@ -88,18 +89,21 @@ export async function getDashboardImportantDates(
   }
 
   // ── 2. Upcoming Holidays ─────────────────────────────────────────────────────
-  // Resolve the country from the supervisor's team member record
-  const supervisorRecord = await prisma.teamMember.findUnique({
-    where: { teamMemberId: supervisorId },
+  // Show holidays for all countries across the supervisor's team (cross-regional leaders)
+  const teamCountryRecords = await prisma.teamMember.findMany({
+    where: { teamMemberId: { in: allIds }, countryId: { not: null } },
     select: { countryId: true },
   });
-  const resolvedCountryId = supervisorRecord?.countryId ?? null;
+  const teamCountryIds = [...new Set(teamCountryRecords.map((m) => m.countryId).filter((id): id is number => id !== null))];
 
   const holidays = await prisma.holiday.findMany({
     where: {
       holidayIsActive: true,
       holidayDate: { gte: today, lte: horizon60 },
-      ...(resolvedCountryId != null ? { countryId: resolvedCountryId } : {}),
+      ...(teamCountryIds.length > 0 ? { countryId: { in: teamCountryIds } } : {}),
+    },
+    include: {
+      country: { select: { countryIso: true } },
     },
     orderBy: { holidayDate: 'asc' },
   });
@@ -114,6 +118,7 @@ export async function getDashboardImportantDates(
       day: d.getDate(),
       title: 'Holiday',
       description: h.holidayName,
+      countryCode: h.country?.countryIso ?? null,
     });
   }
 

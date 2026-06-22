@@ -1,4 +1,4 @@
-import { CircleCheck } from 'lucide-react';
+﻿import { CircleCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   Avatar,
@@ -46,7 +46,7 @@ export default function Item9({
   onDecline,
 }: Item9Props) {
   return (
-    <div className="flex gap-2.5 px-5">
+    <div className="flex gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>

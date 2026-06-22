@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Response } from 'express';
 import type { ProjectAssignment } from '@prisma/client';
-import type { ProjectAssignmentWithDetailsDTO } from '@shared/dto';
+import type { ProjectAssignmentWithDetailsDTO, BulkRemoveAssignmentsDTO, BulkChangeRateDTO } from '@shared/dto';
 import { error } from '../logger';
 import {
   getAllTeamMemberProjects,
@@ -12,6 +12,9 @@ import {
   updateTeamMemberProject,
   deleteTeamMemberProject,
   closeAndCreateAssignment,
+  getBenchAvailableMembers,
+  bulkRemoveAssignments,
+  bulkChangeRate,
 } from '../db/teamMemberProjects';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
@@ -52,7 +55,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
@@ -93,7 +96,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: null,
       teamMemberSeniority: null,
@@ -131,7 +134,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
       projectAssignmentAllocation: item.projectAssignmentAllocation ? Number(item.projectAssignmentAllocation) : null,
       projectAssignmentDeleted: item.projectAssignmentDeleted ?? false,
       clientContactId: item.clientContactId ?? null,
-      intercompanyBillRate: item.intercompanyBillRate ? Number(item.intercompanyBillRate) : null,
+      onCallRate: item.onCallRate ? Number(item.onCallRate) : null,
       shiftId: item.shiftId ?? null,
       teamMemberName: item.teamMember
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
@@ -149,6 +152,17 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
   }
 });
 
+// GET /team-member-projects/bench-available
+router.get('/bench-available', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const members = await getBenchAvailableMembers();
+    res.json({ data: members });
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch bench-available members' });
+  }
+});
+
 // GET /team-member-projects/:id
 router.get('/:id', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -162,6 +176,49 @@ router.get('/:id', requirePermission('ProjectAssignments', 'read'), async (req: 
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch team member project' });
+  }
+});
+
+// POST /team-member-projects/bulk-change-rate
+router.post('/bulk-change-rate', requirePermission('ProjectAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { assignmentIds, newBillRate, newBillRateCurrency, newOnCallRate, startDate } = req.body as BulkChangeRateDTO;
+
+    if (!Array.isArray(assignmentIds) || assignmentIds.length === 0) {
+      return res.status(400).json({ error: 'assignmentIds must be a non-empty array' });
+    }
+    if (newBillRate === undefined || !newBillRateCurrency || !startDate) {
+      return res.status(400).json({ error: 'newBillRate, newBillRateCurrency and startDate are required' });
+    }
+
+    const startDateObj = new Date(startDate);
+    const dsUserId = req.user?.dsUserId ?? null;
+
+    const pairs = await bulkChangeRate(assignmentIds, newBillRate, newBillRateCurrency, newOnCallRate ?? null, startDateObj, dsUserId);
+
+    for (const { closed, created } of pairs) {
+      await auditOrchestrator.log({
+        entityName: 'tmp_team_member_project',
+        entityId: String(closed.projectAssignmentId),
+        createdBy: req.user!.email,
+        oldValues: closed,
+        newValues: { ...closed, projectAssignmentEndDate: closed.projectAssignmentEndDate },
+        comment: 'Bulk rate change: assignment closed',
+      });
+      await auditOrchestrator.log({
+        entityName: 'tmp_team_member_project',
+        entityId: String(created.projectAssignmentId),
+        createdBy: req.user!.email,
+        oldValues: null,
+        newValues: created,
+        comment: 'Bulk rate change: new assignment created',
+      });
+    }
+
+    res.status(201).json({ data: pairs });
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to bulk change bill rate' });
   }
 });
 
@@ -237,6 +294,27 @@ router.put('/:id', requirePermission('ProjectAssignments', 'create'), async (req
 
     const body = req.body as Partial<ProjectAssignment>;
 
+    const before = await getTeamMemberProjectById(id);
+    if (!before) return res.status(404).json({ error: 'Team member project not found' });
+
+    if (body.projectAssignmentAllocation !== undefined) {
+      const validationInput: AssignmentValidationInput = {
+        teamMemberId: body.teamMemberId ?? before.teamMemberId,
+        projectId: body.projectId ?? before.projectId,
+        projectAssignmentStartDate: body.projectAssignmentStartDate ?? before.projectAssignmentStartDate,
+        projectAssignmentEndDate: body.projectAssignmentEndDate !== undefined ? body.projectAssignmentEndDate : before.projectAssignmentEndDate,
+        projectAssignmentBillRate: body.projectAssignmentBillRate !== undefined ? (body.projectAssignmentBillRate ? Number(body.projectAssignmentBillRate) : null) : Number(before.projectAssignmentBillRate),
+        projectAssignmentAllocation: Number(body.projectAssignmentAllocation),
+        excludeAssignmentId: id,
+        excludeProjectId: before.projectId ?? undefined,
+      };
+      const validation = await validateAssignment(validationInput);
+      if (!validation.valid) {
+        const firstMessage = validation.errors[0]?.message ?? 'Validation failed';
+        return res.status(400).json({ error: firstMessage, errors: validation.errors });
+      }
+    }
+
     const now = new Date();
     const updateData = {
       ...body,
@@ -250,9 +328,6 @@ router.put('/:id', requirePermission('ProjectAssignments', 'create'), async (req
     if (updateData.projectAssignmentEndDate && typeof updateData.projectAssignmentEndDate === 'string') {
       updateData.projectAssignmentEndDate = new Date(updateData.projectAssignmentEndDate) as any;
     }
-
-    const before = await getTeamMemberProjectById(id);
-    if (!before) return res.status(404).json({ error: 'Team member project not found' });
 
     const updated = await updateTeamMemberProject(id, updateData);
     if (!updated) return res.status(404).json({ error: 'Team member project not found' });
@@ -279,11 +354,11 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { newStartDate, newBillRate, newCurrency, newIntercompanyBillRate } = req.body as {
+    const { newStartDate, newBillRate, newCurrency, newOnCallRate } = req.body as {
       newStartDate?: string;
       newBillRate?: number;
       newCurrency?: string;
-      newIntercompanyBillRate?: number | null;
+      newOnCallRate?: number | null;
     };
 
     if (!newStartDate || newBillRate === undefined || !newCurrency) {
@@ -317,7 +392,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
       projectAssignmentLastUpdatedBy: dsUserId,
       projectAssignmentLastUpdatedDate: now,
       projectAssignmentDeleted: false,
-      intercompanyBillRate: newIntercompanyBillRate !== undefined ? newIntercompanyBillRate : currentAssignment.intercompanyBillRate,
+      onCallRate: newOnCallRate !== undefined ? newOnCallRate : currentAssignment.onCallRate,
       shiftId: currentAssignment.shiftId ?? null,
     };
 
@@ -389,6 +464,46 @@ router.patch('/:id', requirePermission('ProjectAssignments', 'create'), async (r
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to update team member project' });
+  }
+});
+
+// DELETE /team-member-projects/bulk
+router.delete('/bulk', requirePermission('ProjectAssignments', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { assignmentIds, lastBillableDate } = req.body as BulkRemoveAssignmentsDTO;
+
+    if (!Array.isArray(assignmentIds) || assignmentIds.length === 0) {
+      return res.status(400).json({ error: 'assignmentIds must be a non-empty array' });
+    }
+    if (!lastBillableDate) {
+      return res.status(400).json({ error: 'lastBillableDate is required' });
+    }
+
+    const lastBillableDateObj = new Date(lastBillableDate);
+    const dsUserId = req.user?.dsUserId ?? null;
+
+    const before = await Promise.all(
+      assignmentIds.map((id) => getTeamMemberProjectById(id)),
+    );
+
+    await bulkRemoveAssignments(assignmentIds, lastBillableDateObj, dsUserId);
+
+    for (const record of before) {
+      if (!record) continue;
+      await auditOrchestrator.log({
+        entityName: 'tmp_team_member_project',
+        entityId: String(record.projectAssignmentId),
+        createdBy: req.user!.email,
+        oldValues: record,
+        newValues: null,
+        comment: 'Bulk removal: assignment end date set',
+      });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    error(err);
+    res.status(500).json({ error: 'Failed to bulk remove assignments' });
   }
 });
 
