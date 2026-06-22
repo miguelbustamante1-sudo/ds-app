@@ -487,11 +487,25 @@ function QuickAccessPanel() {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+function resolveTaskPath(item: ActionItem): string {
+  const numericId = item.id.replace(/^[a-z]+-/, '');
+  switch (item.type) {
+    case 'TimeOff':        return `/timeoff-detail/${numericId}`;
+    case 'HolidaySwap':   return `/holiday-swaps/${numericId}`;
+    case 'Endorsement':   return `/endorsements/${numericId}`;
+    case 'MissingSupervisor': return '/maintenance/supervisor-assignments';
+  }
+}
+
 // Sub-component: ActionItemCard
 // ---------------------------------------------------------------------------
-function ActionItemCard({ item }: { item: ActionItem }) {
+function ActionItemCard({ item, onClick }: { item: ActionItem; onClick: () => void }) {
   return (
-    <div className="flex items-start gap-3 py-4 border-b border-border last:border-b-0">
+    <div
+      className="flex items-start gap-3 py-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 -mx-5 px-5 transition-colors"
+      onClick={onClick}
+    >
       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
         <FolderOpen className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </div>
@@ -578,7 +592,13 @@ function AwaitingActionPanel() {
               </p>
             </div>
           ) : (
-            tasks.map((item) => <ActionItemCard key={item.id} item={item} />)
+            tasks.map((item) => (
+              <ActionItemCard
+                key={item.id}
+                item={item}
+                onClick={() => navigate(resolveTaskPath(item))}
+              />
+            ))
           )}
         </div>
       )}
