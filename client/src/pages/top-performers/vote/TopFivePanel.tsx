@@ -48,7 +48,7 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
       {nomination ? (
         <p className="text-xs mt-1 line-clamp-2">{nomination.nomAnonymizedText}</p>
       ) : (
-        <p className="text-xs text-muted-foreground mt-1">Drag here or click + Add</p>
+        <p className="text-xs text-muted-foreground mt-1">Drag here or use + Add below</p>
       )}
     </div>
   );
@@ -57,19 +57,17 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
 interface TopFivePanelProps {
   slots: TopFiveSlot[];
   nominations: ApprovedNominationDTO[];
-  isComplete: boolean;
   onRemove: (rank: number) => void;
   onReorder: (fromRank: number, toRank: number) => void;
 }
 
-export function TopFivePanel({ slots, nominations, isComplete, onRemove }: TopFivePanelProps) {
+export function TopFivePanel({ slots, nominations, onRemove }: TopFivePanelProps) {
   const nominationById = Object.fromEntries(nominations.map((n) => [n.nomId, n]));
 
   return (
-    <div className={`p-4 rounded-xl border-2 transition-colors ${isComplete ? 'border-green-500 bg-green-50/50' : 'border-border'}`}>
+    <div className="p-4 rounded-xl border-2 border-border transition-colors overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm">My Top 5</h3>
-        {isComplete && <span className="text-green-600 text-sm font-medium">✓ Ready to submit</span>}
       </div>
       <SortableContext items={slots.map((s) => `slot-${s.rank}`)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">

@@ -40,7 +40,7 @@ export default function VotingPage() {
   const nominations: ApprovedNominationDTO[] = votingData?.nominations ?? [];
   const alreadyVoted = votingData?.alreadyVoted ?? false;
 
-  const { slots, isComplete, removeFromSlot, reorder, isSelected, swapIntoSlot } = useVotingState();
+  const { slots, removeFromSlot, reorder, isSelected, swapIntoSlot } = useVotingState();
   const selectedCount = slots.filter((s) => s.nomId !== null).length;
   const emptySlots = slots
     .filter((s) => s.nomId === null)
@@ -76,10 +76,10 @@ export default function VotingPage() {
   }
 
   async function handleVoteSubmit() {
-    if (!activeCycle || !isComplete) return;
+    if (!activeCycle) return;
     setSubmitting(true);
     try {
-      const items = slots.map((s) => ({ nomId: s.nomId!, rank: s.rank }));
+      const items = slots.filter((s) => s.nomId !== null).map((s) => ({ nomId: s.nomId!, rank: s.rank }));
       await votingApi.submitVote(activeCycle.cycId, items);
       setSubmitted(true);
       setConfirmOpen(false);
@@ -97,9 +97,12 @@ export default function VotingPage() {
 
   if (alreadyVoted || submitted) {
     return (
-      <div className="p-6 text-center space-y-3">
-        <p className="text-2xl font-bold text-green-600">Thank you for voting!</p>
-        <p className="text-muted-foreground">Your vote was registered for cycle {activeCycle.cycName}.</p>
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <div className="text-center space-y-3">
+          <p className="text-2xl font-bold text-green-600">Thank you for voting!</p>
+          <p className="text-muted-foreground">Your vote was registered for cycle {activeCycle.cycName}.</p>
+        </div>
       </div>
     );
   }
@@ -121,7 +124,7 @@ export default function VotingPage() {
               style={{ width: `${(selectedCount / 5) * 100}%` }}
             />
           </div>
-          <span className="text-sm text-muted-foreground">{selectedCount} of 5 selected</span>
+          <span className="text-sm text-muted-foreground">{selectedCount} of up to 5 selected</span>
         </div>
 
         <div className="flex gap-4">
@@ -143,13 +146,11 @@ export default function VotingPage() {
             <TopFivePanel
               slots={slots}
               nominations={nominations}
-              isComplete={isComplete}
               onRemove={removeFromSlot}
               onReorder={reorder}
             />
             <Button
               className="w-full mt-3"
-              disabled={!isComplete}
               onClick={() => setConfirmOpen(true)}
             >
               Submit my vote
@@ -164,16 +165,20 @@ export default function VotingPage() {
           <p className="text-sm text-muted-foreground">
             Once submitted, your vote cannot be changed.
           </p>
-          <ol className="text-sm space-y-1 mt-2">
-            {slots.map((s) => {
-              const nom = nominations.find((n) => n.nomId === s.nomId);
-              return (
-                <li key={s.rank}>
-                  <strong>{s.rank}°</strong> — {nom?.nomAnonymizedText?.slice(0, 60)}...
-                </li>
-              );
-            })}
-          </ol>
+          {selectedCount === 0 ? (
+            <p className="text-sm text-muted-foreground mt-2 italic">You did not vote for any nominees.</p>
+          ) : (
+            <ol className="text-sm space-y-1 mt-2">
+              {slots.filter((s) => s.nomId !== null).map((s) => {
+                const nom = nominations.find((n) => n.nomId === s.nomId);
+                return (
+                  <li key={s.rank}>
+                    <strong>{s.rank}°</strong> — {nom?.nomAnonymizedText?.slice(0, 60)}...
+                  </li>
+                );
+              })}
+            </ol>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Back</Button>
             <Button onClick={handleVoteSubmit} disabled={submitting}>

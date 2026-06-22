@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { BackToHubButton } from '@/components/BackToHubButton';
 import { useQuery } from '@tanstack/react-query';
@@ -32,15 +33,17 @@ type CustomerFormValues = CustomerNominationPayload & { showClientName: boolean;
 
 export default function CustomerNominationPage() {
   const { toast } = useToast();
+  const [submitted, setSubmitted] = useState(false);
   const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
   const { data: members = [] } = useQuery<ActiveMember[]>({
     queryKey: ['active-team-members'],
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting } } =
+  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors, isSubmitting, isValid } } =
     useForm<CustomerFormValues>({
       defaultValues: { showClientName: false },
+      mode: 'onChange',
     });
 
   const feedbackText = watch('achievementText', '');
@@ -67,12 +70,34 @@ export default function CustomerNominationPage() {
         attachments: data.attachments,
       };
       await nominationsApi.createCustomer(payload);
-      reset({ showClientName: false });
-      toast({ title: 'Customer feedback recorded as nomination' });
+      reset({
+        nomineeId: undefined,
+        achievementText: '',
+        customerChannel: undefined,
+        feedbackDate: '',
+        showClientName: false,
+        clientName: '',
+        valuesSelected: [],
+        attachments: [],
+      });
+      setSubmitted(true);
     } catch {
       toast({ title: 'Error recording feedback', variant: 'destructive' });
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-[--color-uds-system-green-600]">Nomination submitted!</p>
+          <p className="text-muted-foreground">Your nomination was registered successfully.</p>
+          <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
@@ -91,7 +116,7 @@ export default function CustomerNominationPage() {
           <CardTitle>Voice of Customer — Nomination</CardTitle>
 
           <div>
-            <Label>Nominated team member</Label>
+            <Label>Nominated team member <span className="text-destructive">*</span></Label>
             <ComboBox
               options={memberOptions}
               value={watchedNomineeId ? String(watchedNomineeId) : ''}
@@ -103,7 +128,7 @@ export default function CustomerNominationPage() {
 
           {/* Plain textarea — FLAG-02: rich text removed intentionally */}
           <div>
-            <Label>Customer feedback (original text)</Label>
+            <Label>Customer feedback (original text) <span className="text-destructive">*</span></Label>
             <Textarea
               {...register('achievementText', {
                 required: 'Required',
@@ -121,7 +146,7 @@ export default function CustomerNominationPage() {
           </div>
 
           <div>
-            <Label>Feedback source channel</Label>
+            <Label>Feedback source channel <span className="text-destructive">*</span></Label>
             <ComboBox
               options={CHANNELS}
               value={watchedChannel ?? ''}
@@ -132,7 +157,7 @@ export default function CustomerNominationPage() {
           </div>
 
           <div>
-            <Label>Date feedback was received</Label>
+            <Label>Date feedback was received <span className="text-destructive">*</span></Label>
             <Input
               type="date"
               {...register('feedbackDate', { required: 'Required' })}
@@ -150,14 +175,15 @@ export default function CustomerNominationPage() {
             <Label>Did the customer authorize sharing their name?</Label>
           </div>
           {showClientName && (
-            <Input {...register('clientName')} placeholder="Customer name (optional)" />
+            <Input {...register('clientName')} placeholder="Customer name" />
           )}
 
           <div>
-            <Label>Support files (optional)</Label>
+            <Label>Support files <span className="text-destructive">*</span></Label>
             <Controller
               name="attachments"
               control={control}
+              rules={{ validate: (v) => (v && v.length > 0) || 'At least one file is required' }}
               render={({ field }) => (
                 <FileUpload
                   maxFiles={2}
@@ -166,9 +192,10 @@ export default function CustomerNominationPage() {
                 />
               )}
             />
+            {errors.attachments && <p className="text-destructive text-sm mt-1">{errors.attachments.message}</p>}
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
+          <Button type="submit" disabled={isSubmitting || !isValid} className="w-full">
             {isSubmitting ? 'Recording...' : 'Record customer nomination'}
           </Button>
           </form>

@@ -18,7 +18,7 @@ export function useVotingState() {
   const [slots, setSlots] = useState<TopFiveSlot[]>(INITIAL_SLOTS);
 
   const selectedIds = slots.map((s) => s.nomId).filter((id): id is number => id !== null);
-  const isComplete = selectedIds.length === 5;
+  const isComplete = false;
 
   function addToSlot(nomId: number, rank: number) {
     setSlots((prev) =>

@@ -70,7 +70,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
         {step === 'form' && (
           <form onSubmit={handleSubmit(onSaveDecision)} className="space-y-4">
             <div>
-              <Label>Selected winner (from Top 5)</Label>
+              <Label>Selected winner (from Top 5) <span className="text-destructive">*</span></Label>
               <Controller
                 name="winnerId"
                 control={control}
@@ -88,7 +88,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
             </div>
 
             <div>
-              <Label>Decision justification (min. 100 characters)</Label>
+              <Label>Decision justification (min. 100 characters) <span className="text-destructive">*</span></Label>
               <p className="text-xs text-muted-foreground mb-1">
                 This justification will be published with the winner announcement.
               </p>

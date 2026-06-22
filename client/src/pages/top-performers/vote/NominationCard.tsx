@@ -57,7 +57,7 @@ export function NominationCard({ nomination, isSelected, isFull, emptySlots, onA
           )}
           {isSelected && <Badge className="ml-auto text-xs bg-green-600">In my Top 5</Badge>}
         </div>
-        <p className="text-sm line-clamp-4">{nomination.nomAnonymizedText}</p>
+        <p className="text-sm">{nomination.nomAnonymizedText}</p>
         {!isSelected && !isFull && (
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
@@ -67,7 +67,7 @@ export function NominationCard({ nomination, isSelected, isFull, emptySlots, onA
                 onClick={(e) => { e.stopPropagation(); }}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                + Agrega a mi top 5
+                + Add
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2" align="start" onPointerDown={(e) => e.stopPropagation()}>

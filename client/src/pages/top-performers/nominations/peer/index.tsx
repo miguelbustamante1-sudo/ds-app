@@ -34,7 +34,7 @@ export default function PeerNominationPage() {
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, getValues, reset, formState: { errors } } =
+  const { register, handleSubmit, control, watch, setValue, getValues, reset, formState: { errors, isValid } } =
     useForm<PeerNominationPayload>({ mode: 'onChange' });
 
   const achievementText = watch('achievementText', '');
@@ -76,10 +76,13 @@ export default function PeerNominationPage() {
 
   if (submitted) {
     return (
-      <div className="p-6 text-center space-y-4">
-        <p className="text-2xl font-bold text-[--color-uds-system-green-600]">Nomination submitted!</p>
-        <p className="text-muted-foreground">Your nomination was registered successfully.</p>
-        <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-[--color-uds-system-green-600]">Nomination submitted!</p>
+          <p className="text-muted-foreground">Your nomination was registered successfully.</p>
+          <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
+        </div>
       </div>
     );
   }
@@ -100,7 +103,7 @@ export default function PeerNominationPage() {
           <CardTitle>Nominate a Peer</CardTitle>
 
           <div>
-            <Label>Who do you want to nominate?</Label>
+            <Label>Who do you want to nominate? <span className="text-destructive">*</span></Label>
             <ComboBox
               options={memberOptions}
               value={watchedNomineeId ? String(watchedNomineeId) : ''}
@@ -111,7 +114,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>What did this person do to deserve being a Top Performer?</Label>
+            <Label>What did this person do to deserve being a Top Performer? <span className="text-destructive">*</span></Label>
             <Textarea
               {...register('achievementText', {
                 required: 'Required',
@@ -133,7 +136,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>Do you have any quantitative data? (optional)</Label>
+            <Label>Do you have any quantitative data?</Label>
             <Textarea
               {...register('quantitativeData')}
               placeholder="e.g. Achieved 95% CSAT that month, or resolved 40 tickets in a day."
@@ -142,7 +145,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>How does this achievement reflect TELUS values? (optional)</Label>
+            <Label>How does this achievement reflect TELUS values?</Label>
             <div className="flex flex-col gap-2 mt-2">
               {TELUS_VALUES.map((v) => (
                 <Controller
@@ -168,7 +171,7 @@ export default function PeerNominationPage() {
             </div>
             <Textarea
               {...register('valuesDescription')}
-              placeholder="Briefly describe how it reflects these values (optional, max 200 chars)"
+              placeholder="Briefly describe how it reflects these values (max 200 chars)"
               maxLength={200}
               rows={2}
               className="mt-2"
@@ -176,7 +179,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>What is your relationship with the nominee?</Label>
+            <Label>What is your relationship with the nominee? <span className="text-destructive">*</span></Label>
             <Controller
               name="nominatorRelationship"
               control={control}
@@ -204,6 +207,7 @@ export default function PeerNominationPage() {
           <Button
             type="button"
             onClick={() => setConfirmOpen(true)}
+            disabled={!isValid}
             className="w-full"
           >
             Review and submit nomination
