@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import {
   Avatar,
@@ -30,7 +30,7 @@ export default function Item16({
   info = 'Web Designer',
 }: Item16Props) {
   return (
-    <div className="flex grow gap-2 px-5">
+    <div className="flex grow gap-2 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>

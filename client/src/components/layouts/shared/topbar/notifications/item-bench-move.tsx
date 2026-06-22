@@ -1,4 +1,4 @@
-import { UserRoundPlus } from 'lucide-react';
+﻿import { UserRoundPlus } from 'lucide-react';
 
 interface ItemBenchMoveProps {
   teamMemberName: string;
@@ -16,7 +16,7 @@ export default function ItemBenchMove({
   timeDisplay,
 }: ItemBenchMoveProps) {
   return (
-    <div className="flex items-start grow gap-2.5 px-5">
+    <div className="flex items-start grow gap-2.5 px-5 py-3.5">
       <div className="flex items-center justify-center size-8 bg-yellow-500/10 rounded-full border border-yellow-500/20 shrink-0 mt-0.5">
         <UserRoundPlus className="size-4 text-yellow-600" />
       </div>

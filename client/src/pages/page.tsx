@@ -433,12 +433,12 @@ function QuickAccessPanel() {
 
   return (
     <div className="flex flex-col gap-1.5 bg-white/10 border border-white/20 rounded-xl px-4 py-3 backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2 mb-1">
         <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
           ⭐ Quick Access
         </p>
         {isFull && (
-          <span className="text-[10px] text-white/40 ml-2 shrink-0">8 / 8 — unpin one to add another</span>
+          <span className="text-[10px] text-white/40 shrink-0">Favorites full — unpin one to add another</span>
         )}
       </div>
 
@@ -826,10 +826,14 @@ function getListEventIcon(ev: ListEvent) {
   return getDateIcon(ev.type as ImportantDate['type']);
 }
 
-function ImportantDatesCard() {
+interface ImportantDatesCardProps {
+  view: 'list' | 'calendar';
+  onViewChange: (v: 'list' | 'calendar') => void;
+}
+
+function ImportantDatesCard({ view, onViewChange }: ImportantDatesCardProps) {
   const [showAll, setShowAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ImportantDateFilter>("All");
-  const [view, setView] = useState<'list' | 'calendar'>('list');
   const [calMonth, setCalMonth] = useState(() => startOfMonth(new Date()));
 
   const { data: dates = [], isLoading } = useQuery({
@@ -914,7 +918,7 @@ function ImportantDatesCard() {
         <div className="flex items-center rounded-lg border border-border overflow-hidden">
           <button
             type="button"
-            onClick={() => setView('list')}
+            onClick={() => onViewChange('list')}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors",
               view === 'list' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
@@ -925,7 +929,7 @@ function ImportantDatesCard() {
           </button>
           <button
             type="button"
-            onClick={() => setView('calendar')}
+            onClick={() => onViewChange('calendar')}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors border-l border-border",
               view === 'calendar' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
@@ -1140,6 +1144,7 @@ function ImportantDatesCard() {
 export function Layout1Page() {
   const { user } = useAuth();
   const { canRead } = usePermissions();
+  const [calView, setCalView] = useState<'list' | 'calendar'>('list');
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
   const hasTeamAccess = canRead('TeamMembers');
@@ -1173,8 +1178,10 @@ export function Layout1Page() {
       {/* ── Main Content (team-access users only) ── */}
       {hasTeamAccess && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AwaitingActionPanel />
-          <ImportantDatesCard />
+          {calView === 'list' && <AwaitingActionPanel />}
+          <div className={cn(calView === 'calendar' && 'lg:col-span-2')}>
+            <ImportantDatesCard view={calView} onViewChange={setCalView} />
+          </div>
         </div>
       )}
     </div>

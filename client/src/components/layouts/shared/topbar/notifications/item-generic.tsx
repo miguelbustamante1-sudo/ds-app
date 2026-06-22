@@ -1,4 +1,4 @@
-import { Bell, Info, AlertTriangle, CheckCircle } from 'lucide-react';
+﻿import { Bell, Info, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface GenericItemProps {
@@ -27,7 +27,7 @@ export default function GenericNotificationItem({
   const icon = (itemType && ICON_MAP[itemType]) ?? <Bell className="size-4 text-muted-foreground" />;
 
   return (
-    <div className="flex grow gap-3 px-5 py-3">
+    <div className="flex grow gap-3 px-5 py-3.5">
       <div className="flex items-start pt-0.5">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
           {icon}

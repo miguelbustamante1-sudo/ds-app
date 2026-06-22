@@ -1,4 +1,4 @@
-import {
+﻿import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -27,7 +27,7 @@ export default function Item11({
   const avatarSrc = avatar?.startsWith('http') ? avatar : `/media/avatars/${avatar}`;
 
   return (
-    <div className="flex grow gap-2.5 px-5">
+    <div className="flex grow gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={avatarSrc} alt="avatar" />
         <AvatarFallback>DS</AvatarFallback>

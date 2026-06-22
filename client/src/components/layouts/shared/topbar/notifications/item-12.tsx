@@ -1,4 +1,4 @@
-import { Heart, Mail } from 'lucide-react';
+﻿import { Heart, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   Avatar,
@@ -39,7 +39,7 @@ export default function Item12({
   likeCount = 13,
 }: Item12Props) {
   return (
-    <div className="flex grow gap-2.5 px-5">
+    <div className="flex grow gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={`/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>CH</AvatarFallback>

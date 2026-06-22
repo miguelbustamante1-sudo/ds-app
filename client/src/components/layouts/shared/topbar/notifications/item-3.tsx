@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   AvatarFallback,
@@ -53,7 +53,7 @@ export default function Item3({
   };
 
   return (
-    <div className="flex grow gap-2.5 px-5">
+    <div className="flex grow gap-2.5 px-5 py-3.5">
       <Avatar>
         <AvatarImage src={avatar?.startsWith('http') ? avatar : `/media/avatars/${avatar}`} alt="avatar" />
         <AvatarFallback>DS</AvatarFallback>

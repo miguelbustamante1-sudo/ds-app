@@ -1,4 +1,4 @@
-import { ArrowLeftRight } from 'lucide-react';
+﻿import { ArrowLeftRight } from 'lucide-react';
 
 interface ItemHolidaySwapProps {
   userName?: string;
@@ -18,7 +18,7 @@ export default function ItemHolidaySwap({
   timeDisplay,
 }: ItemHolidaySwapProps) {
   return (
-    <div className="flex items-start grow gap-2.5 px-5">
+    <div className="flex items-start grow gap-2.5 px-5 py-3.5">
       <div className="flex items-center justify-center size-8 bg-amber-500/10 rounded-full border border-amber-500/20 shrink-0 mt-0.5">
         <ArrowLeftRight className="size-4 text-amber-500" />
       </div>
