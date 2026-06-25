@@ -53,6 +53,7 @@ import {
   Smartphone,
   Wallet,
   Hammer,
+  Laptop,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -144,6 +145,12 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: Smartphone,
     path: '/phone-contracts-hub',
     permission: 'PhoneContracts',
+  },
+  {
+    title: 'Laptop Inventory',
+    icon: Laptop,
+    path: '/laptop-inventory-hub',
+    permission: 'LaptopInventory',
   },
   {
     title: 'Payrol',

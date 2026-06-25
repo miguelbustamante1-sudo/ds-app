@@ -24,7 +24,8 @@ interface ActiveMember { teamMemberId: number; workdayId: string | null; teamMem
 export default function AdminNominationPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: cycles } = useQuery({ queryKey: ['tp-cycles'], queryFn: cyclesApi.getAll });
+  const activeCycle = cycles?.find((c) => c.cycStatus === 'NOMINATIONS_OPEN') ?? null;
   const { data: members = [] } = useQuery<ActiveMember[]>({
     queryKey: ['my-reports-complete'],
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/my-reports?hierarchy=complete'),
@@ -63,6 +64,15 @@ export default function AdminNominationPage() {
       toast({ title: 'Error submitting nomination', variant: 'destructive' });
     }
   };
+
+  if (!activeCycle) {
+    return (
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <p className="text-muted-foreground">Nominations are not currently open.</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

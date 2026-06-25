@@ -87,3 +87,6 @@ export * from './GiftCardPool';
 export * from './GiftCardReason';
 export * from './GiftCardType';
 export * from './GiftCardValue';
+
+// Laptop Inventory DTOs
+export * from './LaptopInventory';

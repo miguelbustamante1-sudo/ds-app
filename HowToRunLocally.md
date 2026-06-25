@@ -28,17 +28,6 @@ Both commands should print version info. If `docker` is still not found, close a
 
 That's it — Node.js is **not** required on your machine. Everything runs inside containers.
 
-## Before You Start: Configure Your Email
-
-The local setup requires your email to be set in **two places in `.env.local`**. The setup script reads it from there automatically — you never need to edit `seed.sql`.
-
-| Where | What to set | Why |
-| ----- | ----------- | --- |
-| `.env.local` — `DEV_USERNAME` | Your email | The server checks this when you log in; also used to seed your dev user into the database |
-| `.env.local` — `VITE_DEV_USERNAME` | Same email | Pre-fills the login form in the browser |
-
-**Both values must be the same email address.** The setup script will fail early with a clear message if either is missing or still set to the placeholder.
-
 ## 1. Clone the Repository
 
 ```bash
@@ -48,26 +37,28 @@ cd ds-app
 
 ## 2. Create Your `.env.local`
 
-`.env.local` is **not committed to the repository** — each team member must create their own copy. Create the file at the root of `ds-app/` and populate it with the values below:
+`.env.local` is **not committed to the repository** — each team member must create their own copy. Create the file at the root of `ds-app/` and paste the template below, then fill in the two marked values:
 
-| Variable               | Description                                                                 | Default / Action         |
-| ---------------------- | --------------------------------------------------------------------------- | ------------------------ |
-| `DATABASE_URL`         | Postgres connection string (used by Prisma)                                 | Leave as-is              |
-| `DB_USER`              | Postgres user (used by the legacy `pg` pool)                                | `postgres`               |
-| `DB_PASSWORD`          | Postgres password                                                           | `postgres`               |
-| `DB_HOST`              | Postgres host                                                               | `localhost`              |
-| `DB_PORT`              | Postgres port                                                               | `5433`                   |
-| `DB_NAME`              | Postgres database name                                                      | `ds_app_local`           |
-| `NODE_ENV`             | Environment mode                                                            | `development`            |
-| `PORT`                 | Server port                                                                 | `3000`                   |
-| `APP_ORIGIN`           | Allowed CORS origin                                                         | `http://localhost:3000`  |
-| `DEV_USER_PASSWORD`    | Password for the dev login (see Step 4)                                     | `devpassword`            |
-| `JWT_SECRET`           | Secret used to sign local JWT tokens                                        | `your_jwt_secret_key_here` |
-| `DEV_USERNAME`         | **Set this** — your email (see "Configure Your Email" above)                | *(set your email)*       |
-| `VITE_DEV_USERNAME`    | **Set this** — same email as `DEV_USERNAME`                                 | *(set your email)*       |
-| `VITE_ENABLE_DEV_LOGIN`| Enables the dev login button on the sign-in page                           | `true`                   |
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/ds_app_local
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=ds_app_local
+NODE_ENV=development
+PORT=3000
+APP_ORIGIN=http://localhost:3000
+DEV_USER_PASSWORD=devpassword
+JWT_SECRET=your_jwt_secret_key_here
+DEV_USERNAME=your@email.com         # ← set this to your email
+VITE_DEV_USERNAME=your@email.com    # ← same email as above
+VITE_ENABLE_DEV_LOGIN=true
+```
 
-> **Note:** The `DATABASE_URL`, `DB_HOST`, and `DB_PORT` values in `.env.local` are for reference only. When running in containers, the `docker-compose.local.yml` overrides these to use the internal network (`postgres-local:5432`).
+**`DEV_USERNAME` and `VITE_DEV_USERNAME` must be the same email address.** The setup script reads `DEV_USERNAME` to seed your dev user into the database and will fail early if it is missing or still set to the placeholder.
+
+> **Note:** The `DATABASE_URL`, `DB_HOST`, and `DB_PORT` values above are for reference only. When running in containers, `docker-compose.local.yml` overrides these to use the internal Docker network (`postgres-local:5432`).
 
 ## 3. Run the Setup Script
 
@@ -76,7 +67,7 @@ bash scripts/setup-local-db.sh
 ```
 
 This single command does everything:
-1. Starts a local PostgreSQL 16 container and creates the required schemas (`ds`, `sec`, `com`)
+1. Starts a local PostgreSQL 16 container and creates the required schemas (`ds`, `sec`, `com`, `es`, `di`)
 2. Runs `prisma db push` to create all tables based on `prisma/schema.prisma`
 3. Seeds the database with reference data and your dev user — email is read automatically from `DEV_USERNAME` in `.env.local`
 4. Builds the app using `Dockerfile.local` (compiles server + client)

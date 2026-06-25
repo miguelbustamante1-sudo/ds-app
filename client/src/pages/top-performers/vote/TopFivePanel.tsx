@@ -48,7 +48,7 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
       {nomination ? (
         <p className="text-xs mt-1 line-clamp-2">{nomination.nomAnonymizedText}</p>
       ) : (
-        <p className="text-xs text-muted-foreground mt-1">Drag here or use + Add below</p>
+        <p className="text-xs text-muted-foreground mt-1">Drag here or Or Click the button + Add located on each Nominee card</p>
       )}
     </div>
   );

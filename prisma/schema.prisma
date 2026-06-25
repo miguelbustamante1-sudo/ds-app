@@ -144,6 +144,7 @@ model TeamMember {
   tpVotes                           TpVote[]            @relation("TpVoter")
   tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
   bonusImpacts                      BniBonus[]
+  laptopAssignments                 LaptopAssignment[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -418,6 +419,10 @@ model User {
   bniBonusesCreated            BniBonus[]       @relation("bni_bonus_impact_created_byTotbl_users")
   bniBonusesUpdated            BniBonus[]       @relation("bni_bonus_impact_updated_byTotbl_users")
   biuUploadsCreated            BiuBonusUpload[] @relation("biu_bonus_impact_upload_created_byTotbl_users")
+  laptopsCreated               Laptop[]           @relation("LapCreatedBy")
+  laptopsUpdated               Laptop[]           @relation("LapUpdatedBy")
+  laptopAssignmentsCreated     LaptopAssignment[] @relation("LpaCreatedBy")
+  laptopAssignmentsUpdated     LaptopAssignment[] @relation("LpaUpdatedBy")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1854,5 +1859,76 @@ model BiuBonusUpload {
   createdByUser User     @relation("biu_bonus_impact_upload_created_byTotbl_users", fields: [biuCreatedBy], references: [userId])
 
   @@map("biu_bonus_impact_upload")
+  @@schema("ds")
+}
+
+model Laptop {
+  laptopId       Int       @id @default(autoincrement()) @map("lap_id") @db.Integer
+  serialNumber   String    @unique @map("lap_serial_number") @db.VarChar(100)
+  assetNumber    String?   @map("lap_asset_number") @db.VarChar(50)
+  model          String?   @map("lap_model") @db.VarChar(200)
+  brand          String?   @map("lap_brand") @db.VarChar(100)
+  code           String?   @map("lap_code") @db.VarChar(100)
+  ramGb          String?   @map("lap_ram_gb") @db.VarChar(20)
+  storageGb      String?   @map("lap_storage_gb") @db.VarChar(20)
+  region         String?   @map("lap_region") @db.VarChar(50)
+  purchaseDate   DateTime? @map("lap_purchase_date") @db.Date
+  po             String?   @map("lap_po") @db.VarChar(100)
+  usable         Boolean   @default(true) @map("lap_usable")
+  category       String?   @map("lap_category") @db.VarChar(50)
+  site           String?   @map("lap_site") @db.VarChar(50)
+  status         String    @default("Available") @map("lap_status") @db.VarChar(50)
+  comments       String?   @map("lap_comments") @db.Text
+  deleted        Boolean   @default(false) @map("lap_deleted")
+  createdBy      Int       @map("lap_created_by") @db.Integer
+  createdDate    DateTime  @default(now()) @map("lap_created_date") @db.Timestamptz
+  updatedBy      Int?      @map("lap_updated_by") @db.Integer
+  updatedDate    DateTime? @map("lap_updated_date") @db.Timestamptz
+
+  assignments    LaptopAssignment[]
+
+  createdByUser  User  @relation("LapCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lap_created_by")
+  updatedByUser  User? @relation("LapUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lap_updated_by")
+
+  @@map("lap_laptops")
+  @@schema("ds")
+}
+
+model LaptopAssignment {
+  assignmentId  Int       @id @default(autoincrement()) @map("lpa_id") @db.Integer
+  laptopId      Int       @map("lpa_lap_id") @db.Integer
+  teamMemberId  Int?      @map("lpa_tm_id") @db.Integer
+  startDate     DateTime  @map("lpa_start_date") @db.Date
+  endDate       DateTime? @map("lpa_end_date") @db.Date
+  notes         String?   @map("lpa_notes") @db.VarChar(500)
+  createdBy     Int       @map("lpa_created_by") @db.Integer
+  createdDate   DateTime  @default(now()) @map("lpa_created_date") @db.Timestamptz
+  updatedBy     Int?      @map("lpa_updated_by") @db.Integer
+  updatedDate   DateTime? @map("lpa_updated_date") @db.Timestamptz
+
+  laptop        Laptop      @relation(fields: [laptopId], references: [laptopId], onDelete: Restrict, map: "fk_lpa_lap")
+  teamMember    TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_lpa_tm")
+  createdByUser User        @relation("LpaCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lpa_created_by")
+  updatedByUser User?       @relation("LpaUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lpa_updated_by")
+
+  @@index([laptopId], map: "idx_lpa_lap_id")
+  @@index([teamMemberId], map: "idx_lpa_tm_id")
+  @@map("lpa_laptop_assignments")
+  @@schema("ds")
+}
+
+model SopLibraryItem {
+  sliId          Int      @id @default(autoincrement()) @map("sli_id")
+  sliName        String   @map("sli_name")
+  sliGoogleUrl   String   @map("sli_google_url")
+  sliCategory    String?  @map("sli_category")
+  sliMinTier     Int      @map("sli_min_tier")
+  sliActive      Boolean  @default(true) @map("sli_active")
+  sliCreatedBy   Int      @map("sli_created_by")
+  sliCreatedDate DateTime @default(now()) @map("sli_created_date")
+  sliUpdatedBy   Int      @map("sli_updated_by")
+  sliUpdatedDate DateTime @updatedAt @map("sli_updated_date")
+
+  @@map("sli_sop_library_items")
   @@schema("ds")
 }

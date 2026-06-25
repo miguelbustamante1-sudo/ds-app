@@ -110,6 +110,7 @@ import { BonusImpactAdminPage } from '@/pages/bonus-impact-admin';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { RecurringTaskTemplatesPage } from '@/pages/admin/recurring-task-templates';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
+import SopLibraryAdminPage from '@/pages/admin/sop-library';
 import { AiChatPage } from '@/pages/ai-chat';
 import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
 import AnonymizationReviewPage from '@/pages/top-performers/admin/anonymization';
@@ -121,6 +122,8 @@ import AdminNominationPage from '@/pages/top-performers/nominations/admin';
 import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 import { PhoneContractsPage } from '@/pages/phone-contracts';
 import PhoneContractsHubPage from '@/pages/phone-contracts-hub';
+import { LaptopInventoryPage } from '@/pages/laptop-inventory';
+import LaptopInventoryHubPage from '@/pages/laptop-inventory-hub';
 
 export function AppRoutingSetup() {
   return (
@@ -228,6 +231,7 @@ export function AppRoutingSetup() {
         <Route path="/admin/standalone-tasks" element={<StandaloneTasksAdminPage />} />
         <Route path="/admin/standalone-tasks/api-keys" element={<ApiKeysAdminPage />} />
         <Route path="/admin/recurring-task-templates" element={<RecurringTaskTemplatesPage />} />
+        <Route path="/admin/sop-library" element={<SopLibraryAdminPage />} />
         {/* Workflow Admin */}
         <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
         <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />
@@ -237,6 +241,9 @@ export function AppRoutingSetup() {
         {/* Phone Contracts */}
         <Route path="/phone-contracts-hub" element={<PhoneContractsHubPage />} />
         <Route path="/phone-contracts" element={<PhoneContractsPage />} />
+        {/* Laptop Inventory */}
+        <Route path="/laptop-inventory-hub" element={<LaptopInventoryHubPage />} />
+        <Route path="/laptop-inventory" element={<LaptopInventoryPage />} />
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />

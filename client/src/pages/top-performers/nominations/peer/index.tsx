@@ -27,8 +27,10 @@ export default function PeerNominationPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const autosaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const draftRestoredRef = useRef(false);
 
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: cycles } = useQuery({ queryKey: ['tp-cycles'], queryFn: cyclesApi.getAll });
+  const activeCycle = cycles?.find((c) => c.cycStatus === 'NOMINATIONS_OPEN') ?? null;
   const { data: activeMembers = [] } = useQuery<ActiveMember[]>({
     queryKey: ['active-team-members'],
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
@@ -42,18 +44,29 @@ export default function PeerNominationPage() {
   const watchedNomineeId = watch('nomineeId');
 
   useEffect(() => {
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (saved) {
-      try {
-        const draft = JSON.parse(saved) as Partial<PeerNominationPayload>;
-        Object.entries(draft).forEach(([k, v]) => setValue(k as keyof PeerNominationPayload, v as never));
-      } catch { /* ignore malformed draft */ }
-    }
     autosaveRef.current = setInterval(() => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(getValues()));
     }, 30000);
     return () => { if (autosaveRef.current) clearInterval(autosaveRef.current); };
-  }, [getValues, setValue]);
+  }, [getValues]);
+
+  useEffect(() => {
+    if (activeMembers.length === 0 || draftRestoredRef.current) return;
+    draftRestoredRef.current = true;
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const draft = JSON.parse(saved) as Partial<PeerNominationPayload>;
+      Object.entries(draft).forEach(([k, v]) => setValue(k as keyof PeerNominationPayload, v as never));
+      if (draft.nomineeId !== undefined) {
+        const valid = activeMembers.some((m) => m.teamMemberId === draft.nomineeId);
+        if (!valid) {
+          setValue('nomineeId', undefined as never);
+          toast({ title: 'Your previously selected nominee is no longer available. Please select a new one.', variant: 'destructive' });
+        }
+      }
+    } catch { /* ignore malformed draft */ }
+  }, [activeMembers, setValue, toast]);
 
   const onSubmit = async (data: PeerNominationPayload) => {
     if (!activeCycle) return;
@@ -73,6 +86,15 @@ export default function PeerNominationPage() {
     value: String(m.teamMemberId),
     label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
+
+  if (!activeCycle) {
+    return (
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <p className="text-muted-foreground">Nominations are not currently open.</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

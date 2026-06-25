@@ -73,5 +73,9 @@ export function useVotingState() {
     return selectedIds.includes(nomId);
   }
 
-  return { slots, selectedIds, isComplete, addToSlot, removeFromSlot, addToNextEmpty, reorder, isSelected, swapIntoSlot };
+  function getRank(nomId: number): number | null {
+    return slots.find((s) => s.nomId === nomId)?.rank ?? null;
+  }
+
+  return { slots, selectedIds, isComplete, addToSlot, removeFromSlot, addToNextEmpty, reorder, isSelected, getRank, swapIntoSlot };
 }

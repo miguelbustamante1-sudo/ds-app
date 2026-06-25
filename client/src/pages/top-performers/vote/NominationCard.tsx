@@ -17,13 +17,14 @@ const TYPE_LABELS: Record<string, string> = {
 
 interface NominationCardProps {
   nomination: ApprovedNominationDTO;
-  isSelected: boolean;
+  selectedRank: number | null;
   isFull: boolean;
   emptySlots: Array<{ rank: number; label: string }>;
   onAdd: (rank: number) => void;
 }
 
-export function NominationCard({ nomination, isSelected, isFull, emptySlots, onAdd }: NominationCardProps) {
+export function NominationCard({ nomination, selectedRank, isFull, emptySlots, onAdd }: NominationCardProps) {
+  const isSelected = selectedRank !== null;
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -55,7 +56,11 @@ export function NominationCard({ nomination, isSelected, isFull, emptySlots, onA
           {nomination.nomIsVozDelCliente && (
             <Badge variant="outline" className="text-xs">✦ Voice of Customer</Badge>
           )}
-          {isSelected && <Badge className="ml-auto text-xs bg-green-600">In my Top 5</Badge>}
+          {isSelected && (
+            <Badge className="ml-auto text-xs bg-[var(--color-uds-system-green-600)]">
+              In my Top 5 - #{selectedRank}
+            </Badge>
+          )}
         </div>
         <p className="text-sm">{nomination.nomAnonymizedText}</p>
         {!isSelected && !isFull && (

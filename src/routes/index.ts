@@ -70,8 +70,10 @@ import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reason
 import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
 import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
 import phoneContractsRouter from './phoneContracts.routes';
+import laptopInventoryRouter from './laptopInventory.routes';
 import payrolRouter from './payrol.routes';
 import bonusImpactRouter from './bonusImpact.routes';
+import sopLibraryRouter from './sopLibrary.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -124,6 +126,7 @@ export default function registerRoutes() {
   router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
   router.use('/compensatory-time', compensatoryTimeRouter);
   router.use('/phone-contracts', phoneContractsRouter);
+  router.use('/laptops', laptopInventoryRouter);
   router.use('/payrol', payrolRouter);
   router.use('/bonus-impacts', bonusImpactRouter);
   router.use('/workflow/templates', workflowTemplatesRouter);
@@ -149,7 +152,7 @@ export default function registerRoutes() {
   router.use('/giftcards/catalogs/reasons', giftCardReasonsRouter);
   router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
   router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
-  
+  router.use('/sop-library', sopLibraryRouter);
 
   return router;
 }

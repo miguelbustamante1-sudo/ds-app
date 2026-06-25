@@ -40,7 +40,7 @@ export default function VotingPage() {
   const nominations: ApprovedNominationDTO[] = votingData?.nominations ?? [];
   const alreadyVoted = votingData?.alreadyVoted ?? false;
 
-  const { slots, removeFromSlot, reorder, isSelected, swapIntoSlot } = useVotingState();
+  const { slots, removeFromSlot, reorder, getRank, swapIntoSlot } = useVotingState();
   const selectedCount = slots.filter((s) => s.nomId !== null).length;
   const emptySlots = slots
     .filter((s) => s.nomId === null)
@@ -134,8 +134,8 @@ export default function VotingPage() {
               <NominationCard
                 key={nom.nomId}
                 nomination={nom}
-                isSelected={isSelected(nom.nomId)}
-                isFull={selectedCount >= 5 && !isSelected(nom.nomId)}
+                selectedRank={getRank(nom.nomId)}
+                isFull={selectedCount >= 5 && getRank(nom.nomId) === null}
                 emptySlots={emptySlots}
                 onAdd={(rank) => handleAdd(nom.nomId, rank)}
               />

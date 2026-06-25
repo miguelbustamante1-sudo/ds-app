@@ -108,6 +108,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'SopKnowledge',
     },
     {
+      title: 'SOP Library',
+      description: 'Manage SOP library entries and control tier-based access.',
+      path: '/admin/sop-library',
+      permission: 'SopLibrary',
+    },
+    {
       title: 'Reports',
       description: 'Access Maintenance and data quality reports.',
       path: '/reports?module=maintenance',

@@ -34,7 +34,8 @@ type CustomerFormValues = CustomerNominationPayload & { showClientName: boolean;
 export default function CustomerNominationPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: cycles } = useQuery({ queryKey: ['tp-cycles'], queryFn: cyclesApi.getAll });
+  const activeCycle = cycles?.find((c) => c.cycStatus === 'NOMINATIONS_OPEN') ?? null;
   const { data: members = [] } = useQuery<ActiveMember[]>({
     queryKey: ['active-team-members'],
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
@@ -77,7 +78,6 @@ export default function CustomerNominationPage() {
         feedbackDate: '',
         showClientName: false,
         clientName: '',
-        valuesSelected: [],
         attachments: [],
       });
       setSubmitted(true);
@@ -85,6 +85,15 @@ export default function CustomerNominationPage() {
       toast({ title: 'Error recording feedback', variant: 'destructive' });
     }
   };
+
+  if (!activeCycle) {
+    return (
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <p className="text-muted-foreground">Nominations are not currently open.</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
