@@ -749,13 +749,15 @@ model ReportParameter {
 }
 
 model FunctionalArea {
-  Id   Int      @id @default(autoincrement()) @map("far_id") @db.Integer
-  Name String   @map("far_name") @db.Text
-  countryId          Int?     @map("cou_id")
+  Id        Int     @id @default(autoincrement()) @map("far_id") @db.Integer
+  Name      String  @map("far_name") @db.Text
+  countryId Int?    @map("cou_id")
+
   country            Country?           @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
   projectAssignments ProjectAssignment[]
   benchAssignments   Bench[]
 
+  @@unique([Name, countryId], name: "far_unique_name_country")
   @@map("far_functional_areas")
   @@schema("ds")
 }
