@@ -721,6 +721,24 @@ model ReportParameter {
   @@schema("ds")
 }
 
+model StoredProcedure {
+  spId            Int       @id @default(autoincrement()) @map("spr_id")
+  spSchema        String    @map("spr_schema") @db.VarChar(50)
+  spName          String    @map("spr_name") @db.VarChar(100)
+  spLabel         String    @map("spr_label") @db.VarChar(200)
+  spDescription   String?   @map("spr_description") @db.VarChar(2000)
+  spActive        Boolean   @default(true) @map("spr_active")
+  spCreatedAt     DateTime  @default(now()) @map("spr_created_at") @db.Timestamptz(6)
+  spCreatedBy     Int       @map("spr_created_by")
+  spUpdatedAt     DateTime? @map("spr_updated_at") @db.Timestamptz(6)
+  spUpdatedBy     Int?      @map("spr_updated_by")
+
+  @@unique([spSchema, spName], map: "uq_spr_schema_name")
+  @@index([spActive], map: "idx_spr_active")
+  @@map("spr_procedure_definitions")
+  @@schema("ds")
+}
+
 model FunctionalArea {
   Id   Int      @id @default(autoincrement()) @map("far_id") @db.Integer
   Name String   @map("far_name") @db.Text
