@@ -89,7 +89,7 @@ router.get(
       const id = Number(req.params.id);
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
-      const report = await dynamicReportOrchestrator.getById(id);
+      const report = await dynamicReportOrchestrator.getById(id, req.user?.permissions ?? {});
       if (!report) return res.status(404).json({ error: 'Report not found' });
 
       res.json(report);
@@ -149,7 +149,7 @@ router.post(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const body = req.body as ExecuteRequestDTO;
-      const result = await dynamicReportOrchestrator.download(id, body);
+      const result = await dynamicReportOrchestrator.download(id, body, req.user?.permissions ?? {});
       res.json(result);
     } catch (err) {
       console.error('[reports/dynamic] POST /:id/download Error:', err);
@@ -172,7 +172,7 @@ router.post(
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     try {
-      await dynamicReportOrchestrator.streamCsv(id, body, res);
+      await dynamicReportOrchestrator.streamCsv(id, body, res, req.user?.permissions ?? {});
     } catch (err) {
       console.error('[reports/dynamic] POST /:id/download/stream Error:', err);
       if (!res.headersSent) {
@@ -194,7 +194,7 @@ router.post(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const body = req.body as ExecuteRequestDTO;
-      const result = await dynamicReportOrchestrator.execute(id, body);
+      const result = await dynamicReportOrchestrator.execute(id, body, req.user?.permissions ?? {});
       res.json(result);
     } catch (err) {
       console.error('[reports/dynamic] POST /:id/execute Error:', err);
@@ -213,7 +213,7 @@ router.get(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const paramName = req.params.paramName as string;
-      const options = await dynamicReportOrchestrator.getOptions(id, paramName);
+      const options = await dynamicReportOrchestrator.getOptions(id, paramName, req.user?.permissions ?? {});
       res.json(options);
     } catch (err) {
       console.error('[reports/dynamic] GET /:id/options/:paramName Error:', err);
