@@ -11,8 +11,25 @@ const TABLE_BASE = '/api/persistence-table';
 
 // --- Persistence Templates ----------------------------------------------------
 
-export const getPersistenceTemplates = () =>
-  apiGet<PersistenceTemplateDTO[]>(BASE);
+/**
+ * Fetches ALL persistence templates by iterating pages of 50 until exhausted.
+ * The endpoint defaults to a 10-item page when no page/limit is passed, so
+ * callers must paginate through it explicitly to see the full list.
+ */
+export async function getPersistenceTemplates(): Promise<PersistenceTemplateDTO[]> {
+  const LIMIT = 50;
+  const all: PersistenceTemplateDTO[] = [];
+  let page = 1;
+
+  while (true) {
+    const batch = await apiGet<PersistenceTemplateDTO[]>(`${BASE}?page=${page}&limit=${LIMIT}`);
+    all.push(...batch);
+    if (batch.length < LIMIT) break;
+    page += 1;
+  }
+
+  return all;
+}
 
 export const getPersistenceTemplate = (id: number) =>
   apiGet<PersistenceTemplateDTO>(`${BASE}/${id}`);
