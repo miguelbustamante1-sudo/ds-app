@@ -11,6 +11,8 @@ import { assertSqlSafe, extractParams, getColumnsFromSql } from './components/Sq
 import { executeSql, streamCsvToResponse } from './components/SqlExecutor';
 import { resolveOptions } from './components/OptionsResolver';
 import { auditOrchestrator } from '../../audit';
+import { can, type PermissionMap } from '../../../services/permissionResolver';
+import { AppError } from '../../../errors/AppError';
 import type {
   ReportDefinitionDTO,
   ReportDefinitionSummaryDTO,
@@ -24,6 +26,15 @@ import type {
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 export class DynamicReportOrchestrator {
+
+  private assertReportPermission(
+    reportPermission: string | null,
+    permissions: PermissionMap,
+  ): void {
+    if (reportPermission && !can(permissions, reportPermission, 'read')) {
+      throw new AppError('Insufficient permissions for this report', 403);
+    }
+  }
 
   async listActive(): Promise<ReportDefinitionSummaryDTO[]> {
     return listActiveReports();
