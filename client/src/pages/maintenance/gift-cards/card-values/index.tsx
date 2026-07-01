@@ -28,10 +28,10 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getCardValues, deactivateCardValue } from '@/services/giftCardValue';
+import { getCardValues, deactivateCardValue, activateCardValue } from '@/services/giftCardValue';
 import { CardValueFormDialog } from './CardValueFormDialog';
 import type { GiftCardValueDTO } from '@shared/dto/GiftCardValue';
-import { Plus, Pencil, PowerOff } from 'lucide-react';
+import { Plus, Pencil, Power, PowerOff } from 'lucide-react';
 
 export function GiftCardValuesPage() {
   const [values, setValues]               = useState<GiftCardValueDTO[]>([]);
@@ -62,8 +62,18 @@ export function GiftCardValuesPage() {
       await deactivateCardValue(value.cardValueId);
       toast({ title: 'Deactivated', description: `Card value deactivated successfully` });
       loadValues();
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message ?? 'Failed to deactivate', variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to deactivate', variant: 'destructive' });
+    }
+  };
+
+  const handleActivate = async (value: GiftCardValueDTO) => {
+    try {
+      await activateCardValue(value.cardValueId);
+      toast({ title: 'Activated', description: `Card value activated successfully` });
+      loadValues();
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to activate', variant: 'destructive' });
     }
   };
 
@@ -121,9 +131,14 @@ export function GiftCardValuesPage() {
               <PowerOff size={15} className="me-1" /> Deactivate
             </Button>
           )}
+          {canCreate('GiftCardCatalog') && !row.original.cardValueIsActive && (
+            <Button variant="ghost" size="sm" onClick={() => handleActivate(row.original)}>
+              <Power size={15} className="me-1" /> Activate
+            </Button>
+          )}
         </div>
       ),
-      size: 160,
+      size: 200,
       enableSorting: false,
       meta: { skeleton: <Skeleton className="h-8 w-28 ml-auto" /> },
     },

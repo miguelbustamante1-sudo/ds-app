@@ -1,4 +1,5 @@
 import { prisma } from '../../../../db/prisma';
+import type { GiftCardReasonDTO } from '../../../../../shared/dto/GiftCardReason';
 
 export async function deactivateReason(id: number): Promise<boolean> {
   const existing = await prisma.giftCardReason.findUnique({
@@ -12,4 +13,28 @@ export async function deactivateReason(id: number): Promise<boolean> {
     data:  { reasonIsActive: false },
   });
   return true;
+}
+
+export async function activateReason(id: number): Promise<GiftCardReasonDTO | null> {
+  const existing = await prisma.giftCardReason.findUnique({
+    where:  { reasonId: id },
+    select: {
+      reasonId:        true,
+      reasonName:      true,
+      reasonCreatedAt: true,
+    },
+  });
+  if (!existing) return null;
+
+  await prisma.giftCardReason.update({
+    where: { reasonId: id },
+    data:  { reasonIsActive: true },
+  });
+
+  return {
+    reasonId:        existing.reasonId,
+    reasonName:      existing.reasonName,
+    reasonIsActive:  true,
+    reasonCreatedAt: existing.reasonCreatedAt.toISOString(),
+  };
 }

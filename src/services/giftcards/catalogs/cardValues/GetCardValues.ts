@@ -11,6 +11,7 @@ type GiftCardValueRow = Prisma.GiftCardValueGetPayload<{ include: typeof VALUE_I
 function mapRow(row: GiftCardValueRow): GiftCardValueDTO {
   return {
     cardValueId:        row.cardValueId,
+    cardTypeId:         row.cardTypeId,
     cardValueAmount:    Number(row.cardValueAmount),
     cardValueCurrency:  row.cardValueCurrency,
     cardValueIsActive:  row.cardValueIsActive,

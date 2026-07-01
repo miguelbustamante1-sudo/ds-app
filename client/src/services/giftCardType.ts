@@ -16,3 +16,6 @@ export const updateCardType = (id: number, data: UpdateGiftCardTypeDTO) =>
 
 export const deactivateCardType = (id: number) =>
   apiDelete(`${BASE}/${id}`);
+
+export const activateCardType = (id: number) =>
+  apiPut<GiftCardTypeDTO>(`${BASE}/${id}/activate`, {});

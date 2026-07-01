@@ -102,6 +102,42 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'Shift',
     },
     {
+      title: 'Gift Card Pools',
+      description: 'Manage cost-center pools for gift card distribution.',
+      path: '/maintenance/gift-cards/pools',
+      permission: 'GiftCardCatalog',
+    },
+    {
+      title: 'Gift Card Reasons',
+      description: 'Define reasons available for gift card distribution requests.',
+      path: '/maintenance/gift-cards/reasons',
+      permission: 'GiftCardCatalog',
+    },
+    {
+      title: 'Gift Card Types',
+      description: 'Configure the types of gift cards available in the catalog.',
+      path: '/maintenance/gift-cards/card-types',
+      permission: 'GiftCardCatalog',
+    },
+    {
+      title: 'Gift Card Values',
+      description: 'Set the denominations and currencies for each card type.',
+      path: '/maintenance/gift-cards/card-values',
+      permission: 'GiftCardCatalog',
+    },
+    {
+      title: 'Gift Card Distribution Requests',
+      description: 'Request and review gift card distribution assignments.',
+      path: '/maintenance/gift-cards/request',
+      permission: 'GiftCardCatalog',
+    },
+    {
+      title: 'Gift Card Documentation',
+      description: 'Record and review gift card usage receipts and proof of spend.',
+      path: '/maintenance/gift-cards/documentation',
+      permission: 'GiftCardCatalog',
+    },
+    {
       title: 'Knowledge Base',
       description: 'Upload and manage SOP documents for the AI knowledge base.',
       path: '/maintenance/knowledge-base',

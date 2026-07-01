@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, PowerOff, RefreshCw, X } from 'lucide-react';
+import { Pencil, Power, PowerOff, RefreshCw, X } from 'lucide-react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getPools, deactivatePool, type GiftCardPoolDTO } from '@/services/giftCardPool';
+import { getPools, deactivatePool, activatePool, type GiftCardPoolDTO } from '@/services/giftCardPool';
 import { PoolFormDialog } from './PoolFormDialog';
 
 const STATUS_OPTIONS = [
@@ -107,6 +107,20 @@ export function GiftCardPoolsPage() {
     }
   };
 
+  const handleActivate = async (pool: GiftCardPoolDTO) => {
+    try {
+      await activatePool(pool.poolId);
+      toast({ title: 'Activated', description: `Pool "${pool.poolName}" activated.` });
+      loadPools();
+    } catch (err: unknown) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to activate pool',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const columns = useMemo<ColumnDef<GiftCardPoolDTO>[]>(
     () => [
       {
@@ -161,14 +175,19 @@ export function GiftCardPoolsPage() {
                 <PowerOff size={15} className="me-1" /> Deactivate
               </Button>
             )}
+            {canCreate('GiftCardCatalog') && !row.original.poolIsActive && (
+              <Button variant="ghost" size="sm" onClick={() => handleActivate(row.original)}>
+                <Power size={15} className="me-1" /> Activate
+              </Button>
+            )}
           </div>
         ),
-        size: 160,
+        size: 200,
         enableSorting: false,
         meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-8 w-24" /> },
       },
     ],
-    [pools],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({

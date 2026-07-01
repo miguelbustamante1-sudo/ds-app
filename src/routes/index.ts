@@ -73,6 +73,8 @@ import phoneContractsRouter from './phoneContracts.routes';
 import laptopInventoryRouter from './laptopInventory.routes';
 import payrolRouter from './payrol.routes';
 import bonusImpactRouter from './bonusImpact.routes';
+import giftCardAssignmentsRouter from '../services/giftcards/assignments/assignments.routes';
+import giftCardDocumentationRouter from '../services/giftcards/documentation/documentation.routes';
 import sopLibraryRouter from './sopLibrary.routes';
 
 export default function registerRoutes() {
@@ -152,6 +154,8 @@ export default function registerRoutes() {
   router.use('/giftcards/catalogs/reasons', giftCardReasonsRouter);
   router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
   router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
+  router.use('/giftcards/assignments', giftCardAssignmentsRouter);
+  router.use('/giftcards/documentation', giftCardDocumentationRouter);
   router.use('/sop-library', sopLibraryRouter);
 
   return router;

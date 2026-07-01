@@ -5,7 +5,7 @@ import { getPools, getPoolById } from './GetPools';
 import { createPool, validateCreatePool } from './CreatePool';
 import { GiftCardValidationError } from '../../errors';
 import { updatePool, validateUpdatePool } from './UpdatePool';
-import { deactivatePool } from './DeactivatePool';
+import { deactivatePool, activatePool } from './DeactivatePool';
 import { auditOrchestrator } from '../../../audit/AuditOrchestrator';
 import { error } from '../../../../logger';
 
@@ -104,6 +104,47 @@ router.put(
       }
       error(err);
       res.status(500).json({ error: 'Failed to update pool' });
+    }
+  },
+);
+
+// PUT /api/giftcards/catalogs/pools/:id/activate
+router.put(
+  '/:id/activate',
+  requirePermission('GiftCardCatalog', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(String((req as Request).params['id']), 10);
+      if (isNaN(id) || id < 1) {
+        res.status(400).json({ error: '`id` must be a positive integer' });
+        return;
+      }
+
+      const oldRecord = await getPoolById(id);
+      if (!oldRecord) {
+        res.status(404).json({ error: `Pool ${id} not found` });
+        return;
+      }
+
+      const result = await activatePool(id);
+      if (!result) {
+        res.status(404).json({ error: `Pool ${id} not found` });
+        return;
+      }
+
+      await auditOrchestrator.log({
+        entityName: 'tbl_gcp_pools',
+        entityId:   String(id),
+        createdBy:  req.user!.email,
+        oldValues:  oldRecord as unknown as Record<string, unknown>,
+        newValues:  result as unknown as Record<string, unknown>,
+        comment:    `Pool "${result.poolName}" activated`,
+      });
+
+      res.json({ data: result });
+    } catch (err) {
+      error(err);
+      res.status(500).json({ error: 'Failed to activate pool' });
     }
   },
 );

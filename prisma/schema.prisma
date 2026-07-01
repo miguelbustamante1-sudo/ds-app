@@ -24,7 +24,8 @@ model Country {
   endorsements       Endorsement[]
   bonusSubcategories BonusSubcategory[]
   functionalAreas    FunctionalArea[]
-  phoneLines         CorporatePhoneLine[]
+  phoneLines          CorporatePhoneLine[]
+  giftCardAssignments GiftCardAssignment[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
   @@map("cou_countries")
@@ -414,6 +415,8 @@ model User {
   giftCardReasonsCreated       GiftCardReason[]
   giftCardTypesCreated         GiftCardType[]
   giftCardValuesCreated        GiftCardValue[]
+  giftCardAssignmentsCreated   GiftCardAssignment[]
+  giftCardDocumentationsCreated GiftCardDocumentation[]
   prlPayrolsCreated            PrlPayrol[]      @relation("prl_payrol_created_byTotbl_users")
   prlPayrolsUpdated            PrlPayrol[]      @relation("prl_payrol_updated_byTotbl_users")
   bniBonusesCreated            BniBonus[]       @relation("bni_bonus_impact_created_byTotbl_users")
@@ -1593,9 +1596,10 @@ model Upload {
   uploadCreatedBy    Int      @map("upl_created_by")
   uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
 
-  createdByUser             User           @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  createdByUser             User                    @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
   bonusUploads              BiuBonusUpload[]
-  standaloneTaskTranscripts StandaloneTask[] @relation("StandaloneTaskTranscript")
+  standaloneTaskTranscripts StandaloneTask[]        @relation("StandaloneTaskTranscript")
+  giftCardDocumentations    GiftCardDocumentation[]
 
   @@map("upl_uploads")
   @@schema("ds")
@@ -1739,7 +1743,8 @@ model GiftCardPool {
   poolCreatedBy Int      @map("gcp_created_by") @db.Integer
   poolCreatedAt DateTime @default(now()) @map("gcp_created_at") @db.Timestamptz(6)
 
-  createdBy User @relation(fields: [poolCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcp_usr")
+  createdBy   User                 @relation(fields: [poolCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcp_usr")
+  assignments GiftCardAssignment[]
 
   @@index([poolIsActive], map: "idx_tbl_gcp_pools_is_active")
   @@index([poolCreatedBy], map: "idx_tbl_gcp_pools_created_by")
@@ -1754,7 +1759,8 @@ model GiftCardReason {
   reasonCreatedBy Int      @map("gcr_created_by") @db.Integer
   reasonCreatedAt DateTime @default(now()) @map("gcr_created_at") @db.Timestamptz(6)
 
-  createdBy User @relation(fields: [reasonCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcr_usr")
+  createdBy   User                 @relation(fields: [reasonCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcr_usr")
+  assignments GiftCardAssignment[]
 
   @@index([reasonIsActive], map: "idx_tbl_gcr_reasons_is_active")
   @@index([reasonCreatedBy], map: "idx_tbl_gcr_reasons_created_by")
@@ -1769,8 +1775,10 @@ model GiftCardType {
   cardTypeCreatedBy Int              @map("gct_created_by") @db.Integer
   cardTypeCreatedAt DateTime         @default(now()) @map("gct_created_at") @db.Timestamptz(6)
 
-  createdBy  User             @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
-  cardValues GiftCardValue[]
+  createdBy      User                   @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
+  cardValues     GiftCardValue[]
+  assignments    GiftCardAssignment[]
+  documentations GiftCardDocumentation[]
 
   @@index([cardTypeIsActive], map: "idx_tbl_gct_card_types_is_active")
   @@index([cardTypeCreatedBy], map: "idx_tbl_gct_card_types_created_by")
@@ -1787,13 +1795,41 @@ model GiftCardValue {
   cardValueCreatedBy Int          @map("gcv_created_by") @db.Integer
   cardValueCreatedAt DateTime     @default(now()) @map("gcv_created_at") @db.Timestamptz(6)
 
-  cardType  GiftCardType @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
-  createdBy User         @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
+  cardType    GiftCardType         @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
+  createdBy   User                 @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
+  assignments GiftCardAssignment[]
 
   @@index([cardTypeId], map: "idx_tbl_gcv_card_values_gct_id")
   @@index([cardValueIsActive], map: "idx_tbl_gcv_card_values_is_active")
   @@index([cardValueCreatedBy], map: "idx_tbl_gcv_card_values_created_by")
   @@map("tbl_gcv_card_values")
+  @@schema("ds")
+}
+
+model GiftCardAssignment {
+  assignmentId           Int      @id @default(autoincrement()) @map("gca_id") @db.Integer
+  countryId              Int      @map("gca_country_id") @db.Integer
+  poolId                 Int      @map("gca_pool_id") @db.Integer
+  reasonId               Int      @map("gca_reason_id") @db.Integer
+  cardTypeId             Int      @map("gca_card_type_id") @db.Integer
+  cardValueId            Int      @map("gca_card_value_id") @db.Integer
+  assignmentAmount       Int      @map("gca_amount") @db.Integer
+  assignmentComment      String?  @map("gca_comment")
+  assignmentRecipients   Json     @map("gca_recipients")
+  assignmentEmailMessage String?  @map("gca_email_message")
+  assignmentAuthStatus   String   @default("Pending") @map("gca_authorization_status") @db.VarChar(20)
+  assignmentCreatedBy    Int      @map("gca_created_by") @db.Integer
+  assignmentCreatedAt    DateTime @default(now()) @map("gca_created_at") @db.Timestamptz(6)
+
+  country        Country                @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_gca_cou")
+  pool           GiftCardPool           @relation(fields: [poolId], references: [poolId], onDelete: Restrict, map: "fk_gca_gcp")
+  reason         GiftCardReason         @relation(fields: [reasonId], references: [reasonId], onDelete: Restrict, map: "fk_gca_gcr")
+  cardType       GiftCardType           @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gca_gct")
+  cardValue      GiftCardValue          @relation(fields: [cardValueId], references: [cardValueId], onDelete: Restrict, map: "fk_gca_gcv")
+  createdBy      User                   @relation(fields: [assignmentCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gca_usr")
+  documentations GiftCardDocumentation[]
+
+  @@map("tbl_gca_card_assignments")
   @@schema("ds")
 }
 
@@ -1862,6 +1898,64 @@ model BiuBonusUpload {
 
   @@map("biu_bonus_impact_upload")
   @@schema("ds")
+}
+
+// =============================================================================
+// Gift Card Documentation (Module 3 — Sprint 2)
+// =============================================================================
+
+model GiftCardDocumentation {
+  documentationId  Int      @id @default(autoincrement()) @map("gcd_id") @db.Integer
+  assignmentId     Int      @map("gcd_assignment_id") @db.Integer
+  value            Decimal  @map("gcd_value") @db.Decimal(15, 2)
+  cardTypeId       Int      @map("gcd_card_type_id") @db.Integer
+  cardNumber       String   @map("gcd_card_number") @db.VarChar(100)
+  uploadId         Int      @map("gcd_upload_id") @db.Integer
+  amountNotSpent   Decimal? @map("gcd_amount_not_spent") @db.Decimal(15, 2)
+  createdBy        Int      @map("gcd_created_by") @db.Integer
+  createdAt        DateTime @default(now()) @map("gcd_created_at") @db.Timestamptz(6)
+
+  assignment    GiftCardAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Restrict, map: "fk_gcd_gca")
+  cardType      GiftCardType       @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcd_gct")
+  upload        Upload             @relation(fields: [uploadId], references: [uploadId], onDelete: Restrict, map: "fk_gcd_upl")
+  createdByUser User               @relation(fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_gcd_usr")
+
+  @@index([assignmentId], map: "idx_tbl_gcd_assignment_id")
+  @@index([cardTypeId], map: "idx_tbl_gcd_card_type_id")
+  @@index([createdBy], map: "idx_tbl_gcd_created_by")
+  @@map("tbl_gcd_card_documentation")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Gift Card Inventory — Staging (Module 1 — Sprint 2)
+// =============================================================================
+
+model GiftCardInventory {
+  id             Int       @id @default(autoincrement()) @map("gci_id")
+  codigo         String    @unique @map("gci_codigo") @db.VarChar(200)
+  link           String?   @map("gci_link")
+  tipo           String    @map("gci_tipo") @db.VarChar(200)
+  mes            String    @map("gci_mes") @db.VarChar(50)
+  expiracion     DateTime? @map("gci_expiracion") @db.Date
+  diasExpiracion DateTime? @map("gci_dias_expiracion") @db.Date
+  cantidad       Decimal   @map("gci_cantidad") @db.Decimal(15, 2)
+  mesUso         String?   @map("gci_mes_uso") @db.VarChar(50)
+  motivos        String?   @map("gci_motivos")
+  estado         String?   @map("gci_estado") @db.VarChar(50)
+  utilizacion    String?   @map("gci_utilizacion") @db.VarChar(100)
+  email          String?   @map("gci_email") @db.VarChar(255)
+  lob            String?   @map("gci_lob") @db.VarChar(100)
+  pool           String?   @map("gci_pool") @db.VarChar(200)
+  comment        String?   @map("gci_comment")
+  createdBy      Int       @map("gci_created_by")
+  createdAt      DateTime  @default(now()) @map("gci_created_at") @db.Timestamptz(6)
+
+  @@index([tipo], map: "idx_gci_tipo")
+  @@index([estado], map: "idx_gci_estado")
+  @@index([createdBy], map: "idx_gci_created_by")
+  @@map("gci_gift_card_inventory")
+  @@schema("es")
 }
 
 model Laptop {

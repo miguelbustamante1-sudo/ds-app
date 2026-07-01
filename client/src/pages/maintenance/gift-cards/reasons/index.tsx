@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, PowerOff, RefreshCw, X } from 'lucide-react';
+import { Pencil, Power, PowerOff, RefreshCw, X } from 'lucide-react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getReasons, deactivateReason, type GiftCardReasonDTO } from '@/services/giftCardReason';
+import { getReasons, deactivateReason, activateReason, type GiftCardReasonDTO } from '@/services/giftCardReason';
 import { ReasonFormDialog } from './ReasonFormDialog';
 
 const STATUS_OPTIONS = [
@@ -106,6 +106,20 @@ export function GiftCardReasonsPage() {
     }
   };
 
+  const handleActivate = async (reason: GiftCardReasonDTO) => {
+    try {
+      await activateReason(reason.reasonId);
+      toast({ title: 'Activated', description: `Reason "${reason.reasonName}" activated.` });
+      loadReasons();
+    } catch (err: unknown) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to activate reason',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const columns = useMemo<ColumnDef<GiftCardReasonDTO>[]>(
     () => [
       {
@@ -154,14 +168,19 @@ export function GiftCardReasonsPage() {
                 <PowerOff size={15} className="me-1" /> Deactivate
               </Button>
             )}
+            {canCreate('GiftCardCatalog') && !row.original.reasonIsActive && (
+              <Button variant="ghost" size="sm" onClick={() => handleActivate(row.original)}>
+                <Power size={15} className="me-1" /> Activate
+              </Button>
+            )}
           </div>
         ),
-        size: 160,
+        size: 200,
         enableSorting: false,
         meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-8 w-24" /> },
       },
     ],
-    [reasons],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({

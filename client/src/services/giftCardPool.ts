@@ -16,3 +16,6 @@ export const updatePool = (id: number, data: UpdateGiftCardPoolDTO) =>
 
 export const deactivatePool = (id: number) =>
   apiDelete(`${BASE}/${id}`);
+
+export const activatePool = (id: number) =>
+  apiPut<GiftCardPoolDTO>(`${BASE}/${id}/activate`, {});

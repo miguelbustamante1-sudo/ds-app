@@ -122,6 +122,8 @@ import AdminNominationPage from '@/pages/top-performers/nominations/admin';
 import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 import { PhoneContractsPage } from '@/pages/phone-contracts';
 import PhoneContractsHubPage from '@/pages/phone-contracts-hub';
+import { GiftCardRequestPage } from '@/pages/maintenance/gift-cards/request';
+import { GiftCardDocumentationPage } from '@/pages/maintenance/gift-cards/documentation';
 import { LaptopInventoryPage } from '@/pages/laptop-inventory';
 import LaptopInventoryHubPage from '@/pages/laptop-inventory-hub';
 
@@ -275,6 +277,8 @@ export function AppRoutingSetup() {
         <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />
         <Route path="/top-performers/nominations/admin" element={<AdminNominationPage />} />
         <Route path="/top-performers/nominations/customer" element={<CustomerNominationPage />} />
+        <Route path="/maintenance/gift-cards/request" element={<GiftCardRequestPage />} />
+        <Route path="/maintenance/gift-cards/documentation" element={<GiftCardDocumentationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
       

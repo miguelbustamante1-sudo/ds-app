@@ -5,7 +5,7 @@ import { getCardTypes, getCardTypeById } from './GetCardTypes';
 import { createCardType, validateCreateCardType } from './CreateCardType';
 import { GiftCardValidationError } from '../../errors';
 import { updateCardType, validateUpdateCardType } from './UpdateCardType';
-import { deactivateCardType } from './DeactivateCardType';
+import { deactivateCardType, activateCardType } from './DeactivateCardType';
 import { auditOrchestrator } from '../../../audit/AuditOrchestrator';
 import { error } from '../../../../logger';
 
@@ -105,6 +105,47 @@ router.put(
       }
       error(err);
       res.status(500).json({ error: 'Failed to update card type' });
+    }
+  },
+);
+
+// PUT /api/giftcards/catalogs/card-types/:id/activate
+router.put(
+  '/:id/activate',
+  requirePermission('GiftCardCatalog', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(String((req as Request).params['id']), 10);
+      if (isNaN(id) || id < 1) {
+        res.status(400).json({ error: '`id` must be a positive integer' });
+        return;
+      }
+
+      const oldRecord = await getCardTypeById(id);
+      if (!oldRecord) {
+        res.status(404).json({ error: `Card type ${id} not found` });
+        return;
+      }
+
+      const result = await activateCardType(id);
+      if (!result) {
+        res.status(404).json({ error: `Card type ${id} not found` });
+        return;
+      }
+
+      await auditOrchestrator.log({
+        entityName: 'tbl_gct_card_types',
+        entityId:   String(id),
+        createdBy:  req.user!.email,
+        oldValues:  oldRecord as unknown as Record<string, unknown>,
+        newValues:  result as unknown as Record<string, unknown>,
+        comment:    `Card type "${result.cardTypeName}" activated`,
+      });
+
+      res.json({ data: result });
+    } catch (err) {
+      error(err);
+      res.status(500).json({ error: 'Failed to activate card type' });
     }
   },
 );

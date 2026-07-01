@@ -1,5 +1,6 @@
 export interface GiftCardValueDTO {
   cardValueId:        number;
+  cardTypeId:         number;
   cardValueAmount:    number;
   cardValueCurrency:  string;
   cardValueIsActive:  boolean;
