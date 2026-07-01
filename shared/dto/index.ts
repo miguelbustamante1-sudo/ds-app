@@ -44,6 +44,7 @@ export * from './TeamMemberBonus';
 export * from './CompensatoryTime';
 export * from './TimeOffChangeLog';
 export * from './DynamicReport';
+export * from './StoredProcedure';
 
 // Security DTOs
 export * from './Permission';
