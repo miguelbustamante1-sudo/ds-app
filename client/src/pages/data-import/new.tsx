@@ -11,13 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ComboBox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -199,11 +193,6 @@ export function DataImportNewPage() {
   // Cell-level validation errors for the preview table
   const [cellErrors, setCellErrors] = useState<CellError[]>([]);
   const [errorIndex, setErrorIndex] = useState<number>(0);
-
-  // Template picker modal
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  // Tracks selection inside the modal before confirming
-  const [pickerDraftId, setPickerDraftId] = useState<string>('');
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -444,30 +433,17 @@ export function DataImportNewPage() {
         <section>
           <h3 className="text-base font-semibold mb-3">1. Select Template</h3>
           <div className="rounded-lg border p-5 space-y-3">
-            <Label htmlFor="template-display">Persistence Template</Label>
-            <div className="flex items-center gap-2 max-w-sm">
-              <Input
-                id="template-display"
-                readOnly
-                value={
-                  selectedTemplateId
-                    ? (templates.find((t) => String(t.id) === selectedTemplateId)?.name ?? '')
-                    : ''
-                }
-                placeholder={templatesLoading ? 'Loading templates...' : 'No template selected'}
-                className="flex-1 bg-muted cursor-default"
-              />
-              <Button
-                variant="outline"
-                type="button"
+            <div className="space-y-2 max-w-sm">
+              <Label htmlFor="template-select">Persistence Template</Label>
+              <ComboBox
+                options={templates.map((t) => ({ value: String(t.id), label: t.name }))}
+                value={selectedTemplateId}
+                onValueChange={setSelectedTemplateId}
                 disabled={templatesLoading}
-                onClick={() => {
-                  setPickerDraftId(selectedTemplateId);
-                  setTemplatePickerOpen(true);
-                }}
-              >
-                Select
-              </Button>
+                placeholder={templatesLoading ? 'Loading templates...' : 'Select a template...'}
+                searchPlaceholder="Search templates..."
+                emptyMessage="No templates found."
+              />
             </div>
 
             {/* Template metadata shown after selection */}
@@ -849,158 +825,6 @@ export function DataImportNewPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* -- Template picker modal -------------------------------------------- */}
-      {(() => {
-        const draftTemplate = templates.find((t) => String(t.id) === pickerDraftId) ?? null;
-        return (
-          <Dialog open={templatePickerOpen} onOpenChange={setTemplatePickerOpen}>
-            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>Select Persistence Template</DialogTitle>
-              </DialogHeader>
-
-              {/* Dropdown */}
-              <div className="space-y-1 pt-1">
-                <Label htmlFor="picker-select">Template</Label>
-                <Select
-                  value={pickerDraftId}
-                  onValueChange={setPickerDraftId}
-                >
-                  <SelectTrigger id="picker-select" className="w-full">
-                    <SelectValue placeholder="Select a template..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={String(t.id)}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Template details (read-only) */}
-              {draftTemplate && (
-                <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-1">
-                  {/* Description */}
-                  {draftTemplate.description && (
-                    <p className="text-sm text-muted-foreground">{draftTemplate.description}</p>
-                  )}
-
-                  {/* Duplicate handling + Error handling + Includes CSV Header + Separator + Target Table */}
-                  <div className="grid grid-cols-5 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Separator</Label>
-                      <p className="text-sm font-medium">
-                        {draftTemplate.separator === '\t' ? 'Tab'
-                          : draftTemplate.separator === ';' ? 'Semicolon (;)'
-                          : draftTemplate.separator === '|' ? 'Pipe (|)'
-                          : 'Comma (,)'}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Includes CSV Header</Label>
-                      <p className="text-sm font-medium">
-                        {draftTemplate.hasCsvHeader ? 'Yes' : 'No'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {draftTemplate.hasCsvHeader
-                          ? 'Columns matched by CSV column name'
-                          : 'Columns matched by CSV column Index'}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Duplicate Handling</Label>
-                      <p className="text-sm font-medium">
-                        {draftTemplate.duplicatesHandlingStrategy === 'REPLACE' ? 'Replace' : 'Insert'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {DUPLICATE_HANDLING_DESCRIPTIONS[draftTemplate.duplicatesHandlingStrategy]}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Error Handling</Label>
-                      <p className="text-sm font-medium">
-                        {draftTemplate.errorHandlingStrategy === 'STOP_ON_FIRST_ERROR_AND_ROLLBACK'
-                          ? 'Revert'
-                          : 'Commit'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {ERROR_HANDLING_DESCRIPTIONS[draftTemplate.errorHandlingStrategy]}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Target Table</Label>
-                      <p className="text-sm font-medium">
-                        {draftTemplate.targetTable ?? <span className="text-muted-foreground italic">Not set</span>}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Columns list */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                      Columns ({draftTemplate.columns.length})
-                    </Label>
-                    <div className="border rounded-md overflow-hidden">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-muted text-left">
-                            <th className="px-3 py-1.5 font-medium w-10">#</th>
-                            <th className="px-3 py-1.5 font-medium">Name</th>
-                            <th className="px-3 py-1.5 font-medium">Type</th>
-                            <th className="px-3 py-1.5 font-medium">Length</th>
-                            <th className="px-3 py-1.5 font-medium">Allow Null</th>
-                            <th className="px-3 py-1.5 font-medium">
-                              {draftTemplate.hasCsvHeader ? 'CSV Column Name' : 'CSV Column Index'}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[...draftTemplate.columns]
-                            .sort((a, b) => a.index - b.index)
-                            .map((col, colPos) => (
-                              <tr key={col.id} className="border-t">
-                                <td className="px-3 py-1.5 text-muted-foreground">{colPos}</td>
-                                <td className="px-3 py-1.5 font-medium">{col.name}</td>
-                                <td className="px-3 py-1.5 text-muted-foreground">{col.type ?? '-'}</td>
-                                <td className="px-3 py-1.5 text-muted-foreground">{col.length ?? '-'}</td>
-                                <td className="px-3 py-1.5 text-muted-foreground">{col.allowNull ? 'Yes' : 'No'}</td>
-                                <td className="px-3 py-1.5 text-muted-foreground">
-                                  {draftTemplate.hasCsvHeader
-                                    ? (col.csvColumnName ?? <span className="italic">-</span>)
-                                    : (col.csvColumnIndex != null && col.csvColumnIndex !== -1
-                                        ? col.csvColumnIndex
-                                        : <span className="italic">-</span>)}
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter className="pt-2 gap-2">
-                <Button variant="outline" onClick={() => setTemplatePickerOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  disabled={!pickerDraftId}
-                  onClick={() => {
-                    setSelectedTemplateId(pickerDraftId);
-                    setTemplatePickerOpen(false);
-                  }}
-                >
-                  Confirm
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        );
-      })()}
 
     </div>
   );

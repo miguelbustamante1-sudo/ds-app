@@ -11,6 +11,8 @@ import { assertSqlSafe, extractParams, getColumnsFromSql } from './components/Sq
 import { executeSql, streamCsvToResponse } from './components/SqlExecutor';
 import { resolveOptions } from './components/OptionsResolver';
 import { auditOrchestrator } from '../../audit';
+import { can, type PermissionMap } from '../../../services/permissionResolver';
+import { AppError } from '../../../errors/AppError';
 import type {
   ReportDefinitionDTO,
   ReportDefinitionSummaryDTO,
@@ -25,6 +27,15 @@ import type {
 
 export class DynamicReportOrchestrator {
 
+  private assertReportPermission(
+    reportPermission: string | null,
+    permissions: PermissionMap,
+  ): void {
+    if (reportPermission && !can(permissions, reportPermission, 'read')) {
+      throw new AppError('Insufficient permissions for this report', 403);
+    }
+  }
+
   async listActive(): Promise<ReportDefinitionSummaryDTO[]> {
     return listActiveReports();
   }
@@ -33,8 +44,12 @@ export class DynamicReportOrchestrator {
     return getAllReports();
   }
 
-  async getById(id: number): Promise<ReportDefinitionDTO | null> {
-    return getReportById(id);
+  async getById(id: number, permissions: PermissionMap = {}): Promise<ReportDefinitionDTO | null> {
+    const report = await getReportById(id);
+    if (report) {
+      this.assertReportPermission(report.reportPermission, permissions);
+    }
+    return report;
   }
 
   async validateSql(sql: string): Promise<ValidateResponseDTO> {
@@ -58,7 +73,11 @@ export class DynamicReportOrchestrator {
   async execute(
     reportId: number,
     body: ExecuteRequestDTO,
+    permissions: PermissionMap = {},
   ): Promise<ExecuteResponseDTO> {
+    const report = await getReportById(reportId);
+    if (!report) throw new AppError('Report not found', 404);
+    this.assertReportPermission(report.reportPermission, permissions);
     const page = Math.max(0, body.page ?? 0);
     const pageSize = Math.min(500, Math.max(1, body.pageSize ?? 25));
     return executeSql(reportId, body.params ?? {}, page, pageSize);
@@ -67,7 +86,11 @@ export class DynamicReportOrchestrator {
   async download(
     reportId: number,
     body: ExecuteRequestDTO,
+    permissions: PermissionMap = {},
   ): Promise<ExecuteResponseDTO> {
+    const report = await getReportById(reportId);
+    if (!report) throw new AppError('Report not found', 404);
+    this.assertReportPermission(report.reportPermission, permissions);
     return executeSql(reportId, body.params ?? {}, 0, 50_000);
   }
 
@@ -75,14 +98,22 @@ export class DynamicReportOrchestrator {
     reportId: number,
     body: ExecuteRequestDTO,
     res: Response,
+    permissions: PermissionMap = {},
   ): Promise<void> {
+    const report = await getReportById(reportId);
+    if (!report) throw new AppError('Report not found', 404);
+    this.assertReportPermission(report.reportPermission, permissions);
     return streamCsvToResponse(reportId, body.params ?? {}, res);
   }
 
   async getOptions(
     reportId: number,
     paramName: string,
+    permissions: PermissionMap = {},
   ): Promise<{ value: string; label: string }[]> {
+    const report = await getReportById(reportId);
+    if (!report) throw new AppError('Report not found', 404);
+    this.assertReportPermission(report.reportPermission, permissions);
     return resolveOptions(reportId, paramName);
   }
 
