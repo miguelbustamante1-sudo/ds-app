@@ -1,16 +1,13 @@
+import type { StoredProcedure } from '@prisma/client';
 import { prisma } from './prisma';
 import type {
   StoredProcedureDTO,
   StoredProcedureSummaryDTO,
-  CreateStoredProcedureDTO,
   UpdateStoredProcedureDTO,
 } from '@shared/dto/StoredProcedure';
 
-/**
- * List all active stored procedures (for the run wizard)
- */
 export async function listActiveProcedures(): Promise<StoredProcedureSummaryDTO[]> {
-  const rows = await prisma.storedProcedure.findMany({
+  return prisma.storedProcedure.findMany({
     where: { spActive: true },
     select: {
       spId: true,
@@ -19,30 +16,20 @@ export async function listActiveProcedures(): Promise<StoredProcedureSummaryDTO[
       spActive: true,
     },
   });
-  return rows;
 }
 
-/**
- * List all stored procedures including inactive (for admin management)
- */
 export async function listAllProcedures(): Promise<StoredProcedureDTO[]> {
   const rows = await prisma.storedProcedure.findMany({
     orderBy: { spCreatedAt: 'desc' },
   });
-  return rows.map(normalizeStoredProcedure);
+  return rows.map(toDTO);
 }
 
-/**
- * Get a single procedure by ID
- */
 export async function getProcedureById(spId: number): Promise<StoredProcedureDTO | null> {
   const proc = await prisma.storedProcedure.findUnique({ where: { spId } });
-  return proc ? normalizeStoredProcedure(proc) : null;
+  return proc ? toDTO(proc) : null;
 }
 
-/**
- * Create a new procedure registry entry
- */
 export async function createProcedure(
   data: {
     spSchema: string;
@@ -54,17 +41,11 @@ export async function createProcedure(
   dsUserId: number,
 ): Promise<StoredProcedureDTO> {
   const created = await prisma.storedProcedure.create({
-    data: {
-      ...data,
-      spCreatedBy: dsUserId,
-    },
+    data: { ...data, spCreatedBy: dsUserId },
   });
-  return normalizeStoredProcedure(created);
+  return toDTO(created);
 }
 
-/**
- * Update a procedure entry
- */
 export async function updateProcedure(
   spId: number,
   data: UpdateStoredProcedureDTO,
@@ -72,37 +53,20 @@ export async function updateProcedure(
 ): Promise<StoredProcedureDTO> {
   const updated = await prisma.storedProcedure.update({
     where: { spId },
-    data: {
-      ...data,
-      spUpdatedBy: dsUserId,
-      spUpdatedAt: new Date(),
-    },
+    data: { ...data, spUpdatedBy: dsUserId, spUpdatedAt: new Date() },
   });
-  return normalizeStoredProcedure(updated);
+  return toDTO(updated);
 }
 
-/**
- * Soft-delete a procedure (set spActive = false)
- */
-export async function softDeleteProcedure(
-  spId: number,
-  dsUserId: number,
-): Promise<StoredProcedureDTO> {
+export async function softDeleteProcedure(spId: number, dsUserId: number): Promise<StoredProcedureDTO> {
   const updated = await prisma.storedProcedure.update({
     where: { spId },
-    data: {
-      spActive: false,
-      spUpdatedBy: dsUserId,
-      spUpdatedAt: new Date(),
-    },
+    data: { spActive: false, spUpdatedBy: dsUserId, spUpdatedAt: new Date() },
   });
-  return normalizeStoredProcedure(updated);
+  return toDTO(updated);
 }
 
-/**
- * Normalize Prisma row to DTO
- */
-function normalizeStoredProcedure(row: any): StoredProcedureDTO {
+function toDTO(row: StoredProcedure): StoredProcedureDTO {
   return {
     spId: row.spId,
     spSchema: row.spSchema,
@@ -112,7 +76,7 @@ function normalizeStoredProcedure(row: any): StoredProcedureDTO {
     spActive: row.spActive,
     spCreatedAt: row.spCreatedAt.toISOString(),
     spCreatedBy: row.spCreatedBy,
-    spUpdatedAt: row.spUpdatedAt?.toISOString() || null,
+    spUpdatedAt: row.spUpdatedAt?.toISOString() ?? null,
     spUpdatedBy: row.spUpdatedBy,
   };
 }
