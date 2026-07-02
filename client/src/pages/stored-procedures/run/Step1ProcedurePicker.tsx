@@ -14,7 +14,6 @@ export function Step1ProcedurePicker({ procedures, selectedId, onSelect }: Step1
     return procedures.map((p) => ({
       value: String(p.spId),
       label: p.spLabel,
-      description: p.spDescription,
     }));
   }, [procedures]);
 

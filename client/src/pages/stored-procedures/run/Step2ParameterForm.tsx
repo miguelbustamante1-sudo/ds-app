@@ -3,31 +3,37 @@ import { useForm, Controller } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { ProcedureSignatureDTO, StoredProcedureSummaryDTO } from '@shared/dto/StoredProcedure';
+import type { ProcedureSignatureDTO } from '@shared/dto/StoredProcedure';
 import type { WizardFormData } from './types';
 
 interface Step2Props {
-  procedure: StoredProcedureSummaryDTO;
   signature: ProcedureSignatureDTO;
   parameters: WizardFormData;
   onParametersChange: (params: WizardFormData) => void;
 }
 
 export function Step2ParameterForm({
-  procedure,
   signature,
   parameters,
   onParametersChange,
 }: Step2Props) {
-  const { control, watch, setValue } = useForm({
+  const { control, watch } = useForm<WizardFormData>({
     defaultValues: parameters,
   });
 
-  const formValues = watch();
-
+  // Subscribe to changes instead of reading watch() in render — watch() returns a
+  // new object reference on every call, so using it as a useEffect dependency
+  // causes an infinite render loop (parent setState -> new props -> re-render -> ...).
   useEffect(() => {
-    onParametersChange(formValues);
-  }, [formValues, onParametersChange]);
+    const subscription = watch((values) => {
+      const normalized: WizardFormData = {};
+      for (const key in values) {
+        normalized[key] = values[key] ?? null;
+      }
+      onParametersChange(normalized);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, onParametersChange]);
 
   const renderInput = (paramName: string, pgType: string) => {
     // Map Postgres types to input types
@@ -40,7 +46,7 @@ export function Step2ParameterForm({
             <div className="flex items-center gap-2">
               <Checkbox
                 id={paramName}
-                checked={field.value ?? false}
+                checked={typeof field.value === 'boolean' ? field.value : false}
                 onCheckedChange={field.onChange}
               />
               <label htmlFor={paramName} className="cursor-pointer text-sm">
@@ -61,7 +67,7 @@ export function Step2ParameterForm({
             <Input
               type="date"
               {...field}
-              value={field.value ?? ''}
+              value={typeof field.value === 'string' ? field.value : ''}
               onChange={(e) => field.onChange(e.target.value || null)}
             />
           )}
@@ -78,7 +84,7 @@ export function Step2ParameterForm({
             <Input
               type="number"
               {...field}
-              value={field.value ?? ''}
+              value={typeof field.value === 'number' ? field.value : ''}
               onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
               placeholder={paramName}
             />
@@ -96,7 +102,7 @@ export function Step2ParameterForm({
           <Input
             type="text"
             {...field}
-            value={field.value ?? ''}
+            value={typeof field.value === 'string' ? field.value : ''}
             onChange={(e) => field.onChange(e.target.value || null)}
             placeholder={paramName}
           />

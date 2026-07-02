@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Toolbar, ToolbarHeading, ToolbarPageTitle } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,7 +34,7 @@ export function RunProcedureWizard() {
         toast({ title: 'Error', description: 'Failed to load procedures', variant: 'destructive' });
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   const handleProcedureSelected = async (spId: number) => {
     try {
@@ -50,9 +50,9 @@ export function RunProcedureWizard() {
     }
   };
 
-  const handleParametersChange = (params: WizardFormData) => {
+  const handleParametersChange = useCallback((params: WizardFormData) => {
     setState((prev) => ({ ...prev, parameters: params }));
-  };
+  }, []);
 
   const handleExecute = async () => {
     if (!state.selectedProcedureId) return;
@@ -140,7 +140,6 @@ export function RunProcedureWizard() {
           )}
           {state.step === 2 && state.signature && selectedProcedure && (
             <Step2ParameterForm
-              procedure={selectedProcedure}
               signature={state.signature}
               parameters={state.parameters}
               onParametersChange={handleParametersChange}

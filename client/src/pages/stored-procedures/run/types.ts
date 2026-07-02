@@ -1,4 +1,4 @@
-import type { ProcedureSignatureDTO, StoredProcedureSummaryDTO } from '@shared/dto/StoredProcedure';
+import type { ProcedureSignatureDTO } from '@shared/dto/StoredProcedure';
 
 export interface RunWizardState {
   step: 1 | 2 | 3;

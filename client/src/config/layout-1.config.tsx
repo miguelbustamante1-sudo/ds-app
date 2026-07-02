@@ -47,6 +47,7 @@ import {
   Share2,
   SquareMousePointer,
   Star,
+  Terminal,
   TrendingUp,
   UserCheck,
   UserCircle,
@@ -261,6 +262,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     icon: ClipboardList,
     path: '/admin/standalone-tasks',
     permission: 'StandaloneTaskAdmin',
+  },
+  { heading: 'Stored Procedures', permission: 'StoredProcedureRun' },
+  {
+    title: 'Run Procedure',
+    icon: Terminal,
+    path: '/stored-procedures/run',
+    permission: 'StoredProcedureRun',
   },
   { heading: 'Workflow', permission: 'WorkflowAdmin' },
   {
