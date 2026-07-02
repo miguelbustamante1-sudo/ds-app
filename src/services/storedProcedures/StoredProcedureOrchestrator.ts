@@ -1,9 +1,10 @@
-import { Pool } from 'pg';
 import { ProcedureCatalog } from './components/ProcedureCatalog';
 import { ProcedureNameGuard } from './components/ProcedureNameGuard';
 import { ProcedureExecutor } from './components/ProcedureExecutor';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import { AppError } from '../../errors/AppError';
+import pool from '../../db/pool';
+import * as dbLayer from '../../db/storedProcedures';
 import type {
   StoredProcedureDTO,
   StoredProcedureSummaryDTO,
@@ -14,42 +15,26 @@ import type {
 } from '@shared/dto/StoredProcedure';
 
 export class StoredProcedureOrchestrator {
-  private catalog: ProcedureCatalog;
-  private executor: ProcedureExecutor;
+  private readonly catalog: ProcedureCatalog;
+  private readonly executor: ProcedureExecutor;
 
-  constructor(
-    private dbLayer: any,
-    private pool: Pool,
-    private audit: typeof auditOrchestrator,
-  ) {
+  constructor() {
     this.catalog = new ProcedureCatalog(pool);
     this.executor = new ProcedureExecutor(pool);
   }
 
-  /**
-   * List all active registered procedures (for the run wizard)
-   */
   async listActive(): Promise<StoredProcedureSummaryDTO[]> {
-    return this.dbLayer.listActiveProcedures();
+    return dbLayer.listActiveProcedures();
   }
 
-  /**
-   * List all registered procedures including inactive (for admin management)
-   */
   async listAll(): Promise<StoredProcedureDTO[]> {
-    return this.dbLayer.listAllProcedures();
+    return dbLayer.listAllProcedures();
   }
 
-  /**
-   * Get a single registered procedure by ID
-   */
   async getById(spId: number): Promise<StoredProcedureDTO | null> {
-    return this.dbLayer.getProcedureById(spId);
+    return dbLayer.getProcedureById(spId);
   }
 
-  /**
-   * Get the live parameter signature for a registered procedure
-   */
   async getSignature(spId: number) {
     const proc = await this.getById(spId);
     if (!proc) throw new AppError('Procedure not found', 404);
@@ -58,22 +43,15 @@ export class StoredProcedureOrchestrator {
     return this.catalog.getSignature(proc.spSchema, proc.spName);
   }
 
-  /**
-   * Register a new procedure: validate it exists in the DB, then create a registry entry
-   */
   async register(
     data: CreateStoredProcedureDTO,
     dsUserId: number,
     userEmail: string,
   ): Promise<StoredProcedureDTO> {
-    // Validate schema and name
     ProcedureNameGuard.validate(data.spSchema, data.spName);
-
-    // Confirm the procedure actually exists in Postgres
     await this.catalog.getSignature(data.spSchema, data.spName);
 
-    // Create the registry entry
-    const created = await this.dbLayer.createProcedure(
+    const created = await dbLayer.createProcedure(
       {
         spSchema: data.spSchema,
         spName: data.spName,
@@ -84,8 +62,7 @@ export class StoredProcedureOrchestrator {
       dsUserId,
     );
 
-    // Audit log
-    await this.audit.log({
+    await auditOrchestrator.log({
       entityName: 'spr_procedure_definitions',
       entityId: String(created.spId),
       createdBy: userEmail,
@@ -97,9 +74,6 @@ export class StoredProcedureOrchestrator {
     return created;
   }
 
-  /**
-   * Update a registered procedure's metadata
-   */
   async update(
     spId: number,
     data: UpdateStoredProcedureDTO,
@@ -109,9 +83,9 @@ export class StoredProcedureOrchestrator {
     const before = await this.getById(spId);
     if (!before) throw new AppError('Procedure not found', 404);
 
-    const updated = await this.dbLayer.updateProcedure(spId, data, dsUserId);
+    const updated = await dbLayer.updateProcedure(spId, data, dsUserId);
 
-    await this.audit.log({
+    await auditOrchestrator.log({
       entityName: 'spr_procedure_definitions',
       entityId: String(spId),
       createdBy: userEmail,
@@ -123,30 +97,24 @@ export class StoredProcedureOrchestrator {
     return updated;
   }
 
-  /**
-   * Soft-delete a registered procedure
-   */
   async softDelete(spId: number, dsUserId: number, userEmail: string): Promise<StoredProcedureDTO> {
     const before = await this.getById(spId);
     if (!before) throw new AppError('Procedure not found', 404);
 
-    const updated = await this.dbLayer.softDeleteProcedure(spId, dsUserId);
+    const updated = await dbLayer.softDeleteProcedure(spId, dsUserId);
 
-    await this.audit.log({
+    await auditOrchestrator.log({
       entityName: 'spr_procedure_definitions',
       entityId: String(spId),
       createdBy: userEmail,
       oldValues: before as unknown as Record<string, unknown>,
-      newValues: null,
+      newValues: updated as unknown as Record<string, unknown>,
       comment: `Stored procedure deactivated: ${before.spSchema}.${before.spName}`,
     });
 
     return updated;
   }
 
-  /**
-   * Execute a registered procedure
-   */
   async execute(
     spId: number,
     body: ExecuteStoredProcedureDTO,
@@ -156,11 +124,9 @@ export class StoredProcedureOrchestrator {
     const proc = await this.getById(spId);
     if (!proc) throw new AppError('Procedure not found', 404);
 
-    // Re-validate on each execution
     ProcedureNameGuard.validate(proc.spSchema, proc.spName);
     const signature = await this.catalog.getSignature(proc.spSchema, proc.spName);
 
-    // Extract ordered parameter names from signature and pass parameter values
     const paramNames = signature.parameters.map((p) => p.parameterName);
     const result = await this.executor.execute(
       proc.spSchema,
@@ -170,8 +136,7 @@ export class StoredProcedureOrchestrator {
       signature.kind,
     );
 
-    // Audit log the execution
-    await this.audit.log({
+    await auditOrchestrator.log({
       entityName: `${proc.spSchema}.${proc.spName}`,
       entityId: String(proc.spId),
       createdBy: userEmail,
@@ -188,11 +153,4 @@ export class StoredProcedureOrchestrator {
   }
 }
 
-const dbLayer = require('../../db/storedProcedures');
-const pool = require('../../db/pool').default;
-
-export const storedProcedureOrchestrator = new StoredProcedureOrchestrator(
-  dbLayer,
-  pool,
-  auditOrchestrator,
-);
+export const storedProcedureOrchestrator = new StoredProcedureOrchestrator();
