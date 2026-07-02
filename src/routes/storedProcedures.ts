@@ -11,12 +11,8 @@ import type {
 export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator): Router {
   const router = Router();
 
-  // ─── RUN WIZARD ROUTES (admin + bsa) ───────────────────────────────────
+  // ─── RUN WIZARD (admin + bsa) ──────────────────────────────────────────
 
-  /**
-   * GET /api/stored-procedures
-   * List active procedures for the run wizard
-   */
   router.get(
     '/',
     requireAnyRole(['admin', 'bsa']),
@@ -35,10 +31,6 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  /**
-   * GET /api/stored-procedures/:id/signature
-   * Get the live parameter signature for a procedure
-   */
   router.get(
     '/:id/signature',
     requireAnyRole(['admin', 'bsa']),
@@ -58,10 +50,6 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  /**
-   * POST /api/stored-procedures/:id/execute
-   * Execute a registered procedure
-   */
   router.post(
     '/:id/execute',
     requireAnyRole(['admin', 'bsa']),
@@ -84,12 +72,8 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  // ─── ADMIN MANAGEMENT ROUTES (admin only) ──────────────────────────────
+  // ─── ADMIN MANAGEMENT (admin only) ────────────────────────────────────
 
-  /**
-   * GET /api/stored-procedures/admin
-   * List all procedures (including inactive)
-   */
   router.get(
     '/admin',
     requireRole('admin'),
@@ -108,10 +92,6 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  /**
-   * POST /api/stored-procedures/admin
-   * Register a new procedure
-   */
   router.post(
     '/admin',
     requireRole('admin'),
@@ -134,10 +114,6 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  /**
-   * PUT /api/stored-procedures/admin/:id
-   * Update a procedure
-   */
   router.put(
     '/admin/:id',
     requireRole('admin'),
@@ -161,10 +137,6 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
     },
   );
 
-  /**
-   * DELETE /api/stored-procedures/admin/:id
-   * Soft-delete a procedure
-   */
   router.delete(
     '/admin/:id',
     requireRole('admin'),
