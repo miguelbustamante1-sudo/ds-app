@@ -84,6 +84,7 @@ import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
+import { RunProcedureWizard } from '@/pages/stored-procedures/run/RunProcedureWizard';
 
 export function AppRoutingSetup() {
   return (
@@ -191,6 +192,8 @@ export function AppRoutingSetup() {
         <Route path="/my-tasks" element={<TaskInboxPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
+        {/* Stored Procedures */}
+        <Route path="/stored-procedures/run" element={<RunProcedureWizard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
