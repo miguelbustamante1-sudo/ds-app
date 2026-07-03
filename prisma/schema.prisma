@@ -399,6 +399,8 @@ model User {
   apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
   teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
   teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
+  fieldglassSowsCreated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users")
+  fieldglassSowsUpdated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -1532,6 +1534,37 @@ model ApiKey {
   standaloneTasks StandaloneTask[]
 
   @@map("apk_api_keys")
+  @@schema("ds")
+}
+
+/// Fieldglass SOW registry: tracks ownership and TDx role assignments (creators, TA prime, profile
+/// worker creators) per SOW, each with a primary and comma-separated delegate list. 
+
+model FieldglassSow {
+  fgsId                            Int       @id @default(autoincrement()) @map("fgs_id") @db.Integer
+  sowName                          String?   @map("fgs_sow_name") @db.VarChar(255)
+  sowId                            String?   @unique(map: "uk_fgs_sow_id") @map("fgs_sow_id") @db.VarChar(50)
+  sowOwner                         String?   @map("fgs_sow_owner") @db.VarChar(255)
+  backupSowOwner                   String?   @map("fgs_backup_sow_owner") @db.VarChar(255)
+  tdxSowCreatorsPrimary            String?   @map("fgs_tdx_sow_creators_primary") @db.VarChar(255)
+  tdxSowCreatorsDelegate           String?   @map("fgs_tdx_sow_creators_delegate") @db.VarChar(500)
+  tdxTaPrimePrimary                String?   @map("fgs_tdx_ta_prime_primary") @db.VarChar(255)
+  tdxTaPrimeDelegate               String?   @map("fgs_tdx_ta_prime_delegate") @db.VarChar(500)
+  tdxProfileWorkerCreatorsPrimary  String?   @map("fgs_tdx_profile_worker_creators_primary") @db.VarChar(255)
+  tdxProfileWorkerCreatorsDelegate String?   @map("fgs_tdx_profile_worker_creators_delegate") @db.VarChar(500)
+  createdBy                        Int       @map("fgs_created_by")
+  createdAt                        DateTime  @default(now()) @map("fgs_created_at") @db.Timestamptz(6)
+  lastUpdatedBy                    Int?      @map("fgs_last_updated_by")
+  lastUpdatedAt                    DateTime? @map("fgs_last_updated_at") @db.Timestamptz(6)
+  deleted                          Boolean   @default(false) @map("fgs_deleted")
+  deletedAt                        DateTime? @map("fgs_deleted_at") @db.Timestamptz(6)
+
+  createdByUser     User  @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_fgs_cby")
+  lastUpdatedByUser User? @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users", fields: [lastUpdatedBy], references: [userId], map: "fk_fgs_uby")
+
+  @@index([createdBy], map: "idx_fgs_cby")
+  @@index([lastUpdatedBy], map: "idx_fgs_uby")
+  @@map("fgs_fieldglass_sows")
   @@schema("ds")
 }
 
