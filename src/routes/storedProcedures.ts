@@ -1,5 +1,5 @@
 import { Router, type Response } from 'express';
-import { requireRole, requireAnyRole } from '../middleware/auth';
+import { requireRole, requireAnyRole, requirePermission } from '../middleware/auth';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type { StoredProcedureOrchestrator } from '../services/storedProcedures/StoredProcedureOrchestrator';
 import { AppError } from '../errors/AppError';
@@ -15,6 +15,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.get(
     '/',
+    requirePermission('StoredProcedureRun', 'read'),
     requireAnyRole(['admin', 'bsa']),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -33,6 +34,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.get(
     '/:id/signature',
+    requirePermission('StoredProcedureRun', 'read'),
     requireAnyRole(['admin', 'bsa']),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -52,6 +54,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.post(
     '/:id/execute',
+    requirePermission('StoredProcedureRun', 'create'),
     requireAnyRole(['admin', 'bsa']),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -76,6 +79,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.get(
     '/admin',
+    requirePermission('StoredProcedureRun', 'read'),
     requireRole('admin'),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -94,6 +98,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.post(
     '/admin',
+    requirePermission('StoredProcedureRun', 'create'),
     requireRole('admin'),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -116,6 +121,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.put(
     '/admin/:id',
+    requirePermission('StoredProcedureRun', 'create'),
     requireRole('admin'),
     async (req: AuthenticatedRequest, res: Response) => {
       try {
@@ -139,6 +145,7 @@ export function storedProcedureRoutes(orchestrator: StoredProcedureOrchestrator)
 
   router.delete(
     '/admin/:id',
+    requirePermission('StoredProcedureRun', 'delete'),
     requireRole('admin'),
     async (req: AuthenticatedRequest, res: Response) => {
       try {

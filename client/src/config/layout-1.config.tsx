@@ -270,6 +270,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/stored-procedures/run',
     permission: 'StoredProcedureRun',
   },
+  {
+    title: 'Manage Procedures',
+    icon: Database,
+    path: '/admin/stored-procedures',
+    permission: 'StoredProcedureRun',
+    role: 'admin',
+  },
   { heading: 'Workflow', permission: 'WorkflowAdmin' },
   {
     title: 'Workflow',

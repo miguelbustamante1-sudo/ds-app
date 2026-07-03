@@ -85,6 +85,7 @@ import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
 import { AiChatPage } from '@/pages/ai-chat';
 import { RunProcedureWizard } from '@/pages/stored-procedures/run/RunProcedureWizard';
+import { AdminStoredProceduresPage } from '@/pages/admin/stored-procedures';
 
 export function AppRoutingSetup() {
   return (
@@ -194,6 +195,7 @@ export function AppRoutingSetup() {
         <Route path="/ai/chat" element={<AiChatPage />} />
         {/* Stored Procedures */}
         <Route path="/stored-procedures/run" element={<RunProcedureWizard />} />
+        <Route path="/admin/stored-procedures" element={<AdminStoredProceduresPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
