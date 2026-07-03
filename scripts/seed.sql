@@ -557,3 +557,39 @@ VALUES
   (3, 3, 5,  25.00, '2026-01-01', NULL, true,  'Initial migration, assigning starting 1 Jan 2026 to Josue Guillen Rosales (10100154)',     NOW(), 1, NULL, NULL, false)
 ON CONFLICT (cpa_id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('ds.cpa_corporate_phone_assignments', 'cpa_id'), GREATEST((SELECT MAX(cpa_id) FROM ds.cpa_corporate_phone_assignments), 3));
+
+-- 18. Fictional Fieldglass SOWs
+
+INSERT INTO ds.fgs_fieldglass_sows (
+  fgs_sow_name, fgs_sow_id, fgs_sow_owner, fgs_backup_sow_owner,
+  fgs_tdx_sow_creators_primary, fgs_tdx_sow_creators_delegate,
+  fgs_tdx_ta_prime_primary, fgs_tdx_ta_prime_delegate,
+  fgs_tdx_profile_worker_creators_primary, fgs_tdx_profile_worker_creators_delegate,
+  fgs_created_by
+)
+VALUES
+  ('CFO VP Marisol Delgado - TDx T&M',   'TLS1TQ00999001', 'Marisol Delgado', 'Tobias Renner',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('COO Director Felix Okafor - TDx T&M', 'TLS1TQ00999002', 'Felix Okafor', NULL,
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('CTO Manager Ingrid Solberg - TDx SOW', 'TLS1TQ00999003', 'Ingrid Solberg', 'Derek Voss',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('VP Sales Naomi Castillo - TDx T&M',   'TLS1TQ00999004', 'Naomi Castillo', 'Grace Lindqvist',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('SVP Ops Lucas Ferreira - TDx T&M',    'TLS1TQ00999005', 'Lucas Ferreira', NULL,
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1)
+ON CONFLICT (fgs_sow_id) DO NOTHING;
