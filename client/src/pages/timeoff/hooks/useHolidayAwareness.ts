@@ -17,6 +17,7 @@ import {
   filterWeekdayHolidays,
   calculateNetVacationDays,
   buildCalendarHolidayDates,
+  buildFullDayHolidayDates,
   type HolidayWithEffectiveDate,
 } from '../utils/holidayValidation';
 import { useHolidayContext } from '../context/HolidayContext';
@@ -48,6 +49,8 @@ export interface UseHolidayAwarenessResult {
   gtNetVacationDays: number | null;
   /** Date[] for react-day-picker holiday highlighting (SV and GT only). */
   holidayDatesForCalendar: Date[];
+  /** Date[] of ONLY full-day holidays — use this to disable/block a start-date selection. Half-day holidays are excluded so they remain selectable. */
+  fullDayHolidayDatesForBlocking: Date[];
   /** True while the initial fetch is in-flight. */
   loading: boolean;
 }
@@ -118,11 +121,17 @@ export function useHolidayAwareness(
     return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
   }, [isSupported, effectiveHolidays]);
 
+  const fullDayHolidayDatesForBlocking = useMemo<Date[]>(() => {
+    if (!isSupported || effectiveHolidays.length === 0) return [];
+    return buildFullDayHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
+  }, [isSupported, effectiveHolidays]);
+
   return {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
     loading,
   };
 }

@@ -197,6 +197,26 @@ export function buildCalendarHolidayDates(
 }
 
 // ---------------------------------------------------------------------------
+// buildFullDayHolidayDates
+// ---------------------------------------------------------------------------
+
+/**
+ * Same as buildCalendarHolidayDates, but excludes half-day holidays. Use this for
+ * blocking logic (e.g. disabling a start-date calendar cell) — half-day holidays
+ * should stay visually marked (via buildCalendarHolidayDates) but must remain
+ * selectable as a start date.
+ */
+export function buildFullDayHolidayDates(
+  holidays: HolidayDTO[],
+  yearRange: number[],
+): Date[] {
+  return buildCalendarHolidayDates(
+    holidays.filter((h) => !h.holidayIsHalfDay),
+    yearRange,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // applySwapsToHolidays
 // ---------------------------------------------------------------------------
 
