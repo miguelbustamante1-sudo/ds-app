@@ -43,6 +43,7 @@ export interface TimeOffValidationContext {
     holidayName: string;
     holidayDate: Date;
     holidayIsRecurring: boolean | null;
+    holidayIsHalfDay: boolean;
   }>;
   overlappingTimeOffs: Array<{
     timeOffId: number;

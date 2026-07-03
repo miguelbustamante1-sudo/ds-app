@@ -105,7 +105,7 @@ export async function loadValidationContext(
     getWorkdayBalance(input.teamMemberId, input.timeOffId),
     prisma.holiday.findMany({
       where: { countryId: effectiveCountryId, holidayIsActive: true },
-      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true },
+      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true, holidayIsHalfDay: true },
     }),
   ]);
 
