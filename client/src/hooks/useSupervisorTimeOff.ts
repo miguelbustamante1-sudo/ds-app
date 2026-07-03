@@ -256,8 +256,6 @@ export function useTeamMemberTimeOffBreakdown(options?: UseSupervisorTimeOffOpti
 interface WorkdayBalance {
   vacation: number;
   personalDays: number;
-  exceptionDaysUsed: number;
-  exceptionDaysRemaining: number;
 }
 
 /**
