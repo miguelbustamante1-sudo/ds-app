@@ -165,7 +165,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     countryIso: userCountryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   // Validation: Date range
@@ -224,6 +224,11 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
 
+  // The authoritative day count once holidays (including half-days) are excluded.
+  // Falls back to the raw hintDays when there are no in-range holidays to subtract
+  // (calendar categories, or workday categories with no holiday in range).
+  const effectiveDays = gtNetVacationDays ?? hintDays;
+
   // Days-before notice period validation
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -243,15 +248,15 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const balanceForValidation = workdayBalance && totalVacationAdjustment > 0
     ? { ...workdayBalance, vacation: workdayBalance.vacation + totalVacationAdjustment }
     : workdayBalance;
-  const balanceValidation = selectedCategory && hintDays > 0
-    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
+  const balanceValidation = selectedCategory && effectiveDays > 0
+    ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  const gtPersonalDaysWarning = selectedCategory && hintDays > 0
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0
     ? validateGTPersonalDays(
         userCountryIso,
         selectedCategory.categoryName,
-        hintDays,
+        effectiveDays,
         workdayBalance?.personalDaysUsedThisMonth ?? 0
       )
     : null;
@@ -269,7 +274,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     startDatePeriod !== endDatePeriod;
 
   // Max days per request validation
-  const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
+  const exceedsMaxDays = maxDays > 0 && effectiveDays > maxDays;
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
@@ -516,9 +521,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               15 calendar days (auto-set for El Salvador)
             </p>
           )}
-          {!isFixedDuration && !isSV15DayMode && hintDays > 0 && (
+          {!isFixedDuration && !isSV15DayMode && effectiveDays > 0 && (
             <p className="text-sm text-muted-foreground">
-              {hintDays} day{hintDays !== 1 ? 's' : ''}
+              {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
             </p>
           )}
           {maxDays > 0 && (
@@ -530,7 +535,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {hintDays} days.
+                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {effectiveDays} days.
               </AlertDescription>
             </Alert>
           )}
