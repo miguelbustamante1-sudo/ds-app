@@ -5,6 +5,7 @@ export interface WorkdayBalance {
   vacation: number;
   rawVacation: number;
   personalDays: number;
+  personalDaysUsedThisMonth: number;
 }
 
 export function useMyWorkdayBalance() {
