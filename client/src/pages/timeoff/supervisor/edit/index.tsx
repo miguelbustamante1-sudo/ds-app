@@ -146,7 +146,7 @@ function EditSupervisorTimeOffPageInner({
     ? parseUTCDateAsLocal(teamMember.teamMemberEndDate as unknown as string)
     : null;
 
-  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar, fullDayHolidayDatesForBlocking } = useHolidayAwareness({
     countryIso,
     startDate,
     endDate,
@@ -224,7 +224,7 @@ function EditSupervisorTimeOffPageInner({
   }, [isHalfOfSplit, startDate, editingTimeOff?.timeOffDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
   const exceedsAttritionDate =
     teamMemberEndDate &&
     ((startDate && startDate > teamMemberEndDate) || (endDate && endDate > teamMemberEndDate));
@@ -453,7 +453,7 @@ function EditSupervisorTimeOffPageInner({
                               defaultMonth={field.value ?? new Date()}
                               disabled={(date) => {
                                 if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                                if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                                if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                                 return false;
                               }}
                               modifiers={{ holiday: holidayDatesForCalendar }}

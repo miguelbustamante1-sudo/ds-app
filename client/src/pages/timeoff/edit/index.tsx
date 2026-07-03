@@ -148,7 +148,7 @@ function EditTimeOffPageInner({
   const isSV15DayMode =
     isSVVacation && !isHalfOfSplit && editingTimeOff?.statusId !== SPLIT_STATUS_ID;
 
-  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar, fullDayHolidayDatesForBlocking } = useHolidayAwareness({
     countryIso: userCountryIso,
     startDate,
     endDate,
@@ -234,7 +234,7 @@ function EditTimeOffPageInner({
   }, [isHalfOfSplit, startDate, editingTimeOff?.timeOffDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
   const exceedsAttritionDate =
     userEndDate && ((startDate && startDate > userEndDate) || (endDate && endDate > userEndDate));
 
@@ -490,7 +490,7 @@ function EditTimeOffPageInner({
                               defaultMonth={field.value ?? new Date()}
                               disabled={(date) => {
                                 if (userEndDate && date > userEndDate) return true;
-                                if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                                if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                                 return false;
                               }}
                               modifiers={{ holiday: holidayDatesForCalendar }}
