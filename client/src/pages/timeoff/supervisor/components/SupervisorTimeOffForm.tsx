@@ -29,6 +29,7 @@ import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../../utils/workdayBalanceValidation';
+import { validateGTPersonalDays } from '../../utils/guatemalaPersonalDaysValidation';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -56,7 +57,7 @@ interface SupervisorTimeOffFormProps {
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
   loading: boolean;
   categoryMode?: CategoryMode;
-  workdayBalance?: { vacation: number; personalDays: number } | null;
+  workdayBalance?: { vacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
 }
 
 export function SupervisorTimeOffForm(props: SupervisorTimeOffFormProps) {
@@ -365,6 +366,15 @@ function SupervisorTimeOffFormInner({
     ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
+  const gtPersonalDaysWarning = selectedCategory && hintDays > 0
+    ? validateGTPersonalDays(
+        teamMember?.countryIso,
+        selectedCategory.categoryName,
+        hintDays,
+        workdayBalance?.personalDaysUsedThisMonth ?? 0
+      )
+    : null;
+
   // Save button enabled state
   const canSave =
     teamMember &&
@@ -377,6 +387,7 @@ function SupervisorTimeOffFormInner({
     !isStartDateWeekend &&
     !isStartDateHoliday &&
     !exceedsMaxDays &&
+    !gtPersonalDaysWarning?.showLimitWarning &&
     (daysBeforeValidation?.valid !== false) &&
     !!comment?.trim() &&
     !loading;
@@ -741,6 +752,24 @@ function SupervisorTimeOffFormInner({
           <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* GT Personal Days Monthly Advisory */}
+        {gtPersonalDaysWarning?.showMonthlyNotice && !gtPersonalDaysWarning.showLimitWarning && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              This request will use {gtPersonalDaysWarning.requestedDays} of your {gtPersonalDaysWarning.personalDaysRemainingThisMonth} remaining Personal Day{gtPersonalDaysWarning.personalDaysRemainingThisMonth !== 1 ? 's' : ''} this month.
+            </AlertDescription>
+          </Alert>
+        )}
+        {gtPersonalDaysWarning?.showLimitWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You only have {gtPersonalDaysWarning.personalDaysRemainingThisMonth} Personal Day{gtPersonalDaysWarning.personalDaysRemainingThisMonth !== 1 ? 's' : ''} remaining this month. This request of {gtPersonalDaysWarning.requestedDays} day{gtPersonalDaysWarning.requestedDays !== 1 ? 's' : ''} would exceed the monthly limit — this request cannot be submitted.
+            </AlertDescription>
           </Alert>
         )}
           </>
