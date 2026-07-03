@@ -7,8 +7,10 @@ import { prisma } from '../../../db/prisma';
 import type { TimeOffValidationInput, TimeOffValidationContext } from './types';
 import { DEFAULTS } from './types';
 import type { ElSalvadorVacationContext } from './rules/elSalvadorVacation.rule';
+import type { GuatemalaPersonalDaysContext } from './rules/guatemalaPersonalDays.rule';
 import { getWorkdayBalance } from '../components/GetWorkdayBalance';
 import { computeAnniversaryWindow } from '../utils/anniversaryYear';
+import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 
 const CANCELLED_STATUS_NAME = 'cancelled';
 const SPLIT_STATUS_ID = 6;
@@ -275,6 +277,110 @@ export async function loadElSalvadorVacationContext(
     existingVacationDaysThisYear,
     accruedVacationDays,
     currentYear,
+  };
+}
+
+const GT_COUNTRY_ISO = 'GT';
+const PERSONAL_DAY_CATEGORY_NAMES = ['personal day', 'personal days'];
+
+function computeMonthWindow(date: Date): { monthStart: Date; monthEnd: Date } {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const monthStart = new Date(Date.UTC(year, month, 1));
+  const monthEnd = new Date(Date.UTC(year, month + 1, 0)); // last calendar day of the month
+  return { monthStart, monthEnd };
+}
+
+/**
+ * Loads Guatemala Personal Days monthly-limit context.
+ * Returns a context with isGuatemalaPersonalDay: false when not applicable.
+ */
+export async function loadGuatemalaPersonalDaysContext(
+  input: TimeOffValidationInput
+): Promise<GuatemalaPersonalDaysContext> {
+  const NOT_APPLICABLE: GuatemalaPersonalDaysContext = {
+    isGuatemalaPersonalDay: false,
+    requestedDays: 0,
+    usedPersonalDaysInMonth: 0,
+    monthStart: new Date(),
+    monthEnd: new Date(),
+  };
+
+  const teamMember = await prisma.teamMember.findUnique({
+    where: { teamMemberId: input.teamMemberId },
+    select: { country: { select: { countryIso: true } } },
+  });
+  if (!teamMember) return NOT_APPLICABLE;
+
+  const countryIso = teamMember.country?.countryIso?.toUpperCase() ?? null;
+
+  const category = await prisma.timeOffCategory.findUnique({
+    where: { categoryId: input.categoryId },
+    select: { categoryName: true },
+  });
+  const categoryName = category?.categoryName?.trim().toLowerCase() ?? null;
+
+  if (
+    countryIso !== GT_COUNTRY_ISO ||
+    !categoryName ||
+    !PERSONAL_DAY_CATEGORY_NAMES.includes(categoryName)
+  ) {
+    return NOT_APPLICABLE;
+  }
+
+  const { monthStart, monthEnd } = computeMonthWindow(input.timeOffStartDate);
+
+  const [cancelledStatus, rejectedStatus] = await Promise.all([
+    prisma.timeOffStatus.findFirst({
+      where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },
+      select: { statusId: true },
+    }),
+    prisma.timeOffStatus.findFirst({
+      where: { statusName: { equals: 'rejected', mode: 'insensitive' } },
+      select: { statusId: true },
+    }),
+  ]);
+
+  const excludedStatusIds = [
+    SPLIT_STATUS_ID,
+    ...(cancelledStatus ? [cancelledStatus.statusId] : []),
+    ...(rejectedStatus ? [rejectedStatus.statusId] : []),
+  ];
+
+  const andConditions: object[] = [
+    ...(excludedStatusIds.length > 0 ? [{ NOT: { statusId: { in: excludedStatusIds } } }] : []),
+    ...(input.timeOffId ? [{ NOT: { timeOffId: input.timeOffId } }] : []),
+  ];
+
+  const existingPersonalDays = await prisma.timeOff.findMany({
+    where: {
+      teamMemberId: input.teamMemberId,
+      categoryId: input.categoryId,
+      timeOffActive: 1,
+      timeOffStartDate: { gte: monthStart, lte: monthEnd },
+      ...(andConditions.length > 0 && { AND: andConditions }),
+    },
+    select: { timeOffDays: true },
+  });
+
+  const usedPersonalDaysInMonth = existingPersonalDays.reduce(
+    (sum, t) => sum + Number(t.timeOffDays),
+    0
+  );
+
+  const { totalDays: requestedDays } = await calculateTimeOffDaysForTeamMember(
+    input.teamMemberId,
+    input.categoryId,
+    input.timeOffStartDate,
+    input.timeOffEndDate
+  );
+
+  return {
+    isGuatemalaPersonalDay: true,
+    requestedDays,
+    usedPersonalDaysInMonth,
+    monthStart,
+    monthEnd,
   };
 }
 
