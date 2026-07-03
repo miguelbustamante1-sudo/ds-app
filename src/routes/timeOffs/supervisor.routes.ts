@@ -26,7 +26,6 @@ import { getUserIdsByTeamMemberIds } from '../../services/notifications/reposito
 import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
-import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { acknowledgeTimeOffBySupervisor } from '../../services/timeoff/components/AcknowledgeTimeOffBySupervisor';
 import { rejectTimeOffBySupervisor } from '../../services/timeoff/components/RejectTimeOffBySupervisor';
@@ -237,7 +236,6 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       new Date(timeOffEndDate)
     );
 
-    const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
@@ -250,7 +248,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
       effectiveStatusId,
       totalDays,
       undefined,
-      isException,
+      false,
       vacationPeriod
     );
 
@@ -375,11 +373,6 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
     ]);
 
-    const [isExceptionA, isExceptionB] = await Promise.all([
-      computeTimeOffIsException(teamMemberId, categoryId, daysA),
-      computeTimeOffIsException(teamMemberId, categoryId, daysB),
-    ]);
-
     const now = new Date();
 
     const [originRecord, createdA, createdB] = await prisma.$transaction(async (tx) => {
@@ -406,7 +399,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           timeOffCreatedDate: now,
           categoryId,
           statusId: effectiveStatusId,
-          timeOffIsException: isExceptionA,
+          timeOffIsException: false,
           timeOffOriginalId: origin.timeOffId,
         },
       });
@@ -420,7 +413,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           timeOffCreatedDate: now,
           categoryId,
           statusId: effectiveStatusId,
-          timeOffIsException: isExceptionB,
+          timeOffIsException: false,
           timeOffOriginalId: origin.timeOffId,
         },
       });
@@ -864,13 +857,10 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       new Date(timeOffEndDate)
     );
 
-    const [isException, categoryRecord] = await Promise.all([
-      computeTimeOffIsException(timeOff.teamMemberId, categoryId, totalDays),
-      prisma.timeOffCategory.findUnique({
-        where: { categoryId },
-        select: { categoryName: true },
-      }),
-    ]);
+    const categoryRecord = await prisma.timeOffCategory.findUnique({
+      where: { categoryId },
+      select: { categoryName: true },
+    });
     const categoryName = categoryRecord?.categoryName ?? '';
 
     const oldRaw = await fetchRawTimeOffRow(timeOffId);
@@ -885,7 +875,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       categoryId,
       timeOff.statusId,
       totalDays,
-      isException
+      false
     );
 
     const newRaw = await fetchRawTimeOffRow(timeOffId);
@@ -993,11 +983,6 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
       calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
     ]);
 
-    const [isExceptionA, isExceptionB] = await Promise.all([
-      computeTimeOffIsException(teamMemberId, categoryId, daysA),
-      computeTimeOffIsException(teamMemberId, categoryId, daysB),
-    ]);
-
     const now = new Date();
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
@@ -1020,7 +1005,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
           timeOffCreatedDate: now,
           categoryId,
           statusId: pendingStatusId,
-          timeOffIsException: isExceptionA,
+          timeOffIsException: false,
           timeOffOriginalId: timeOffId,
           timeOffPeriod: vacationPeriod,
         },
@@ -1036,7 +1021,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
           timeOffCreatedDate: now,
           categoryId,
           statusId: pendingStatusId,
-          timeOffIsException: isExceptionB,
+          timeOffIsException: false,
           timeOffOriginalId: timeOffId,
           timeOffPeriod: vacationPeriod,
         },
