@@ -31,7 +31,6 @@ import { computeCurrentPeriod, getNextAnniversaryDate } from '../utils/anniversa
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
-import { validateGTVacationException } from '../utils/guatemalaExceptionValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -57,7 +56,7 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
-  workdayBalance: { vacation: number; rawVacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
+  workdayBalance: { vacation: number; rawVacation: number; personalDays: number } | null;
 }
 
 export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
@@ -261,16 +260,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
 
   // Max days per request validation
   const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
-
-  // GT vacation exception soft warnings (advisory — does not block save)
-  const gtExceptionWarning = selectedCategory && hintDays > 0
-    ? validateGTVacationException(
-        userCountryIso,
-        selectedCategory.categoryName,
-        hintDays,
-        workdayBalance?.exceptionDaysRemaining ?? 5
-      )
-    : null;
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
@@ -629,30 +618,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           </Alert>
         )}
 
-        {/* GT Vacation Exception Warnings (advisory only — backend is the authoritative block) */}
-        {gtExceptionWarning?.showExceptionNotice && !gtExceptionWarning.showLimitWarning && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              This request (fewer than 5 days) will count as an exception. You have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining this anniversary year.
-            </AlertDescription>
-          </Alert>
-        )}
-        {gtExceptionWarning?.showFourDayRecommendation && (
-          <Alert>
-            <AlertDescription>
-              Adding 1 more day (5 total) would avoid using exception days from your annual allowance.
-            </AlertDescription>
-          </Alert>
-        )}
-        {gtExceptionWarning?.showLimitWarning && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You only have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining. This request of {gtExceptionWarning.requestedDays} day{gtExceptionWarning.requestedDays !== 1 ? 's' : ''} would exceed your annual exception limit — you cannot register this vacation as an exception.
-            </AlertDescription>
-          </Alert>
-        )}
           </>
         )}
 

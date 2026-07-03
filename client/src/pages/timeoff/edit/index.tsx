@@ -273,7 +273,6 @@ function EditTimeOffPageInner({
     ? {
         vacation: balance.vacation + (isVacationCategory ? Number(oldRequestDays) : 0) + gtAccruedDays,
         personalDays: balance.personalDays + (isPersonalDayCategory ? Number(oldRequestDays) : 0),
-        exceptionDaysRemaining: balance.exceptionDaysRemaining,
       }
     : null;
   const balanceValidation =

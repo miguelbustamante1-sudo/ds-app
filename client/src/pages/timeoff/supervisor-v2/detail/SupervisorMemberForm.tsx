@@ -31,7 +31,6 @@ import {
 import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
-import { validateGTVacationException } from '../../utils/guatemalaExceptionValidation';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../../utils/workdayBalanceValidation';
 
 const isWeekend = (date: Date): boolean => {
@@ -59,7 +58,7 @@ interface SupervisorMemberFormProps {
   onCreate: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
   onUpdate: (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => Promise<void>;
   loading: boolean;
-  workdayBalance: { vacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
+  workdayBalance: { vacation: number; personalDays: number } | null;
 }
 
 export function SupervisorMemberForm(props: SupervisorMemberFormProps) {
@@ -258,10 +257,6 @@ function SupervisorMemberFormInner({
   const daysBeforeValidation = validateDaysBefore(startDate, daysBefore, selectedCategory?.categoryName ?? '');
   const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
 
-  const gtExceptionWarning = selectedCategory && hintDays > 0
-    ? validateGTVacationException(teamMember.countryIso, selectedCategory.categoryName, hintDays, workdayBalance?.exceptionDaysRemaining ?? 5)
-    : null;
-
   const isGTVacation = teamMember.countryIso === 'GT' && selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
   const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
   const balanceForValidation = workdayBalance && gtAccruedDays > 0
@@ -282,7 +277,6 @@ function SupervisorMemberFormInner({
     !isStartDateHoliday &&
     svValidation.valid &&
     !exceedsMaxDays &&
-    !gtExceptionWarning?.showLimitWarning &&
     daysBeforeValidation?.valid !== false &&
     !!comment?.trim() &&
     !loading;
@@ -593,19 +587,6 @@ function SupervisorMemberFormInner({
                     </p>
                   )}
                 </AlertDescription>
-              </Alert>
-            )}
-
-            {gtExceptionWarning?.showExceptionNotice && !gtExceptionWarning.showLimitWarning && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>This request (fewer than 5 days) will count as an exception. The member has {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining this anniversary year.</AlertDescription>
-              </Alert>
-            )}
-            {gtExceptionWarning?.showLimitWarning && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>This member only has {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining. This request of {gtExceptionWarning.requestedDays} day{gtExceptionWarning.requestedDays !== 1 ? 's' : ''} would exceed the annual exception limit.</AlertDescription>
               </Alert>
             )}
 
