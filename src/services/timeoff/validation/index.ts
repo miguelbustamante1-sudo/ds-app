@@ -4,7 +4,7 @@
  */
 
 import type { TimeOffValidationInput, ValidationError } from './types';
-import { loadValidationContext, loadElSalvadorVacationContext, loadGuatemalaVacationExceptionContext } from './dataLoader';
+import { loadValidationContext, loadElSalvadorVacationContext } from './dataLoader';
 import { validateRequiredFields } from './rules/requiredFields.rule';
 import { validateDateRange } from './rules/dateRange.rule';
 import { validateCategoryCountry } from './rules/categoryCountry.rule';
@@ -12,7 +12,6 @@ import { validateAttritionDate } from './rules/attritionDate.rule';
 import { validateNoOverlap } from './rules/overlapPrevention.rule';
 import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
-import { validateGuatemalaVacationException } from './rules/guatemalaVacationException.rule';
 import { validateDaysBefore } from './rules/daysBefore.rule';
 import { validateWorkdayBalance } from './rules/workdayBalance.rule';
 import { validateSwappedHolidayNotInRange, validateReplacementDayNotInRange } from './rules/holidaySwap.rule';
@@ -101,13 +100,6 @@ export async function validateTimeOff(
   const svResult = validateElSalvadorVacation(svVacationContext);
   if (!svResult.valid && svResult.error) {
     errors.push(svResult.error);
-  }
-
-  // Rule 6b: Guatemala Vacation Exception (< 5 days limit per anniversary year)
-  const gtExceptionContext = await loadGuatemalaVacationExceptionContext(input);
-  const gtExceptionResult = validateGuatemalaVacationException(gtExceptionContext);
-  if (!gtExceptionResult.valid && gtExceptionResult.error) {
-    errors.push(gtExceptionResult.error);
   }
 
   // Rule 7: Max days per request
