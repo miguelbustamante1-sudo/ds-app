@@ -161,6 +161,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
   } = useHolidayAwareness({
     countryIso: userCountryIso,
     startDate,
@@ -175,7 +176,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
   // Validation: Start date cannot be on a public holiday
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
 
   // Validation: Attrition date - check if dates exceed user's end date
   const exceedsAttritionDate = userEndDate && (
@@ -435,7 +436,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
                       if (date < today) return true;
                       if (isWeekend(date)) return true;
                       if (userEndDate && date > userEndDate) return true;
-                      if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                      if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                       return false;
                     }}
                     modifiers={{ holiday: holidayDatesForCalendar }}

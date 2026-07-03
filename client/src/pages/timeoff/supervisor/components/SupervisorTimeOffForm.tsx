@@ -211,6 +211,7 @@ function SupervisorTimeOffFormInner({
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
   } = useHolidayAwareness({
     countryIso: teamMember?.countryIso,
     startDate,
@@ -234,7 +235,7 @@ function SupervisorTimeOffFormInner({
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
   // Validation: Start date cannot be on a public holiday (swap-aware)
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
 
   // Swap awareness for start date: detect replacement day (block) vs swapped-away original (advisory)
   const startDateReplacementSwap = useMemo(() => {
@@ -511,7 +512,7 @@ function SupervisorTimeOffFormInner({
                             if (date < today) return true;
                             if (isWeekend(date)) return true;
                             if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                            if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                            if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                             return false;
                           }}
                           modifiers={{ holiday: holidayDatesForCalendar }}

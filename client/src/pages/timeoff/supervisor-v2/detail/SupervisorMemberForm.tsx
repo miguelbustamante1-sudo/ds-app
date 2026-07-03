@@ -172,8 +172,13 @@ function SupervisorMemberFormInner({
     clearErrors,
   });
 
-  const { svHolidaysInRange, gtWeekdayHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar } =
-    useHolidayAwareness({ countryIso: teamMember.countryIso, startDate, endDate, isCalendar });
+  const {
+    svHolidaysInRange,
+    gtWeekdayHolidaysInRange,
+    gtNetVacationDays,
+    holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
+  } = useHolidayAwareness({ countryIso: teamMember.countryIso, startDate, endDate, isCalendar });
 
   const { activeSwaps } = useHolidayContext();
 
@@ -203,7 +208,7 @@ function SupervisorMemberFormInner({
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
 
   const startDateReplacementSwap = useMemo(() => {
     if (!startDate) return null;
@@ -421,7 +426,7 @@ function SupervisorMemberFormInner({
                             if (date < today) return true;
                             if (isWeekend(date)) return true;
                             if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                            if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                            if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                             return false;
                           }}
                           modifiers={{ holiday: holidayDatesForCalendar }}
