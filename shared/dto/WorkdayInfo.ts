@@ -20,8 +20,6 @@ export interface WorkdayInfoDTO {
   directManager: string | null;
   vacation: number | null;
   personalDays: number | null;
-  exceptionDaysUsed: number | null;
-  exceptionDaysRemaining: number | null;
 }
 
 export interface CreateWorkdayInfoDTO {
@@ -61,21 +59,4 @@ export interface UpdateWorkdayInfoDTO {
   directManager?: string | null;
   vacation?: number | null;
   personalDays?: number | null;
-}
-
-export interface WorkdayInfoExceptionItemDTO {
-  timeOffId: number;
-  timeOffStartDate: string;
-  timeOffEndDate: string;
-  timeOffDays: number;
-  categoryName: string;
-  statusName: string;
-}
-
-export interface WorkdayInfoExceptionsDTO {
-  anniversaryYearStart: string | null;
-  anniversaryYearEnd: string | null;
-  exceptionDaysUsed: number | null;
-  exceptionDaysRemaining: number | null;
-  exceptions: WorkdayInfoExceptionItemDTO[];
 }
