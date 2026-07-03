@@ -215,7 +215,7 @@ function SupervisorTimeOffFormInner({
     countryIso: teamMember?.countryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   const { activeSwaps } = useHolidayContext();
@@ -279,6 +279,9 @@ function SupervisorTimeOffFormInner({
   const hintDays = startDate && endDate && isDateRangeValid
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
+
+  // The authoritative day count once holidays (including half-days) are excluded.
+  const effectiveDays = gtNetVacationDays ?? hintDays;
 
   const svMemberStartDate = (teamMember?.hireDate ?? teamMember?.teamMemberStartDate)
     ? parseUTCDateAsLocal((teamMember!.hireDate ?? teamMember!.teamMemberStartDate) as unknown as string)
@@ -353,7 +356,7 @@ function SupervisorTimeOffFormInner({
   );
 
   // Max days per request validation
-  const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
+  const exceedsMaxDays = maxDays > 0 && effectiveDays > maxDays;
 
   // Balance validation — for GT vacation, add accrued days (1.25/month since 2025-12-31)
   // Advisory only for supervisors — does not block canSave
@@ -362,15 +365,15 @@ function SupervisorTimeOffFormInner({
   const balanceForValidation = workdayBalance && gtAccruedDays > 0
     ? { ...workdayBalance, vacation: workdayBalance.vacation + gtAccruedDays }
     : workdayBalance ?? null;
-  const balanceValidation = selectedCategory && hintDays > 0 && workdayBalance
-    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
+  const balanceValidation = selectedCategory && effectiveDays > 0 && workdayBalance
+    ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  const gtPersonalDaysWarning = selectedCategory && hintDays > 0
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0
     ? validateGTPersonalDays(
         teamMember?.countryIso,
         selectedCategory.categoryName,
-        hintDays,
+        effectiveDays,
         workdayBalance?.personalDaysUsedThisMonth ?? 0
       )
     : null;
@@ -646,9 +649,9 @@ function SupervisorTimeOffFormInner({
               Fixed duration: {fixedDays} day{fixedDays !== 1 ? 's' : ''}
             </p>
           )}
-          {!isFixedDuration && !isSV15DayMode && hintDays > 0 && (
+          {!isFixedDuration && !isSV15DayMode && effectiveDays > 0 && (
             <p className="text-muted-foreground">
-              {hintDays} day{hintDays !== 1 ? 's' : ''}
+              {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
             </p>
           )}
           {maxDays > 0 && (
@@ -660,7 +663,7 @@ function SupervisorTimeOffFormInner({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {hintDays} days.
+                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {effectiveDays} days.
               </AlertDescription>
             </Alert>
           )}
