@@ -146,11 +146,11 @@ function EditSupervisorTimeOffPageInner({
     ? parseUTCDateAsLocal(teamMember.teamMemberEndDate as unknown as string)
     : null;
 
-  const { svHolidaysInRange, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar } = useHolidayAwareness({
     countryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   useEffect(() => {
@@ -240,6 +240,8 @@ function EditSupervisorTimeOffPageInner({
     startDate && endDate && isDateRangeValid
       ? calculateRequestedDays(startDate, endDate, isCalendar)
       : 0;
+  // The authoritative day count once holidays (including half-days) are excluded.
+  const effectiveDays = gtNetVacationDays ?? hintDays;
 
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -526,9 +528,9 @@ function EditSupervisorTimeOffPageInner({
                         {Number(editingTimeOff.timeOffDays)} calendar days (fixed by split)
                       </p>
                     )}
-                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && hintDays > 0 && (
+                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && effectiveDays > 0 && (
                       <p className="text-sm text-muted-foreground">
-                        {hintDays} day{hintDays !== 1 ? 's' : ''}
+                        {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>

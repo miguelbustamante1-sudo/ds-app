@@ -56,7 +56,7 @@ export function SVVacationSplitMode({
     countryIso,
     startDate: anchorStartDate,
     endDate: periodAEndDate,
-    categoryName: 'Vacation',
+    isCalendar: true,
   });
 
   // Holiday awareness for Period B (same country, different date range)
@@ -64,7 +64,7 @@ export function SVVacationSplitMode({
     countryIso,
     startDate: periodBStartDate,
     endDate: periodBEndDate,
-    categoryName: 'Vacation',
+    isCalendar: true,
   });
 
   const handlePeriodAEndDateSelect = useCallback(

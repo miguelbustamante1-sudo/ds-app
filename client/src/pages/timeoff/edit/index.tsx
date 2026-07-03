@@ -148,11 +148,11 @@ function EditTimeOffPageInner({
   const isSV15DayMode =
     isSVVacation && !isHalfOfSplit && editingTimeOff?.statusId !== SPLIT_STATUS_ID;
 
-  const { svHolidaysInRange, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar } = useHolidayAwareness({
     countryIso: userCountryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   // Initialize country/end-date from the profile loaded by the outer shell
@@ -249,6 +249,8 @@ function EditTimeOffPageInner({
     startDate && endDate && isDateRangeValid
       ? calculateRequestedDays(startDate, endDate, isCalendar)
       : 0;
+  // The authoritative day count once holidays (including half-days) are excluded.
+  const effectiveDays = gtNetVacationDays ?? hintDays;
 
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -277,8 +279,8 @@ function EditTimeOffPageInner({
       }
     : null;
   const balanceValidation =
-    selectedCategory && hintDays > 0
-      ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, effectiveBalance)
+    selectedCategory && effectiveDays > 0
+      ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, effectiveBalance)
       : { valid: true, errorMessage: null, available: 0 };
 
   const canSave =
@@ -561,9 +563,9 @@ function EditTimeOffPageInner({
                         {Number(editingTimeOff.timeOffDays)} calendar days (fixed by split)
                       </p>
                     )}
-                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && hintDays > 0 && (
+                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && effectiveDays > 0 && (
                       <p className="text-sm text-muted-foreground">
-                        {hintDays} day{hintDays !== 1 ? 's' : ''}
+                        {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>

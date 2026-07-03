@@ -166,7 +166,7 @@ function ExceptionTimeOffFormInner({
     countryIso: teamMember?.countryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   const { activeSwaps } = useHolidayContext();
