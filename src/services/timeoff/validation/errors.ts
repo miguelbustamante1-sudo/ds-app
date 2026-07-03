@@ -124,4 +124,16 @@ export const TimeOffValidationErrors = {
     message: `Start date is a replacement day (swapped from ${holidayName}). This is a personal holiday and cannot be used as a start date.`,
     metadata: { holidayName, replacementDate },
   }),
+
+  // Guatemala Personal Days (max 2 per calendar month)
+  GT_PERSONAL_DAYS_MONTHLY_LIMIT_REACHED: (
+    usedDays: number,
+    requestedDays: number,
+    monthStart: Date,
+    monthEnd: Date
+  ): ValidationError => ({
+    code: 'GT_PERSONAL_DAYS_MONTHLY_LIMIT_REACHED',
+    message: `You have used ${usedDays} of your 2 Personal Days allowed for ${monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}. This request of ${requestedDays} day${requestedDays !== 1 ? 's' : ''} would exceed the monthly limit.`,
+    metadata: { usedDays, requestedDays, maxDays: 2, monthStart, monthEnd },
+  }),
 } as const;
