@@ -162,6 +162,7 @@ function ExceptionTimeOffFormInner({
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
   } = useHolidayAwareness({
     countryIso: teamMember?.countryIso,
     startDate,
@@ -179,7 +180,7 @@ function ExceptionTimeOffFormInner({
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
   const exceedsAttritionDate = teamMemberEndDate && (
     (startDate && startDate > teamMemberEndDate) ||
     (endDate && endDate > teamMemberEndDate)
@@ -319,7 +320,7 @@ function ExceptionTimeOffFormInner({
                       disabled={(date) => {
                         if (isWeekend(date)) return true;
                         if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                        if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                        if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                         return false;
                       }}
                       modifiers={{ holiday: holidayDatesForCalendar }}
