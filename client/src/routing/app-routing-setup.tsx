@@ -39,6 +39,7 @@ import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
+import { FieldglassSowsPage } from '@/pages/maintenance/fieldglass-sows';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
 import { TimeOffPeriodBackfillPage } from '@/pages/maintenance/timeoff-period-backfill';
 import { EmailTestPage } from '@/pages/maintenance/email-test';
@@ -146,6 +147,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
+        <Route path="/maintenance/fieldglass-sows" element={<FieldglassSowsPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
         <Route path="/maintenance/timeoff-period-backfill" element={<TimeOffPeriodBackfillPage />} />
         <Route path="/maintenance/email-test" element={<EmailTestPage />} />

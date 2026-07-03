@@ -31,6 +31,7 @@ export * from './TimeOffStatus';
 export * from './User';
 export * from './WorkdayInfo';
 export * from './FunctionalArea';
+export * from './FieldglassSow';
 
 // Communication DTOs
 export * from './Notification';

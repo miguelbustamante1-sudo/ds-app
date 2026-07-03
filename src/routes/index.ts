@@ -35,6 +35,7 @@ import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
 import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
+import fieldglassSowsRouter from './fieldglassSow.routes';
 import holidaySwapRouter from './holidaySwap.routes';
 import holidaySwapExceptionRouter from './holidaySwapException.routes';
 import pendingRequestsRouter from './pendingRequests.routes';
@@ -98,6 +99,7 @@ export default function registerRoutes() {
   router.use('/client-contacts', clientContactsRouter);
   router.use('/workday-info', workdayInfoRouter);
   router.use('/functional-areas', functionalAreasRouter);
+  router.use('/fieldglass-sows', fieldglassSowsRouter);
   router.use('/holiday-swaps', holidaySwapRouter);
   router.use('/holiday-swaps', holidaySwapExceptionRouter);
   router.use('/team/pending-requests', pendingRequestsRouter);
