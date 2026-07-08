@@ -31,7 +31,7 @@ import { computeCurrentPeriod, getNextAnniversaryDate } from '../utils/anniversa
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
-import { validateGTPersonalDays } from '../utils/guatemalaPersonalDaysValidation';
+import { validateGTPersonalDays, getPersonalDaysUsedInMonth } from '../utils/guatemalaPersonalDaysValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -253,12 +253,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0 && startDate
     ? validateGTPersonalDays(
         userCountryIso,
         selectedCategory.categoryName,
         effectiveDays,
-        workdayBalance?.personalDaysUsedThisMonth ?? 0
+        getPersonalDaysUsedInMonth(existingTimeOffs, startDate, cancelledStatusId)
       )
     : null;
 

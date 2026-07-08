@@ -29,7 +29,7 @@ import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../../utils/workdayBalanceValidation';
-import { validateGTPersonalDays } from '../../utils/guatemalaPersonalDaysValidation';
+import { validateGTPersonalDays, getPersonalDaysUsedInMonth } from '../../utils/guatemalaPersonalDaysValidation';
 
 // Helper function to check if a date is a weekend (Saturday or Sunday)
 const isWeekend = (date: Date): boolean => {
@@ -370,12 +370,12 @@ function SupervisorTimeOffFormInner({
     ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0 && startDate
     ? validateGTPersonalDays(
         teamMember?.countryIso,
         selectedCategory.categoryName,
         effectiveDays,
-        workdayBalance?.personalDaysUsedThisMonth ?? 0
+        getPersonalDaysUsedInMonth(existingTimeOffs, startDate, cancelledStatusId)
       )
     : null;
 

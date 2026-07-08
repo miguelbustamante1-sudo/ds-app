@@ -32,7 +32,7 @@ import { validateDaysBefore } from '../../utils/daysBefore';
 import { isDateInHolidayList } from '../../utils/holidayValidation';
 import { SVVacationSplitMode, type SplitPeriod } from '../../components/SVVacationSplitMode';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../../utils/workdayBalanceValidation';
-import { validateGTPersonalDays } from '../../utils/guatemalaPersonalDaysValidation';
+import { validateGTPersonalDays, getPersonalDaysUsedInMonth } from '../../utils/guatemalaPersonalDaysValidation';
 
 const isWeekend = (date: Date): boolean => {
   const day = date.getDay();
@@ -274,8 +274,13 @@ function SupervisorMemberFormInner({
     ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
 
-  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0
-    ? validateGTPersonalDays(teamMember.countryIso, selectedCategory.categoryName, effectiveDays, workdayBalance?.personalDaysUsedThisMonth ?? 0)
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0 && startDate
+    ? validateGTPersonalDays(
+        teamMember.countryIso,
+        selectedCategory.categoryName,
+        effectiveDays,
+        getPersonalDaysUsedInMonth(existingTimeOffs, startDate, cancelledStatusId, editingTimeOff?.timeOffId)
+      )
     : null;
 
   const canSave =
