@@ -68,3 +68,6 @@ export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 // Standalone Tasks DTOs
 export * from './StandaloneTask';
 export * from './ApiKey';
+
+// Laptop Inventory DTOs
+export * from './LaptopInventory';

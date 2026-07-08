@@ -60,6 +60,7 @@ import { EndBenchPage } from '@/pages/end-bench';
 import { PendingRequestsPage } from '@/pages/my-team/pending-requests';
 import { MyProfilePage } from '@/pages/my-profile';
 import { HiringPage } from '@/pages/hiring';
+import { LaptopInventoryPage } from '@/pages/laptop-inventory';
 import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
 import { OptionsPage } from '@/pages/security/options';
@@ -154,6 +155,7 @@ export function AppRoutingSetup() {
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />
+        <Route path="/laptop-inventory" element={<LaptopInventoryPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
         <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />

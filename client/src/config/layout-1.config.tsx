@@ -35,6 +35,7 @@ import {
   Kanban,
   ClipboardList,
   Key,
+  Laptop,
   Layout,
   LayoutGrid,
   LifeBuoy,
@@ -256,6 +257,13 @@ export const MENU_SIDEBAR: MenuConfig = [
     path: '/holiday-swap-exception',
     role: 'bsa',
     permission: 'HolidaySwapException',
+  },
+  {
+    title: 'Laptop Inventory',
+    icon: Laptop,
+    path: '/laptop-inventory',
+    role: 'bsa',
+    permission: 'LaptopInventory',
   },
   { heading: 'Standalone Tasks', permission: 'StandaloneTaskAdmin' },
   {

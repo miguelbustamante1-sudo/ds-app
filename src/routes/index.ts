@@ -59,6 +59,7 @@ import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
 import { storedProcedureRoutes } from './storedProcedures';
 import { storedProcedureOrchestrator } from '../services/storedProcedures/StoredProcedureOrchestrator';
+import laptopInventoryRouter from './laptopInventory.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -122,6 +123,7 @@ export default function registerRoutes() {
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);
   router.use('/stored-procedures', storedProcedureRoutes(storedProcedureOrchestrator));
+  router.use('/laptops', laptopInventoryRouter);
 
   return router;
 }
