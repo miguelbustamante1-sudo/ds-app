@@ -1,5 +1,6 @@
 import { prisma } from '../../../db/prisma';
 import type { ApiKeyDTO } from '@shared/dto';
+import type { PermissionMap } from '@shared/types/permissions';
 import { ApiKeyNotFoundError, ApiKeyHasBeenUsedError } from '../errors';
 
 export async function deleteApiKey(apkId: number): Promise<ApiKeyDTO> {
@@ -19,6 +20,7 @@ export async function deleteApiKey(apkId: number): Promise<ApiKeyDTO> {
     apkCreatedBy: existing.apkCreatedBy,
     apkCreatedDate: existing.apkCreatedDate.toISOString(),
     apkLastUsedDate: null,
+    apkPermissions: existing.apkPermissions as PermissionMap,
     createdByUserName: existing.createdByUser.userName,
   };
 }

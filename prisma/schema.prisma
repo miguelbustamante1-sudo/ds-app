@@ -1534,6 +1534,7 @@ model ApiKey {
   apkCreatedBy    Int       @map("apk_created_by") @db.Integer
   apkCreatedDate  DateTime  @default(now()) @map("apk_created_date") @db.Timestamptz(6)
   apkLastUsedDate DateTime? @map("apk_last_used_date") @db.Timestamptz(6)
+  apkPermissions  Json      @default("{}") @map("apk_permissions")
 
   createdByUser   User             @relation("apk_api_keys_apk_created_byTotbl_users", fields: [apkCreatedBy], references: [userId], map: "fk_apk_created_by")
   standaloneTasks StandaloneTask[]

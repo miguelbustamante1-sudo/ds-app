@@ -29,7 +29,7 @@ export async function validateApiKey(
   const prefix = rawKey.substring(0, 8);
   const candidate = await prisma.apiKey.findFirst({
     where: { apkIsActive: true, apkPrefix: prefix },
-    select: { apkId: true, apkKeyHash: true },
+    select: { apkId: true, apkKeyHash: true, apkPermissions: true },
   });
 
   if (candidate) {
@@ -44,9 +44,7 @@ export async function validateApiKey(
         console.error('Failed to update apk_last_used_date:', err);
       });
 
-      const permissions: PermissionMap = {
-        StandaloneTaskAdmin: { read: false, create: true, delete: false },
-      };
+      const permissions = key.apkPermissions as PermissionMap;
 
       req.user = {
         id: serviceAccountId,

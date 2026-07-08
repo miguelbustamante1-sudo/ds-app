@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { issueApiKey } from './api';
 import type { IssueApiKeyResponseDTO } from '@shared/dto';
+import type { PermissionMap } from '@shared/types/permissions';
 
 interface IssueKeyDialogProps {
   open: boolean;
@@ -20,8 +21,15 @@ interface IssueKeyDialogProps {
   onSuccess: () => void;
 }
 
+// Resources a scoped API key may be granted access to.
+const AVAILABLE_PERMISSIONS: Array<{ resource: string; action: 'read' | 'create' | 'delete'; label: string }> = [
+  { resource: 'StandaloneTaskAdmin', action: 'create', label: 'Create standalone tasks' },
+  { resource: 'TimeOffLookup', action: 'read', label: 'Look up active time-offs by Workday ID' },
+];
+
 interface FormData {
   apkName: string;
+  grants: Record<string, Record<string, boolean>>;
 }
 
 export function IssueKeyDialog({ open, onOpenChange, onSuccess }: IssueKeyDialogProps) {
@@ -34,12 +42,16 @@ export function IssueKeyDialog({ open, onOpenChange, onSuccess }: IssueKeyDialog
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ defaultValues: { apkName: '' } });
+  } = useForm<FormData>({ defaultValues: { apkName: '', grants: {} } });
+
+  const grants = watch('grants');
 
   useEffect(() => {
     if (open) {
-      reset({ apkName: '' });
+      reset({ apkName: '', grants: {} });
       setIssued(null);
       setAcknowledged(false);
       setCopied(false);
@@ -47,8 +59,16 @@ export function IssueKeyDialog({ open, onOpenChange, onSuccess }: IssueKeyDialog
   }, [open, reset]);
 
   const onSubmit = async (data: FormData) => {
+    const apkPermissions: PermissionMap = {};
+    for (const { resource, action } of AVAILABLE_PERMISSIONS) {
+      if (!data.grants[resource]?.[action]) continue;
+      const flags = apkPermissions[resource] ?? { read: false, create: false, delete: false };
+      flags[action] = true;
+      apkPermissions[resource] = flags;
+    }
+
     try {
-      const result = await issueApiKey({ apkName: data.apkName.trim() });
+      const result = await issueApiKey({ apkName: data.apkName.trim(), apkPermissions });
       setIssued(result);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to issue API key';
@@ -92,6 +112,22 @@ export function IssueKeyDialog({ open, onOpenChange, onSuccess }: IssueKeyDialog
               {errors.apkName && (
                 <p className="text-sm text-destructive">{errors.apkName.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Permissions</Label>
+              {AVAILABLE_PERMISSIONS.map(({ resource, action, label }) => (
+                <div key={`${resource}.${action}`} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`${resource}.${action}`}
+                    checked={grants[resource]?.[action] ?? false}
+                    onCheckedChange={(val) => setValue(`grants.${resource}.${action}`, val === true)}
+                  />
+                  <Label htmlFor={`${resource}.${action}`} className="cursor-pointer font-normal">
+                    {label}
+                  </Label>
+                </div>
+              ))}
             </div>
 
             <div className="flex justify-end gap-2">

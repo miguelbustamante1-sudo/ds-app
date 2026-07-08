@@ -25,6 +25,7 @@ export async function issueApiKey(
       apkPrefix,
       apkIsActive: true,
       apkCreatedBy: createdBy,
+      apkPermissions: input.apkPermissions,
     },
     select: { apkId: true, apkName: true },
   });
