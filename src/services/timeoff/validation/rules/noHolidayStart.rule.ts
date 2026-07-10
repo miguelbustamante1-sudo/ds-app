@@ -31,12 +31,13 @@ function holidayMatchesDate(
 /**
  * Rule: Start date cannot fall on a public holiday.
  *
- * Three cases:
- *  A) Regular holiday (no active swap) → hard block: START_DATE_ON_HOLIDAY
- *  B) Holiday that was swapped away (originalDate) → pass; SWAPPED_HOLIDAY_IN_RANGE handles the work-day conflict separately
+ * Four cases:
+ *  A) Regular full-day holiday (no active swap) → hard block: START_DATE_ON_HOLIDAY
+ *  B) Swapped-away original (holidayIsHalfDay irrelevant) → pass; SWAPPED_HOLIDAY_IN_RANGE handles the work-day conflict separately
  *  C) Replacement day from a swap → hard block: START_DATE_ON_REPLACEMENT_DAY
+ *  D) Half-day holiday (no active swap) → pass; the team member still works half the day
  *
- * Cases are checked in this priority: C first, then A/B.
+ * Cases are checked in this priority: C first, then B, then D, then A.
  */
 export function validateNoHolidayStart(
   input: TimeOffValidationInput,
@@ -62,7 +63,11 @@ export function validateNoHolidayStart(
     const swappedAway = context.activeSwaps.some((s) => isSameUTCDay(s.originalDate, startDate));
     if (swappedAway) return { valid: true };
 
-    // Case A: regular holiday → block
+    // Half-day holidays don't take up the whole working day — the team member still
+    // works half the day, so starting a request here is allowed.
+    if (holiday.holidayIsHalfDay) return { valid: true };
+
+    // Case A: regular (full-day) holiday → block
     return {
       valid: false,
       error: TimeOffValidationErrors.START_DATE_ON_HOLIDAY(holiday.holidayName, startDate),

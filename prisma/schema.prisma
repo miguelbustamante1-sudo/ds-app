@@ -141,6 +141,7 @@ model TeamMember {
   tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
   tpVotes                           TpVote[]            @relation("TpVoter")
   tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
+  laptopAssignments                 LaptopAssignment[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -408,6 +409,12 @@ model User {
   giftCardReasonsCreated       GiftCardReason[]
   giftCardTypesCreated         GiftCardType[]
   giftCardValuesCreated        GiftCardValue[]
+  fieldglassSowsCreated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users")
+  fieldglassSowsUpdated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users")
+  laptopsCreated               Laptop[]           @relation("LapCreatedBy")
+  laptopsUpdated               Laptop[]           @relation("LapUpdatedBy")
+  laptopAssignmentsCreated     LaptopAssignment[] @relation("LpaCreatedBy")
+  laptopAssignmentsUpdated     LaptopAssignment[] @relation("LpaUpdatedBy")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -730,6 +737,24 @@ model ReportParameter {
 
   @@index([reportId], map: "idx_rpt_report_parameters_rpt_id")
   @@map("rtp_report_parameters")
+  @@schema("ds")
+}
+
+model StoredProcedure {
+  spId            Int       @id @default(autoincrement()) @map("spr_id")
+  spSchema        String    @map("spr_schema") @db.VarChar(50)
+  spName          String    @map("spr_name") @db.VarChar(100)
+  spLabel         String    @map("spr_label") @db.VarChar(200)
+  spDescription   String?   @map("spr_description") @db.VarChar(2000)
+  spActive        Boolean   @default(true) @map("spr_active")
+  spCreatedAt     DateTime  @default(now()) @map("spr_created_at") @db.Timestamptz(6)
+  spCreatedBy     Int       @map("spr_created_by")
+  spUpdatedAt     DateTime? @map("spr_updated_at") @db.Timestamptz(6)
+  spUpdatedBy     Int?      @map("spr_updated_by")
+
+  @@unique([spSchema, spName], map: "uq_spr_schema_name")
+  @@index([spActive], map: "idx_spr_active")
+  @@map("spr_procedure_definitions")
   @@schema("ds")
 }
 
@@ -1521,6 +1546,7 @@ model ApiKey {
   apkCreatedBy    Int       @map("apk_created_by") @db.Integer
   apkCreatedDate  DateTime  @default(now()) @map("apk_created_date") @db.Timestamptz(6)
   apkLastUsedDate DateTime? @map("apk_last_used_date") @db.Timestamptz(6)
+  apkPermissions  Json      @default("{}") @map("apk_permissions")
 
   createdByUser   User             @relation("apk_api_keys_apk_created_byTotbl_users", fields: [apkCreatedBy], references: [userId], map: "fk_apk_created_by")
   standaloneTasks StandaloneTask[]
@@ -1741,5 +1767,92 @@ model GiftCardValue {
   @@index([cardValueIsActive], map: "idx_tbl_gcv_card_values_is_active")
   @@index([cardValueCreatedBy], map: "idx_tbl_gcv_card_values_created_by")
   @@map("tbl_gcv_card_values")
+  @@schema("ds")
+}
+
+/// Fieldglass SOW registry: tracks ownership and TDx role assignments (creators, TA prime, profile
+/// worker creators) per SOW, each with a primary and comma-separated delegate list. 
+
+model FieldglassSow {
+  fgsId                            Int       @id @default(autoincrement()) @map("fgs_id") @db.Integer
+  sowName                          String?   @map("fgs_sow_name") @db.VarChar(255)
+  sowId                            String?   @unique(map: "uk_fgs_sow_id") @map("fgs_sow_id") @db.VarChar(50)
+  sowOwner                         String?   @map("fgs_sow_owner") @db.VarChar(255)
+  backupSowOwner                   String?   @map("fgs_backup_sow_owner") @db.VarChar(255)
+  tdxSowCreatorsPrimary            String?   @map("fgs_tdx_sow_creators_primary") @db.VarChar(255)
+  tdxSowCreatorsDelegate           String?   @map("fgs_tdx_sow_creators_delegate") @db.VarChar(500)
+  tdxTaPrimePrimary                String?   @map("fgs_tdx_ta_prime_primary") @db.VarChar(255)
+  tdxTaPrimeDelegate               String?   @map("fgs_tdx_ta_prime_delegate") @db.VarChar(500)
+  tdxProfileWorkerCreatorsPrimary  String?   @map("fgs_tdx_profile_worker_creators_primary") @db.VarChar(255)
+  tdxProfileWorkerCreatorsDelegate String?   @map("fgs_tdx_profile_worker_creators_delegate") @db.VarChar(500)
+  createdBy                        Int       @map("fgs_created_by")
+  createdAt                        DateTime  @default(now()) @map("fgs_created_at") @db.Timestamptz(6)
+  lastUpdatedBy                    Int?      @map("fgs_last_updated_by")
+  lastUpdatedAt                    DateTime? @map("fgs_last_updated_at") @db.Timestamptz(6)
+  deleted                          Boolean   @default(false) @map("fgs_deleted")
+  deletedAt                        DateTime? @map("fgs_deleted_at") @db.Timestamptz(6)
+
+  createdByUser     User  @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_fgs_cby")
+  lastUpdatedByUser User? @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users", fields: [lastUpdatedBy], references: [userId], map: "fk_fgs_uby")
+
+  @@index([createdBy], map: "idx_fgs_cby")
+  @@index([lastUpdatedBy], map: "idx_fgs_uby")
+  @@map("fgs_fieldglass_sows")
+  @@schema("ds")
+}
+
+
+model Laptop {
+  laptopId       Int       @id @default(autoincrement()) @map("lap_id") @db.Integer
+  serialNumber   String    @unique @map("lap_serial_number") @db.VarChar(100)
+  assetNumber    String?   @map("lap_asset_number") @db.VarChar(50)
+  model          String?   @map("lap_model") @db.VarChar(200)
+  brand          String?   @map("lap_brand") @db.VarChar(100)
+  code           String?   @map("lap_code") @db.VarChar(100)
+  ramGb          String?   @map("lap_ram_gb") @db.VarChar(20)
+  storageGb      String?   @map("lap_storage_gb") @db.VarChar(20)
+  region         String?   @map("lap_region") @db.VarChar(50)
+  purchaseDate   DateTime? @map("lap_purchase_date") @db.Date
+  po             String?   @map("lap_po") @db.VarChar(100)
+  usable         Boolean   @default(true) @map("lap_usable")
+  category       String?   @map("lap_category") @db.VarChar(50)
+  site           String?   @map("lap_site") @db.VarChar(50)
+  status         String    @default("Available") @map("lap_status") @db.VarChar(50)
+  comments       String?   @map("lap_comments") @db.Text
+  deleted        Boolean   @default(false) @map("lap_deleted")
+  createdBy      Int       @map("lap_created_by") @db.Integer
+  createdDate    DateTime  @default(now()) @map("lap_created_date") @db.Timestamptz
+  updatedBy      Int?      @map("lap_updated_by") @db.Integer
+  updatedDate    DateTime? @map("lap_updated_date") @db.Timestamptz
+
+  assignments    LaptopAssignment[]
+
+  createdByUser  User  @relation("LapCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lap_created_by")
+  updatedByUser  User? @relation("LapUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lap_updated_by")
+
+  @@map("lap_laptops")
+  @@schema("ds")
+}
+
+model LaptopAssignment {
+  assignmentId  Int       @id @default(autoincrement()) @map("lpa_id") @db.Integer
+  laptopId      Int       @map("lpa_lap_id") @db.Integer
+  teamMemberId  Int?      @map("lpa_tm_id") @db.Integer
+  startDate     DateTime  @map("lpa_start_date") @db.Date
+  endDate       DateTime? @map("lpa_end_date") @db.Date
+  notes         String?   @map("lpa_notes") @db.VarChar(500)
+  createdBy     Int       @map("lpa_created_by") @db.Integer
+  createdDate   DateTime  @default(now()) @map("lpa_created_date") @db.Timestamptz
+  updatedBy     Int?      @map("lpa_updated_by") @db.Integer
+  updatedDate   DateTime? @map("lpa_updated_date") @db.Timestamptz
+
+  laptop        Laptop      @relation(fields: [laptopId], references: [laptopId], onDelete: Restrict, map: "fk_lpa_lap")
+  teamMember    TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_lpa_tm")
+  createdByUser User        @relation("LpaCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lpa_created_by")
+  updatedByUser User?       @relation("LpaUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lpa_updated_by")
+
+  @@index([laptopId], map: "idx_lpa_lap_id")
+  @@index([teamMemberId], map: "idx_lpa_tm_id")
+  @@map("lpa_laptop_assignments")
   @@schema("ds")
 }

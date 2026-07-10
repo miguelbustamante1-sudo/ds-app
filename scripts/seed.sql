@@ -198,6 +198,7 @@ INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_create
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (50, 'WorkflowAdmin',           'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:50:48.407+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (51, 'CompensatoryTime',        'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:53:01.629+00')    ON CONFLICT (opt_id) DO NOTHING;
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (52, 'SupervisorCompTime',      'miguel.bustamante01@telusinternational.com',  '2026-05-24 13:53:01.629+00')    ON CONFLICT (opt_id) DO NOTHING;
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at) VALUES (53, 'FieldglassSows',           'miguel.bustamante01@telusinternational.com',  '2026-07-03 00:00:00.000+00')    ON CONFLICT (opt_id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('sec.opt_options', 'opt_id'), (SELECT MAX(opt_id) FROM sec.opt_options));
 
 -- 9. RBAC Permissions
@@ -255,6 +256,7 @@ BEGIN
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('WorkflowAdmin',             true, true, true,  NULL,   NOW(), 50, 1);
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('CompensatoryTime',          true, true, true,  NULL,   NOW(), 51, 1);
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorCompTime',        true, true, true,  NULL,   NOW(), 52, 1);
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('FieldglassSows',             true, true, true,  NULL,   NOW(), 53, 1);
     -- user (rol_id=2): limited access
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Countries',                 true, true, true,  'CRUD', NOW(), 1,  2);
     INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Projects',                  true, true, true,  'CRUD', NOW(), 2,  2);
@@ -310,6 +312,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Workflow'            AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('Workflow',            true, true, true,  NULL, NOW(), 49, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'WorkflowAdmin'       AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('WorkflowAdmin',       true, true, true,  NULL, NOW(), 50, 1); END IF;
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'SupervisorCompTime'  AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('SupervisorCompTime',  true, true, true,  NULL, NOW(), 52, 1); END IF;
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'FieldglassSows'      AND rol_id = 1) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('FieldglassSows',      true, true, true,  NULL, NOW(), 53, 1); END IF;
 
   -- user (rol_id=2)
   IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'MyTeam'              AND rol_id = 2) THEN INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id) VALUES ('MyTeam',              true, true,  false, NULL, NOW(), 32, 2); END IF;
@@ -788,3 +791,39 @@ DO $$ BEGIN
   END IF;
 END $$;
 SELECT setval(pg_get_serial_sequence('ds.cpa_corporate_phone_assignments', 'cpa_id'), GREATEST((SELECT COALESCE(MAX(cpa_id), 0) FROM ds.cpa_corporate_phone_assignments), 3));
+
+-- 18. Fictional Fieldglass SOWs
+
+INSERT INTO ds.fgs_fieldglass_sows (
+  fgs_sow_name, fgs_sow_id, fgs_sow_owner, fgs_backup_sow_owner,
+  fgs_tdx_sow_creators_primary, fgs_tdx_sow_creators_delegate,
+  fgs_tdx_ta_prime_primary, fgs_tdx_ta_prime_delegate,
+  fgs_tdx_profile_worker_creators_primary, fgs_tdx_profile_worker_creators_delegate,
+  fgs_created_by
+)
+VALUES
+  ('CFO VP Marisol Delgado - TDx T&M',   'TLS1TQ00999001', 'Marisol Delgado', 'Tobias Renner',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('COO Director Felix Okafor - TDx T&M', 'TLS1TQ00999002', 'Felix Okafor', NULL,
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('CTO Manager Ingrid Solberg - TDx SOW', 'TLS1TQ00999003', 'Ingrid Solberg', 'Derek Voss',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('VP Sales Naomi Castillo - TDx T&M',   'TLS1TQ00999004', 'Naomi Castillo', 'Grace Lindqvist',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1),
+ 
+  ('SVP Ops Lucas Ferreira - TDx T&M',    'TLS1TQ00999005', 'Lucas Ferreira', NULL,
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
+   'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1)
+ON CONFLICT (fgs_sow_id) DO NOTHING;

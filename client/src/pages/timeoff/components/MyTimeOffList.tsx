@@ -24,7 +24,7 @@ import { WorkdayBalanceBadges } from './WorkdayBalanceBadges';
 interface MyTimeOffListProps {
   timeOffs: TimeOffWithDetailsDTO[] | undefined;
   loading: boolean;
-  balance?: { vacation: number; personalDays: number; exceptionDaysUsed: number; exceptionDaysRemaining: number } | null;
+  balance?: { vacation: number; personalDays: number } | null;
   balanceLoading?: boolean;
   countryIso?: string | null;
   onEditClick?: (timeOff: TimeOffWithDetailsDTO) => void;
@@ -290,7 +290,6 @@ export function MyTimeOffList({ timeOffs, loading, balance, balanceLoading, coun
         personalDays={balance?.personalDays ?? 0}
         loading={balanceLoading}
         countryIso={countryIso}
-        exceptionDaysRemaining={balance?.exceptionDaysRemaining}
       />
       {listContent()}
     </div>

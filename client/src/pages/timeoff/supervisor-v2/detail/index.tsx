@@ -122,7 +122,6 @@ export function SupervisorMemberDetailPage() {
           personalDays={balanceHook.balance?.personalDays ?? 0}
           loading={balanceHook.loading}
           countryIso={teamMember?.countryIso ?? null}
-          exceptionDaysRemaining={balanceHook.balance?.exceptionDaysRemaining}
         />
       </div>
 

@@ -7,7 +7,6 @@ import {
   createWorkdayInfo,
   updateWorkdayInfo,
   deleteWorkdayInfo,
-  getWorkdayInfoExceptions,
 } from '../db/workdayInfo';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
@@ -23,18 +22,6 @@ router.get('/', requirePermission('WorkdayInfo', 'read'), async (req: Authentica
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch workday info records' });
-  }
-});
-
-// GET /workday-info/:wdid/exceptions
-router.get('/:wdid/exceptions', requirePermission('WorkdayInfo', 'read'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const wdid = req.params.wdid as string;
-    const data = await getWorkdayInfoExceptions(wdid);
-    res.json(data);
-  } catch (err) {
-    error(err);
-    res.status(500).json({ error: 'Failed to fetch exception days' });
   }
 });
 

@@ -1,15 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useForm, Controller } from 'react-hook-form';
-import { ArrowLeft, CalendarRange, ShieldAlert } from 'lucide-react';
-import type { WorkdayInfoDTO, UpdateWorkdayInfoDTO, WorkdayInfoExceptionsDTO, WorkdayInfoExceptionItemDTO } from '@shared/dto';
-import {
-  ColumnDef,
-  getCoreRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
+import { ArrowLeft } from 'lucide-react';
+import type { WorkdayInfoDTO, UpdateWorkdayInfoDTO } from '@shared/dto';
 import {
   Toolbar,
   ToolbarActions,
@@ -21,16 +14,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ComboBox, ComboBoxOption } from '@/components/ui/combobox';
-import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
-import { DataGridTable } from '@/components/ui/data-grid-table';
-import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { apiGet, apiPut } from '@/lib/api';
-import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+import { parseUTCDateAsLocal } from '@/lib/utils';
 import { format } from 'date-fns';
 
 const PARENTHOOD_OPTIONS: ComboBoxOption[] = [
@@ -70,9 +59,7 @@ export function WorkdayInfoDetailPage() {
   const { canCreate } = usePermissions();
 
   const [record, setRecord] = useState<WorkdayInfoDTO | null>(null);
-  const [exceptions, setExceptions] = useState<WorkdayInfoExceptionsDTO | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([]);
 
   const {
     register,
@@ -102,13 +89,9 @@ export function WorkdayInfoDetailPage() {
 
   useEffect(() => {
     if (!wdid) return;
-    Promise.all([
-      apiGet<WorkdayInfoDTO>(`/api/workday-info/${wdid}`),
-      apiGet<WorkdayInfoExceptionsDTO>(`/api/workday-info/${wdid}/exceptions`),
-    ])
-      .then(([rec, exc]) => {
+    apiGet<WorkdayInfoDTO>(`/api/workday-info/${wdid}`)
+      .then((rec) => {
         setRecord(rec);
-        setExceptions(exc);
         reset({
           hireDate: toDateInputValue(rec.hireDate),
           corporateEmail: rec.corporateEmail ?? '',
@@ -158,56 +141,6 @@ export function WorkdayInfoDetailPage() {
     }
   };
 
-  const columns = useMemo<ColumnDef<WorkdayInfoExceptionItemDTO>[]>(
-    () => [
-      {
-        accessorKey: 'timeOffStartDate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
-        cell: ({ row }) => <span>{formatUTCDate(row.original.timeOffStartDate)}</span>,
-        size: 140,
-        meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-      {
-        accessorKey: 'timeOffEndDate',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
-        cell: ({ row }) => <span>{formatUTCDate(row.original.timeOffEndDate)}</span>,
-        size: 140,
-        meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-      {
-        accessorKey: 'timeOffDays',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Days" />,
-        cell: ({ row }) => <span>{row.original.timeOffDays}</span>,
-        size: 80,
-        meta: { headerTitle: 'Days', skeleton: <Skeleton className="h-4 w-10" /> },
-      },
-      {
-        accessorKey: 'categoryName',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Category" />,
-        cell: ({ row }) => <span>{row.original.categoryName}</span>,
-        size: 130,
-        meta: { headerTitle: 'Category', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
-        accessorKey: 'statusName',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
-        cell: ({ row }) => <span>{row.original.statusName}</span>,
-        size: 140,
-        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-24" /> },
-      },
-    ],
-    [],
-  );
-
-  const table = useReactTable({
-    data: exceptions?.exceptions ?? [],
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
   if (loading) {
     return (
       <div className="container">
@@ -232,26 +165,12 @@ export function WorkdayInfoDetailPage() {
     );
   }
 
-  const hasExceptions = exceptions?.anniversaryYearStart != null;
-  const anniversaryRange =
-    hasExceptions
-      ? `${formatUTCDate(exceptions!.anniversaryYearStart!)} – ${formatUTCDate(exceptions!.anniversaryYearEnd!)}`
-      : null;
-
   return (
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
           <ToolbarPageTitle>Workday Info — {wdid}</ToolbarPageTitle>
-          <ToolbarDescription className="flex items-center gap-2">
-            {anniversaryRange && (
-              <>
-                <CalendarRange className="h-4 w-4" />
-                <span>Anniversary year: {anniversaryRange}</span>
-              </>
-            )}
-            {!anniversaryRange && 'Manage Workday employee information'}
-          </ToolbarDescription>
+          <ToolbarDescription>Manage Workday employee information</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
           <Button variant="outline" onClick={() => navigate('/maintenance/workday-info')}>
@@ -364,39 +283,6 @@ export function WorkdayInfoDetailPage() {
           </CardContent>
         </Card>
       </form>
-
-      {hasExceptions && (
-        <Card className="mt-6">
-          <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <CardTitle className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4" />
-                Exception Days
-              </CardTitle>
-              <Badge variant="outline">
-                {exceptions!.exceptionDaysUsed} / {5} used
-              </Badge>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-4">
-              Short vacation requests (less than 5 days) count as exceptions. This employee has used{' '}
-              <strong>{exceptions!.exceptionDaysUsed}</strong> of 5 allowed exception days in the current
-              anniversary year ({anniversaryRange}).
-            </p>
-
-            <DataGridContainer>
-              <DataGrid
-                table={table}
-                recordCount={exceptions!.exceptions.length}
-                isLoading={false}
-                emptyMessage="No exception days recorded in the current anniversary year."
-              >
-                <DataGridTable />
-              </DataGrid>
-            </DataGridContainer>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

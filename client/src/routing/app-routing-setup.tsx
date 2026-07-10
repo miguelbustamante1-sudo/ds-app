@@ -40,6 +40,7 @@ import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
+import { FieldglassSowsPage } from '@/pages/maintenance/fieldglass-sows';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
 import { TimeOffPeriodBackfillPage } from '@/pages/maintenance/timeoff-period-backfill';
 import { EmailTestPage } from '@/pages/maintenance/email-test';
@@ -47,6 +48,7 @@ import { ReportsPage } from '@/pages/reports';
 import { TimeOffChangeLogPage } from '@/pages/reports/time-off/change-log';
 import { UpcomingVacationPage } from '@/pages/reports/time-off/upcoming-vacation';
 import { WorkdayReconciliationPage } from '@/pages/reports/time-off/workday-reconciliation';
+import { GtVacationUnderFiveDaysPage } from '@/pages/reports/time-off/gt-vacation-under-five-days';
 import { DynamicReportsManagementPage } from '@/pages/reports/dynamic';
 import { ReportWizard } from '@/pages/reports/dynamic/wizard/ReportWizard';
 import { RunReportPage } from '@/pages/reports/dynamic/run/RunReportPage';
@@ -59,6 +61,7 @@ import { EndBenchPage } from '@/pages/end-bench';
 import { PendingRequestsPage } from '@/pages/my-team/pending-requests';
 import { MyProfilePage } from '@/pages/my-profile';
 import { HiringPage } from '@/pages/hiring';
+import { LaptopInventoryPage } from '@/pages/laptop-inventory';
 import { HiringDetailPage } from '@/pages/hiring/detail';
 import { RolesPage } from '@/pages/security/roles';
 import { OptionsPage } from '@/pages/security/options';
@@ -108,6 +111,8 @@ import CommitteePage from '@/pages/top-performers/committee';
 import PeerNominationPage from '@/pages/top-performers/nominations/peer';
 import AdminNominationPage from '@/pages/top-performers/nominations/admin';
 import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
+import { RunProcedureWizard } from '@/pages/stored-procedures/run/RunProcedureWizard';
+import { AdminStoredProceduresPage } from '@/pages/admin/stored-procedures';
 
 export function AppRoutingSetup() {
   return (
@@ -171,6 +176,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
+        <Route path="/maintenance/fieldglass-sows" element={<FieldglassSowsPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
         <Route path="/maintenance/gift-cards/pools" element={<GiftCardPoolsPage />} />
@@ -182,10 +188,12 @@ export function AppRoutingSetup() {
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />
+        <Route path="/laptop-inventory" element={<LaptopInventoryPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />
         <Route path="/reports/time-off/upcoming-vacation" element={<UpcomingVacationPage />} />
         <Route path="/reports/time-off/workday-reconciliation" element={<WorkdayReconciliationPage />} />
+        <Route path="/reports/time-off/gt-vacation-under-five-days" element={<GtVacationUnderFiveDaysPage />} />
         <Route path="/reports/dynamic" element={<DynamicReportsManagementPage />} />
         <Route path="/reports/dynamic/new" element={<ReportWizard />} />
         <Route path="/reports/dynamic/:id/edit" element={<ReportWizard />} />
@@ -241,6 +249,9 @@ export function AppRoutingSetup() {
         <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />
         <Route path="/top-performers/nominations/admin" element={<AdminNominationPage />} />
         <Route path="/top-performers/nominations/customer" element={<CustomerNominationPage />} />
+        {/* Stored Procedures */}
+        <Route path="/stored-procedures/run" element={<RunProcedureWizard />} />
+        <Route path="/admin/stored-procedures" element={<AdminStoredProceduresPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
       

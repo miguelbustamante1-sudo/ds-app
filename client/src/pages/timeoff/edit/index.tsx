@@ -152,11 +152,11 @@ export function EditTimeOffPageInner({
   const isSV15DayMode =
     isSVVacation && !isHalfOfSplit && editingTimeOff?.statusId !== SPLIT_STATUS_ID;
 
-  const { svHolidaysInRange, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar, fullDayHolidayDatesForBlocking } = useHolidayAwareness({
     countryIso: userCountryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   // Initialize country/end-date from the profile loaded by the outer shell
@@ -238,7 +238,7 @@ export function EditTimeOffPageInner({
   }, [isHalfOfSplit, startDate, editingTimeOff?.timeOffDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
   const exceedsAttritionDate =
     userEndDate && ((startDate && startDate > userEndDate) || (endDate && endDate > userEndDate));
 
@@ -253,6 +253,8 @@ export function EditTimeOffPageInner({
     startDate && endDate && isDateRangeValid
       ? calculateRequestedDays(startDate, endDate, isCalendar)
       : 0;
+  // The authoritative day count once holidays (including half-days) are excluded.
+  const effectiveDays = gtNetVacationDays ?? hintDays;
 
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -277,12 +279,12 @@ export function EditTimeOffPageInner({
     ? {
         vacation: balance.vacation + (isVacationCategory ? Number(oldRequestDays) : 0) + gtAccruedDays,
         personalDays: balance.personalDays + (isPersonalDayCategory ? Number(oldRequestDays) : 0),
-        exceptionDaysRemaining: balance.exceptionDaysRemaining,
+        personalDaysUsedThisMonth: balance.personalDaysUsedThisMonth,
       }
     : null;
   const balanceValidation =
-    selectedCategory && hintDays > 0
-      ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, effectiveBalance)
+    selectedCategory && effectiveDays > 0
+      ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, effectiveBalance)
       : { valid: true, errorMessage: null, available: 0 };
 
   const canSave =
@@ -482,7 +484,7 @@ export function EditTimeOffPageInner({
                               defaultMonth={field.value ?? new Date()}
                               disabled={(date) => {
                                 if (userEndDate && date > userEndDate) return true;
-                                if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                                if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                                 return false;
                               }}
                               modifiers={{ holiday: holidayDatesForCalendar }}
@@ -555,9 +557,9 @@ export function EditTimeOffPageInner({
                         {Number(editingTimeOff.timeOffDays)} calendar days (fixed by split)
                       </p>
                     )}
-                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && hintDays > 0 && (
+                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && effectiveDays > 0 && (
                       <p className="text-sm text-muted-foreground">
-                        {hintDays} day{hintDays !== 1 ? 's' : ''}
+                        {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>

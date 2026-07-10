@@ -14,7 +14,6 @@ import { notificationOrchestrator } from '../../services/notifications/Notificat
 import { getUserIdsByTeamMemberIds } from '../../services/notifications/repository';
 import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
-import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
@@ -162,7 +161,6 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
       new Date(timeOffEndDate)
     );
 
-    const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
@@ -175,7 +173,7 @@ router.post('/request', requirePermission('TimeOffException', 'create'), resolve
       effectiveStatusId,
       totalDays,
       undefined,
-      isException,
+      false,
       vacationPeriod
     );
 
@@ -301,8 +299,6 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       new Date(timeOffEndDate)
     );
 
-    const isException = await computeTimeOffIsException(timeOff.teamMemberId, categoryId, totalDays);
-
     const oldRaw = await fetchRawTimeOffRow(timeOffId);
 
     const updated = await updateTimeOff(
@@ -315,7 +311,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       categoryId,
       timeOff.statusId,
       totalDays,
-      isException
+      false
     );
 
     const newRaw = await fetchRawTimeOffRow(timeOffId);

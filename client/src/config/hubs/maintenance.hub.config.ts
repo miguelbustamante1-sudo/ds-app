@@ -102,6 +102,30 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'Shift',
     },
     {
+      title: 'Team Member Bonuses',
+      description: 'Manage bonus records assigned to team members.',
+      path: '/maintenance/team-member-bonuses',
+      permission: 'TeamMemberBonuses',
+    },
+    {
+      title: 'Fieldglass SOWs',
+      description: 'Manage Fieldglass statement-of-work records.',
+      path: '/maintenance/fieldglass-sows',
+      permission: 'FieldglassSows',
+    },
+    {
+      title: 'Vacation Period Maintenance',
+      description: 'Backfill and correct vacation period data.',
+      path: '/maintenance/timeoff-period-backfill',
+      permission: 'TimeOffPeriodMaintenance',
+    },
+    {
+      title: 'Email Test',
+      description: 'Send test emails to verify delivery configuration.',
+      path: '/maintenance/email-test',
+      permission: 'Users',
+    },
+    {
       title: 'Reports',
       description: 'Access Maintenance and data quality reports.',
       path: '/reports?module=maintenance',

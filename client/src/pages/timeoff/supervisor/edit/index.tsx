@@ -146,11 +146,11 @@ function EditSupervisorTimeOffPageInner({
     ? parseUTCDateAsLocal(teamMember.teamMemberEndDate as unknown as string)
     : null;
 
-  const { svHolidaysInRange, holidayDatesForCalendar } = useHolidayAwareness({
+  const { svHolidaysInRange, gtNetVacationDays, holidayDatesForCalendar, fullDayHolidayDatesForBlocking } = useHolidayAwareness({
     countryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   useEffect(() => {
@@ -224,7 +224,7 @@ function EditSupervisorTimeOffPageInner({
   }, [isHalfOfSplit, startDate, editingTimeOff?.timeOffDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isDateRangeValid = startDate && endDate && startDate <= endDate;
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
   const exceedsAttritionDate =
     teamMemberEndDate &&
     ((startDate && startDate > teamMemberEndDate) || (endDate && endDate > teamMemberEndDate));
@@ -240,6 +240,8 @@ function EditSupervisorTimeOffPageInner({
     startDate && endDate && isDateRangeValid
       ? calculateRequestedDays(startDate, endDate, isCalendar)
       : 0;
+  // The authoritative day count once holidays (including half-days) are excluded.
+  const effectiveDays = gtNetVacationDays ?? hintDays;
 
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -451,7 +453,7 @@ function EditSupervisorTimeOffPageInner({
                               defaultMonth={field.value ?? new Date()}
                               disabled={(date) => {
                                 if (teamMemberEndDate && date > teamMemberEndDate) return true;
-                                if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                                if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                                 return false;
                               }}
                               modifiers={{ holiday: holidayDatesForCalendar }}
@@ -526,9 +528,9 @@ function EditSupervisorTimeOffPageInner({
                         {Number(editingTimeOff.timeOffDays)} calendar days (fixed by split)
                       </p>
                     )}
-                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && hintDays > 0 && (
+                    {!isFixedDuration && !isSV15DayMode && !isHalfOfSplit && effectiveDays > 0 && (
                       <p className="text-sm text-muted-foreground">
-                        {hintDays} day{hintDays !== 1 ? 's' : ''}
+                        {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>
@@ -591,6 +593,48 @@ function EditSupervisorTimeOffPageInner({
                   </Alert>
                 )}
 
+                {/* Comment */}
+                <div className="space-y-2">
+                  <Label htmlFor="comment">
+                    Comment <span className="text-destructive">*</span>
+                  </Label>
+                  <Controller
+                    name="comment"
+                    control={control}
+                    rules={{ required: 'Comment is required' }}
+                    render={({ field }) => (
+                      <Textarea
+                        {...field}
+                        id="comment"
+                        placeholder="Add a note about this change..."
+                        rows={2}
+                      />
+                    )}
+                  />
+                  {errors.comment && (
+                    <p className="text-sm text-destructive">{errors.comment.message}</p>
+                  )}
+                </div>
+
+                {/* Blocking reasons — shown only when canSave is false */}
+                {!canSave && !submitting && (
+                  <ul className="text-sm text-muted-foreground space-y-0.5 list-disc list-inside">
+                    {!comment?.trim() && <li>A comment explaining the change is required.</li>}
+                    {!startDate && <li>Start date is required.</li>}
+                    {!endDate && <li>End date is required.</li>}
+                    {startDate && endDate && !isDateRangeValid && <li>End date must be on or after start date.</li>}
+                    {isStartDateHoliday && <li>Start date falls on a public holiday.</li>}
+                    {hasOverlap && <li>Date range overlaps with an existing time-off.</li>}
+                    {exceedsAttritionDate && <li>Dates exceed the team member&apos;s end date.</li>}
+                    {!daysBeforeValidation.valid && daysBeforeValidation.errorMessage && (
+                      <li>{daysBeforeValidation.errorMessage}</li>
+                    )}
+                    {isHalfOfSplit && editingTimeOff && hintDays !== Number(editingTimeOff.timeOffDays) && (
+                      <li>Day count must remain {Number(editingTimeOff.timeOffDays)} to match the split constraint.</li>
+                    )}
+                  </ul>
+                )}
+
                 {/* Buttons */}
                 {isSV15DayMode ? (
                   <div className="flex gap-2">
@@ -614,29 +658,6 @@ function EditSupervisorTimeOffPageInner({
                 )}
               </>
             )}
-
-            {/* Comment — shown in both normal and split mode */}
-            <div className="space-y-2">
-              <Label htmlFor="comment">
-                Comment <span className="text-destructive">*</span>
-              </Label>
-              <Controller
-                name="comment"
-                control={control}
-                rules={{ required: 'Comment is required' }}
-                render={({ field }) => (
-                  <Textarea
-                    {...field}
-                    id="comment"
-                    placeholder="Add a note about this change..."
-                    rows={2}
-                  />
-                )}
-              />
-              {errors.comment && (
-                <p className="text-sm text-destructive">{errors.comment.message}</p>
-              )}
-            </div>
           </form>
         </div>
       </div>

@@ -30,7 +30,7 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { getReport, executeReport, downloadReport } from '../api';
+import { getReport, executeReport, downloadReport, downloadReportCsv } from '../api';
 import { ParameterForm } from './ParameterForm';
 import type { ReportDefinitionDTO, ExecuteResponseDTO } from '@shared/dto/DynamicReport';
 
@@ -94,18 +94,26 @@ export function RunReportPage() {
     }
   }
 
+  const LARGE_EXPORT_THRESHOLD = 50_000;
+
   async function handleExport(format: 'xlsx' | 'csv') {
     if (!id || !result) return;
     setIsExporting(true);
     try {
+      const today = new Date().toISOString().split('T')[0];
+      const baseName = report?.reportName ?? 'report';
+
+      if (result.total > LARGE_EXPORT_THRESHOLD) {
+        await downloadReportCsv(Number(id), lastParams, `${baseName}-${today}.csv`);
+        return;
+      }
+
       const res = await downloadReport(Number(id), lastParams);
       const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(res.data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Report');
-      const today = new Date().toISOString().split('T')[0];
-      const filename = `${report?.reportName ?? 'report'}-${today}.${format}`;
-      XLSX.writeFile(wb, filename, { bookType: format });
+      XLSX.writeFile(wb, `${baseName}-${today}.${format}`, { bookType: format });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message ?? 'Export failed', variant: 'destructive' });
     } finally {

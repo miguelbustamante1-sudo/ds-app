@@ -7,7 +7,7 @@
  *
  * Behaviour:
  *  - SV: returns all active holidays in the selected range.
- *  - GT + Vacation: returns weekday-only holidays and the net vacation day count.
+ *  - GT + workday-based category: returns weekday-only holidays and the net vacation day count.
  *  - Other countries: all outputs are empty/null.
  */
 
@@ -17,6 +17,7 @@ import {
   filterWeekdayHolidays,
   calculateNetVacationDays,
   buildCalendarHolidayDates,
+  buildFullDayHolidayDates,
   type HolidayWithEffectiveDate,
 } from '../utils/holidayValidation';
 import { useHolidayContext } from '../context/HolidayContext';
@@ -29,19 +30,27 @@ export interface UseHolidayAwarenessInput {
   countryIso: string | null | undefined;
   startDate: Date | undefined;
   endDate: Date | undefined;
-  /** Used to gate GT logic — only 'Vacation' (case-insensitive) triggers it. */
-  categoryName: string | undefined;
+  /**
+   * True when the selected category counts calendar days (e.g. SV Vacation's fixed
+   * 15-day rule). False for workday-based categories. GT's weekday-holiday exclusion
+   * (gtWeekdayHolidaysInRange / gtNetVacationDays) only applies when this is false —
+   * it covers every GT workday-based category (Vacation, Personal Days, etc.), not
+   * just ones literally named "Vacation".
+   */
+  isCalendar: boolean;
 }
 
 export interface UseHolidayAwarenessResult {
   /** SV — all active holidays in the selected date range. */
   svHolidaysInRange: HolidayWithEffectiveDate[];
-  /** GT — weekday-only holidays in range (Vacation category only). */
+  /** GT — weekday-only holidays in range (workday-based categories only). */
   gtWeekdayHolidaysInRange: HolidayWithEffectiveDate[];
-  /** Computed net vacation days for GT Vacation; null when conditions are not met. */
+  /** Computed net workday-based days for GT; null when conditions are not met. */
   gtNetVacationDays: number | null;
   /** Date[] for react-day-picker holiday highlighting (SV and GT only). */
   holidayDatesForCalendar: Date[];
+  /** Date[] of ONLY full-day holidays — use this to disable/block a start-date selection. Half-day holidays are excluded so they remain selectable. */
+  fullDayHolidayDatesForBlocking: Date[];
   /** True while the initial fetch is in-flight. */
   loading: boolean;
 }
@@ -62,7 +71,7 @@ const CALENDAR_YEAR_WINDOW = [
 export function useHolidayAwareness(
   input: UseHolidayAwarenessInput,
 ): UseHolidayAwarenessResult {
-  const { countryIso, startDate, endDate, categoryName } = input;
+  const { countryIso, startDate, endDate, isCalendar } = input;
 
   const { effectiveHolidays, loading } = useHolidayContext();
 
@@ -77,12 +86,11 @@ export function useHolidayAwareness(
     return getHolidaysInRangeWithDates(effectiveHolidays, startDate, endDate);
   }, [normalizedIso, effectiveHolidays, startDate, endDate]);
 
-  // GT: weekday-only holidays in range — only when category is Vacation.
+  // GT: weekday-only holidays in range — for any workday-based (non-calendar) GT category.
   const gtWeekdayHolidaysInRange = useMemo<HolidayWithEffectiveDate[]>(() => {
     if (
       normalizedIso !== 'GT' ||
-      !categoryName ||
-      categoryName.toLowerCase() !== 'vacation' ||
+      isCalendar ||
       !startDate ||
       !endDate ||
       effectiveHolidays.length === 0
@@ -91,14 +99,13 @@ export function useHolidayAwareness(
     }
     const inRange = getHolidaysInRangeWithDates(effectiveHolidays, startDate, endDate);
     return filterWeekdayHolidays(inRange);
-  }, [normalizedIso, categoryName, effectiveHolidays, startDate, endDate]);
+  }, [normalizedIso, isCalendar, effectiveHolidays, startDate, endDate]);
 
-  // GT net vacation days — null when no weekday holidays (or conditions not met).
+  // GT net workday-based days — null when no weekday holidays (or conditions not met).
   const gtNetVacationDays = useMemo<number | null>(() => {
     if (
       normalizedIso !== 'GT' ||
-      !categoryName ||
-      categoryName.toLowerCase() !== 'vacation' ||
+      isCalendar ||
       !startDate ||
       !endDate ||
       gtWeekdayHolidaysInRange.length === 0
@@ -106,7 +113,7 @@ export function useHolidayAwareness(
       return null;
     }
     return calculateNetVacationDays(startDate, endDate, gtWeekdayHolidaysInRange);
-  }, [normalizedIso, categoryName, startDate, endDate, gtWeekdayHolidaysInRange]);
+  }, [normalizedIso, isCalendar, startDate, endDate, gtWeekdayHolidaysInRange]);
 
   // Calendar highlight dates for both SV and GT.
   const holidayDatesForCalendar = useMemo<Date[]>(() => {
@@ -114,11 +121,17 @@ export function useHolidayAwareness(
     return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
   }, [isSupported, effectiveHolidays]);
 
+  const fullDayHolidayDatesForBlocking = useMemo<Date[]>(() => {
+    if (!isSupported || effectiveHolidays.length === 0) return [];
+    return buildFullDayHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
+  }, [isSupported, effectiveHolidays]);
+
   return {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
     loading,
   };
 }

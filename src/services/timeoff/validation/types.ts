@@ -30,7 +30,7 @@ export interface TimeOffValidationContext {
   categoryCountryDaysBefore: number;
   categoryCountryMaxDays: number;
   categoryName: string;
-  workdayBalance: { vacation: number; personalDays: number; exceptionDaysUsed: number; exceptionDaysRemaining: number };
+  workdayBalance: { vacation: number; personalDays: number };
   activeSwaps: Array<{
     holidaySwapId: number;
     holidayName: string;
@@ -43,6 +43,7 @@ export interface TimeOffValidationContext {
     holidayName: string;
     holidayDate: Date;
     holidayIsRecurring: boolean | null;
+    holidayIsHalfDay: boolean;
   }>;
   overlappingTimeOffs: Array<{
     timeOffId: number;

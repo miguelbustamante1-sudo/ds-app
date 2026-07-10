@@ -32,5 +32,31 @@ export const operationsHubConfig: HubConfig = {
       path: "/security-hub",
       role: "admin",
     },
+    {
+      title: "Laptop Inventory",
+      description: "Track and manage company laptop assignments.",
+      path: "/laptop-inventory",
+      role: "bsa",
+      permission: "LaptopInventory",
+    },
+    {
+      title: "Standalone Tasks",
+      description: "Manage standalone task templates and assignments.",
+      path: "/admin/standalone-tasks",
+      permission: "StandaloneTaskAdmin",
+    },
+    {
+      title: "Run Procedure",
+      description: "Run an approved stored procedure against the database.",
+      path: "/stored-procedures/run",
+      permission: "StoredProcedureRun",
+    },
+    {
+      title: "Manage Procedures",
+      description: "Register and manage the stored procedure catalog.",
+      path: "/admin/stored-procedures",
+      role: "admin",
+      permission: "StoredProcedureRun",
+    },
   ],
 };

@@ -29,11 +29,13 @@ import bonusSubcategoriesRouter from './bonusSubcategories';
 import timeoffChangeLogRouter from './reports/timeoffChangeLog';
 import upcomingVacationRouter from './reports/upcomingVacation';
 import workdayReconciliationRouter from './reports/workdayReconciliation';
+import gtVacationUnderFiveDaysRouter from './reports/gtVacationUnderFiveDays';
 import dynamicReportsRouter from './reports/dynamicReports';
 import clientsRouter from './clients';
 import clientContactsRouter from './clientContacts';
 import workdayInfoRouter from './workdayInfo';
 import functionalAreasRouter from './functionalArea';
+import fieldglassSowsRouter from './fieldglassSow.routes';
 import holidaySwapRouter from './holidaySwap.routes';
 import holidaySwapExceptionRouter from './holidaySwapException.routes';
 import pendingRequestsRouter from './pendingRequests.routes';
@@ -66,6 +68,9 @@ import giftCardPoolsRouter from '../services/giftcards/catalogs/pools/pools.rout
 import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reasons.routes';
 import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
 import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
+import { storedProcedureRoutes } from './storedProcedures';
+import { storedProcedureOrchestrator } from '../services/storedProcedures/StoredProcedureOrchestrator';
+import laptopInventoryRouter from './laptopInventory.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -100,11 +105,13 @@ export default function registerRoutes() {
   router.use('/reports/time-off/change-log', timeoffChangeLogRouter);
   router.use('/reports/time-off/upcoming-vacation', upcomingVacationRouter);
   router.use('/reports/time-off/workday-reconciliation', workdayReconciliationRouter);
+  router.use('/reports/time-off/gt-vacation-under-five-days', gtVacationUnderFiveDaysRouter);
   router.use('/reports/dynamic', dynamicReportsRouter);
   router.use('/clients', clientsRouter);
   router.use('/client-contacts', clientContactsRouter);
   router.use('/workday-info', workdayInfoRouter);
   router.use('/functional-areas', functionalAreasRouter);
+  router.use('/fieldglass-sows', fieldglassSowsRouter);
   router.use('/holiday-swaps', holidaySwapRouter);
   router.use('/holiday-swaps', holidaySwapExceptionRouter);
   router.use('/team/pending-requests', pendingRequestsRouter);
@@ -137,6 +144,8 @@ export default function registerRoutes() {
   router.use('/giftcards/catalogs/reasons', giftCardReasonsRouter);
   router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
   router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
+  router.use('/stored-procedures', storedProcedureRoutes(storedProcedureOrchestrator));
+  router.use('/laptops', laptopInventoryRouter);
 
   return router;
 }

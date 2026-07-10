@@ -33,5 +33,13 @@ export const REPORTS_REGISTRY: ReportEntry[] = [
     group: 'Time Off',
     permission: 'Reports',
   },
+  {
+    id: 'timeoff-gt-vacation-under-five-days',
+    title: 'GT Vacation Under 5 Days',
+    description: 'Active Guatemala time-off requests under 5 days that are currently ongoing or upcoming.',
+    path: '/reports/time-off/gt-vacation-under-five-days',
+    group: 'Time Off',
+    permission: 'Reports',
+  },
   // Future reports are added here — no other files need to change.
 ];

@@ -141,8 +141,11 @@ export function calculateNetVacationDays(
   const grossDays = differenceInCalendarDays(endDate, startDate) + 1;
   const allDays = eachDayOfInterval({ start: startDate, end: endDate });
   const weekendDays = allDays.filter((d) => isWeekend(d)).length;
-  const weekdayHolidays = weekdayHolidaysInRange.length;
-  return grossDays - weekendDays - weekdayHolidays;
+  const weekdayHolidayWeight = weekdayHolidaysInRange.reduce(
+    (sum, { holiday }) => sum + (holiday.holidayIsHalfDay ? 0.5 : 1),
+    0,
+  );
+  return grossDays - weekendDays - weekdayHolidayWeight;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +194,26 @@ export function buildCalendarHolidayDates(
   }
 
   return dates;
+}
+
+// ---------------------------------------------------------------------------
+// buildFullDayHolidayDates
+// ---------------------------------------------------------------------------
+
+/**
+ * Same as buildCalendarHolidayDates, but excludes half-day holidays. Use this for
+ * blocking logic (e.g. disabling a start-date calendar cell) — half-day holidays
+ * should stay visually marked (via buildCalendarHolidayDates) but must remain
+ * selectable as a start date.
+ */
+export function buildFullDayHolidayDates(
+  holidays: HolidayDTO[],
+  yearRange: number[],
+): Date[] {
+  return buildCalendarHolidayDates(
+    holidays.filter((h) => !h.holidayIsHalfDay),
+    yearRange,
+  );
 }
 
 // ---------------------------------------------------------------------------

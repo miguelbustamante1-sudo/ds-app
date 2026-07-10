@@ -89,7 +89,7 @@ router.get(
       const id = Number(req.params.id);
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
-      const report = await dynamicReportOrchestrator.getById(id);
+      const report = await dynamicReportOrchestrator.getById(id, req.user?.permissions ?? {});
       if (!report) return res.status(404).json({ error: 'Report not found' });
 
       res.json(report);
@@ -139,7 +139,7 @@ router.delete(
   },
 );
 
-// POST /api/reports/dynamic/:id/download — export full result set (up to 50 000 rows)
+// POST /api/reports/dynamic/:id/download — export up to 50 000 rows as JSON (SheetJS path)
 router.post(
   '/:id/download',
   requirePermission('Reports', 'read'),
@@ -149,11 +149,37 @@ router.post(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const body = req.body as ExecuteRequestDTO;
-      const result = await dynamicReportOrchestrator.download(id, body);
+      const result = await dynamicReportOrchestrator.download(id, body, req.user?.permissions ?? {});
       res.json(result);
     } catch (err) {
       console.error('[reports/dynamic] POST /:id/download Error:', err);
       res.status(500).json({ error: 'Failed to export report' });
+    }
+  },
+);
+
+// POST /api/reports/dynamic/:id/download/stream — stream full result set as CSV (large exports)
+router.post(
+  '/:id/download/stream',
+  requirePermission('Reports', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
+
+    const body = req.body as ExecuteRequestDTO;
+    const filename = `report-${id}-${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    try {
+      await dynamicReportOrchestrator.streamCsv(id, body, res, req.user?.permissions ?? {});
+    } catch (err) {
+      console.error('[reports/dynamic] POST /:id/download/stream Error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to export report' });
+      } else {
+        res.end();
+      }
     }
   },
 );
@@ -168,7 +194,7 @@ router.post(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const body = req.body as ExecuteRequestDTO;
-      const result = await dynamicReportOrchestrator.execute(id, body);
+      const result = await dynamicReportOrchestrator.execute(id, body, req.user?.permissions ?? {});
       res.json(result);
     } catch (err) {
       console.error('[reports/dynamic] POST /:id/execute Error:', err);
@@ -187,7 +213,7 @@ router.get(
       if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid report id' });
 
       const paramName = req.params.paramName as string;
-      const options = await dynamicReportOrchestrator.getOptions(id, paramName);
+      const options = await dynamicReportOrchestrator.getOptions(id, paramName, req.user?.permissions ?? {});
       res.json(options);
     } catch (err) {
       console.error('[reports/dynamic] GET /:id/options/:paramName Error:', err);

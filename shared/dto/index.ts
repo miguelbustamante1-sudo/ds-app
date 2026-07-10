@@ -31,6 +31,7 @@ export * from './TimeOffStatus';
 export * from './User';
 export * from './WorkdayInfo';
 export * from './FunctionalArea';
+export * from './FieldglassSow';
 
 // Communication DTOs
 export * from './Notification';
@@ -44,6 +45,7 @@ export * from './TeamMemberBonus';
 export * from './CompensatoryTime';
 export * from './TimeOffChangeLog';
 export * from './DynamicReport';
+export * from './StoredProcedure';
 
 // Security DTOs
 export * from './Permission';
@@ -82,3 +84,6 @@ export * from './GiftCardPool';
 export * from './GiftCardReason';
 export * from './GiftCardType';
 export * from './GiftCardValue';
+
+// Laptop Inventory DTOs
+export * from './LaptopInventory';

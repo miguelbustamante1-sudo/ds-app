@@ -7,14 +7,13 @@ interface WorkdayBalanceBadgesProps {
   personalDays: number;
   loading?: boolean;
   countryIso?: string | null;
-  exceptionDaysRemaining?: number; // GT only
 }
 
-export function WorkdayBalanceBadges({ vacation, personalDays, loading, countryIso, exceptionDaysRemaining }: WorkdayBalanceBadgesProps) {
+export function WorkdayBalanceBadges({ vacation, personalDays, loading, countryIso }: WorkdayBalanceBadgesProps) {
   const country = countryIso?.toUpperCase();
 
   if (loading) {
-    const skeletonCount = country === 'MX' ? 1 : country === 'GT' ? 2 : 2;
+    const skeletonCount = country === 'MX' ? 1 : 2;
     return (
       <div className="flex items-center gap-2">
         {Array.from({ length: skeletonCount }).map((_, i) => (
@@ -29,20 +28,6 @@ export function WorkdayBalanceBadges({ vacation, personalDays, loading, countryI
       <div className="flex items-center gap-2">
         <div className="rounded-md border bg-card px-3 py-1 text-sm">
           Time Off Days: <span className="font-bold">{fmt(vacation)}</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (country === 'GT') {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="rounded-md border bg-card px-3 py-1 text-sm">
-          Vacation Days: <span className="font-bold">{fmt(vacation)}</span>
-        </div>
-        <div className="rounded-md border bg-card px-3 py-1 text-sm">
-          Exception Days: <span className="font-bold">{fmt(exceptionDaysRemaining ?? 5)}</span>
-          <span className="text-muted-foreground"> / 5</span>
         </div>
       </div>
     );

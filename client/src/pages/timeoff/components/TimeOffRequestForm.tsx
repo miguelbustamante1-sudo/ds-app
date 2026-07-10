@@ -31,7 +31,7 @@ import { computeCurrentPeriod, getNextAnniversaryDate } from '../utils/anniversa
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
 import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
-import { validateGTVacationException } from '../utils/guatemalaExceptionValidation';
+import { validateGTPersonalDays, getPersonalDaysUsedInMonth } from '../utils/guatemalaPersonalDaysValidation';
 
 interface TimeOffStatus {
   statusId: number;
@@ -57,7 +57,7 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
-  workdayBalance: { vacation: number; rawVacation: number; personalDays: number; exceptionDaysRemaining: number } | null;
+  workdayBalance: { vacation: number; rawVacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
 }
 
 export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
@@ -161,11 +161,12 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
+    fullDayHolidayDatesForBlocking,
   } = useHolidayAwareness({
     countryIso: userCountryIso,
     startDate,
     endDate,
-    categoryName: selectedCategory?.categoryName,
+    isCalendar,
   });
 
   // Validation: Date range
@@ -175,7 +176,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const isStartDateWeekend = startDate ? isWeekend(startDate) : false;
 
   // Validation: Start date cannot be on a public holiday
-  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, holidayDatesForCalendar) : false;
+  const isStartDateHoliday = startDate ? isDateInHolidayList(startDate, fullDayHolidayDatesForBlocking) : false;
 
   // Validation: Attrition date - check if dates exceed user's end date
   const exceedsAttritionDate = userEndDate && (
@@ -224,6 +225,11 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     ? calculateRequestedDays(startDate, endDate, isCalendar)
     : 0;
 
+  // The authoritative day count once holidays (including half-days) are excluded.
+  // Falls back to the raw hintDays when there are no in-range holidays to subtract
+  // (calendar categories, or workday categories with no holiday in range).
+  const effectiveDays = gtNetVacationDays ?? hintDays;
+
   // Days-before notice period validation
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
   const daysBeforeValidation = validateDaysBefore(
@@ -243,9 +249,18 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   const balanceForValidation = workdayBalance && totalVacationAdjustment > 0
     ? { ...workdayBalance, vacation: workdayBalance.vacation + totalVacationAdjustment }
     : workdayBalance;
-  const balanceValidation = selectedCategory && hintDays > 0
-    ? validateWorkdayBalance(selectedCategory.categoryName, hintDays, balanceForValidation)
+  const balanceValidation = selectedCategory && effectiveDays > 0
+    ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
     : { valid: true, errorMessage: null, available: 0 };
+
+  const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0 && startDate
+    ? validateGTPersonalDays(
+        userCountryIso,
+        selectedCategory.categoryName,
+        effectiveDays,
+        getPersonalDaysUsedInMonth(existingTimeOffs, startDate, cancelledStatusId)
+      )
+    : null;
 
   const startDatePeriod = userMemberStartDate && startDate
     ? computeCurrentPeriod(userMemberStartDate, startDate)
@@ -260,17 +275,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     startDatePeriod !== endDatePeriod;
 
   // Max days per request validation
-  const exceedsMaxDays = maxDays > 0 && hintDays > maxDays;
-
-  // GT vacation exception soft warnings (advisory — does not block save)
-  const gtExceptionWarning = selectedCategory && hintDays > 0
-    ? validateGTVacationException(
-        userCountryIso,
-        selectedCategory.categoryName,
-        hintDays,
-        workdayBalance?.exceptionDaysRemaining ?? 5
-      )
-    : null;
+  const exceedsMaxDays = maxDays > 0 && effectiveDays > maxDays;
 
   // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, days-before rule violated, or insufficient balance
   const canSave =
@@ -285,6 +290,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     daysBeforeValidation.valid &&
     balanceValidation.valid &&
     !exceedsMaxDays &&
+    !gtPersonalDaysWarning?.showLimitWarning &&
     !!comment?.trim() &&
     !submitting;
 
@@ -430,7 +436,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
                       if (date < today) return true;
                       if (isWeekend(date)) return true;
                       if (userEndDate && date > userEndDate) return true;
-                      if (isDateInHolidayList(date, holidayDatesForCalendar)) return true;
+                      if (isDateInHolidayList(date, fullDayHolidayDatesForBlocking)) return true;
                       return false;
                     }}
                     modifiers={{ holiday: holidayDatesForCalendar }}
@@ -516,9 +522,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               15 calendar days (auto-set for El Salvador)
             </p>
           )}
-          {!isFixedDuration && !isSV15DayMode && hintDays > 0 && (
+          {!isFixedDuration && !isSV15DayMode && effectiveDays > 0 && (
             <p className="text-sm text-muted-foreground">
-              {hintDays} day{hintDays !== 1 ? 's' : ''}
+              {effectiveDays} day{effectiveDays !== 1 ? 's' : ''}
             </p>
           )}
           {maxDays > 0 && (
@@ -530,7 +536,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {hintDays} days.
+                This request exceeds the maximum of {maxDays} day{maxDays !== 1 ? 's' : ''} per request. You selected {effectiveDays} days.
               </AlertDescription>
             </Alert>
           )}
@@ -629,30 +635,24 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           </Alert>
         )}
 
-        {/* GT Vacation Exception Warnings (advisory only — backend is the authoritative block) */}
-        {gtExceptionWarning?.showExceptionNotice && !gtExceptionWarning.showLimitWarning && (
+        {/* GT Personal Days Monthly Advisory */}
+        {gtPersonalDaysWarning?.showMonthlyNotice && !gtPersonalDaysWarning.showLimitWarning && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              This request (fewer than 5 days) will count as an exception. You have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining this anniversary year.
+              This request will use {gtPersonalDaysWarning.requestedDays} of your {gtPersonalDaysWarning.personalDaysRemainingThisMonth} remaining Personal Day{gtPersonalDaysWarning.personalDaysRemainingThisMonth !== 1 ? 's' : ''} this month.
             </AlertDescription>
           </Alert>
         )}
-        {gtExceptionWarning?.showFourDayRecommendation && (
-          <Alert>
-            <AlertDescription>
-              Adding 1 more day (5 total) would avoid using exception days from your annual allowance.
-            </AlertDescription>
-          </Alert>
-        )}
-        {gtExceptionWarning?.showLimitWarning && (
+        {gtPersonalDaysWarning?.showLimitWarning && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              You only have {gtExceptionWarning.exceptionDaysRemaining} exception day{gtExceptionWarning.exceptionDaysRemaining !== 1 ? 's' : ''} remaining. This request of {gtExceptionWarning.requestedDays} day{gtExceptionWarning.requestedDays !== 1 ? 's' : ''} would exceed your annual exception limit — you cannot register this vacation as an exception.
+              You only have {gtPersonalDaysWarning.personalDaysRemainingThisMonth} Personal Day{gtPersonalDaysWarning.personalDaysRemainingThisMonth !== 1 ? 's' : ''} remaining this month. This request of {gtPersonalDaysWarning.requestedDays} day{gtPersonalDaysWarning.requestedDays !== 1 ? 's' : ''} would exceed the monthly limit — this request cannot be submitted.
             </AlertDescription>
           </Alert>
         )}
+
           </>
         )}
 

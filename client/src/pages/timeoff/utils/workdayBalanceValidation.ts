@@ -41,7 +41,7 @@ export function computeGTAccruedVacationDays(requestStartDate: Date): number {
 export function validateWorkdayBalance(
   categoryName: string | undefined,
   requestedDays: number,
-  balance: { vacation: number; personalDays: number; exceptionDaysRemaining?: number } | null
+  balance: { vacation: number; personalDays: number } | null
 ): WorkdayBalanceValidationResult {
   const name = categoryName?.toLowerCase().trim();
 

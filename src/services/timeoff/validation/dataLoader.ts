@@ -7,7 +7,7 @@ import { prisma } from '../../../db/prisma';
 import type { TimeOffValidationInput, TimeOffValidationContext } from './types';
 import { DEFAULTS } from './types';
 import type { ElSalvadorVacationContext } from './rules/elSalvadorVacation.rule';
-import type { GuatemalaVacationExceptionContext } from './rules/guatemalaVacationException.rule';
+import type { GuatemalaPersonalDaysContext } from './rules/guatemalaPersonalDays.rule';
 import { getWorkdayBalance } from '../components/GetWorkdayBalance';
 import { computeAnniversaryWindow } from '../utils/anniversaryYear';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
@@ -105,7 +105,7 @@ export async function loadValidationContext(
     getWorkdayBalance(input.teamMemberId, input.timeOffId),
     prisma.holiday.findMany({
       where: { countryId: effectiveCountryId, holidayIsActive: true },
-      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true },
+      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true, holidayIsHalfDay: true },
     }),
   ]);
 
@@ -281,64 +281,64 @@ export async function loadElSalvadorVacationContext(
 }
 
 const GT_COUNTRY_ISO = 'GT';
+const PERSONAL_DAY_CATEGORY_NAMES = ['personal day', 'personal days'];
+
+function computeMonthWindow(date: Date): { monthStart: Date; monthEnd: Date } {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const monthStart = new Date(Date.UTC(year, month, 1));
+  const monthEnd = new Date(Date.UTC(year, month + 1, 0)); // last calendar day of the month
+  return { monthStart, monthEnd };
+}
 
 /**
- * Loads Guatemala vacation exception context for the < 5 days rule.
- * Returns a context with isGuatemalaVacation: false when not applicable.
+ * Loads Guatemala Personal Days monthly-limit context.
+ * Returns a context with isGuatemalaPersonalDay: false when not applicable.
  */
-export async function loadGuatemalaVacationExceptionContext(
+export async function loadGuatemalaPersonalDaysContext(
   input: TimeOffValidationInput
-): Promise<GuatemalaVacationExceptionContext> {
-  const NOT_APPLICABLE: GuatemalaVacationExceptionContext = {
-    isGuatemalaVacation: false,
+): Promise<GuatemalaPersonalDaysContext> {
+  const NOT_APPLICABLE: GuatemalaPersonalDaysContext = {
+    isGuatemalaPersonalDay: false,
     requestedDays: 0,
-    usedExceptionDaysInWindow: 0,
-    anniversaryYearStart: new Date(),
-    anniversaryYearEnd: new Date(),
+    usedPersonalDaysInMonth: 0,
+    monthStart: new Date(),
+    monthEnd: new Date(),
   };
 
-  // 1. Load team member with country ISO, start date, and workday ID
   const teamMember = await prisma.teamMember.findUnique({
     where: { teamMemberId: input.teamMemberId },
-    select: {
-      teamMemberStartDate: true,
-      workdayId: true,
-      country: { select: { countryIso: true } },
-    },
+    select: { country: { select: { countryIso: true } } },
   });
-
   if (!teamMember) return NOT_APPLICABLE;
 
   const countryIso = teamMember.country?.countryIso?.toUpperCase() ?? null;
 
-  // 2. Load category name
   const category = await prisma.timeOffCategory.findUnique({
     where: { categoryId: input.categoryId },
     select: { categoryName: true },
   });
   const categoryName = category?.categoryName?.trim().toLowerCase() ?? null;
 
-  // 3. Only applies to GT + Vacation
-  if (countryIso !== GT_COUNTRY_ISO || categoryName !== VACATION_CATEGORY_NAME.toLowerCase()) {
+  if (
+    countryIso !== GT_COUNTRY_ISO ||
+    !categoryName ||
+    !PERSONAL_DAY_CATEGORY_NAMES.includes(categoryName)
+  ) {
     return NOT_APPLICABLE;
   }
 
-  // 4. Resolve cancelled/rejected status IDs and hireDate in parallel
-  const [cancelledStatus, rejectedStatus, gtWorkdayInfo] = await Promise.all([
+  const { monthStart, monthEnd } = computeMonthWindow(input.timeOffStartDate);
+
+  const [cancelledStatus, rejectedStatus] = await Promise.all([
     prisma.timeOffStatus.findFirst({
-      where: { statusName: { equals: CANCELLED_STATUS_NAME, mode: 'insensitive' } },
+      where: { statusName: { equals: 'cancelled', mode: 'insensitive' } },
       select: { statusId: true },
     }),
     prisma.timeOffStatus.findFirst({
       where: { statusName: { equals: 'rejected', mode: 'insensitive' } },
       select: { statusId: true },
     }),
-    teamMember.workdayId
-      ? prisma.workdayInfo.findUnique({
-          where: { wdid: teamMember.workdayId },
-          select: { hireDate: true },
-        })
-      : Promise.resolve(null),
   ]);
 
   const excludedStatusIds = [
@@ -347,55 +347,27 @@ export async function loadGuatemalaVacationExceptionContext(
     ...(rejectedStatus ? [rejectedStatus.statusId] : []),
   ];
 
-  // 5. Calculate anniversary window using hireDate from WorkdayInfo when available
-  const { anniversaryYearStart, anniversaryYearEnd } = computeAnniversaryWindow(
-    gtWorkdayInfo?.hireDate ?? teamMember.teamMemberStartDate
-  );
-
-  // 6. Get the vacation category ID
-  const vacationCategory = await prisma.timeOffCategory.findFirst({
-    where: { categoryName: { equals: VACATION_CATEGORY_NAME, mode: 'insensitive' } },
-    select: { categoryId: true },
-  });
-
-  if (!vacationCategory) {
-    return {
-      isGuatemalaVacation: true,
-      requestedDays: 0,
-      usedExceptionDaysInWindow: 0,
-      anniversaryYearStart,
-      anniversaryYearEnd,
-    };
-  }
-
-  // 7. Build exclusion conditions
   const andConditions: object[] = [
     ...(excludedStatusIds.length > 0 ? [{ NOT: { statusId: { in: excludedStatusIds } } }] : []),
     ...(input.timeOffId ? [{ NOT: { timeOffId: input.timeOffId } }] : []),
   ];
 
-  // 8. Query active exception vacation time-offs within the anniversary window
-  const existingExceptions = await prisma.timeOff.findMany({
+  const existingPersonalDays = await prisma.timeOff.findMany({
     where: {
       teamMemberId: input.teamMemberId,
-      categoryId: vacationCategory.categoryId,
+      categoryId: input.categoryId,
       timeOffActive: 1,
-      timeOffIsException: true,
-      timeOffStartDate: {
-        gte: anniversaryYearStart,
-        lte: anniversaryYearEnd,
-      },
+      timeOffStartDate: { gte: monthStart, lte: monthEnd },
       ...(andConditions.length > 0 && { AND: andConditions }),
     },
     select: { timeOffDays: true },
   });
 
-  const usedExceptionDaysInWindow = existingExceptions.reduce(
+  const usedPersonalDaysInMonth = existingPersonalDays.reduce(
     (sum, t) => sum + Number(t.timeOffDays),
     0
   );
 
-  // 9. Calculate requested workdays
   const { totalDays: requestedDays } = await calculateTimeOffDaysForTeamMember(
     input.teamMemberId,
     input.categoryId,
@@ -404,10 +376,11 @@ export async function loadGuatemalaVacationExceptionContext(
   );
 
   return {
-    isGuatemalaVacation: true,
+    isGuatemalaPersonalDay: true,
     requestedDays,
-    usedExceptionDaysInWindow,
-    anniversaryYearStart,
-    anniversaryYearEnd,
+    usedPersonalDaysInMonth,
+    monthStart,
+    monthEnd,
   };
 }
+

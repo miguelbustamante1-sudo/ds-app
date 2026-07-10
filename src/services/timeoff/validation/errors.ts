@@ -125,15 +125,15 @@ export const TimeOffValidationErrors = {
     metadata: { holidayName, replacementDate },
   }),
 
-  // Guatemala Vacation Exception (< 5 days limit)
-  GT_VACATION_EXCEPTION_LIMIT_REACHED: (
+  // Guatemala Personal Days (max 2 per calendar month)
+  GT_PERSONAL_DAYS_MONTHLY_LIMIT_REACHED: (
     usedDays: number,
     requestedDays: number,
-    windowStart: Date,
-    windowEnd: Date
+    monthStart: Date,
+    monthEnd: Date
   ): ValidationError => ({
-    code: 'GT_VACATION_EXCEPTION_LIMIT_REACHED',
-    message: `You have used ${usedDays} of your 5 exception days this anniversary year (${windowStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} → ${windowEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}). This request of ${requestedDays} day${requestedDays !== 1 ? 's' : ''} would exceed the limit.`,
-    metadata: { usedDays, requestedDays, maxDays: 5, windowStart, windowEnd },
+    code: 'GT_PERSONAL_DAYS_MONTHLY_LIMIT_REACHED',
+    message: `You have used ${usedDays} of your 2 Personal Days allowed for ${monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}. This request of ${requestedDays} day${requestedDays !== 1 ? 's' : ''} would exceed the monthly limit.`,
+    metadata: { usedDays, requestedDays, maxDays: 2, monthStart, monthEnd },
   }),
 } as const;

@@ -276,16 +276,7 @@ export class HolidaySwapOrchestrator {
       throw new Error('Only Pending swaps can be reviewed.');
     }
 
-    // 2. Verify originalDate > today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const originalDate = new Date(swap.originalDate);
-    originalDate.setHours(0, 0, 0, 0);
-    if (originalDate <= today) {
-      throw new Error('The original holiday date has already passed. This swap can no longer be approved.');
-    }
-
-    // 3. Verify requesting user is a supervisor of the TM
+    // 2. Verify requesting user is a supervisor of the TM
     const isSupervisor = await verifySupervisorRelationship(supervisorTeamMemberId, swap.teamMemberId);
     if (!isSupervisor) {
       throw new Error('Access denied: you are not a supervisor of this team member.');
@@ -293,7 +284,7 @@ export class HolidaySwapOrchestrator {
 
     const isApproving = input.statusId === statusIds.approved;
 
-    // 4. Re-validate replacement day on approval (race condition guard)
+    // 3. Re-validate replacement day on approval (race condition guard)
     if (isApproving) {
       const teamMember = await prisma.teamMember.findUnique({
         where: { teamMemberId: swap.teamMemberId },
@@ -313,10 +304,10 @@ export class HolidaySwapOrchestrator {
       }
     }
 
-    // 5. Snapshot before
+    // 4. Snapshot before
     const before = { ...swap };
 
-    // 6. Update
+    // 5. Update
     const updated = await prisma.holidaySwap.update({
       where: { holidaySwapId: swapId },
       data: {
@@ -328,7 +319,7 @@ export class HolidaySwapOrchestrator {
       include: { status: true },
     });
 
-    // 7. Audit log
+    // 6. Audit log
     const action = isApproving ? 'approved' : 'rejected';
     await auditOrchestrator.log({
       entityName: ENTITY_NAME,
@@ -339,7 +330,7 @@ export class HolidaySwapOrchestrator {
       comment: `Holiday swap ${action} by ${updatedBy}${input.comment ? ': ' + input.comment : ''}`,
     });
 
-    // 8. Notify TM (best-effort)
+    // 7. Notify TM (best-effort)
     notifySwapReviewed({
       teamMemberId: swap.teamMemberId,
       swapId,

@@ -128,22 +128,6 @@ export function WorkdayInfoPage() {
         meta: { headerTitle: 'Vacation Days', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
-        accessorKey: 'exceptionDaysUsed',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Exception Days" />,
-        cell: ({ row }) => {
-          const used = row.original.exceptionDaysUsed;
-          if (used == null) return <span>—</span>;
-          return (
-            <span>
-              {used}
-              <span className="text-muted-foreground"> / 5</span>
-            </span>
-          );
-        },
-        size: 150,
-        meta: { headerTitle: 'Exception Days', skeleton: <Skeleton className="h-4 w-20" /> },
-      },
-      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (

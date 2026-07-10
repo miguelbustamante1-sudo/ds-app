@@ -49,6 +49,12 @@ export async function getTeamMemberById(id: number): Promise<TeamMember | null> 
   });
 }
 
+export async function getTeamMemberByWorkdayId(workdayId: string): Promise<TeamMember | null> {
+  return await prisma.teamMember.findFirst({
+    where: { workdayId },
+  });
+}
+
 export async function createTeamMember(payload: Prisma.TeamMemberUncheckedCreateInput): Promise<TeamMember> {
   return await prisma.teamMember.create({
     data: payload,

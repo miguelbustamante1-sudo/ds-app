@@ -235,7 +235,6 @@ export function SupervisorTimeOffPage() {
               personalDays={balanceHook.balance?.personalDays ?? 0}
               loading={balanceHook.loading}
               countryIso={selectedTeamMember.countryIso}
-              exceptionDaysRemaining={balanceHook.balance?.exceptionDaysRemaining}
             />
           </div>
         )}

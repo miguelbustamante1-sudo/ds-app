@@ -13,7 +13,6 @@ import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCal
 import { getStatusByName } from '../../db/timeOffStatuses';
 import { resolveAuthUser, parseIdParam, type ResolvedAuthRequest } from './helpers';
 import { acknowledgeTimeOff } from '../../services/timeoff/components/AcknowledgeTimeOff';
-import { computeTimeOffIsException } from '../../services/timeoff/components/ComputeTimeOffIsException';
 import { declineTimeOff } from '../../services/timeoff/components/DeclineTimeOff';
 import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
 import { notifySupervisorNewRequest } from '../../services/timeoff/components/NotifySupervisorNewRequest';
@@ -621,13 +620,10 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       new Date(timeOffEndDate)
     );
 
-    const [isException, categoryRecord] = await Promise.all([
-      computeTimeOffIsException(teamMemberId, categoryId, totalDays),
-      prisma.timeOffCategory.findUnique({
-        where: { categoryId },
-        select: { categoryName: true },
-      }),
-    ]);
+    const categoryRecord = await prisma.timeOffCategory.findUnique({
+      where: { categoryId },
+      select: { categoryName: true },
+    });
     const categoryName = categoryRecord?.categoryName ?? '';
 
     const oldRaw = await fetchRawTimeOffRow(timeOffId);
@@ -642,7 +638,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       categoryId,
       timeOff.statusId,
       totalDays,
-      isException
+      false
     );
 
     const newRaw = await fetchRawTimeOffRow(timeOffId);
@@ -734,11 +730,6 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
       calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
     ]);
 
-    const [isExceptionA, isExceptionB] = await Promise.all([
-      computeTimeOffIsException(teamMemberId, categoryId, daysA),
-      computeTimeOffIsException(teamMemberId, categoryId, daysB),
-    ]);
-
     const now = new Date();
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
@@ -768,7 +759,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           timeOffCreatedDate: now,
           categoryId,
           statusId: effectiveStatusId,
-          timeOffIsException: isExceptionA,
+          timeOffIsException: false,
           timeOffOriginalId: origin.timeOffId,
           timeOffPeriod: vacationPeriod,
         },
@@ -783,7 +774,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
           timeOffCreatedDate: now,
           categoryId,
           statusId: effectiveStatusId,
-          timeOffIsException: isExceptionB,
+          timeOffIsException: false,
           timeOffOriginalId: origin.timeOffId,
           timeOffPeriod: vacationPeriod,
         },
@@ -954,11 +945,6 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
       calculateTimeOffDaysForTeamMember(teamMemberId, categoryId, new Date(periodB.startDate), new Date(periodB.endDate)),
     ]);
 
-    const [isExceptionA, isExceptionB] = await Promise.all([
-      computeTimeOffIsException(teamMemberId, categoryId, daysA),
-      computeTimeOffIsException(teamMemberId, categoryId, daysB),
-    ]);
-
     const now = new Date();
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
@@ -982,7 +968,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
           timeOffCreatedDate: now,
           categoryId,
           statusId: pendingStatusId,
-          timeOffIsException: isExceptionA,
+          timeOffIsException: false,
           timeOffOriginalId: timeOffId,
           timeOffPeriod: vacationPeriod,
         },
@@ -998,7 +984,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
           timeOffCreatedDate: now,
           categoryId,
           statusId: pendingStatusId,
-          timeOffIsException: isExceptionB,
+          timeOffIsException: false,
           timeOffOriginalId: timeOffId,
           timeOffPeriod: vacationPeriod,
         },
@@ -1145,7 +1131,6 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
       new Date(timeOffEndDate)
     );
 
-    const isException = await computeTimeOffIsException(teamMemberId, categoryId, totalDays);
     const vacationPeriod = await resolveVacationPeriod(teamMemberId, categoryId);
 
     const created = await createTimeOff(
@@ -1158,7 +1143,7 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
       effectiveStatusId,
       totalDays,
       undefined,
-      isException,
+      false,
       vacationPeriod
     );
 
