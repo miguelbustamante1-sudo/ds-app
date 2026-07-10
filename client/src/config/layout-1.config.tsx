@@ -18,7 +18,6 @@ import {
   Euro,
   Eye,
   FileQuestion,
-  FileText,
   Flag,
   Ghost,
   Gift,
@@ -53,6 +52,9 @@ import {
   Zap,
   Mail,
   Sparkles,
+  Smartphone,
+  Wallet,
+  Hammer,
 } from 'lucide-react';
 import { MenuConfig } from '@/config/types';
 
@@ -132,6 +134,30 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Vote', path: '/top-performers/vote', permission: 'TopPerformers' },
       { title: 'Committee Results', path: '/top-performers/committee', permission: 'ComitatTopPerformers' },
     ],
+  },
+  {
+    title: 'Tasks',
+    icon: ClipboardList,
+    path: '/tasks-hub',
+    permission: ['Workflow', 'StandaloneTask', 'StandaloneTaskAdmin', 'WorkflowAdmin'],
+  },
+  {
+    title: 'Phone Contracts',
+    icon: Smartphone,
+    path: '/phone-contracts-hub',
+    permission: 'PhoneContracts',
+  },
+  {
+    title: 'Laptop Inventory',
+    icon: Laptop,
+    path: '/laptop-inventory-hub',
+    permission: 'LaptopInventory',
+  },
+  {
+    title: 'Payrol',
+    icon: Wallet,
+    path: '/payrol-hub',
+    permission: ['PayrolManagement', 'BonusImpact'],
   },
   {
     title: 'Data & Intelligence',

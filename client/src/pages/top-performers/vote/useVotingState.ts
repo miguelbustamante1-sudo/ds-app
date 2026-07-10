@@ -18,7 +18,7 @@ export function useVotingState() {
   const [slots, setSlots] = useState<TopFiveSlot[]>(INITIAL_SLOTS);
 
   const selectedIds = slots.map((s) => s.nomId).filter((id): id is number => id !== null);
-  const isComplete = selectedIds.length === 5;
+  const isComplete = false;
 
   function addToSlot(nomId: number, rank: number) {
     setSlots((prev) =>
@@ -39,6 +39,23 @@ export function useVotingState() {
     if (emptySlot) addToSlot(nomId, emptySlot.rank);
   }
 
+  function swapIntoSlot(nomId: number, targetRank: number) {
+    setSlots((prev) => {
+      const sourceSlot = prev.find((s) => s.nomId === nomId);
+      const targetSlot = prev.find((s) => s.rank === targetRank);
+      if (!targetSlot) return prev;
+
+      const displacedNomId = targetSlot.nomId;
+      const sourceRank = sourceSlot?.rank ?? null;
+
+      return prev.map((s) => {
+        if (s.rank === targetRank) return { ...s, nomId };
+        if (sourceRank !== null && s.rank === sourceRank) return { ...s, nomId: displacedNomId };
+        return s;
+      });
+    });
+  }
+
   function reorder(fromRank: number, toRank: number) {
     setSlots((prev) => {
       const result = [...prev];
@@ -56,5 +73,9 @@ export function useVotingState() {
     return selectedIds.includes(nomId);
   }
 
-  return { slots, selectedIds, isComplete, addToSlot, removeFromSlot, addToNextEmpty, reorder, isSelected };
+  function getRank(nomId: number): number | null {
+    return slots.find((s) => s.nomId === nomId)?.rank ?? null;
+  }
+
+  return { slots, selectedIds, isComplete, addToSlot, removeFromSlot, addToNextEmpty, reorder, isSelected, getRank, swapIntoSlot };
 }

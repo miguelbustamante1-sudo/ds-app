@@ -3,7 +3,7 @@ import { requirePermission } from '../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../middleware/auth';
 import { validateApiKey } from '../../../middleware/apiKey';
 import { standaloneTaskOrchestrator } from '../StandaloneTaskOrchestrator';
-import type { CreateStandaloneTaskDTO, ResolveStandaloneTaskDTO } from '@shared/dto';
+import type { CreateStandaloneTaskDTO, ResolveStandaloneTaskDTO, StandaloneTaskDTO } from '@shared/dto';
 import { dsUserId, tmId, actorEmail, catchHandler } from '../../../routes/routeUtils';
 
 const router = Router();
@@ -92,8 +92,16 @@ router.patch(
         return;
       }
       const body = req.body as ResolveStandaloneTaskDTO;
-      const task = await standaloneTaskOrchestrator.resolveTask(tskId, body, dsUserId(req), actorEmail(req));
-      res.json({ data: task });
+      const result = await standaloneTaskOrchestrator.resolveTask(
+        tskId,
+        body,
+        dsUserId(req),
+        actorEmail(req),
+        tmId(req),
+      );
+      const response: { data: StandaloneTaskDTO; warning?: string } = { data: result.task };
+      if (result.warning) response.warning = result.warning;
+      res.json(response);
     } catch (err) {
       catchHandler(err, res);
     }

@@ -1,12 +1,6 @@
 import { prisma } from '../../../../db/prisma';
 import type { GiftCardTypeDTO } from '../../../../../shared/dto/GiftCardType';
-
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+import { GiftCardValidationError } from '../../errors';
 
 export interface CreateCardTypeInput {
   cardTypeName:      string;
@@ -20,7 +14,7 @@ export function validateCreateCardType(
   const { cardTypeName } = raw;
 
   if (typeof cardTypeName !== 'string' || cardTypeName.trim() === '') {
-    throw new ValidationError('`cardTypeName` is required and must be a non-empty string');
+    throw new GiftCardValidationError('`cardTypeName` is required and must be a non-empty string');
   }
 
   return {

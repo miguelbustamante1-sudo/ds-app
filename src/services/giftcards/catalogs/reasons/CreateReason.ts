@@ -1,12 +1,6 @@
 import { prisma } from '../../../../db/prisma';
 import type { GiftCardReasonDTO } from '../../../../../shared/dto/GiftCardReason';
-
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+import { GiftCardValidationError } from '../../errors';
 
 export interface CreateReasonInput {
   reasonName:      string;
@@ -20,7 +14,7 @@ export function validateCreateReason(
   const { reasonName } = raw;
 
   if (typeof reasonName !== 'string' || reasonName.trim() === '') {
-    throw new ValidationError('`reasonName` is required and must be a non-empty string');
+    throw new GiftCardValidationError('`reasonName` is required and must be a non-empty string');
   }
 
   return {

@@ -1,12 +1,6 @@
 import { prisma } from '../../../../db/prisma';
 import type { GiftCardPoolDTO } from '../../../../../shared/dto/GiftCardPool';
-
-export class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+import { GiftCardValidationError } from '../../errors';
 
 export interface CreatePoolInput {
   poolCode:      string;
@@ -21,10 +15,10 @@ export function validateCreatePool(
   const { poolCode, poolName } = raw;
 
   if (typeof poolCode !== 'string' || poolCode.trim() === '') {
-    throw new ValidationError('`poolCode` is required and must be a non-empty string');
+    throw new GiftCardValidationError('`poolCode` is required and must be a non-empty string');
   }
   if (typeof poolName !== 'string' || poolName.trim() === '') {
-    throw new ValidationError('`poolName` is required and must be a non-empty string');
+    throw new GiftCardValidationError('`poolName` is required and must be a non-empty string');
   }
 
   return {

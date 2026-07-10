@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../db/prisma';
 import { AppError } from '../../../errors/AppError';
-import type { TpCycleDTO } from '@shared/dto/TopPerformersCycle';
+import { TP_CYCLE_STATUSES } from '@shared/dto/TopPerformersCycle';
+import type { TpCycleDTO, TpCycleStatus } from '@shared/dto/TopPerformersCycle';
 
 export { TpCycleDTO };
 
@@ -26,7 +27,7 @@ export function toDTO(row: CycleRow): TpCycleDTO {
     cycNominationsEnd: row.cycNominationsEnd.toISOString(),
     cycVotingStart: row.cycVotingStart.toISOString(),
     cycVotingEnd: row.cycVotingEnd.toISOString(),
-    cycStatus: row.cycStatus,
+    cycStatus: row.cycStatus as TpCycleStatus,
     cycCreatedDate: row.cycCreatedDate.toISOString(),
   };
 }
@@ -42,9 +43,18 @@ export async function getCycleById(cycId: number): Promise<TpCycleDTO> {
   return toDTO(row);
 }
 
+export async function getCycleForCommittee(): Promise<TpCycleDTO | null> {
+  const row = await prisma.tpCycle.findFirst({
+    where: { cycStatus: { in: ['VOTING_OPEN', 'VOTING_CLOSED'] } },
+    select: cycleSelect,
+    orderBy: { cycVotingStart: 'desc' },
+  });
+  return row ? toDTO(row) : null;
+}
+
 export async function getActiveCycle(): Promise<TpCycleDTO | null> {
   const row = await prisma.tpCycle.findFirst({
-    where: { cycStatus: { in: ['NOMINATIONS_OPEN', 'NOMINATIONS_CLOSED', 'VOTING_OPEN'] } },
+    where: { cycStatus: { in: TP_CYCLE_STATUSES.filter((s) => s !== 'DRAFT' && s !== 'VOTING_CLOSED' && s !== 'RESULTS_PUBLISHED') } },
     select: cycleSelect,
     orderBy: { cycNominationsStart: 'desc' },
   });

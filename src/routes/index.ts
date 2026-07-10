@@ -55,9 +55,11 @@ import dashboardRouter from './dashboard.routes';
 import emailTestRouter from './email-test.routes';
 import standaloneTasksRouter from '../services/standalone-tasks/routes/tasks';
 import standaloneTaskCommentsRouter from '../services/standalone-tasks/routes/comments';
+import recurringTaskTemplatesRouter from '../services/recurring-task-templates/routes/templates';
 import apiKeysAdminRouter from '../services/api-keys/routes/admin';
 import teamMemberBonusRouter from './teamMemberBonus';
 import aiInsightsRouter from '../services/aiInsights/routes';
+import sopRouter from './sop.routes';
 import uploadsRouter from './uploads';
 import tpCyclesRouter from './topPerformers/cycles';
 import tpNominationsRouter from './topPerformers/nominations';
@@ -71,6 +73,12 @@ import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/card
 import { storedProcedureRoutes } from './storedProcedures';
 import { storedProcedureOrchestrator } from '../services/storedProcedures/StoredProcedureOrchestrator';
 import laptopInventoryRouter from './laptopInventory.routes';
+import phoneContractsRouter from './phoneContracts.routes';
+import payrolRouter from './payrol.routes';
+import bonusImpactRouter from './bonusImpact.routes';
+import giftCardAssignmentsRouter from '../services/giftcards/assignments/assignments.routes';
+import giftCardDocumentationRouter from '../services/giftcards/documentation/documentation.routes';
+import sopLibraryRouter from './sopLibrary.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -123,6 +131,10 @@ export default function registerRoutes() {
   router.use('/shift', shiftRouter);
   router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
   router.use('/compensatory-time', compensatoryTimeRouter);
+  router.use('/phone-contracts', phoneContractsRouter);
+  router.use('/laptops', laptopInventoryRouter);
+  router.use('/payrol', payrolRouter);
+  router.use('/bonus-impacts', bonusImpactRouter);
   router.use('/workflow/templates', workflowTemplatesRouter);
   router.use('/workflow/instances', workflowInstancesRouter);
   router.use('/workflow', workflowTasksRouter);
@@ -131,9 +143,11 @@ export default function registerRoutes() {
   router.use('/email-test', emailTestRouter);
   router.use('/standalone-tasks', standaloneTasksRouter);
   router.use('/standalone-tasks', standaloneTaskCommentsRouter);
+  router.use('/recurring-task-templates', recurringTaskTemplatesRouter);
   router.use('/admin/api-keys', apiKeysAdminRouter);
   router.use('/team-member-bonuses', teamMemberBonusRouter);
   router.use('/ai', aiInsightsRouter);
+  router.use('/sop', sopRouter);
   router.use('/uploads', uploadsRouter);
   router.use('/top-performers/cycles', tpCyclesRouter);
   router.use('/top-performers/nominations', tpNominationsRouter);
@@ -145,7 +159,9 @@ export default function registerRoutes() {
   router.use('/giftcards/catalogs/card-types', giftCardTypesRouter);
   router.use('/giftcards/catalogs/card-values', giftCardValuesRouter);
   router.use('/stored-procedures', storedProcedureRoutes(storedProcedureOrchestrator));
-  router.use('/laptops', laptopInventoryRouter);
+  router.use('/giftcards/assignments', giftCardAssignmentsRouter);
+  router.use('/giftcards/documentation', giftCardDocumentationRouter);
+  router.use('/sop-library', sopLibraryRouter);
 
   return router;
 }

@@ -36,6 +36,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import type { StandaloneTaskDTO } from '@shared/dto';
 import { CreateTaskDialog } from './CreateTaskDialog';
+import { BackToHubButton } from '@/components/BackToHubButton';
 
 const STATUS_OPTIONS = [
   { label: 'Pending', value: 'PENDING' },
@@ -207,6 +208,17 @@ export function StandaloneTasksAdminPage() {
         meta: { headerTitle: 'Source', skeleton: <Skeleton className="h-5 w-20" /> },
       },
       {
+        id: 'template',
+        header: 'Template',
+        cell: ({ row }) => {
+          const t = row.original;
+          if (!t.templateTitle) return <span className="text-muted-foreground">—</span>;
+          return <Badge variant="secondary" appearance="light">{t.templateTitle}</Badge>;
+        },
+        size: 160,
+        meta: { skeleton: <Skeleton className="h-5 w-28" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => {
@@ -270,6 +282,7 @@ export function StandaloneTasksAdminPage() {
           {canCreate('StandaloneTaskAdmin') && (
             <Button onClick={() => setCreateOpen(true)}>Create Task</Button>
           )}
+          <BackToHubButton hubPath="/tasks-hub" />
         </ToolbarActions>
       </Toolbar>
 

@@ -14,6 +14,8 @@ import {
 } from '../services/teamMember';
 import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
 import { getReportsForTeamOverview } from '../services/teamMember/queries/getReportsForTeamOverview';
+import { getProfileForMaintenance } from '../services/teamMember/queries/getProfileForMaintenance';
+import { getTimeOffsByTeamMember } from '../db/timeOffs';
 import { AppError } from '../errors/AppError';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
@@ -295,6 +297,41 @@ router.get('/:teamMemberId/profile', requirePermission('TeamMembers', 'read'), a
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch team member profile' });
+  }
+});
+
+// GET /team-members/:id/admin-profile — full profile for maintenance (no hierarchy check)
+router.get('/:id/admin-profile', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id ?? '', 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid team member ID' });
+    const profile = await getProfileForMaintenance(id);
+    if (!profile) return res.status(404).json({ error: 'Team member not found' });
+    return res.json({ data: profile });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /team-members/:id/admin-time-offs — all time-offs for maintenance (no hierarchy check)
+router.get('/:id/admin-time-offs', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id ?? '', 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid team member ID' });
+    const timeOffs = await getTimeOffsByTeamMember(id);
+    return res.json({ data: timeOffs });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
   }
 });
 

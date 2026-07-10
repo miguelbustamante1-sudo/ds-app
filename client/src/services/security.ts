@@ -4,6 +4,7 @@ import type {
   OptionDTO,
   PermissionDTO,
   AuthUserWithRolesDTO,
+  AuthUserDetailDTO,
 } from '@shared/dto';
 
 // ─── Options ──────────────────────────────────────────────────────────────────
@@ -86,3 +87,12 @@ export const assignRoleToUser = (userId: number, roleId: number) =>
 
 export const removeRoleFromUser = (userId: number, roleId: number) =>
   apiDelete(`/api/rbac/user-roles/user/${userId}/role/${roleId}`);
+
+export const getAuthUserByDsUser = (dsUserId: number) =>
+  apiGet<AuthUserDetailDTO | null>(`/api/rbac/auth-users/by-ds-user/${dsUserId}`);
+
+export const updateAuthUserInlineRoles = (authUserId: number, roles: string[]) =>
+  apiPut<{ id: number; roles: string[] }, { roles: string[] }>(
+    `/api/rbac/auth-users/${authUserId}/inline-roles`,
+    { roles }
+  );

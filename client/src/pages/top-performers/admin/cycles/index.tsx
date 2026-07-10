@@ -26,21 +26,33 @@ import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import { cyclesApi } from '@/api/topPerformers/cycles';
-import { cycleColumns } from './cycleColumns';
+import type { TpCycleDTO } from '@/api/topPerformers/cycles';
+import { TP_CYCLE_STATUSES } from '@shared/dto/TopPerformersCycle';
+import { cycleColumns, NEXT_STATUS, STATUS_LABELS } from './cycleColumns';
 import { CycleFormDialog } from './CycleFormDialog';
+import { CycleEditDialog } from './CycleEditDialog';
+import { BackToHubButton } from '@/components/BackToHubButton';
 
-const STATUS_OPTIONS = [
-  { label: 'Draft', value: 'DRAFT' },
-  { label: 'Nominations Open', value: 'NOMINATIONS_OPEN' },
-  { label: 'Nominations Closed', value: 'NOMINATIONS_CLOSED' },
-  { label: 'Voting Open', value: 'VOTING_OPEN' },
-  { label: 'Voting Closed', value: 'VOTING_CLOSED' },
-  { label: 'Results Published', value: 'RESULTS_PUBLISHED' },
-];
+const STATUS_OPTIONS = TP_CYCLE_STATUSES.map((s) => ({
+  label: STATUS_LABELS[s],
+  value: s,
+}));
 
 export function TpCyclesPage() {
+  const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingCycle, setEditingCycle] = useState<TpCycleDTO | null>(null);
+  const [advancingCycle, setAdvancingCycle] = useState<TpCycleDTO | null>(null);
+  const [advancing, setAdvancing] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const queryClient = useQueryClient();
@@ -49,6 +61,29 @@ export function TpCyclesPage() {
     queryKey: ['tp-cycles'],
     queryFn: () => cyclesApi.getAll(),
   });
+
+  const handleSuccess = () => {
+    void queryClient.invalidateQueries({ queryKey: ['tp-cycles'] });
+    void queryClient.invalidateQueries({ queryKey: ['tp-active-cycle'] });
+  };
+
+  const handleConfirmAdvance = async () => {
+    if (!advancingCycle) return;
+    const nextStatus = NEXT_STATUS[advancingCycle.cycStatus];
+    if (!nextStatus) return;
+    setAdvancing(true);
+    try {
+      await cyclesApi.updateStatus(advancingCycle.cycId, nextStatus);
+      toast({ title: `Cycle moved to "${STATUS_LABELS[nextStatus]}"` });
+      handleSuccess();
+      setAdvancingCycle(null);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error updating status';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setAdvancing(false);
+    }
+  };
 
   const table = useReactTable({
     data: cycles,
@@ -62,11 +97,11 @@ export function TpCyclesPage() {
     getPaginationRowModel: getPaginationRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    meta: {
+      onEdit: (cycle: TpCycleDTO) => setEditingCycle(cycle),
+      onAdvance: (cycle: TpCycleDTO) => setAdvancingCycle(cycle),
+    },
   });
-
-  const handleSuccess = () => {
-    void queryClient.invalidateQueries({ queryKey: ['tp-cycles'] });
-  };
 
   const isFiltered = columnFilters.length > 0;
 
@@ -78,6 +113,7 @@ export function TpCyclesPage() {
           <ToolbarDescription>Manage nomination and voting cycles</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/top-performers-hub" />
           <Button onClick={() => setFormOpen(true)}>
             <Plus size={16} className="me-1" />
             New Cycle
@@ -131,6 +167,48 @@ export function TpCyclesPage() {
         onOpenChange={setFormOpen}
         onSuccess={handleSuccess}
       />
+
+      {editingCycle && (
+        <CycleEditDialog
+          cycle={editingCycle}
+          open={!!editingCycle}
+          onOpenChange={(open) => { if (!open) setEditingCycle(null); }}
+          onSuccess={() => {
+            handleSuccess();
+            setEditingCycle(null);
+          }}
+        />
+      )}
+
+      <Dialog
+        open={!!advancingCycle}
+        onOpenChange={(open) => { if (!open) setAdvancingCycle(null); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Advance cycle status</DialogTitle>
+          </DialogHeader>
+          {advancingCycle && (
+            <p className="text-sm text-muted-foreground">
+              Move <strong>{advancingCycle.cycName}</strong> from{' '}
+              <strong>{STATUS_LABELS[advancingCycle.cycStatus]}</strong> to{' '}
+              <strong>{STATUS_LABELS[NEXT_STATUS[advancingCycle.cycStatus]] ?? ''}</strong>?
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAdvancingCycle(null)}
+              disabled={advancing}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmAdvance} disabled={advancing}>
+              {advancing ? 'Updating...' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

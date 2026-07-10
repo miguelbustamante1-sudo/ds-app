@@ -10,6 +10,7 @@ import { SearchDialog } from '@/components/layouts/shared/dialogs/search/search-
 import { NotificationsSheet } from '@/components/layouts/shared/topbar/notifications-sheet';
 import { UserDropdownMenu } from '@/components/layouts/shared/topbar/user-dropdown-menu';
 import { PocDirectoryDialog } from '@/components/layouts/shared/dialogs/poc-directory-dialog';
+import { SopLibraryDialog } from '@/components/layouts/shared/dialogs/sop-library-dialog';
 import { useAuth } from '@/auth/auth-provider';
 import { PermissionGate } from '@/components/PermissionGate';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -54,6 +55,7 @@ export function Header() {
         </div>
         {/* HeaderTopbar */}
         <div className="flex items-center gap-3 ms-auto">
+          <SopLibraryDialog />
           <PocDirectoryDialog
             trigger={
               <Button

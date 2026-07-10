@@ -77,6 +77,17 @@ export function StandaloneTasksTab() {
         meta: { headerTitle: 'Title', skeleton: <Skeleton className="h-4 w-36" /> },
       },
       {
+        id: 'conductedWith',
+        header: 'With',
+        cell: ({ row }) => {
+          const t = row.original;
+          if (!t.hierarchyContextNames) return <span className="text-muted-foreground">—</span>;
+          return `${t.hierarchyContextNames} ${t.hierarchyContextSurnames}`;
+        },
+        size: 180,
+        meta: { headerTitle: 'With', skeleton: <Skeleton className="h-4 w-32" /> },
+      },
+      {
         accessorKey: 'taskPriority',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Priority" />,
         cell: ({ row }) => priorityBadge(row.original.taskPriority),

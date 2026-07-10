@@ -69,6 +69,12 @@ export const topPerformersHubConfig: HubConfig = {
           path: '/top-performers/admin/anonymization',
           permission: 'TopPerformers_Admin',
         },
+        {
+          title: 'Nominations Overview',
+          description: 'Browse all nominations for any cycle — view original and anonymized text side by side.',
+          path: '/top-performers/admin/nominations-overview',
+          permission: 'TopPerformers_Admin',
+        },
       ],
     },
   ],

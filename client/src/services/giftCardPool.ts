@@ -9,10 +9,13 @@ export const getPools = () =>
   apiGet<GiftCardPoolDTO[]>(`${BASE}/`);
 
 export const createPool = (data: CreateGiftCardPoolDTO) =>
-  apiPost<{ data: GiftCardPoolDTO }, CreateGiftCardPoolDTO>(`${BASE}/`, data).then((r) => r.data);
+  apiPost<GiftCardPoolDTO, CreateGiftCardPoolDTO>(`${BASE}/`, data);
 
 export const updatePool = (id: number, data: UpdateGiftCardPoolDTO) =>
-  apiPut<{ data: GiftCardPoolDTO }, UpdateGiftCardPoolDTO>(`${BASE}/${id}`, data).then((r) => r.data);
+  apiPut<GiftCardPoolDTO, UpdateGiftCardPoolDTO>(`${BASE}/${id}`, data);
 
 export const deactivatePool = (id: number) =>
   apiDelete(`${BASE}/${id}`);
+
+export const activatePool = (id: number) =>
+  apiPut<GiftCardPoolDTO>(`${BASE}/${id}/activate`, {});

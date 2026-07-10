@@ -1,4 +1,3 @@
-import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { TopFiveSlot } from './useVotingState';
@@ -19,19 +18,13 @@ interface SlotProps {
 }
 
 function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
-  const { attributes, listeners, setNodeRef: sortableRef, transform, transition } = useSortable({ id: `slot-${slot.rank}` });
-  const { setNodeRef: dropRef, isOver } = useDroppable({ id: `slot-${slot.rank}` });
+  const { attributes, listeners, setNodeRef, transform, transition, isOver } = useSortable({ id: `slot-${slot.rank}` });
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  function mergeRef(node: HTMLDivElement | null) {
-    sortableRef(node);
-    dropRef(node);
-  }
-
   return (
     <div
-      ref={mergeRef}
+      ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
@@ -45,13 +38,17 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
           <span className="ml-2 text-xs text-muted-foreground">({slot.points} pts)</span>
         </div>
         {nomination && (
-          <button onClick={onRemove} className="text-xs text-destructive hover:underline ml-2">✕</button>
+          <button
+            onClick={onRemove}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-xs text-destructive hover:underline ml-2"
+          >✕</button>
         )}
       </div>
       {nomination ? (
         <p className="text-xs mt-1 line-clamp-2">{nomination.nomAnonymizedText}</p>
       ) : (
-        <p className="text-xs text-muted-foreground mt-1">Drag here or click + Add</p>
+        <p className="text-xs text-muted-foreground mt-1">Drag here or Or Click the button + Add located on each Nominee card</p>
       )}
     </div>
   );
@@ -60,19 +57,17 @@ function SortableSlot({ slot, nomination, onRemove }: SlotProps) {
 interface TopFivePanelProps {
   slots: TopFiveSlot[];
   nominations: ApprovedNominationDTO[];
-  isComplete: boolean;
   onRemove: (rank: number) => void;
   onReorder: (fromRank: number, toRank: number) => void;
 }
 
-export function TopFivePanel({ slots, nominations, isComplete, onRemove }: TopFivePanelProps) {
+export function TopFivePanel({ slots, nominations, onRemove }: TopFivePanelProps) {
   const nominationById = Object.fromEntries(nominations.map((n) => [n.nomId, n]));
 
   return (
-    <div className={`p-4 rounded-xl border-2 transition-colors ${isComplete ? 'border-green-500 bg-green-50/50' : 'border-border'}`}>
+    <div className="p-4 rounded-xl border-2 border-border transition-colors overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm">My Top 5</h3>
-        {isComplete && <span className="text-green-600 text-sm font-medium">✓ Ready to submit</span>}
       </div>
       <SortableContext items={slots.map((s) => `slot-${s.rank}`)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">

@@ -65,7 +65,10 @@ export function SearchDialog({ trigger }: { trigger: ReactNode }) {
           const required = Array.isArray(item.role) ? item.role : [item.role];
           if (!required.some((r) => user?.roles.includes(r))) return false;
         }
-        if (item.permission && !canRead(item.permission)) return false;
+        if (item.permission) {
+          const required = Array.isArray(item.permission) ? item.permission : [item.permission];
+          if (!required.some((p) => canRead(p))) return false;
+        }
         return !!item.path;
       })
     : [];

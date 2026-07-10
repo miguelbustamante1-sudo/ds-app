@@ -21,7 +21,7 @@ export interface MenuItem {
    * If set, the item will only be visible if the user has 'read' permission for this resource.
    * Example: 'Holidays', 'TeamMembers', 'Countries'
    */
-  permission?: string;
+  permission?: string | string[];
   /**
    * Role(s) required to view this menu item.
    * A single string requires exactly that role; an array requires the user to have at least one.

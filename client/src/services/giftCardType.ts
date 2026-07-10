@@ -7,11 +7,15 @@ const BASE = '/api/giftcards/catalogs/card-types';
 
 export const getCardTypes = () =>
   apiGet<GiftCardTypeDTO[]>(`${BASE}/`);
+
 export const createCardType = (data: CreateGiftCardTypeDTO) =>
-  apiPost<{ data: GiftCardTypeDTO }, CreateGiftCardTypeDTO>(`${BASE}/`, data).then((r) => r.data);
+  apiPost<GiftCardTypeDTO, CreateGiftCardTypeDTO>(`${BASE}/`, data);
 
 export const updateCardType = (id: number, data: UpdateGiftCardTypeDTO) =>
-  apiPut<{ data: GiftCardTypeDTO }, UpdateGiftCardTypeDTO>(`${BASE}/${id}`, data).then((r) => r.data);
+  apiPut<GiftCardTypeDTO, UpdateGiftCardTypeDTO>(`${BASE}/${id}`, data);
 
 export const deactivateCardType = (id: number) =>
   apiDelete(`${BASE}/${id}`);
+
+export const activateCardType = (id: number) =>
+  apiPut<GiftCardTypeDTO>(`${BASE}/${id}/activate`, {});

@@ -3,6 +3,10 @@
  * Maps to ds.nom_nominations
  */
 
+export interface TpNominationAdminDTO extends TpNominationDTO {
+  nomineeName: string;
+}
+
 export interface TpNominationDTO {
   nomId: number;
   cycId: number;

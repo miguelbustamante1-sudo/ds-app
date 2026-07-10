@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, PowerOff, RefreshCw, X } from 'lucide-react';
+import { Pencil, Power, PowerOff, RefreshCw, X } from 'lucide-react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getCardTypes, deactivateCardType, type GiftCardTypeDTO } from '@/services/giftCardType';
+import { getCardTypes, deactivateCardType, activateCardType, type GiftCardTypeDTO } from '@/services/giftCardType';
 import { CardTypeFormDialog } from './CardTypeFormDialog';
 
 const STATUS_OPTIONS = [
@@ -106,6 +106,20 @@ export function GiftCardTypesPage() {
     }
   };
 
+  const handleActivate = async (cardType: GiftCardTypeDTO) => {
+    try {
+      await activateCardType(cardType.cardTypeId);
+      toast({ title: 'Activated', description: `Card type "${cardType.cardTypeName}" activated.` });
+      loadCardTypes();
+    } catch (err: unknown) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to activate card type',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const columns = useMemo<ColumnDef<GiftCardTypeDTO>[]>(
     () => [
       {
@@ -154,14 +168,19 @@ export function GiftCardTypesPage() {
                 <PowerOff size={15} className="me-1" /> Deactivate
               </Button>
             )}
+            {canCreate('GiftCardCatalog') && !row.original.cardTypeIsActive && (
+              <Button variant="ghost" size="sm" onClick={() => handleActivate(row.original)}>
+                <Power size={15} className="me-1" /> Activate
+              </Button>
+            )}
           </div>
         ),
-        size: 160,
+        size: 200,
         enableSorting: false,
         meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-8 w-24" /> },
       },
     ],
-    [cardTypes],
+    [canCreate, canDelete],
   );
 
   const table = useReactTable({

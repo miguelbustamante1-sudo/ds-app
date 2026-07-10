@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -221,6 +222,7 @@ export function InstanceListPage() {
               Start New Workflow
             </Button>
           )}
+          <BackToHubButton hubPath="/tasks-hub" />
         </ToolbarActions>
       </Toolbar>
 

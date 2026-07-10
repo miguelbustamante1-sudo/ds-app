@@ -30,6 +30,31 @@ Every DataGrid must include:
 - pagination
 - column management where appropriate
 
+## DataGrid Structure Rules
+These rules apply to every DataGrid on every page — no exceptions.
+
+**Required wrapper:** Always wrap `<DataGrid>` in `<DataGridContainer>`.
+
+**`recordCount`:** Always pass `recordCount={items.length}` using the raw data array length — never `table.getFilteredRowModel().rows.length`.
+
+**`DataGridPagination` sizes:** Always pass `sizes={[10, 25, 50]}`.
+
+**Loading state:** Render loading outside the DataGrid with a conditional, not via an `isLoading` prop on `<DataGrid>`:
+```tsx
+{loading ? (
+  <div className="text-muted-foreground text-sm py-4">Loading...</div>
+) : (
+  <DataGridContainer>
+    <DataGrid table={table} recordCount={items.length}>
+      <DataGridTable />
+      <DataGridPagination sizes={[10, 25, 50]} />
+    </DataGrid>
+  </DataGridContainer>
+)}
+```
+
+**Reference implementation:** `client/src/pages/top-performers/admin/cycles/index.tsx`
+
 ## DataGrid Filtering Rule
 All DataGrid filters must use `DataGridColumnFilter` from `@/components/ui/data-grid-column-filter`. The reference implementation is `maintenance/supervisor-assignments/index.tsx`.
 

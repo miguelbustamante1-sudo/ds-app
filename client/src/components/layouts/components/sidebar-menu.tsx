@@ -48,8 +48,9 @@ export function SidebarMenu() {
           }
           // If no permission specified, show (role/subPermission already passed)
           if (!item.permission) return true;
-          // Otherwise, check if user has read permission
-          const isReadable = canRead(item.permission);
+          // Otherwise, check if user has read permission for any of the specified permissions (OR logic)
+          const required = Array.isArray(item.permission) ? item.permission : [item.permission];
+          const isReadable = required.some((p) => canRead(p));
 
           if(isReadable && item.subPermission){
             // Check existing sub-permission requirements

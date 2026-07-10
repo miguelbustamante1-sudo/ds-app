@@ -24,7 +24,8 @@ model Country {
   endorsements       Endorsement[]
   bonusSubcategories BonusSubcategory[]
   functionalAreas    FunctionalArea[]
-  phoneLines         CorporatePhoneLine[]
+  phoneLines          CorporatePhoneLine[]
+  giftCardAssignments GiftCardAssignment[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
   @@map("cou_countries")
@@ -136,11 +137,14 @@ model TeamMember {
   compensatoryTimes                 CompensatoryTime[]
   phoneAssignments                  CorporatePhoneAssignment[]
   standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
+  standaloneTaskHierarchyRefs       StandaloneTask[] @relation("StandaloneTaskHierarchyContext")
+  recurringTemplates                RecurringTaskTemplate[] @relation("RecurringTemplateAssignee")
   teamMemberBonuses                 TeamMemberBonus[]
   tpNominationsAsNominee            TpNomination[]      @relation("TpNominee")
   tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
   tpVotes                           TpVote[]            @relation("TpVoter")
   tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
+  bonusImpacts                      BniBonus[]
   laptopAssignments                 LaptopAssignment[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
@@ -402,6 +406,8 @@ model User {
   standaloneTasksResolved       StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users")
   standaloneTaskCommentsCreated StandaloneTaskComment[] @relation("tco_standalone_task_comments_tco_created_byTotbl_users")
   apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
+  recurringTemplatesCreated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users")
+  recurringTemplatesUpdated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users")
   teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
   teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
   uploads                       Upload[]                @relation("UploadCreatedByUser")
@@ -411,6 +417,13 @@ model User {
   giftCardValuesCreated        GiftCardValue[]
   fieldglassSowsCreated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users")
   fieldglassSowsUpdated FieldglassSow[] @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users")
+  giftCardAssignmentsCreated   GiftCardAssignment[]
+  giftCardDocumentationsCreated GiftCardDocumentation[]
+  prlPayrolsCreated            PrlPayrol[]      @relation("prl_payrol_created_byTotbl_users")
+  prlPayrolsUpdated            PrlPayrol[]      @relation("prl_payrol_updated_byTotbl_users")
+  bniBonusesCreated            BniBonus[]       @relation("bni_bonus_impact_created_byTotbl_users")
+  bniBonusesUpdated            BniBonus[]       @relation("bni_bonus_impact_updated_byTotbl_users")
+  biuUploadsCreated            BiuBonusUpload[] @relation("biu_bonus_impact_upload_created_byTotbl_users")
   laptopsCreated               Laptop[]           @relation("LapCreatedBy")
   laptopsUpdated               Laptop[]           @relation("LapUpdatedBy")
   laptopAssignmentsCreated     LaptopAssignment[] @relation("LpaCreatedBy")
@@ -759,13 +772,15 @@ model StoredProcedure {
 }
 
 model FunctionalArea {
-  Id   Int      @id @default(autoincrement()) @map("far_id") @db.Integer
-  Name String   @map("far_name") @db.Text
-  countryId          Int?     @map("cou_id")
+  Id        Int     @id @default(autoincrement()) @map("far_id") @db.Integer
+  Name      String  @map("far_name") @db.Text
+  countryId Int?    @map("cou_id")
+
   country            Country?           @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
   projectAssignments ProjectAssignment[]
   benchAssignments   Bench[]
 
+  @@unique([Name, countryId], name: "far_unique_name_country")
   @@map("far_functional_areas")
   @@schema("ds")
 }
@@ -1442,11 +1457,12 @@ model CorporatePhoneLine {
   deletedAt             DateTime? @map("cpl_deleted_at") @db.Timestamptz(6)
   countryId             Int?      @map("cou_id") @db.Integer
   createdAt             DateTime  @default(now()) @map("cpl_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("usr_id_created_by") @db.Integer
-  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  createdBy             Int       @map("cpl_created_by") @db.Integer
+  updatedBy             Int?      @map("cpl_updated_by") @db.Integer
   updatedAt             DateTime? @map("cpl_updated_at") @db.Timestamptz(6)
   comments              String?   @map("cpl_comments")
   deleted               Boolean?  @default(false) @map("cpl_deleted")
+  contractMonths        Int?      @map("cpl_contract_months") @db.Integer
 
   renewalParent         CorporatePhoneLine?  @relation("PhoneLineRenewals", fields: [renewalParentId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpl_renewal_parent")
   renewals              CorporatePhoneLine[] @relation("PhoneLineRenewals")
@@ -1471,10 +1487,12 @@ model CorporatePhoneAssignment {
   assignDateStart       DateTime  @map("cpa_assign_date_start") @db.Date
   assignDateEnd         DateTime? @map("cpa_assign_date_end") @db.Date
   billable              Boolean   @default(true) @map("cpa_billable")
+  isFree                Boolean   @default(false) @map("cpa_is_free")
   remarks               String?   @map("cpa_remarks")
+  phoneType             String?   @map("cpa_phone_type") @db.VarChar(100)
   createdAt             DateTime  @default(now()) @map("cpa_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("usr_id_created_by") @db.Integer
-  updatedBy             Int?      @map("usr_id_updated_by") @db.Integer
+  createdBy             Int       @map("cpa_created_by") @db.Integer
+  updatedBy             Int?      @map("cpa_updated_by") @db.Integer
   updatedAt             DateTime? @map("cpa_updated_at") @db.Timestamptz(6)
   deletedAt             DateTime? @map("cpa_deleted_at") @db.Timestamptz(6)
   deleted               Boolean?  @default(false) @map("cpa_deleted")
@@ -1510,14 +1528,21 @@ model StandaloneTask {
   updatedDate       DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
   resolvedBy        Int?      @map("tsk_resolved_by") @db.Integer
   resolvedDate      DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
-  resolutionComment String?   @map("tsk_resolution_comment") @db.Text
+  resolutionComment   String?   @map("tsk_resolution_comment") @db.Text
+  recurringTemplateId Int?      @map("rtt_id") @db.Integer
+  transcriptUploadId  Int?      @map("upl_id") @db.Integer
+  meetingDate         DateTime? @map("tsk_meeting_date") @db.Timestamptz(6)
+  hierarchyContextId  Int?      @map("tms_id_assignee") @db.Integer
 
-  teamMember     TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
-  createdByUser  User                    @relation("tsk_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
-  updatedByUser  User?                   @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
-  resolvedByUser User?                   @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
-  apiKey         ApiKey?                 @relation(fields: [apiKeyId], references: [apkId], map: "fk_tsk_api_key")
-  comments       StandaloneTaskComment[]
+  teamMember        TeamMember              @relation("StandaloneTaskAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_tsk_team_member")
+  createdByUser     User                    @relation("tsk_standalone_tasks_tsk_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tsk_created_by")
+  updatedByUser     User?                   @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_tsk_updated_by")
+  resolvedByUser    User?                   @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users", fields: [resolvedBy], references: [userId], map: "fk_tsk_resolved_by")
+  apiKey            ApiKey?                 @relation(fields: [apiKeyId], references: [apkId], map: "fk_tsk_api_key")
+  recurringTemplate RecurringTaskTemplate?  @relation(fields: [recurringTemplateId], references: [templateId], map: "fk_rtt_id")
+  transcriptUpload  Upload?                 @relation("StandaloneTaskTranscript", fields: [transcriptUploadId], references: [uploadId], map: "fk_tsk_upl_id")
+  hierarchyContext  TeamMember?             @relation("StandaloneTaskHierarchyContext", fields: [hierarchyContextId], references: [teamMemberId], map: "fk_tsk_tms_id_assignee")
+  comments          StandaloneTaskComment[]
 
   @@map("tsk_standalone_tasks")
   @@schema("ds")
@@ -1534,6 +1559,30 @@ model StandaloneTaskComment {
   createdByUser User           @relation("tco_standalone_task_comments_tco_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_tco_created_by")
 
   @@map("tco_standalone_task_comments")
+  @@schema("ds")
+}
+
+model RecurringTaskTemplate {
+  templateId             Int       @id @default(autoincrement()) @map("rtt_id") @db.Integer
+  templateTitle          String    @map("rtt_title") @db.Text
+  templateDescription    String?   @map("rtt_description") @db.Text
+  templatePriority       String    @default("MEDIUM") @map("rtt_priority") @db.Text
+  intervalDays           Int       @default(30) @map("rtt_interval_days") @db.Integer
+  useSupervisorHierarchy Boolean   @default(false) @map("rtt_use_supervisor_hierarchy")
+  teamMemberId           Int?      @map("tms_id") @db.Integer
+  autoGenerateOnCreate   Boolean   @default(true) @map("rtt_auto_generate_on_create")
+  isActive               Boolean   @default(true) @map("rtt_is_active")
+  createdBy              Int       @map("rtt_created_by") @db.Integer
+  createdDate            DateTime  @default(now()) @map("rtt_created_date") @db.Timestamptz(6)
+  updatedBy              Int?      @map("rtt_updated_by") @db.Integer
+  updatedDate            DateTime? @map("rtt_updated_date") @db.Timestamptz(6)
+
+  teamMember    TeamMember?      @relation("RecurringTemplateAssignee", fields: [teamMemberId], references: [teamMemberId], map: "fk_rtt_tms_id")
+  createdByUser User             @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users", fields: [createdBy], references: [userId], map: "fk_rtt_created_by")
+  updatedByUser User?            @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users", fields: [updatedBy], references: [userId], map: "fk_rtt_updated_by")
+  taskInstances StandaloneTask[]
+
+  @@map("rtt_recurring_task_templates")
   @@schema("ds")
 }
 
@@ -1568,7 +1617,10 @@ model Upload {
   uploadCreatedBy    Int      @map("upl_created_by")
   uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
 
-  createdByUser User @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  createdByUser             User                    @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  bonusUploads              BiuBonusUpload[]
+  standaloneTaskTranscripts StandaloneTask[]        @relation("StandaloneTaskTranscript")
+  giftCardDocumentations    GiftCardDocumentation[]
 
   @@map("upl_uploads")
   @@schema("ds")
@@ -1712,7 +1764,8 @@ model GiftCardPool {
   poolCreatedBy Int      @map("gcp_created_by") @db.Integer
   poolCreatedAt DateTime @default(now()) @map("gcp_created_at") @db.Timestamptz(6)
 
-  createdBy User @relation(fields: [poolCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcp_usr")
+  createdBy   User                 @relation(fields: [poolCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcp_usr")
+  assignments GiftCardAssignment[]
 
   @@index([poolIsActive], map: "idx_tbl_gcp_pools_is_active")
   @@index([poolCreatedBy], map: "idx_tbl_gcp_pools_created_by")
@@ -1727,7 +1780,8 @@ model GiftCardReason {
   reasonCreatedBy Int      @map("gcr_created_by") @db.Integer
   reasonCreatedAt DateTime @default(now()) @map("gcr_created_at") @db.Timestamptz(6)
 
-  createdBy User @relation(fields: [reasonCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcr_usr")
+  createdBy   User                 @relation(fields: [reasonCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcr_usr")
+  assignments GiftCardAssignment[]
 
   @@index([reasonIsActive], map: "idx_tbl_gcr_reasons_is_active")
   @@index([reasonCreatedBy], map: "idx_tbl_gcr_reasons_created_by")
@@ -1742,8 +1796,10 @@ model GiftCardType {
   cardTypeCreatedBy Int              @map("gct_created_by") @db.Integer
   cardTypeCreatedAt DateTime         @default(now()) @map("gct_created_at") @db.Timestamptz(6)
 
-  createdBy  User             @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
-  cardValues GiftCardValue[]
+  createdBy      User                   @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
+  cardValues     GiftCardValue[]
+  assignments    GiftCardAssignment[]
+  documentations GiftCardDocumentation[]
 
   @@index([cardTypeIsActive], map: "idx_tbl_gct_card_types_is_active")
   @@index([cardTypeCreatedBy], map: "idx_tbl_gct_card_types_created_by")
@@ -1760,8 +1816,9 @@ model GiftCardValue {
   cardValueCreatedBy Int          @map("gcv_created_by") @db.Integer
   cardValueCreatedAt DateTime     @default(now()) @map("gcv_created_at") @db.Timestamptz(6)
 
-  cardType  GiftCardType @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
-  createdBy User         @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
+  cardType    GiftCardType         @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
+  createdBy   User                 @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
+  assignments GiftCardAssignment[]
 
   @@index([cardTypeId], map: "idx_tbl_gcv_card_values_gct_id")
   @@index([cardValueIsActive], map: "idx_tbl_gcv_card_values_is_active")
@@ -1801,6 +1858,157 @@ model FieldglassSow {
   @@schema("ds")
 }
 
+model GiftCardAssignment {
+  assignmentId           Int      @id @default(autoincrement()) @map("gca_id") @db.Integer
+  countryId              Int      @map("gca_country_id") @db.Integer
+  poolId                 Int      @map("gca_pool_id") @db.Integer
+  reasonId               Int      @map("gca_reason_id") @db.Integer
+  cardTypeId             Int      @map("gca_card_type_id") @db.Integer
+  cardValueId            Int      @map("gca_card_value_id") @db.Integer
+  assignmentAmount       Int      @map("gca_amount") @db.Integer
+  assignmentComment      String?  @map("gca_comment")
+  assignmentRecipients   Json     @map("gca_recipients")
+  assignmentEmailMessage String?  @map("gca_email_message")
+  assignmentAuthStatus   String   @default("Pending") @map("gca_authorization_status") @db.VarChar(20)
+  assignmentCreatedBy    Int      @map("gca_created_by") @db.Integer
+  assignmentCreatedAt    DateTime @default(now()) @map("gca_created_at") @db.Timestamptz(6)
+
+  country        Country                @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_gca_cou")
+  pool           GiftCardPool           @relation(fields: [poolId], references: [poolId], onDelete: Restrict, map: "fk_gca_gcp")
+  reason         GiftCardReason         @relation(fields: [reasonId], references: [reasonId], onDelete: Restrict, map: "fk_gca_gcr")
+  cardType       GiftCardType           @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gca_gct")
+  cardValue      GiftCardValue          @relation(fields: [cardValueId], references: [cardValueId], onDelete: Restrict, map: "fk_gca_gcv")
+  createdBy      User                   @relation(fields: [assignmentCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gca_usr")
+  documentations GiftCardDocumentation[]
+
+  @@map("tbl_gca_card_assignments")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Payrol / Bonus Impact
+// =============================================================================
+
+model PrlPayrol {
+  prlId          Int       @id @default(autoincrement()) @map("prl_id")
+  prlDescription String    @map("prl_description")
+  prlStartDate   DateTime  @map("prl_start_date") @db.Date
+  prlEndDate     DateTime  @map("prl_end_date") @db.Date
+  prlStatus      String    @default("Open") @map("prl_status")
+  prlCreatedBy   Int       @map("prl_created_by")
+  prlCreatedAt   DateTime  @default(now()) @map("prl_created_at") @db.Timestamptz(6)
+  prlUpdatedBy   Int       @map("prl_updated_by")
+  prlUpdatedAt   DateTime  @updatedAt @map("prl_updated_at") @db.Timestamptz(6)
+  prlDeletedAt   DateTime? @map("prl_deleted_at") @db.Timestamptz(6)
+
+  createdByUser User       @relation("prl_payrol_created_byTotbl_users", fields: [prlCreatedBy], references: [userId])
+  updatedByUser User       @relation("prl_payrol_updated_byTotbl_users", fields: [prlUpdatedBy], references: [userId])
+  bonusImpacts  BniBonus[]
+
+  @@map("prl_payrol")
+  @@schema("ds")
+}
+
+model BniBonus {
+  bniId           Int       @id @default(autoincrement()) @map("bni_id")
+  bniTeamMemberId Int       @map("bni_team_member_id")
+  bniDescription  String    @map("bni_description")
+  bniComment      String?   @map("bni_comment")
+  bniAmount       Decimal   @default(1) @map("bni_amount") @db.Decimal(10, 2)
+  bniCurrency     String    @default("USD") @map("bni_currency")
+  bniMonth        DateTime  @map("bni_month") @db.Date
+  bniStatus       String    @default("Registered") @map("bni_status")
+  bniPrlId        Int?      @map("bni_prl_id")
+  bniNotifiedAt   DateTime? @map("bni_notified_at") @db.Timestamptz(6)
+  bniProcessedAt  DateTime? @map("bni_processed_at") @db.Timestamptz(6)
+  bniCreatedBy    Int       @map("bni_created_by")
+  bniCreatedAt    DateTime  @default(now()) @map("bni_created_at") @db.Timestamptz(6)
+  bniUpdatedBy    Int       @map("bni_updated_by")
+  bniUpdatedAt    DateTime  @updatedAt @map("bni_updated_at") @db.Timestamptz(6)
+  bniDeletedAt    DateTime? @map("bni_deleted_at") @db.Timestamptz(6)
+
+  teamMember    TeamMember       @relation(fields: [bniTeamMemberId], references: [teamMemberId])
+  payrol        PrlPayrol?       @relation(fields: [bniPrlId], references: [prlId])
+  createdByUser User             @relation("bni_bonus_impact_created_byTotbl_users", fields: [bniCreatedBy], references: [userId])
+  updatedByUser User             @relation("bni_bonus_impact_updated_byTotbl_users", fields: [bniUpdatedBy], references: [userId])
+  uploads       BiuBonusUpload[]
+
+  @@map("bni_bonus_impact")
+  @@schema("ds")
+}
+
+model BiuBonusUpload {
+  biuId        Int      @id @default(autoincrement()) @map("biu_id")
+  biuBniId     Int      @map("biu_bni_id")
+  biuUploadId  Int      @map("biu_upload_id")
+  biuCreatedBy Int      @map("biu_created_by")
+  biuCreatedAt DateTime @default(now()) @map("biu_created_at") @db.Timestamptz(6)
+
+  bonusImpact   BniBonus @relation(fields: [biuBniId], references: [bniId])
+  upload        Upload   @relation(fields: [biuUploadId], references: [uploadId])
+  createdByUser User     @relation("biu_bonus_impact_upload_created_byTotbl_users", fields: [biuCreatedBy], references: [userId])
+
+  @@map("biu_bonus_impact_upload")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Gift Card Documentation (Module 3 — Sprint 2)
+// =============================================================================
+
+model GiftCardDocumentation {
+  documentationId  Int      @id @default(autoincrement()) @map("gcd_id") @db.Integer
+  assignmentId     Int      @map("gcd_assignment_id") @db.Integer
+  value            Decimal  @map("gcd_value") @db.Decimal(15, 2)
+  cardTypeId       Int      @map("gcd_card_type_id") @db.Integer
+  cardNumber       String   @map("gcd_card_number") @db.VarChar(100)
+  uploadId         Int      @map("gcd_upload_id") @db.Integer
+  amountNotSpent   Decimal? @map("gcd_amount_not_spent") @db.Decimal(15, 2)
+  createdBy        Int      @map("gcd_created_by") @db.Integer
+  createdAt        DateTime @default(now()) @map("gcd_created_at") @db.Timestamptz(6)
+
+  assignment    GiftCardAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Restrict, map: "fk_gcd_gca")
+  cardType      GiftCardType       @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcd_gct")
+  upload        Upload             @relation(fields: [uploadId], references: [uploadId], onDelete: Restrict, map: "fk_gcd_upl")
+  createdByUser User               @relation(fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_gcd_usr")
+
+  @@index([assignmentId], map: "idx_tbl_gcd_assignment_id")
+  @@index([cardTypeId], map: "idx_tbl_gcd_card_type_id")
+  @@index([createdBy], map: "idx_tbl_gcd_created_by")
+  @@map("tbl_gcd_card_documentation")
+  @@schema("ds")
+}
+
+// =============================================================================
+// Gift Card Inventory — Staging (Module 1 — Sprint 2)
+// =============================================================================
+
+model GiftCardInventory {
+  id             Int       @id @default(autoincrement()) @map("gci_id")
+  codigo         String    @unique @map("gci_codigo") @db.VarChar(200)
+  link           String?   @map("gci_link")
+  tipo           String    @map("gci_tipo") @db.VarChar(200)
+  mes            String    @map("gci_mes") @db.VarChar(50)
+  expiracion     DateTime? @map("gci_expiracion") @db.Date
+  diasExpiracion DateTime? @map("gci_dias_expiracion") @db.Date
+  cantidad       Decimal   @map("gci_cantidad") @db.Decimal(15, 2)
+  mesUso         String?   @map("gci_mes_uso") @db.VarChar(50)
+  motivos        String?   @map("gci_motivos")
+  estado         String?   @map("gci_estado") @db.VarChar(50)
+  utilizacion    String?   @map("gci_utilizacion") @db.VarChar(100)
+  email          String?   @map("gci_email") @db.VarChar(255)
+  lob            String?   @map("gci_lob") @db.VarChar(100)
+  pool           String?   @map("gci_pool") @db.VarChar(200)
+  comment        String?   @map("gci_comment")
+  createdBy      Int       @map("gci_created_by")
+  createdAt      DateTime  @default(now()) @map("gci_created_at") @db.Timestamptz(6)
+
+  @@index([tipo], map: "idx_gci_tipo")
+  @@index([estado], map: "idx_gci_estado")
+  @@index([createdBy], map: "idx_gci_created_by")
+  @@map("gci_gift_card_inventory")
+  @@schema("es")
+}
 
 model Laptop {
   laptopId       Int       @id @default(autoincrement()) @map("lap_id") @db.Integer
@@ -1854,5 +2062,21 @@ model LaptopAssignment {
   @@index([laptopId], map: "idx_lpa_lap_id")
   @@index([teamMemberId], map: "idx_lpa_tm_id")
   @@map("lpa_laptop_assignments")
+  @@schema("ds")
+}
+
+model SopLibraryItem {
+  sliId          Int      @id @default(autoincrement()) @map("sli_id")
+  sliName        String   @map("sli_name")
+  sliGoogleUrl   String   @map("sli_google_url")
+  sliCategory    String?  @map("sli_category")
+  sliMinTier     Int      @map("sli_min_tier")
+  sliActive      Boolean  @default(true) @map("sli_active")
+  sliCreatedBy   Int      @map("sli_created_by")
+  sliCreatedDate DateTime @default(now()) @map("sli_created_date")
+  sliUpdatedBy   Int      @map("sli_updated_by")
+  sliUpdatedDate DateTime @updatedAt @map("sli_updated_date")
+
+  @@map("sli_sop_library_items")
   @@schema("ds")
 }

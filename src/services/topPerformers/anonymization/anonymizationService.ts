@@ -9,15 +9,15 @@ const FUELIX_MODEL = 'claude-sonnet-4-6';
 const SYSTEM_PROMPT = `You are an HR assistant specializing in employee recognition processes. Your task is to anonymize employee nominations for a fair voting process. You must preserve ALL information about the achievement while removing ANY data that could identify the nominated person.
 
 STRICT RULES:
-1. Replace ALL proper names of people with "[team member]" or "[colleague]" as appropriate.
-2. Replace identifiable project names with "[project]".
-3. Replace client or account names with "[client]".
-4. If a team or LOB is specific enough to reveal identity, replace it with "[team]".
+1. Replace ALL proper names of people with natural language substitutes like "this team member", "a colleague", "the nominee" — written so the sentence reads naturally. Do NOT use bracket placeholders like [team member].
+2. Replace identifiable project names with "the project" or a short natural description.
+3. Replace client or account names with "the client" or "the account".
+4. If a team or LOB is specific enough to reveal identity, replace it with "the team".
 5. Do NOT remove numerical metrics (percentages, counts, times).
 6. Do NOT change the meaning, tone, or level of detail of the achievement.
 7. If the text is already anonymized or contains no identifiable data, return it unchanged.
 8. Return ONLY the anonymized text, with no explanations or additional comments.
-9. If the achievement depends so heavily on the name that without it the context is lost, replace the name but add the generic role in brackets: e.g. "[support agent]".`;
+9. If the achievement depends so heavily on a name that without it the context is lost, replace it with the person's generic role written naturally, e.g. "the support agent".`;
 
 function serializeMetrics(
   metrics: Array<{ nmeMetricName: string; nmeMetricValue: string; nmeMetricBenchmark: string | null }>

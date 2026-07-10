@@ -3,6 +3,7 @@ import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { AppError } from '../../../errors/AppError';
 import { resolveMultiplier } from './multiplierService';
 import { hasVoted } from './votingQueries';
+import type { TpCycleStatus } from '@shared/dto/TopPerformersCycle';
 
 const RANK_POINTS: Record<number, number> = { 1: 10, 2: 8, 3: 6, 4: 4, 5: 2 };
 
@@ -20,19 +21,22 @@ export interface SubmitVoteInput {
 }
 
 export async function submitVote(input: SubmitVoteInput): Promise<void> {
-  if (input.items.length !== 5) throw new AppError('Exactly 5 ranked items required', 400);
+  if (input.items.length > 5) throw new AppError('Maximum 5 ranked items allowed', 400);
 
-  const ranks = input.items.map((i) => i.rank).sort((a, b) => a - b);
-  if (JSON.stringify(ranks) !== JSON.stringify([1, 2, 3, 4, 5])) {
-    throw new AppError('Ranks must be exactly 1 through 5', 400);
+  const ranks = input.items.map((i) => i.rank);
+  if (ranks.some((r) => r < 1 || r > 5 || !Number.isInteger(r))) {
+    throw new AppError('Ranks must be integers between 1 and 5', 400);
+  }
+  if (new Set(ranks).size !== ranks.length) {
+    throw new AppError('Duplicate ranks are not allowed', 400);
   }
 
   const uniqueNominations = new Set(input.items.map((i) => i.nomId));
-  if (uniqueNominations.size !== 5) throw new AppError('Each voted nomination must be unique', 400);
+  if (uniqueNominations.size !== input.items.length) throw new AppError('Each voted nomination must be unique', 400);
 
   const cycle = await prisma.tpCycle.findUnique({ where: { cycId: input.cycId }, select: { cycStatus: true } });
   if (!cycle) throw new AppError('Cycle not found', 404);
-  if (cycle.cycStatus !== 'VOTING_OPEN') throw new AppError('Voting is not currently open', 400);
+  if ((cycle.cycStatus as TpCycleStatus) !== 'VOTING_OPEN') throw new AppError('Voting is not currently open', 400);
 
   if (await hasVoted(input.cycId, input.voterTeamMemberId)) {
     throw new AppError('You have already voted in this cycle', 409);
@@ -44,7 +48,7 @@ export async function submitVote(input: SubmitVoteInput): Promise<void> {
     select: { nomId: true, nomNomineeId: true, nomAnonymizationStatus: true },
   });
 
-  if (nominations.length !== 5) throw new AppError('One or more nominations not found or not in this cycle', 400);
+  if (nominations.length !== input.items.length) throw new AppError('One or more nominations not found or not in this cycle', 400);
 
   if (nominations.some((n) => n.nomNomineeId === input.voterTeamMemberId)) {
     throw new AppError('Cannot vote for your own nomination', 400);

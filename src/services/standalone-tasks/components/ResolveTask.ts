@@ -34,6 +34,9 @@ export async function resolveTask(
       resolvedDate: now,
       updatedBy: resolvedBy,
       updatedDate: now,
+      ...(input.transcriptUploadId !== undefined && {
+        transcriptUploadId: input.transcriptUploadId ?? null,
+      }),
     },
     include: TASK_INCLUDE,
   });

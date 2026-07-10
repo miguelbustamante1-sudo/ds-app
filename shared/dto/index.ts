@@ -52,6 +52,7 @@ export * from './Permission';
 export * from './SecurityRole';
 export * from './Option';
 export * from './AuthUserWithRoles';
+export * from './AuthUserDetail';
 
 // Persistence DTOs
 export * from './PersistenceTemplate';
@@ -62,11 +63,15 @@ export * from './PersistenceJob';
 export * from './Shift';
 export * from './ShiftDetail';
 
+// Phone Contract DTOs
+export * from './PhoneContract';
+
 // Supervisor V2 DTOs
 export type { SupervisorTeamOverviewDTO } from './SupervisorTeamOverview';
 
 // Standalone Tasks DTOs
 export * from './StandaloneTask';
+export * from './RecurringTaskTemplate';
 export * from './ApiKey';
 
 // Uploads DTOs
@@ -84,6 +89,8 @@ export * from './GiftCardPool';
 export * from './GiftCardReason';
 export * from './GiftCardType';
 export * from './GiftCardValue';
+export * from './GiftCardAssignment';
+export * from './GiftCardDocumentation';
 
 // Laptop Inventory DTOs
 export * from './LaptopInventory';

@@ -1,4 +1,5 @@
 import { useForm, Controller } from 'react-hook-form';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { nominationsApi } from '@/api/topPerformers/nominations';
 import type { PeerNominationPayload } from '@/api/topPerformers/nominations';
 import { cyclesApi } from '@/api/topPerformers/cycles';
 import { apiGet } from '@/lib/api';
+import { formatUTCDate } from '@/lib/utils';
 import { TELUS_VALUES } from '@/constants/telusValues';
 const DRAFT_KEY = 'tp-peer-nomination-draft';
 
@@ -25,14 +27,16 @@ export default function PeerNominationPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const autosaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const draftRestoredRef = useRef(false);
 
-  const { data: activeCycle } = useQuery({ queryKey: ['tp-active-cycle'], queryFn: cyclesApi.getActive });
+  const { data: cycles } = useQuery({ queryKey: ['tp-cycles'], queryFn: cyclesApi.getAll });
+  const activeCycle = cycles?.find((c) => c.cycStatus === 'NOMINATIONS_OPEN') ?? null;
   const { data: activeMembers = [] } = useQuery<ActiveMember[]>({
     queryKey: ['active-team-members'],
     queryFn: () => apiGet<ActiveMember[]>('/api/team-members/active'),
   });
 
-  const { register, handleSubmit, control, watch, setValue, getValues, formState: { errors, isValid } } =
+  const { register, handleSubmit, control, watch, setValue, getValues, reset, formState: { errors, isValid } } =
     useForm<PeerNominationPayload>({ mode: 'onChange' });
 
   const achievementText = watch('achievementText', '');
@@ -40,24 +44,36 @@ export default function PeerNominationPage() {
   const watchedNomineeId = watch('nomineeId');
 
   useEffect(() => {
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (saved) {
-      try {
-        const draft = JSON.parse(saved) as Partial<PeerNominationPayload>;
-        Object.entries(draft).forEach(([k, v]) => setValue(k as keyof PeerNominationPayload, v as never));
-      } catch { /* ignore malformed draft */ }
-    }
     autosaveRef.current = setInterval(() => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(getValues()));
     }, 30000);
     return () => { if (autosaveRef.current) clearInterval(autosaveRef.current); };
-  }, [getValues, setValue]);
+  }, [getValues]);
+
+  useEffect(() => {
+    if (activeMembers.length === 0 || draftRestoredRef.current) return;
+    draftRestoredRef.current = true;
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const draft = JSON.parse(saved) as Partial<PeerNominationPayload>;
+      Object.entries(draft).forEach(([k, v]) => setValue(k as keyof PeerNominationPayload, v as never));
+      if (draft.nomineeId !== undefined) {
+        const valid = activeMembers.some((m) => m.teamMemberId === draft.nomineeId);
+        if (!valid) {
+          setValue('nomineeId', undefined as never);
+          toast({ title: 'Your previously selected nominee is no longer available. Please select a new one.', variant: 'destructive' });
+        }
+      }
+    } catch { /* ignore malformed draft */ }
+  }, [activeMembers, setValue, toast]);
 
   const onSubmit = async (data: PeerNominationPayload) => {
     if (!activeCycle) return;
     try {
       await nominationsApi.createPeer({ ...data, cycId: activeCycle.cycId });
       localStorage.removeItem(DRAFT_KEY);
+      reset();
       setSubmitted(true);
       setConfirmOpen(false);
       toast({ title: `Nomination submitted for ${activeCycle.cycName}` });
@@ -71,24 +87,45 @@ export default function PeerNominationPage() {
     label: `${m.teamMemberNames} ${m.teamMemberSurnames}${m.workdayId ? ` (${m.workdayId})` : ''}`,
   }));
 
+  if (!activeCycle) {
+    return (
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <p className="text-muted-foreground">Nominations are not currently open.</p>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
-      <div className="p-6 text-center space-y-4">
-        <p className="text-2xl font-bold text-green-600">Nomination submitted!</p>
-        <p className="text-muted-foreground">Your nomination was registered successfully.</p>
-        <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
+      <div className="p-6 max-w-md mx-auto space-y-4">
+        <BackToHubButton hubPath="/top-performers-hub" />
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold text-[--color-uds-system-green-600]">Nomination submitted!</p>
+          <p className="text-muted-foreground">Your nomination was registered successfully.</p>
+          <Button onClick={() => setSubmitted(false)}>Submit another nomination</Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <BackToHubButton hubPath="/top-performers-hub" />
+      {activeCycle && (
+        <div className="rounded-md border bg-muted/40 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="font-semibold text-foreground">{activeCycle.cycName}</span>
+          <span className="text-muted-foreground">
+            Nominations: {formatUTCDate(activeCycle.cycNominationsStart)} – {formatUTCDate(activeCycle.cycNominationsEnd)}
+          </span>
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6 space-y-5">
           <CardTitle>Nominate a Peer</CardTitle>
 
           <div>
-            <Label>Who do you want to nominate?</Label>
+            <Label>Who do you want to nominate? <span className="text-destructive">*</span></Label>
             <ComboBox
               options={memberOptions}
               value={watchedNomineeId ? String(watchedNomineeId) : ''}
@@ -99,29 +136,29 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>What did this person do to deserve being a Top Performer?</Label>
+            <Label>What did this person do to deserve being a Top Performer? <span className="text-destructive">*</span></Label>
             <Textarea
               {...register('achievementText', {
                 required: 'Required',
                 minLength: { value: 80, message: 'Minimum 80 characters' },
-                maxLength: { value: 800, message: 'Maximum 800 characters' },
+                maxLength: { value: 1500, message: 'Maximum 1500 characters' },
               })}
               placeholder="Describe the achievement, situation, or specific contribution you observed..."
               rows={5}
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               {errors.achievementText && <p className="text-destructive">{errors.achievementText.message}</p>}
-              <span className="ml-auto">{achievementText.length} / 800</span>
+              <span className="ml-auto">{achievementText.length} / 1500</span>
             </div>
             {achievementText.length > 0 && achievementText.length < 80 && (
-              <p className="text-amber-600 text-xs mt-1">
+              <p className="text-[--color-uds-system-amber-500] text-xs mt-1">
                 Tip: add more detail to strengthen the nomination.
               </p>
             )}
           </div>
 
           <div>
-            <Label>Do you have any quantitative data? (optional)</Label>
+            <Label>Do you have any quantitative data?</Label>
             <Textarea
               {...register('quantitativeData')}
               placeholder="e.g. Achieved 95% CSAT that month, or resolved 40 tickets in a day."
@@ -130,7 +167,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>How does this achievement reflect TELUS values? (optional)</Label>
+            <Label>How does this achievement reflect TELUS values?</Label>
             <div className="flex flex-col gap-2 mt-2">
               {TELUS_VALUES.map((v) => (
                 <Controller
@@ -156,7 +193,7 @@ export default function PeerNominationPage() {
             </div>
             <Textarea
               {...register('valuesDescription')}
-              placeholder="Briefly describe how it reflects these values (optional, max 200 chars)"
+              placeholder="Briefly describe how it reflects these values (max 200 chars)"
               maxLength={200}
               rows={2}
               className="mt-2"
@@ -164,7 +201,7 @@ export default function PeerNominationPage() {
           </div>
 
           <div>
-            <Label>What is your relationship with the nominee?</Label>
+            <Label>What is your relationship with the nominee? <span className="text-destructive">*</span></Label>
             <Controller
               name="nominatorRelationship"
               control={control}
@@ -191,8 +228,8 @@ export default function PeerNominationPage() {
 
           <Button
             type="button"
-            disabled={!isValid}
             onClick={() => setConfirmOpen(true)}
+            disabled={!isValid}
             className="w-full"
           >
             Review and submit nomination

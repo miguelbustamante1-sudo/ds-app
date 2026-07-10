@@ -1,5 +1,6 @@
 import { prisma } from '../../../../db/prisma';
 import type { GiftCardValueDTO } from '../../../../../shared/dto/GiftCardValue';
+import { GiftCardValidationError } from '../../errors';
 
 export interface UpdateCardValueInput {
   cardValueAmount?:   number;
@@ -13,20 +14,20 @@ export function validateUpdateCardValue(
 
   if (raw.cardValueAmount !== undefined) {
     if (typeof raw.cardValueAmount !== 'number' || raw.cardValueAmount <= 0) {
-      throw new Error('`cardValueAmount` must be a positive number');
+      throw new GiftCardValidationError('`cardValueAmount` must be a positive number');
     }
     result.cardValueAmount = raw.cardValueAmount;
   }
 
   if (raw.cardValueCurrency !== undefined) {
     if (typeof raw.cardValueCurrency !== 'string' || raw.cardValueCurrency.trim() === '') {
-      throw new Error('`cardValueCurrency` must be a non-empty string');
+      throw new GiftCardValidationError('`cardValueCurrency` must be a non-empty string');
     }
     result.cardValueCurrency = raw.cardValueCurrency.trim().toUpperCase();
   }
 
   if (!result.cardValueAmount && !result.cardValueCurrency) {
-    throw new Error('At least one field (cardValueAmount or cardValueCurrency) is required');
+    throw new GiftCardValidationError('At least one field (cardValueAmount or cardValueCurrency) is required');
   }
 
   return result;

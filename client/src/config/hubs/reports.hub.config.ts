@@ -29,5 +29,11 @@ export const reportsHubConfig: HubConfig = {
       path: '/data-import',
       permission: 'PersistenceTables',
     },
+    {
+      title: 'AI Assistant',
+      description: 'Ask questions and get AI-powered answers across your data and knowledge base.',
+      path: '/ai/chat',
+      permission: 'AiChat',
+    },
   ],
 };

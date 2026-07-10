@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cyclesApi } from '@/api/topPerformers/cycles';
-import type { CreateTpCycleDTO } from '@shared/dto/TopPerformersCycle';
+import { CycleDateTimeField, combineDateAndTime } from './CycleDateTimeField';
 
 interface CycleFormDialogProps {
   open: boolean;
@@ -22,50 +22,85 @@ interface CycleFormDialogProps {
 
 interface CycleFormData {
   cycName: string;
-  cycNominationsStart: string;
-  cycNominationsEnd: string;
-  cycVotingStart: string;
-  cycVotingEnd: string;
 }
+
+interface DateTimeState {
+  nomStartDate: Date | null;
+  nomStartTime: string;
+  nomEndDate: Date | null;
+  nomEndTime: string;
+  voteStartDate: Date | null;
+  voteStartTime: string;
+  voteEndDate: Date | null;
+  voteEndTime: string;
+}
+
+const EMPTY_DT: DateTimeState = {
+  nomStartDate: null, nomStartTime: '',
+  nomEndDate: null,   nomEndTime: '',
+  voteStartDate: null, voteStartTime: '',
+  voteEndDate: null,  voteEndTime: '',
+};
 
 export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDialogProps) {
   const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [dt, setDt] = useState<DateTimeState>(EMPTY_DT);
+  const [dtErrors, setDtErrors] = useState<Partial<Record<keyof DateTimeState, string>>>({});
+
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CycleFormData>();
 
   useEffect(() => {
     if (open) {
-      reset({
-        cycName: '',
-        cycNominationsStart: '',
-        cycNominationsEnd: '',
-        cycVotingStart: '',
-        cycVotingEnd: '',
-      });
+      reset({ cycName: '' });
+      setDt(EMPTY_DT);
+      setDtErrors({});
     }
   }, [open, reset]);
 
+  function setDate(key: keyof DateTimeState, value: Date | null) {
+    setDt((prev) => ({ ...prev, [key]: value }));
+    setDtErrors((prev) => ({ ...prev, [key]: undefined }));
+  }
+
+  function setTime(key: keyof DateTimeState, value: string) {
+    setDt((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function validateDates(): boolean {
+    const errs: Partial<Record<keyof DateTimeState, string>> = {};
+    if (!dt.nomStartDate || !dt.nomStartTime) errs.nomStartDate = 'Required.';
+    if (!dt.nomEndDate   || !dt.nomEndTime)   errs.nomEndDate   = 'Required.';
+    if (!dt.voteStartDate || !dt.voteStartTime) errs.voteStartDate = 'Required.';
+    if (!dt.voteEndDate  || !dt.voteEndTime)  errs.voteEndDate  = 'Required.';
+    setDtErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   const onSubmit = async (data: CycleFormData) => {
+    if (!validateDates()) return;
+    setSaving(true);
     try {
-      const payload: CreateTpCycleDTO = {
+      await cyclesApi.create({
         cycName: data.cycName.trim(),
-        cycNominationsStart: data.cycNominationsStart,
-        cycNominationsEnd: data.cycNominationsEnd,
-        cycVotingStart: data.cycVotingStart,
-        cycVotingEnd: data.cycVotingEnd,
-      };
-      await cyclesApi.create(payload);
+        cycNominationsStart: combineDateAndTime(dt.nomStartDate, dt.nomStartTime),
+        cycNominationsEnd:   combineDateAndTime(dt.nomEndDate,   dt.nomEndTime),
+        cycVotingStart:      combineDateAndTime(dt.voteStartDate, dt.voteStartTime),
+        cycVotingEnd:        combineDateAndTime(dt.voteEndDate,   dt.voteEndTime),
+      });
       toast({ title: 'Success', description: 'Cycle created successfully.' });
       onSuccess();
       onOpenChange(false);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'Error creating cycle.';
+      const message = error instanceof Error ? error.message : 'Error creating cycle.';
       toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -78,7 +113,7 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="cycName">
-              Nombre <span className="text-destructive">*</span>
+              Name <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cycName"
@@ -89,85 +124,57 @@ export function CycleFormDialog({ open, onOpenChange, onSuccess }: CycleFormDial
             )}
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="cycNominationsStart">
-              Nominations Start <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="cycNominationsStart"
-              type="datetime-local"
-              {...register('cycNominationsStart', {
-                required: 'Nominations start date is required.',
-              })}
-            />
-            {errors.cycNominationsStart && (
-              <p className="text-sm text-destructive">
-                {errors.cycNominationsStart.message}
-              </p>
-            )}
-          </div>
+          <CycleDateTimeField
+            label="Nominations Start"
+            required
+            date={dt.nomStartDate}
+            time={dt.nomStartTime}
+            onDateChange={(d) => setDate('nomStartDate', d)}
+            onTimeChange={(t) => setTime('nomStartTime', t)}
+            error={dtErrors.nomStartDate}
+          />
 
-          <div className="space-y-1">
-            <Label htmlFor="cycNominationsEnd">
-              Nominations End <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="cycNominationsEnd"
-              type="datetime-local"
-              {...register('cycNominationsEnd', {
-                required: 'Nominations end date is required.',
-              })}
-            />
-            {errors.cycNominationsEnd && (
-              <p className="text-sm text-destructive">
-                {errors.cycNominationsEnd.message}
-              </p>
-            )}
-          </div>
+          <CycleDateTimeField
+            label="Nominations End"
+            required
+            date={dt.nomEndDate}
+            time={dt.nomEndTime}
+            onDateChange={(d) => setDate('nomEndDate', d)}
+            onTimeChange={(t) => setTime('nomEndTime', t)}
+            error={dtErrors.nomEndDate}
+          />
 
-          <div className="space-y-1">
-            <Label htmlFor="cycVotingStart">
-              Voting Start <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="cycVotingStart"
-              type="datetime-local"
-              {...register('cycVotingStart', {
-                required: 'Voting start date is required.',
-              })}
-            />
-            {errors.cycVotingStart && (
-              <p className="text-sm text-destructive">{errors.cycVotingStart.message}</p>
-            )}
-          </div>
+          <CycleDateTimeField
+            label="Voting Start"
+            required
+            date={dt.voteStartDate}
+            time={dt.voteStartTime}
+            onDateChange={(d) => setDate('voteStartDate', d)}
+            onTimeChange={(t) => setTime('voteStartTime', t)}
+            error={dtErrors.voteStartDate}
+          />
 
-          <div className="space-y-1">
-            <Label htmlFor="cycVotingEnd">
-              Voting End <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="cycVotingEnd"
-              type="datetime-local"
-              {...register('cycVotingEnd', {
-                required: 'Voting end date is required.',
-              })}
-            />
-            {errors.cycVotingEnd && (
-              <p className="text-sm text-destructive">{errors.cycVotingEnd.message}</p>
-            )}
-          </div>
+          <CycleDateTimeField
+            label="Voting End"
+            required
+            date={dt.voteEndDate}
+            time={dt.voteEndTime}
+            onDateChange={(d) => setDate('voteEndDate', d)}
+            onTimeChange={(t) => setTime('voteEndTime', t)}
+            error={dtErrors.voteEndDate}
+          />
 
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={saving}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Create'}
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving...' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

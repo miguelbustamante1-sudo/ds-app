@@ -2,9 +2,10 @@ import { Router, Request, Response } from 'express';
 import { requirePermission } from '../../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../../middleware/auth';
 import { getReasons, getReasonById } from './GetReasons';
-import { createReason, validateCreateReason, ValidationError } from './CreateReason';
+import { createReason, validateCreateReason } from './CreateReason';
+import { GiftCardValidationError } from '../../errors';
 import { updateReason, validateUpdateReason } from './UpdateReason';
-import { deactivateReason } from './DeactivateReason';
+import { deactivateReason, activateReason } from './DeactivateReason';
 import { auditOrchestrator } from '../../../audit/AuditOrchestrator';
 import { error } from '../../../../logger';
 
@@ -43,6 +44,7 @@ router.post(
       await auditOrchestrator.log({
         entityName: 'tbl_gcr_reasons',
         entityId:   String(result.reasonId),
+        // requirePermission guarantees req.user is set at this point
         createdBy:  req.user!.email,
         oldValues:  null,
         newValues:  result as unknown as Record<string, unknown>,
@@ -51,7 +53,7 @@ router.post(
 
       res.status(201).json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }
@@ -89,6 +91,7 @@ router.put(
       await auditOrchestrator.log({
         entityName: 'tbl_gcr_reasons',
         entityId:   String(id),
+        // requirePermission guarantees req.user is set at this point
         createdBy:  req.user!.email,
         oldValues:  oldRecord as unknown as Record<string, unknown>,
         newValues:  result as unknown as Record<string, unknown>,
@@ -97,12 +100,53 @@ router.put(
 
       res.json({ data: result });
     } catch (err) {
-      if (err instanceof ValidationError) {
+      if (err instanceof GiftCardValidationError) {
         res.status(400).json({ error: err.message });
         return;
       }
       error(err);
       res.status(500).json({ error: 'Failed to update reason' });
+    }
+  },
+);
+
+// PUT /api/giftcards/catalogs/reasons/:id/activate
+router.put(
+  '/:id/activate',
+  requirePermission('GiftCardCatalog', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(String((req as Request).params['id']), 10);
+      if (isNaN(id) || id < 1) {
+        res.status(400).json({ error: '`id` must be a positive integer' });
+        return;
+      }
+
+      const oldRecord = await getReasonById(id);
+      if (!oldRecord) {
+        res.status(404).json({ error: `Reason ${id} not found` });
+        return;
+      }
+
+      const result = await activateReason(id);
+      if (!result) {
+        res.status(404).json({ error: `Reason ${id} not found` });
+        return;
+      }
+
+      await auditOrchestrator.log({
+        entityName: 'tbl_gcr_reasons',
+        entityId:   String(id),
+        createdBy:  req.user!.email,
+        oldValues:  oldRecord as unknown as Record<string, unknown>,
+        newValues:  result as unknown as Record<string, unknown>,
+        comment:    `Reason "${result.reasonName}" activated`,
+      });
+
+      res.json({ data: result });
+    } catch (err) {
+      error(err);
+      res.status(500).json({ error: 'Failed to activate reason' });
     }
   },
 );

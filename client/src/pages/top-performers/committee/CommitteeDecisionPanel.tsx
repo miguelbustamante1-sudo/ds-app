@@ -70,7 +70,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
         {step === 'form' && (
           <form onSubmit={handleSubmit(onSaveDecision)} className="space-y-4">
             <div>
-              <Label>Selected winner (from Top 5)</Label>
+              <Label>Selected winner (from Top 5) <span className="text-destructive">*</span></Label>
               <Controller
                 name="winnerId"
                 control={control}
@@ -79,7 +79,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
                   <ComboBox
                     options={winnerOptions}
                     value={field.value ? String(field.value) : ''}
-                    onChange={(v) => field.onChange(parseInt(v, 10))}
+                    onValueChange={(v) => field.onChange(parseInt(v, 10))}
                     placeholder="Select the winner..."
                   />
                 )}
@@ -88,7 +88,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
             </div>
 
             <div>
-              <Label>Decision justification (min. 100 characters)</Label>
+              <Label>Decision justification (min. 100 characters) <span className="text-destructive">*</span></Label>
               <p className="text-xs text-muted-foreground mb-1">
                 This justification will be published with the winner announcement.
               </p>
@@ -115,7 +115,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
             <p className="text-sm">
               Decision saved. <strong>2 confirmations</strong> from different Committee members are required to finalize.
             </p>
-            <p className="text-sm font-semibold text-amber-700">
+            <p className="text-sm font-semibold text-[--color-uds-system-amber-500]">
               ⚠ This action is irreversible. Once two members confirm, results are frozen.
             </p>
             <DialogFooter>
@@ -129,7 +129,7 @@ export function CommitteeDecisionPanel({ cycId, leaderboard, onClose }: Committe
 
         {step === 'done' && (
           <div className="space-y-3 text-center">
-            <p className="text-green-600 font-bold text-lg">Confirmation recorded</p>
+            <p className="text-[--color-uds-system-green-600] font-bold text-lg">Confirmation recorded</p>
             <p className="text-sm text-muted-foreground">
               If a second Committee member has already confirmed, results are frozen and the cycle is closed.
             </p>

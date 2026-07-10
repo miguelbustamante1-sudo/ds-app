@@ -9,7 +9,10 @@ import {
   type AdminNominationInput,
   type CustomerNominationInput,
 } from '../../services/topPerformers/nominations/nominationService';
-import { getNominationsByCycle } from '../../services/topPerformers/nominations/nominationQueries';
+import {
+  getNominationsByCycle,
+  getNominationsAdminView,
+} from '../../services/topPerformers/nominations/nominationQueries';
 
 const router = Router();
 
@@ -19,6 +22,20 @@ router.get('/', requirePermission('TopPerformers', 'read'), async (req: Authenti
     const cycId = parseInt(req.query.cycId as string, 10);
     if (isNaN(cycId)) throw new AppError('cycId query param required', 400);
     const nominations = await getNominationsByCycle(cycId);
+    res.json({ data: nominations });
+  } catch (err: unknown) {
+    if (err instanceof AppError) { res.status(err.statusCode).json({ error: err.message }); return; }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/top-performers/nominations/admin-view?cycId=X
+router.get('/admin-view', requirePermission('TopPerformers_Admin', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const cycId = parseInt(req.query.cycId as string, 10);
+    if (isNaN(cycId)) throw new AppError('cycId query param required', 400);
+    const nominations = await getNominationsAdminView(cycId);
     res.json({ data: nominations });
   } catch (err: unknown) {
     if (err instanceof AppError) { res.status(err.statusCode).json({ error: err.message }); return; }

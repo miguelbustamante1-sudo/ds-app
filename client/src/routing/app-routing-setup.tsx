@@ -8,7 +8,9 @@ import { CountriesPage } from '@/pages/maintenance/countries';
 import { RegionsPage } from '@/pages/maintenance/regions';
 import { ProjectsPage } from '@/pages/maintenance/projects';
 import { TeamMembersPage } from '@/pages/maintenance/team-members';
+import { MaintenanceTeamMemberDetailPage } from '@/pages/maintenance/team-members/detail';
 import { UsersPage } from '@/pages/maintenance/users';
+import { UserEditPage } from '@/pages/maintenance/users/edit';
 import { SupervisorAssignmentsPage } from '@/pages/maintenance/supervisor-assignments';
 import { HolidaysPage } from '@/pages/maintenance/holidays';
 import { CategoryCountryPage } from '@/pages/maintenance/category-country';
@@ -42,6 +44,7 @@ import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
 import { FieldglassSowsPage } from '@/pages/maintenance/fieldglass-sows';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
+import { KnowledgeBasePage } from '@/pages/maintenance/knowledge-base';
 import { TimeOffPeriodBackfillPage } from '@/pages/maintenance/timeoff-period-backfill';
 import { EmailTestPage } from '@/pages/maintenance/email-test';
 import { ReportsPage } from '@/pages/reports';
@@ -101,11 +104,19 @@ import CommunicationsHubPage from '@/pages/communications-hub';
 import OperationsHubPage from '@/pages/operations-hub';
 import GovernanceHubPage from '@/pages/governance-hub';
 import TopPerformersHubPage from '@/pages/top-performers-hub';
+import PayrolHubPage from '@/pages/payrol-hub';
+import TasksHubPage from '@/pages/tasks-hub';
+import { PayrolManagementPage } from '@/pages/payrol-management';
+import { BonusImpactPage } from '@/pages/bonus-impact';
+import { BonusImpactAdminPage } from '@/pages/bonus-impact-admin';
 import { StandaloneTasksAdminPage } from '@/pages/admin/standalone-tasks';
+import { RecurringTaskTemplatesPage } from '@/pages/admin/recurring-task-templates';
 import { ApiKeysAdminPage } from '@/pages/admin/api-keys';
+import SopLibraryAdminPage from '@/pages/admin/sop-library';
 import { AiChatPage } from '@/pages/ai-chat';
 import { TpCyclesPage } from '@/pages/top-performers/admin/cycles';
 import AnonymizationReviewPage from '@/pages/top-performers/admin/anonymization';
+import NominationsOverviewPage from '@/pages/top-performers/admin/nominations-overview';
 import VotingPage from '@/pages/top-performers/vote';
 import CommitteePage from '@/pages/top-performers/committee';
 import PeerNominationPage from '@/pages/top-performers/nominations/peer';
@@ -113,6 +124,11 @@ import AdminNominationPage from '@/pages/top-performers/nominations/admin';
 import CustomerNominationPage from '@/pages/top-performers/nominations/customer';
 import { RunProcedureWizard } from '@/pages/stored-procedures/run/RunProcedureWizard';
 import { AdminStoredProceduresPage } from '@/pages/admin/stored-procedures';
+import { PhoneContractsPage } from '@/pages/phone-contracts';
+import PhoneContractsHubPage from '@/pages/phone-contracts-hub';
+import { GiftCardRequestPage } from '@/pages/maintenance/gift-cards/request';
+import { GiftCardDocumentationPage } from '@/pages/maintenance/gift-cards/documentation';
+import LaptopInventoryHubPage from '@/pages/laptop-inventory-hub';
 
 export function AppRoutingSetup() {
   return (
@@ -161,7 +177,9 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/regions" element={<RegionsPage />} />
         <Route path="/maintenance/projects" element={<ProjectsPage />} />
         <Route path="/maintenance/team-members" element={<TeamMembersPage />} />
+        <Route path="/maintenance/team-members/:id" element={<MaintenanceTeamMemberDetailPage />} />
         <Route path="/maintenance/users" element={<UsersPage />} />
+        <Route path="/maintenance/users/:id" element={<UserEditPage />} />
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
         <Route path="/maintenance/team-member-bonuses" element={<TeamMemberBonusesPage />} />
         <Route path="/maintenance/holidays" element={<HolidaysPage />} />
@@ -178,7 +196,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
         <Route path="/maintenance/fieldglass-sows" element={<FieldglassSowsPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
-        <Route path="/maintenance/shifts" element={<ShiftsPage />} />
+        <Route path="/maintenance/knowledge-base" element={<KnowledgeBasePage />} />
         <Route path="/maintenance/gift-cards/pools" element={<GiftCardPoolsPage />} />
         <Route path="/maintenance/gift-cards/reasons" element={<GiftCardReasonsPage />} />
         <Route path="/maintenance/gift-cards/card-types" element={<GiftCardTypesPage />} />
@@ -219,12 +237,19 @@ export function AppRoutingSetup() {
         {/* Standalone Tasks Admin */}
         <Route path="/admin/standalone-tasks" element={<StandaloneTasksAdminPage />} />
         <Route path="/admin/standalone-tasks/api-keys" element={<ApiKeysAdminPage />} />
+        <Route path="/admin/recurring-task-templates" element={<RecurringTaskTemplatesPage />} />
+        <Route path="/admin/sop-library" element={<SopLibraryAdminPage />} />
         {/* Workflow Admin */}
         <Route path="/admin/workflow/templates" element={<TemplateListPage />} />
         <Route path="/admin/workflow/templates/new" element={<TemplateFormPage />} />
         <Route path="/admin/workflow/templates/:wflId/edit" element={<TemplateFormPage />} />
         <Route path="/admin/workflow/instances" element={<InstanceListPage />} />
         <Route path="/admin/workflow/instances/:winId" element={<InstanceDetailPage />} />
+        {/* Phone Contracts */}
+        <Route path="/phone-contracts-hub" element={<PhoneContractsHubPage />} />
+        <Route path="/phone-contracts" element={<PhoneContractsPage />} />
+        {/* Laptop Inventory */}
+        <Route path="/laptop-inventory-hub" element={<LaptopInventoryHubPage />} />
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
@@ -240,10 +265,17 @@ export function AppRoutingSetup() {
         <Route path="/operations-hub" element={<OperationsHubPage />} />
         <Route path="/governance-hub" element={<GovernanceHubPage />} />
         <Route path="/top-performers-hub" element={<TopPerformersHubPage />} />
+        <Route path="/tasks-hub" element={<TasksHubPage />} />
+        {/* Payrol Hub */}
+        <Route path="/payrol-hub" element={<PayrolHubPage />} />
+        <Route path="/payrol/payrol-management" element={<PayrolManagementPage />} />
+        <Route path="/payrol/bonus-impact" element={<BonusImpactPage />} />
+        <Route path="/payrol/bonus-impact-admin" element={<BonusImpactAdminPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
         {/* Top Performers */}
         <Route path="/top-performers/admin/cycles" element={<TpCyclesPage />} />
         <Route path="/top-performers/admin/anonymization" element={<AnonymizationReviewPage />} />
+        <Route path="/top-performers/admin/nominations-overview" element={<NominationsOverviewPage />} />
         <Route path="/top-performers/vote" element={<VotingPage />} />
         <Route path="/top-performers/committee" element={<CommitteePage />} />
         <Route path="/top-performers/nominations/peer" element={<PeerNominationPage />} />
@@ -252,6 +284,8 @@ export function AppRoutingSetup() {
         {/* Stored Procedures */}
         <Route path="/stored-procedures/run" element={<RunProcedureWizard />} />
         <Route path="/admin/stored-procedures" element={<AdminStoredProceduresPage />} />
+        <Route path="/maintenance/gift-cards/request" element={<GiftCardRequestPage />} />
+        <Route path="/maintenance/gift-cards/documentation" element={<GiftCardDocumentationPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
       

@@ -12,6 +12,20 @@ export default defineConfig({
       '@shared': fileURLToPath(new URL('../shared', import.meta.url)),
     },
   },
+  server: {
+    fs: {
+      allow: ['..'],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        headers: {
+          origin: 'http://localhost:3000',
+        },
+      },
+    },
+  },
   build: {
     chunkSizeWarningLimit: 3000,
   },

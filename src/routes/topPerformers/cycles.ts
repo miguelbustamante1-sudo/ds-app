@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, requirePermission } from '../../middleware/auth';
-import { createCycle, updateCycleStatus } from '../../services/topPerformers/cycles/cycleService';
-import { getAllCycles, getCycleById, getActiveCycle } from '../../services/topPerformers/cycles/cycleQueries';
+import { createCycle, updateCycleStatus, updateCycle } from '../../services/topPerformers/cycles/cycleService';
+import { getAllCycles, getCycleById, getActiveCycle, getCycleForCommittee } from '../../services/topPerformers/cycles/cycleQueries';
 import { AppError } from '../../errors/AppError';
-import type { CreateTpCycleDTO, UpdateTpCycleStatusDTO } from '@shared/dto/TopPerformersCycle';
+import type { CreateTpCycleDTO, UpdateTpCycleStatusDTO, UpdateTpCycleDTO } from '@shared/dto/TopPerformersCycle';
 import { anonymizeCycle } from '../../services/topPerformers/anonymization/anonymizationOrchestrator';
 
 const router = Router();
@@ -27,6 +27,21 @@ router.get('/', requirePermission('TopPerformers', 'read'), async (_req: Authent
 router.get('/active', requirePermission('TopPerformers', 'read'), async (_req: AuthenticatedRequest, res: Response) => {
   try {
     const cycle = await getActiveCycle();
+    res.json({ data: cycle });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/top-performers/cycles/committee-active
+router.get('/committee-active', requirePermission('TopPerformers', 'read'), async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const cycle = await getCycleForCommittee();
     res.json({ data: cycle });
   } catch (err: unknown) {
     if (err instanceof AppError) {
@@ -83,6 +98,40 @@ router.post('/', requirePermission('TopPerformers', 'create'), async (req: Authe
     }
     const message = err instanceof Error ? err.message : 'Internal server error';
     res.status(400).json({ error: message });
+  }
+});
+
+// PUT /api/top-performers/cycles/:id
+router.put('/:id', requirePermission('TopPerformers', 'create'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?.dsUserId || !req.user?.email) throw new AppError('Unauthenticated', 401);
+    const id = parseInt(req.params.id ?? '', 10);
+    if (isNaN(id)) throw new AppError('Invalid cycle ID', 400);
+
+    const body = req.body as UpdateTpCycleDTO;
+    if (!body.cycName?.trim()) throw new AppError('Cycle name is required', 400);
+    if (!body.cycNominationsStart || !body.cycNominationsEnd || !body.cycVotingStart || !body.cycVotingEnd)
+      throw new AppError('All date fields are required', 400);
+
+    const cycle = await updateCycle({
+      cycId: id,
+      cycName: body.cycName.trim(),
+      cycNominationsStart: new Date(body.cycNominationsStart),
+      cycNominationsEnd: new Date(body.cycNominationsEnd),
+      cycVotingStart: new Date(body.cycVotingStart),
+      cycVotingEnd: new Date(body.cycVotingEnd),
+      updatedBy: req.user.dsUserId,
+      userEmail: req.user.email,
+    });
+
+    res.json({ data: cycle });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
   }
 });
 

@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../db/prisma';
 import { AppError } from '../../../errors/AppError';
-import type { TpNominationDTO } from '@shared/dto/TpNomination';
+import type { TpNominationDTO, TpNominationAdminDTO } from '@shared/dto/TpNomination';
 
-export { TpNominationDTO };
+export { TpNominationDTO, TpNominationAdminDTO };
 
 const nominationSelect = {
   nomId: true,
@@ -64,6 +64,21 @@ export async function getNominationsByCycle(cycId: number): Promise<TpNomination
     orderBy: { nomCreatedDate: 'desc' },
   });
   return rows.map(toDTO);
+}
+
+export async function getNominationsAdminView(cycId: number): Promise<TpNominationAdminDTO[]> {
+  const rows = await prisma.tpNomination.findMany({
+    where: { cycId, nomStatus: { not: 'DRAFT' } },
+    select: {
+      ...nominationSelect,
+      nominee: { select: { teamMemberNames: true, teamMemberSurnames: true } },
+    },
+    orderBy: { nomCreatedDate: 'desc' },
+  });
+  return rows.map((row) => ({
+    ...toDTO(row),
+    nomineeName: `${row.nominee.teamMemberNames} ${row.nominee.teamMemberSurnames}`,
+  }));
 }
 
 export async function getDraftNomination(
