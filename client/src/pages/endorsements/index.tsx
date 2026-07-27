@@ -99,7 +99,7 @@ export function EndorsementsPage() {
           <ToolbarDescription>Manage candidate endorsements</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
-          <Button onClick={() => navigate('/endorsements/create')}>
+          <Button onClick={() => navigate('/hiring/wizard')}>
             <Plus size={16} className="me-1" />
             New Endorsement
           </Button>

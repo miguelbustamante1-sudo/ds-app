@@ -50,6 +50,7 @@ model Project {
   projectAssignments ProjectAssignment[]
   endorsements       Endorsement[]
   compensatoryTimes  CompensatoryTime[]
+  grants             ProjectGrant[]
 
   @@map("pro_projects")
   @@schema("ds")
@@ -95,6 +96,7 @@ model Position {
   posDescription  String?       @map("pos_description") @db.VarChar(2000)
   teamMembers     TeamMember[]
   endorsements    Endorsement[]
+  jobProfileMappings JobProfileMapping[]
 
   @@map("pos_positions")
   @@schema("ds")
@@ -146,6 +148,9 @@ model TeamMember {
   tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
   bonusImpacts                      BniBonus[]
   laptopAssignments                 LaptopAssignment[]
+  hiringsAsTeamLead                 Hiring[]               @relation("HiringTeamLead")
+  changeRequests                    TeamMemberChangeRequest[]
+  projectGrants                     ProjectGrant[]
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -355,9 +360,13 @@ model Endorsement {
   clientManagerEmail String    @map("end_client_manager_email") @db.Text
   tibId              Int?      @map("tib_id")
   billingRate        Decimal?  @map("end_billing_rate") @db.Decimal(12, 2)
+  billingRateCurrency String?  @map("end_billing_rate_currency") @db.Text
   countryId          Int       @map("cou_id")
   startDate          DateTime  @map("end_start_date") @db.Date
   status             String    @default("Pending") @map("end_status") @db.Text
+  sklId              Int?      @map("skl_id")
+  grpId              Int?      @map("grp_id")
+  jbpId              Int?      @map("jbp_id")
   createdBy          String    @map("end_created_by") @db.Text
   createdAt          DateTime? @default(now()) @map("end_created_at") @db.Timestamptz(6)
   updatedBy          String?   @map("end_updated_by") @db.Text
@@ -367,6 +376,9 @@ model Endorsement {
   country            Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_end_country")
   tierBand           TierBand?          @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_end_tier_band")
   position           Position           @relation(fields: [posId], references: [posId], onDelete: Restrict, map: "fk_end_pos_positions")
+  skill              Skill?             @relation(fields: [sklId], references: [skillId], onDelete: Restrict, map: "fk_end_skill")
+  group              Group?             @relation(fields: [grpId], references: [groupId], onDelete: Restrict, map: "fk_end_group")
+  jobProfile         JobProfile?        @relation(fields: [jbpId], references: [jobProfileId], onDelete: Restrict, map: "fk_end_job_profile")
   endorsementBonuses EndorsementBonus[]
   hirings            Hiring[]
 
@@ -374,7 +386,59 @@ model Endorsement {
   @@index([countryId], map: "idx_cou_id")
   @@index([tibId], map: "idx_tib_id")
   @@index([posId], map: "idx_pos_id")
+  @@index([sklId], map: "idx_end_endorsements_skl_id")
+  @@index([grpId], map: "idx_end_endorsements_grp_id")
+  @@index([jbpId], map: "idx_end_endorsements_jbp_id")
   @@map("end_endorsements")
+  @@schema("ds")
+}
+
+model Skill {
+  skillId            Int                 @id @default(autoincrement()) @map("skl_id") @db.Integer
+  skillName          String              @unique @map("skl_name") @db.VarChar(50)
+  endorsements       Endorsement[]
+  jobProfileMappings JobProfileMapping[]
+
+  @@map("skl_skill")
+  @@schema("ds")
+}
+
+model Group {
+  groupId            Int                 @id @default(autoincrement()) @map("grp_id") @db.Integer
+  groupName          String              @unique @map("grp_name") @db.VarChar(50)
+  endorsements       Endorsement[]
+  jobProfileMappings JobProfileMapping[]
+
+  @@map("grp_group")
+  @@schema("ds")
+}
+
+model JobProfile {
+  jobProfileId       Int                 @id @default(autoincrement()) @map("jbp_id") @db.Integer
+  jobProfileName     String              @unique @map("jbp_name") @db.Text
+  endorsements       Endorsement[]
+  jobProfileMappings JobProfileMapping[]
+
+  @@map("jbp_job_profile")
+  @@schema("ds")
+}
+
+model JobProfileMapping {
+  jobProfileMappingId Int        @id @default(autoincrement()) @map("jpm_id") @db.Integer
+  posId               Int        @map("pos_id")
+  tibId               Int        @map("tib_id")
+  sklId               Int        @map("skl_id")
+  grpId               Int        @map("grp_id")
+  jbpId               Int        @map("jbp_id")
+  position            Position   @relation(fields: [posId], references: [posId], onDelete: Restrict, map: "fk_jpm_pos")
+  tierBand            TierBand   @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_jpm_tib")
+  skill               Skill      @relation(fields: [sklId], references: [skillId], onDelete: Restrict, map: "fk_jpm_skl")
+  group               Group      @relation(fields: [grpId], references: [groupId], onDelete: Restrict, map: "fk_jpm_grp")
+  jobProfile          JobProfile @relation(fields: [jbpId], references: [jobProfileId], onDelete: Restrict, map: "fk_jpm_jbp")
+
+  @@unique([posId, tibId, sklId, grpId], map: "uq_jpm_job_profile_mapping")
+  @@index([jbpId], map: "idx_jpm_job_profile_mapping_jbp_id")
+  @@map("jpm_job_profile_mapping")
   @@schema("ds")
 }
 
@@ -428,6 +492,9 @@ model User {
   laptopsUpdated               Laptop[]           @relation("LapUpdatedBy")
   laptopAssignmentsCreated     LaptopAssignment[] @relation("LpaCreatedBy")
   laptopAssignmentsUpdated     LaptopAssignment[] @relation("LpaUpdatedBy")
+  changeRequestsRequested      TeamMemberChangeRequest[] @relation("TmcRequestedBy")
+  changeRequestsReviewed       TeamMemberChangeRequest[] @relation("TmcReviewedBy")
+  projectGrantsCreated         ProjectGrant[]            @relation("PgrCreatedBy")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -537,6 +604,7 @@ model Hiring {
   startDate     DateTime  @map("hir_start_date") @db.Date
   billableDate  DateTime  @map("hir_billable_date") @db.Date
   workdayId     String?    @map("hir_workday_id") @db.Text
+  teamLeadId    Int?      @map("hir_team_lead_id")
   createdBy     String    @map("hir_created_by") @db.Text
   createdAt     DateTime? @default(now()) @map("hir_created_at") @db.Timestamptz(6)
   updatedBy     String?   @map("hir_updated_by") @db.Text
@@ -544,9 +612,11 @@ model Hiring {
   currencySymbol String?   @map("hir_currency_symbol") @db.VarChar(10)
   comment       String?   @map("hir_comment") @db.Text
   status        String    @default("Pending") @map("hir_status") @db.Text
-  endorsement   Endorsement @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_hir_endorsments")
+  endorsement   Endorsement  @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_hir_endorsments")
+  teamLead      TeamMember?  @relation("HiringTeamLead", fields: [teamLeadId], references: [teamMemberId], onDelete: Restrict, map: "fk_hir_team_lead")
 
   @@index([endorsementId], map: "idx_hir_end_id")
+  @@index([teamLeadId], map: "idx_hir_hiring_team_lead_id")
   @@map("hir_hiring")
   @@schema("ds")
 }
@@ -645,6 +715,7 @@ model TierBand {
   tierBandDescription String        @unique @map("tib_description") @db.Text
   endorsements        Endorsement[]
   teamMembers         TeamMember[]
+  jobProfileMappings  JobProfileMapping[]
 
   @@map("tib_tier_band")
   @@schema("ds")
@@ -663,6 +734,46 @@ model EndorsementBonus {
   bonusSubcategory          BonusSubcategory? @relation(fields: [bonusSubcategoryId], references: [bonusSubcategoryId], onDelete: Restrict, map: "fk_ebn_bsc")
 
   @@map("ebn_endorsement_bonus")
+  @@schema("ds")
+}
+
+model TeamMemberChangeRequest {
+  changeRequestId Int       @id @default(autoincrement()) @map("tmc_id") @db.Integer
+  teamMemberId    Int       @map("tms_id")
+  type            String    @default("edit") @map("tmc_type") @db.VarChar(20)
+  status          String    @default("Pending") @map("tmc_status") @db.VarChar(20)
+  changes         Json      @default("{}") @map("tmc_changes")
+  requestedBy     Int       @map("tmc_requested_by")
+  requestedAt     DateTime  @default(now()) @map("tmc_requested_at") @db.Timestamptz(6)
+  reviewedBy      Int?      @map("tmc_reviewed_by")
+  reviewedAt      DateTime? @map("tmc_reviewed_at") @db.Timestamptz(6)
+  reviewComment   String?   @map("tmc_review_comment") @db.Text
+  teamMember      TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmc_team_member")
+  requestedByUser User       @relation("TmcRequestedBy", fields: [requestedBy], references: [userId], onDelete: Restrict, map: "fk_tmc_requested_by")
+  reviewedByUser  User?      @relation("TmcReviewedBy", fields: [reviewedBy], references: [userId], onDelete: Restrict, map: "fk_tmc_reviewed_by")
+
+  @@index([teamMemberId], map: "idx_tmc_change_requests_tms_id")
+  @@index([status], map: "idx_tmc_change_requests_status")
+  @@index([requestedBy], map: "idx_tmc_change_requests_requested_by")
+  @@map("tmc_team_member_change_requests")
+  @@schema("ds")
+}
+
+model ProjectGrant {
+  projectGrantId Int      @id @default(autoincrement()) @map("pgr_id") @db.Integer
+  projectId      Int      @map("pro_id")
+  teamMemberId   Int      @map("tms_id")
+  access         String   @default("view") @map("pgr_access") @db.VarChar(10)
+  createdBy      Int      @map("pgr_created_by")
+  createdAt      DateTime @default(now()) @map("pgr_created_at") @db.Timestamptz(6)
+  project        Project    @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_pgr_project")
+  teamMember     TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_pgr_team_member")
+  createdByUser  User       @relation("PgrCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_pgr_created_by")
+
+  @@unique([projectId, teamMemberId], map: "uq_pgr_project_grants")
+  @@index([projectId], map: "idx_pgr_project_grants_pro_id")
+  @@index([teamMemberId], map: "idx_pgr_project_grants_tms_id")
+  @@map("pgr_project_grants")
   @@schema("ds")
 }
 

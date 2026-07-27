@@ -1,11 +1,12 @@
 import { prisma } from '../../db/prisma';
-import { createHiring, getHiringById } from './repository';
+import { createHiring, executeHiring, getHiringById } from './repository';
 import type { CreateHiringInput } from './repository';
 import type { CreateHiringDTO, UpdateHiringDTO, HiringDTO } from '@shared/dto';
 import type { TeamMember, ProjectAssignment, TimeOff } from '@prisma/client';
 import { createTeamMember } from './components/CreateTeamMember';
 import { createProjectAssignment } from './components/CreateProjectAssignment';
 import { createProjectedVacations } from './components/CreateProjectedVacations';
+import { createSupervisorAssignment } from './components/CreateSupervisorAssignment';
 import { auditOrchestrator } from '../audit';
 import { error } from '../../logger';
 
@@ -27,6 +28,7 @@ export class HiringOrchestrator {
       startDate: new Date(input.startDate),
       billableDate: new Date(input.billableDate),
       workdayId: input.workdayId ?? null,
+      teamLeadId: input.teamLeadId ?? null,
       currencySymbol: input.currencySymbol ?? null,
       createdBy,
     };
@@ -58,15 +60,16 @@ export class HiringOrchestrator {
       return { success: false, errors: [{ field: 'workdayId', message: 'workdayId is required to execute a hiring.' }] };
     }
 
+    const effectiveTeamLeadId = input.teamLeadId ?? existing.teamLeadId;
+
     if (dsUserId === undefined) {
       return { success: false, errors: [{ field: 'dsUserId', message: 'Authenticated user not found in team members directory.' }] };
     }
 
     const endorsement = existing.endorsement;
 
-    if (!endorsement.tierBand) {
-      return { success: false, errors: [{ field: 'tierBand', message: 'Endorsement is missing a tier band.' }] };
-    }
+    // TEMP DEMO: Tier/Band is not enforced here until the Job Profile mapping catalog
+    // (TASK-001) is loaded — restore this guard once that data is available.
 
     if (!endorsement.projectId) {
       return { success: false, errors: [{ field: 'projectId', message: 'Endorsement is missing a project.' }] };
@@ -88,7 +91,7 @@ export class HiringOrchestrator {
 
     // --- Atomic transaction ---
 
-    const { teamMember, projectAssignments, projectedTimeOffs, updatedHiring, hiringBefore } =
+    const { teamMember, projectAssignments, projectedTimeOffs, supervisorAssignment, updatedHiring, hiringBefore } =
       await prisma.$transaction(async (tx) => {
         const tm = await createTeamMember(tx, {
           candidateFirstName: endorsement.candidateFirstName,
@@ -96,8 +99,8 @@ export class HiringOrchestrator {
           startDate,
           countryId:       endorsement.countryId,
           workdayId:       effectiveWorkdayId,
-          seniority:       endorsement.tierBand!.tierBandDescription,
-          tierBandId:      endorsement.tibId!,
+          seniority:       endorsement.tierBand?.tierBandDescription ?? 'Demo - TBD',
+          tierBandId:      endorsement.tibId ?? null,
           primaryRoleId:   endorsement.posId,
           createdByUserId: dsUserId,
         });
@@ -119,25 +122,37 @@ export class HiringOrchestrator {
           createdByUserId: dsUserId,
         });
 
+        // Auto-create the supervisor assignment (2026-07-15 demo notes FR-003/FR-004) —
+        // effective from the hire start date, same transaction so a failure rolls back the whole hire.
+        // Skipped gracefully when no team lead was selected.
+        const supAssignment = effectiveTeamLeadId != null
+          ? await createSupervisorAssignment(tx, {
+              teamMemberId:    tm.teamMemberId,
+              supervisorId:    effectiveTeamLeadId,
+              startDate,
+              createdByUserId: dsUserId,
+            })
+          : null;
+
         const before = await tx.hiring.findUnique({ where: { id } });
 
-        const h = await tx.hiring.update({
-          where: { id },
-          data: {
-            ...(input.startDate      !== undefined && { startDate }),
-            ...(input.billableDate   !== undefined && { billableDate }),
-            ...(input.workdayId      !== undefined && { workdayId: input.workdayId }),
-            ...(input.currencySymbol !== undefined && { currencySymbol: input.currencySymbol }),
-            status:    'Processed',
-            updatedBy,
-            updatedAt: new Date(),
-          },
-          include: {
-            endorsement: { include: { project: true, country: true, tierBand: true } },
-          },
+        const h = await executeHiring(tx, id, {
+          ...(input.startDate      !== undefined && { startDate }),
+          ...(input.billableDate   !== undefined && { billableDate }),
+          ...(input.workdayId      !== undefined && { workdayId: input.workdayId }),
+          teamLeadId:     effectiveTeamLeadId,
+          ...(input.currencySymbol !== undefined && { currencySymbol: input.currencySymbol }),
+          updatedBy,
         });
 
-        return { teamMember: tm, projectAssignments: pas, projectedTimeOffs: tofs, updatedHiring: h, hiringBefore: before };
+        return {
+          teamMember: tm,
+          projectAssignments: pas,
+          projectedTimeOffs: tofs,
+          supervisorAssignment: supAssignment,
+          updatedHiring: h,
+          hiringBefore: before,
+        };
       });
 
     // --- Audit logs emitted after the transaction commits ---
@@ -171,6 +186,17 @@ export class HiringOrchestrator {
           oldValues:  null,
           newValues:  tf as unknown as Record<string, unknown>,
           comment:    `Projected vacation created for team member ${teamMember.teamMemberId}`,
+        });
+      }
+
+      if (supervisorAssignment) {
+        await auditOrchestrator.log({
+          entityName: 'tbl_tms_x_supervisor',
+          entityId:   String(supervisorAssignment.supervisorAssignmentId),
+          createdBy:  updatedBy,
+          oldValues:  null,
+          newValues:  supervisorAssignment as unknown as Record<string, unknown>,
+          comment:    `Supervisor assignment created for team member ${teamMember.teamMemberId} (supervisor ${effectiveTeamLeadId})`,
         });
       }
 

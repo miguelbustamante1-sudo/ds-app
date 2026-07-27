@@ -28,7 +28,9 @@ export function TeamMemberComboBox({ value, onValueChange }: TeamMemberComboBoxP
     )
     .map((m) => ({
       value: m.teamMemberId.toString(),
-      label: `${m.teamMemberNames} ${m.teamMemberSurnames}`,
+      label: m.workdayId
+        ? `${m.teamMemberNames} ${m.teamMemberSurnames} (${m.workdayId})`
+        : `${m.teamMemberNames} ${m.teamMemberSurnames}`,
     }));
 
   return (

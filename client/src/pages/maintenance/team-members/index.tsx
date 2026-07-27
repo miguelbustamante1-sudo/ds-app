@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '@shared/dto';
 import {
   ColumnDef,
+  ColumnFiltersState,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -33,6 +36,7 @@ import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
+import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -53,6 +57,7 @@ export function TeamMembersPage() {
   const [deletingTeamMember, setDeletingTeamMember] = useState<TeamMemberDTO | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
@@ -137,6 +142,23 @@ export function TeamMembersPage() {
         meta: { headerTitle: 'Tier Band', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
+        id: 'assignedProjects',
+        accessorFn: (row) =>
+          (row.assignedProjects ?? []).map((p) => p.projectName).filter(Boolean).join(', '),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Assigned Project" />,
+        cell: ({ row }) => {
+          const names = (row.original.assignedProjects ?? []).map((p) => p.projectName).filter(Boolean);
+          return names.length > 0 ? names.join(', ') : '-';
+        },
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          const ids = (row.original.assignedProjects ?? []).map((p) => p.projectId.toString());
+          return ids.some((id) => value.includes(id));
+        },
+        size: 180,
+        meta: { headerTitle: 'Assigned Project', skeleton: <Skeleton className="h-4 w-28" /> },
+      },
+      {
         accessorKey: 'workdayId',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Workday ID" />,
         cell: ({ row }) => row.original.workdayId || '-',
@@ -185,14 +207,27 @@ export function TeamMembersPage() {
   const table = useReactTable({
     data: teamMembers.items,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, columnFilters },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
+
+  const projectFilterOptions = useMemo(() => {
+    const unique = new Map<string, string>();
+    teamMembers.items.forEach((tm) => {
+      (tm.assignedProjects ?? []).forEach((p) => {
+        if (p.projectName) unique.set(p.projectId.toString(), p.projectName);
+      });
+    });
+    return Array.from(unique, ([value, label]) => ({ value, label }));
+  }, [teamMembers.items]);
 
   useEffect(() => {
     teamMembers.loadItems();
@@ -248,14 +283,26 @@ export function TeamMembersPage() {
       </Toolbar>
 
       {/* Search Input */}
-      <div className="relative mt-6 max-w-sm">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search team members..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="pl-10"
+      <div className="flex items-center gap-2 mt-6">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search team members..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <DataGridColumnFilter
+          column={table.getColumn('assignedProjects')}
+          title="Project"
+          options={projectFilterOptions}
         />
+        {columnFilters.length > 0 && (
+          <Button variant="ghost" onClick={() => table.resetColumnFilters()} className="h-8 px-2 lg:px-3">
+            Reset <X className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <DataGridContainer className="mt-4">

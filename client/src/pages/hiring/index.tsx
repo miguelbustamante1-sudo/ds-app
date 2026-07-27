@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { Plus } from 'lucide-react';
 import type { EndorsementWithDetailsDTO, HiringDTO } from '@shared/dto';
 import {
   ColumnDef,
@@ -10,10 +11,12 @@ import {
 } from '@tanstack/react-table';
 import {
   Toolbar,
+  ToolbarActions,
   ToolbarHeading,
   ToolbarPageTitle,
   ToolbarDescription,
 } from '@/components/ui/toolbar';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -23,15 +26,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatUTCDate } from '@/lib/utils';
 import { useHiring } from './useHiring';
 
-type TabValue = 'draft' | 'execute';
+type TabValue = 'pending-approval' | 'draft' | 'execute';
 
 export function HiringPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeTab = (searchParams.get('tab') ?? 'draft') as TabValue;
+  const activeTab = (searchParams.get('tab') ?? 'pending-approval') as TabValue;
 
-  const { draftList, pendingList, loading, loadAll } = useHiring();
+  const { pendingApprovalList, draftList, pendingList, loading, loadAll } = useHiring();
 
   useEffect(() => {
     loadAll();
@@ -40,6 +43,42 @@ export function HiringPage() {
   function handleTabChange(value: string) {
     setSearchParams({ tab: value }, { replace: false });
   }
+
+  // ── Pending Approval columns ─────────────────────────────────────────────
+  const pendingApprovalColumns = useMemo<ColumnDef<EndorsementWithDetailsDTO>[]>(
+    () => [
+      {
+        id: 'candidateName',
+        accessorFn: (row) => `${row.candidateFirstName} ${row.candidateLastName}`,
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Candidate Name" />,
+        size: 220,
+        meta: { headerTitle: 'Candidate Name', skeleton: <Skeleton className="h-4 w-36" /> },
+      },
+      {
+        id: 'projectName',
+        accessorFn: (row) => row.project?.projectName ?? '-',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Project" />,
+        size: 220,
+        meta: { headerTitle: 'Project', skeleton: <Skeleton className="h-4 w-28" /> },
+      },
+      {
+        accessorKey: 'clientManagerEmail',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Manager Email" />,
+        size: 260,
+        meta: { headerTitle: 'Manager Email', skeleton: <Skeleton className="h-4 w-40" /> },
+      },
+    ],
+    [],
+  );
+
+  const pendingApprovalTable = useReactTable({
+    data: pendingApprovalList,
+    columns: pendingApprovalColumns,
+    initialState: { pagination: { pageSize: 5 } },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
   // ── Draft columns ─────────────────────────────────────────────────────────
   const draftColumns = useMemo<ColumnDef<EndorsementWithDetailsDTO>[]>(
@@ -129,10 +168,24 @@ export function HiringPage() {
           <ToolbarPageTitle>Hiring</ToolbarPageTitle>
           <ToolbarDescription>Manage candidate hirings</ToolbarDescription>
         </ToolbarHeading>
+        <ToolbarActions>
+          <Button onClick={() => navigate('/hiring/wizard')}>
+            <Plus size={16} className="me-1" />
+            Start New Hiring
+          </Button>
+        </ToolbarActions>
       </Toolbar>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
         <TabsList variant="line">
+          <TabsTrigger value="pending-approval">
+            Pending Approval
+            {pendingApprovalList.length > 0 && (
+              <span className="ms-1.5 rounded-full bg-primary text-primary-foreground text-xs px-2 py-0.5">
+                {pendingApprovalList.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="draft">
             Ready to Draft
             {draftList.length > 0 && (
@@ -151,6 +204,21 @@ export function HiringPage() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="pending-approval">
+          <DataGridContainer className="mt-4">
+            <DataGrid
+              table={pendingApprovalTable}
+              recordCount={pendingApprovalList.length}
+              isLoading={loading}
+              emptyMessage="No endorsements pending approval."
+              onRowClick={(row) => navigate(`/hiring/wizard/${row.endorsementId}`)}
+            >
+              <DataGridTable />
+              <DataGridPagination sizes={[5, 10, 25]} />
+            </DataGrid>
+          </DataGridContainer>
+        </TabsContent>
+
         <TabsContent value="draft">
           <DataGridContainer className="mt-4">
             <DataGrid
@@ -158,7 +226,7 @@ export function HiringPage() {
               recordCount={draftList.length}
               isLoading={loading}
               emptyMessage="No approved endorsements available to draft."
-              onRowClick={(row) => navigate(`/hiring/new?endorsementId=${row.endorsementId}`)}
+              onRowClick={(row) => navigate(`/hiring/wizard/${row.endorsementId}`)}
             >
               <DataGridTable />
               <DataGridPagination sizes={[5, 10, 25]} />
@@ -173,7 +241,7 @@ export function HiringPage() {
               recordCount={pendingList.length}
               isLoading={loading}
               emptyMessage="No pending hirings found."
-              onRowClick={(row) => navigate(`/hiring/${row.id}`)}
+              onRowClick={(row) => navigate(`/hiring/wizard/${row.endorsement.endorsementId}`)}
             >
               <DataGridTable />
               <DataGridPagination sizes={[5, 10, 25]} />

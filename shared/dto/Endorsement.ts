@@ -17,9 +17,13 @@ export interface EndorsementDTO {
   clientManagerEmail: string;
   tibId: number | null;
   billingRate: number | null;
+  billingRateCurrency: string | null;
   countryId: number;
   startDate: Date | string;
   status: string;
+  sklId: number | null;
+  grpId: number | null;
+  jbpId: number | null;
   createdBy: string;
   createdAt: Date | string | null;
   updatedBy: string | null;
@@ -34,6 +38,8 @@ export interface EndorsementBonusWithCategoryDTO {
   endorsementBonusId: number;
   bonusSubcategoryId: number | null;
   endorsementBonusAmount: number | null;
+  endorsementBonusMetadata: unknown;
+  endorsementBonusComments: string | null;
   bonusSubcategory: {
     bonusSubcategoryName: string;
     bonusCategory: {
@@ -63,6 +69,18 @@ export interface EndorsementWithDetailsDTO extends EndorsementDTO {
     posId: number;
     posName: string;
   } | null;
+  skill: {
+    skillId: number;
+    skillName: string;
+  } | null;
+  group: {
+    groupId: number;
+    groupName: string;
+  } | null;
+  jobProfile: {
+    jobProfileId: number;
+    jobProfileName: string;
+  } | null;
   endorsementBonuses?: EndorsementBonusWithCategoryDTO[];
 }
 
@@ -77,8 +95,11 @@ export interface CreateEndorsementDTO {
   clientManagerEmail: string;
   tibId?: number | null;
   billingRate?: number | null;
+  billingRateCurrency?: string | null;
   countryId: number;
   startDate: string;
+  sklId?: number | null;
+  grpId?: number | null;
   comment?: string | null;
 }
 
@@ -110,8 +131,11 @@ export interface UpdateEndorsementDTO {
   clientManagerEmail?: string;
   tibId?: number | null;
   billingRate?: number | null;
+  billingRateCurrency?: string | null;
   countryId?: number;
   startDate?: string;
+  sklId?: number | null;
+  grpId?: number | null;
   comment?: string | null;
 }
 

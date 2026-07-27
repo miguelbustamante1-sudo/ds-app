@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, ShieldCheck } from 'lucide-react';
 import type { ProjectDTO, CreateProjectDTO, UpdateProjectDTO } from '@shared/dto';
+import { useAuth } from '@/auth/auth-provider';
+import { ProjectGrantsDialog } from './ProjectGrantsDialog';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -56,6 +58,9 @@ export function ProjectsPage() {
   const [globalFilter, setGlobalFilter] = useState('');
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.includes('admin') ?? false;
+  const [grantsProject, setGrantsProject] = useState<ProjectDTO | null>(null);
 
   const projects = useEntityList<ProjectDTO, CreateProjectDTO, UpdateProjectDTO>({
     endpoint: '/api/projects',
@@ -141,6 +146,11 @@ export function ProjectsPage() {
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={() => setGrantsProject(row.original)} title="Manage Access">
+                <ShieldCheck size={16} />
+              </Button>
+            )}
             {canCreate('Projects') && (
               <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
                 <Pencil size={16} />
@@ -153,12 +163,12 @@ export function ProjectsPage() {
             )}
           </div>
         ),
-        size: 100,
+        size: 140,
         enableSorting: false,
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [canCreate, canDelete],
+    [canCreate, canDelete, isAdmin],
   );
 
   const table = useReactTable({
@@ -264,6 +274,14 @@ export function ProjectsPage() {
         project={editingProject}
         onSuccess={handleFormSuccess}
       />
+
+      {grantsProject && (
+        <ProjectGrantsDialog
+          open={!!grantsProject}
+          onOpenChange={(open) => !open && setGrantsProject(null)}
+          project={grantsProject}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

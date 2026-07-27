@@ -8,6 +8,7 @@ export interface TeamMemberWithDetails extends TeamMember {
   primaryRole: { roleName: string } | null;
   tierBand:    { tierBandDescription: string } | null;
   shift:       { description: string } | null;
+  projectAssignments: { projectId: number; project: { projectName: string | null } }[];
 }
 
 export const TABLE = 'ds.tbl_team_members';
@@ -31,12 +32,28 @@ export async function getAllTeamMembers(): Promise<TeamMember[]> {
 
 export async function getAllTeamMembersWithDetails(): Promise<TeamMemberWithDetails[]> {
   info(`Fetching all team members with details from table ${TABLE}`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const rows = await prisma.teamMember.findMany({
     include: {
       country:     { select: { countryName: true, countryIso: true } },
       primaryRole: { select: { posName: true } },
       tierBand:    { select: { tierBandDescription: true } },
       shift:       { select: { description: true } },
+      projectAssignments: {
+        where: {
+          projectAssignmentDeleted: false,
+          OR: [
+            { projectAssignmentEndDate: null },
+            { projectAssignmentEndDate: { gte: today } },
+          ],
+        },
+        select: {
+          projectId: true,
+          project: { select: { projectName: true } },
+        },
+      },
     },
     orderBy: { teamMemberId: 'asc' },
   });

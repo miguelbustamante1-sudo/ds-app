@@ -69,7 +69,7 @@ export function validateCreateDocumentation(
     cardTypeId,
     cardNumber: cardNumber.trim(),
     uploadId,
-    amountNotSpent: typeof amountNotSpent === 'number' ? amountNotSpent : undefined,
+    ...(typeof amountNotSpent === 'number' ? { amountNotSpent } : {}),
     createdBy,
   };
 }

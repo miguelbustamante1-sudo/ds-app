@@ -21,6 +21,8 @@ import { BulkRemoveModal } from './BulkRemoveModal';
 import { BulkChangeRateModal } from './BulkChangeRateModal';
 import { AddMemberModal } from './AddMemberModal';
 import { EditAssignmentDialog } from './EditAssignmentDialog';
+import type { CanModifyProjectDTO } from '@shared/dto';
+import { apiGet } from '@/lib/api';
 
 const ROW_HEIGHT = 52;
 const BENCH_PROJECT_ID = Number(import.meta.env.VITE_BENCH_PROJECT_ID);
@@ -41,6 +43,7 @@ export function ProjectAssignmentsPage() {
   const [bulkRateOpen, setBulkRateOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<ProjectAssignmentWithDetailsDTO | null>(null);
+  const [canModify, setCanModify] = useState(true);
 
   const isBenchSelected = projectId !== null && projectId === BENCH_PROJECT_ID;
   const hasSelection = selectedIds.size > 0;
@@ -49,6 +52,17 @@ export function ProjectAssignmentsPage() {
     loadAssignments();
     setSelectedIds(new Set());
   }, [loadAssignments]);
+
+  // FR-012 — check modify rights whenever the selected project changes.
+  useEffect(() => {
+    if (projectId === null) {
+      setCanModify(true);
+      return;
+    }
+    apiGet<CanModifyProjectDTO>(`/api/project-grants/can-modify/${projectId}`)
+      .then((result) => setCanModify(result.canModify))
+      .catch(() => setCanModify(false));
+  }, [projectId]);
 
   const sortedAssignments = useMemo(
     () =>
@@ -134,6 +148,7 @@ export function ProjectAssignmentsPage() {
           hasSelection={hasSelection}
           projectId={projectId}
           isBenchSelected={isBenchSelected}
+          canModify={canModify}
           onRemove={() => setBulkRemoveOpen(true)}
           onChangeRate={() => setBulkRateOpen(true)}
           onAddMember={() => setAddOpen(true)}
@@ -213,7 +228,7 @@ export function ProjectAssignmentsPage() {
                       <p className="text-sm font-medium truncate">{a.teamMemberName}</p>
                       <p className="text-xs text-muted-foreground">
                         {[
-                          a.teamMemberSeniority,
+                          a.tierBandDescription ?? a.teamMemberSeniority,
                           a.projectAssignmentAllocation != null
                             ? `${a.projectAssignmentAllocation}%`
                             : null,
@@ -222,15 +237,17 @@ export function ProjectAssignmentsPage() {
                           .join(' · ')}
                       </p>
                     </div>
-                    <span onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="p-1 opacity-40 hover:opacity-100 transition-opacity"
-                        onClick={() => setEditingAssignment(a)}
-                        aria-label="Edit assignment"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                    </span>
+                    {canModify && (
+                      <span onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="p-1 opacity-40 hover:opacity-100 transition-opacity"
+                          onClick={() => setEditingAssignment(a)}
+                          aria-label="Edit assignment"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )}
                   </div>
                   );
                 })}

@@ -13,6 +13,7 @@ export interface HiringDTO {
   startDate: string;
   billableDate: string;
   workdayId: string | null;
+  teamLeadId: number | null;
   currencySymbol: string | null;
   status: string | null;
   createdBy: string;
@@ -21,6 +22,8 @@ export interface HiringDTO {
   updatedAt: string | null;
   comment: string | null;
   endorsement: EndorsementWithDetailsDTO;
+  teamLead: { teamMemberId: number; teamMemberNames: string; teamMemberSurnames: string } | null;
+  processedTeamMember?: { teamMemberId: number; teamMemberNames: string; teamMemberSurnames: string } | null;
 }
 
 /**
@@ -31,6 +34,7 @@ export interface CreateHiringDTO {
   startDate: string;
   billableDate: string;
   workdayId?: string | null;
+  teamLeadId?: number | null;
   currencySymbol?: string | null;
 }
 
@@ -41,5 +45,6 @@ export interface UpdateHiringDTO {
   startDate?: string;
   billableDate?: string;
   workdayId?: string | null;
+  teamLeadId?: number | null;
   currencySymbol?: string | null;
 }

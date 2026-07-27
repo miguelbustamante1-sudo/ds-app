@@ -33,6 +33,10 @@ import { EndorsementProjectComboBox } from '../components/EndorsementProjectComb
 import { EndorsementTierBandComboBox } from '../components/EndorsementTierBandComboBox';
 import { EndorsementPositionComboBox } from '../components/EndorsementPositionComboBox';
 import { EndorsementClientManagerEmailField } from '../components/EndorsementClientManagerEmailField';
+import { EndorsementSkillComboBox } from '../components/EndorsementSkillComboBox';
+import { EndorsementGroupComboBox } from '../components/EndorsementGroupComboBox';
+import { EndorsementCurrencyComboBox } from '../components/EndorsementCurrencyComboBox';
+import { useDerivedJobProfile } from '../components/useDerivedJobProfile';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '../components/BonusMetadataFields';
 import { BonusDetailTable } from './BonusDetailTable';
@@ -54,6 +58,9 @@ interface EndorsementFormData {
   startDate: string;
   tibId: string;
   billingRate: string;
+  billingRateCurrency: string;
+  sklId: string;
+  grpId: string;
   comment: string;
 }
 
@@ -151,6 +158,9 @@ export function EndorsementDetailPage() {
       startDate: '',
       tibId: '',
       billingRate: '',
+      billingRateCurrency: '',
+      sklId: '',
+      grpId: '',
       comment: '',
     },
   });
@@ -158,6 +168,16 @@ export function EndorsementDetailPage() {
   const projectIdValue = watch('projectId');
   const tibIdValue = watch('tibId');
   const posIdValue = watch('posId');
+  const sklIdValue = watch('sklId');
+  const grpIdValue = watch('grpId');
+  const billingRateCurrencyValue = watch('billingRateCurrency');
+
+  const { jobProfile } = useDerivedJobProfile(
+    posIdValue ? Number(posIdValue) : null,
+    tibIdValue ? Number(tibIdValue) : null,
+    sklIdValue ? Number(sklIdValue) : null,
+    grpIdValue ? Number(grpIdValue) : null,
+  );
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -180,6 +200,9 @@ export function EndorsementDetailPage() {
           : '',
         tibId: endorsement.tibId != null ? String(endorsement.tibId) : '',
         billingRate: endorsement.billingRate != null ? String(endorsement.billingRate) : '',
+        billingRateCurrency: endorsement.billingRateCurrency ?? '',
+        sklId: endorsement.sklId != null ? String(endorsement.sklId) : '',
+        grpId: endorsement.grpId != null ? String(endorsement.grpId) : '',
         comment: endorsement.comment ?? '',
       });
     }
@@ -202,6 +225,9 @@ export function EndorsementDetailPage() {
         startDate: data.startDate,
         tibId: data.tibId ? Number(data.tibId) : null,
         billingRate: data.billingRate ? Number(data.billingRate) : null,
+        billingRateCurrency: data.billingRateCurrency || null,
+        sklId: data.sklId ? Number(data.sklId) : null,
+        grpId: data.grpId ? Number(data.grpId) : null,
         comment: data.comment || null,
         // countryId deliberately omitted — country is immutable after creation
       };
@@ -601,11 +627,29 @@ export function EndorsementDetailPage() {
               </dd>
             </div>
 
-            {/* Billing Rate */}
+            {/* Billing Rate Currency */}
             <div>
               <dt className="text-sm font-medium text-muted-foreground">
-                {isEditing && <Label htmlFor="billingRate">Billing Rate</Label>}
-                {!isEditing && 'Billing Rate'}
+                {isEditing && <Label>Billing Rate Currency</Label>}
+                {!isEditing && 'Billing Rate Currency'}
+              </dt>
+              <dd className="text-sm mt-1">
+                {isEditing ? (
+                  <EndorsementCurrencyComboBox
+                    value={billingRateCurrencyValue}
+                    onValueChange={(value) => setValue('billingRateCurrency', value)}
+                  />
+                ) : (
+                  endorsement.billingRateCurrency ?? '—'
+                )}
+              </dd>
+            </div>
+
+            {/* Billing Rate Amount */}
+            <div>
+              <dt className="text-sm font-medium text-muted-foreground">
+                {isEditing && <Label htmlFor="billingRate">Billing Rate Amount</Label>}
+                {!isEditing && 'Billing Rate Amount'}
               </dt>
               <dd className="text-sm mt-1">
                 {isEditing ? (
@@ -619,9 +663,55 @@ export function EndorsementDetailPage() {
                   />
                 ) : (
                   endorsement.billingRate != null
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(endorsement.billingRate)
+                    ? `${endorsement.billingRateCurrency ?? ''} ${endorsement.billingRate}`.trim()
                     : '—'
                 )}
+              </dd>
+            </div>
+
+            {/* Skill */}
+            <div>
+              <dt className="text-sm font-medium text-muted-foreground">
+                {isEditing && <Label>Skill</Label>}
+                {!isEditing && 'Skill'}
+              </dt>
+              <dd className="text-sm mt-1">
+                {isEditing ? (
+                  <EndorsementSkillComboBox
+                    value={sklIdValue}
+                    onValueChange={(value) => setValue('sklId', value)}
+                  />
+                ) : (
+                  endorsement.skill?.skillName ?? '—'
+                )}
+              </dd>
+            </div>
+
+            {/* Group */}
+            <div>
+              <dt className="text-sm font-medium text-muted-foreground">
+                {isEditing && <Label>Group</Label>}
+                {!isEditing && 'Group'}
+              </dt>
+              <dd className="text-sm mt-1">
+                {isEditing ? (
+                  <EndorsementGroupComboBox
+                    value={grpIdValue}
+                    onValueChange={(value) => setValue('grpId', value)}
+                  />
+                ) : (
+                  endorsement.group?.groupName ?? '—'
+                )}
+              </dd>
+            </div>
+
+            {/* Job Profile — derived, read-only, full width */}
+            <div className="md:col-span-2">
+              <dt className="text-sm font-medium text-muted-foreground">Job Profile</dt>
+              <dd className="text-sm mt-1">
+                {isEditing
+                  ? (jobProfile?.jobProfileName ?? 'Select position, tier/band, skill, and group to derive the job profile')
+                  : (endorsement.jobProfile?.jobProfileName ?? '—')}
               </dd>
             </div>
 

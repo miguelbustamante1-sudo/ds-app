@@ -22,6 +22,8 @@ import { SupervisorTeamOverviewPage } from '@/pages/timeoff/supervisor-v2';
 import { SupervisorMemberDetailPage } from '@/pages/timeoff/supervisor-v2/detail';
 import { TimeOffManagementPage } from '@/pages/timeoff/management';
 import { MyTeamPage } from '@/pages/my-team';
+import { TeamManagementPage } from '@/pages/team-management';
+import { TeamManagementApprovalsPage } from '@/pages/team-management/ApprovalsPage';
 import { TeamMemberProfilePage } from '@/pages/my-team/profile';
 import { AnnouncementsPage } from '@/pages/announcements';
 import { NotificationCenterPage } from '@/pages/notifications';
@@ -29,7 +31,6 @@ import { ProjectAssignmentsPage } from '@/pages/project-assignments';
 import { TimeOffDetailPage } from '@/pages/timeoff/detail';
 import { TimeOffActivityPage } from '@/pages/timeoff/activity';
 import { EndorsementsPage } from '@/pages/endorsements';
-import { EndorsementCreatePage } from '@/pages/endorsements/create';
 import { EndorsementDetailPage } from '@/pages/endorsements/detail';
 import { TierBandsPage } from '@/pages/maintenance/tier-bands';
 import { BonusCategoriesPage } from '@/pages/maintenance/bonus-categories';
@@ -65,7 +66,7 @@ import { PendingRequestsPage } from '@/pages/my-team/pending-requests';
 import { MyProfilePage } from '@/pages/my-profile';
 import { HiringPage } from '@/pages/hiring';
 import { LaptopInventoryPage } from '@/pages/laptop-inventory';
-import { HiringDetailPage } from '@/pages/hiring/detail';
+import { WizardPage } from '@/pages/hiring/wizard';
 import { RolesPage } from '@/pages/security/roles';
 import { OptionsPage } from '@/pages/security/options';
 import { PermissionsPage } from '@/pages/security/permissions';
@@ -149,6 +150,8 @@ export function AppRoutingSetup() {
         <Route path="/my-profile" element={<MyProfilePage />} />
         <Route path="/my-team/pending" element={<PendingRequestsPage />} />
         <Route path="/my-team/:id" element={<TeamMemberProfilePage />} />
+        <Route path="/team-management" element={<TeamManagementPage />} />
+        <Route path="/team-management/approvals" element={<TeamManagementApprovalsPage />} />
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
         <Route path="/my-time-off/edit/:timeOffId" element={<EditTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
@@ -171,7 +174,6 @@ export function AppRoutingSetup() {
         <Route path="/bench-move/:benchId" element={<BenchMoveDetailPage />} />
         <Route path="/end-bench" element={<EndBenchPage />} />
         <Route path="/endorsements" element={<EndorsementsPage />} />
-        <Route path="/endorsements/create" element={<EndorsementCreatePage />} />
         <Route path="/endorsements/:id" element={<EndorsementDetailPage />} />
         <Route path="/maintenance/countries" element={<CountriesPage />} />
         <Route path="/maintenance/regions" element={<RegionsPage />} />
@@ -204,8 +206,8 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/timeoff-period-backfill" element={<TimeOffPeriodBackfillPage />} />
         <Route path="/maintenance/email-test" element={<EmailTestPage />} />
         <Route path="/hiring" element={<HiringPage />} />
-        <Route path="/hiring/new" element={<HiringDetailPage />} />
-        <Route path="/hiring/:id" element={<HiringDetailPage />} />
+        <Route path="/hiring/wizard" element={<WizardPage />} />
+        <Route path="/hiring/wizard/:endorsementId" element={<WizardPage />} />
         <Route path="/laptop-inventory" element={<LaptopInventoryPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/reports/time-off/change-log" element={<TimeOffChangeLogPage />} />

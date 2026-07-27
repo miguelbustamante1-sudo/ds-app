@@ -3,9 +3,15 @@ import type { EndorsementWithDetailsDTO, HiringDTO } from '@shared/dto';
 import { apiGet, ApiError } from '@/lib/api';
 
 export function useHiring() {
+  const [pendingApprovalList, setPendingApprovalList] = useState<EndorsementWithDetailsDTO[]>([]);
   const [draftList, setDraftList] = useState<EndorsementWithDetailsDTO[]>([]);
   const [pendingList, setPendingList] = useState<HiringDTO[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const loadPendingApprovalList = useCallback(async () => {
+    const data = await apiGet<EndorsementWithDetailsDTO[]>('/api/hiring/pending-approval');
+    setPendingApprovalList(data);
+  }, []);
 
   const loadDraftList = useCallback(async () => {
     const data = await apiGet<EndorsementWithDetailsDTO[]>('/api/hiring/endorsements');
@@ -20,16 +26,17 @@ export function useHiring() {
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
-      await Promise.all([loadDraftList(), loadPendingList()]);
+      await Promise.all([loadPendingApprovalList(), loadDraftList(), loadPendingList()]);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to load hiring data';
       console.error(message);
     } finally {
       setLoading(false);
     }
-  }, [loadDraftList, loadPendingList]);
+  }, [loadPendingApprovalList, loadDraftList, loadPendingList]);
 
   return {
+    pendingApprovalList,
     draftList,
     pendingList,
     loading,

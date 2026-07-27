@@ -140,7 +140,7 @@ export async function getAvailableForProjectAll(
     if (tm.currentProjects.some((p) => p.projectId === projectId)) return false;
     if (tm.totalAllocation >= 100) return false;
     if (q) {
-      const full = `${tm.teamMemberNames} ${tm.teamMemberSurnames}`.toLowerCase();
+      const full = `${tm.teamMemberNames} ${tm.teamMemberSurnames} ${tm.workdayId ?? ''}`.toLowerCase();
       if (!full.includes(q.toLowerCase())) return false;
     }
     return true;

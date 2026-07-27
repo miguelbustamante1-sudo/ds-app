@@ -39,7 +39,9 @@ export function MemberComboBox({ value, onValueChange, projectId, onSelectFull, 
 
   const options: ComboBoxOption[] = members.map((m) => ({
     value: m.teamMemberId.toString(),
-    label: `${m.teamMemberNames} ${m.teamMemberSurnames} — ${m.teamMemberSeniority}`,
+    label: m.workdayId
+      ? `${m.teamMemberNames} ${m.teamMemberSurnames} (${m.workdayId}) — ${m.teamMemberSeniority}`
+      : `${m.teamMemberNames} ${m.teamMemberSurnames} — ${m.teamMemberSeniority}`,
   }));
 
   const handleValueChange = (val: string) => {

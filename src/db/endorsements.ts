@@ -13,12 +13,15 @@ export async function getEndorsements(status?: string): Promise<Endorsement[]> {
       country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
       position: { select: { posId: true, posName: true } },
+      skill: { select: { skillId: true, skillName: true } },
+      group: { select: { groupId: true, groupName: true } },
+      jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
 }
 
-export async function createEndorsement(data: {
+interface EndorsementWriteData {
   candidateFirstName: string;
   candidateLastName: string;
   posId: number;
@@ -26,12 +29,18 @@ export async function createEndorsement(data: {
   clientManagerEmail: string;
   tibId?: number | null;
   billingRate?: number | null;
+  billingRateCurrency?: string | null;
   countryId: number;
   startDate: Date;
   status: string;
   createdBy: string;
   comment?: string | null;
-}): Promise<Endorsement> {
+  sklId?: number | null;
+  grpId?: number | null;
+  jbpId?: number | null;
+}
+
+export async function createEndorsement(data: EndorsementWriteData): Promise<Endorsement> {
   info(`Creating endorsement in table ${TABLE}`);
   return await prisma.endorsement.create({
     data: {
@@ -42,36 +51,30 @@ export async function createEndorsement(data: {
       clientManagerEmail: data.clientManagerEmail,
       tibId: data.tibId ?? null,
       billingRate: data.billingRate ?? null,
+      billingRateCurrency: data.billingRateCurrency ?? null,
       countryId: data.countryId,
       startDate: data.startDate,
       status: data.status,
       createdBy: data.createdBy,
       comment: data.comment ?? null,
+      sklId: data.sklId ?? null,
+      grpId: data.grpId ?? null,
+      jbpId: data.jbpId ?? null,
     },
     include: {
       project: { select: { projectName: true } },
       country: { select: { countryName: true, countryCurrencySymbol: true } },
       tierBand: { select: { tierBandId: true, tierBandDescription: true } },
       position: { select: { posId: true, posName: true } },
+      skill: { select: { skillId: true, skillName: true } },
+      group: { select: { groupId: true, groupName: true } },
+      jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
     },
   });
 }
 
 export async function createEndorsementWithBonuses(
-  endorsementData: {
-    candidateFirstName: string;
-    candidateLastName: string;
-    posId: number;
-    projectId: number;
-    clientManagerEmail: string;
-    tibId?: number | null;
-    billingRate?: number | null;
-    countryId: number;
-    startDate: Date;
-    status: string;
-    createdBy: string;
-    comment?: string | null;
-  },
+  endorsementData: EndorsementWriteData,
   bonuses: Array<{
     bonusSubcategoryId: number;
     endorsementBonusAmount: number | null;
@@ -91,11 +94,15 @@ export async function createEndorsementWithBonuses(
         clientManagerEmail: endorsementData.clientManagerEmail,
         tibId: endorsementData.tibId ?? null,
         billingRate: endorsementData.billingRate ?? null,
+        billingRateCurrency: endorsementData.billingRateCurrency ?? null,
         countryId: endorsementData.countryId,
         startDate: endorsementData.startDate,
         status: endorsementData.status,
         createdBy: endorsementData.createdBy,
         comment: endorsementData.comment ?? null,
+        sklId: endorsementData.sklId ?? null,
+        grpId: endorsementData.grpId ?? null,
+        jbpId: endorsementData.jbpId ?? null,
       },
     });
 
@@ -124,6 +131,9 @@ export const ENDORSEMENT_INCLUDE = {
   country: { select: { countryName: true, countryCurrencySymbol: true } },
   tierBand: { select: { tierBandId: true, tierBandDescription: true } },
   position: { select: { posId: true, posName: true } },
+  skill: { select: { skillId: true, skillName: true } },
+  group: { select: { groupId: true, groupName: true } },
+  jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
   endorsementBonuses: {
     include: {
       bonusSubcategory: {

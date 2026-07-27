@@ -30,6 +30,18 @@ export const communicationsHubConfig: HubConfig = {
       permission: 'PendingRequests',
     },
     {
+      title: 'Team Management',
+      description: "Edit your reports' details and submit sensitive changes for approval.",
+      path: '/team-management',
+      permission: 'MyTeam',
+    },
+    {
+      title: 'Change Approvals',
+      description: 'Review and approve or reject sensitive team-member change requests.',
+      path: '/team-management/approvals',
+      permission: 'MyTeam',
+    },
+    {
       title: 'My Tasks',
       description: 'View and act on workflow tasks assigned to you.',
       path: '/my-tasks',

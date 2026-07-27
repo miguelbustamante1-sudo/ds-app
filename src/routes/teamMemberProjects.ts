@@ -21,8 +21,22 @@ import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
 import { getActiveProjects } from '../services/projectAssignment/queries/getActiveProjects';
 import { validateAssignment } from '../services/projectAssignment/validation';
 import type { AssignmentValidationInput } from '../services/projectAssignment/validation';
+import { projectAccessOrchestrator } from '../services/projectAccess/ProjectAccessOrchestrator';
 
 const router = express.Router();
+
+/**
+ * FR-012: modification is restricted to a project's PM or an 'owner' grant holder.
+ * Sends the 403 response itself and returns false when the caller should stop; returns true to proceed.
+ */
+async function assertCanModifyProject(req: AuthenticatedRequest, res: Response, projectId: number): Promise<boolean> {
+  const canModify = await projectAccessOrchestrator.canModifyProject(req.user?.teamMemberId, projectId);
+  if (!canModify) {
+    res.status(403).json({ error: 'You do not have modify access to this project' });
+    return false;
+  }
+  return true;
+}
 
 // GET /team-member-projects/active-projects?q=searchTerm
 router.get('/active-projects', requirePermission('ProjectAssignments', 'read'), async (req: AuthenticatedRequest, res: Response) => {
@@ -61,6 +75,7 @@ router.get('/', requirePermission('ProjectAssignments', 'read'), async (req: Aut
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
+      tierBandDescription: item.teamMember?.tierBand?.tierBandDescription ?? null,
       projectName: item.project?.projectName ?? null,
       clientContactName: item.clientContact?.name ?? null,
       clientName: item.project?.client?.Name ?? null,
@@ -100,6 +115,7 @@ router.get('/team-member/:tms_id', requirePermission('ProjectAssignments', 'read
       shiftId: item.shiftId ?? null,
       teamMemberName: null,
       teamMemberSeniority: null,
+      tierBandDescription: null,
       projectName: item.project?.projectName ?? null,
       clientContactName: item.clientContact?.name ?? null,
       clientName: item.project?.client?.Name ?? null,
@@ -140,6 +156,7 @@ router.get('/project/:pro_id', requirePermission('ProjectAssignments', 'read'), 
         ? `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`
         : null,
       teamMemberSeniority: item.teamMember?.teamMemberSeniority ?? null,
+      tierBandDescription: item.teamMember?.tierBand?.tierBandDescription ?? null,
       projectName: null,
       clientContactName: item.clientContact?.name ?? null,
       clientName: null,
@@ -191,6 +208,12 @@ router.post('/bulk-change-rate', requirePermission('ProjectAssignments', 'create
       return res.status(400).json({ error: 'newBillRate, newBillRateCurrency and startDate are required' });
     }
 
+    const targetAssignments = await Promise.all(assignmentIds.map((id) => getTeamMemberProjectById(id)));
+    const targetProjectIds = new Set(targetAssignments.filter(Boolean).map((a) => a!.projectId));
+    for (const projectId of targetProjectIds) {
+      if (!(await assertCanModifyProject(req, res, projectId))) return;
+    }
+
     const startDateObj = new Date(startDate);
     const dsUserId = req.user?.dsUserId ?? null;
 
@@ -226,6 +249,9 @@ router.post('/bulk-change-rate', requirePermission('ProjectAssignments', 'create
 router.post('/', requirePermission('ProjectAssignments', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const body = req.body as Partial<ProjectAssignment>;
+
+    if (!body.projectId) return res.status(400).json({ error: 'projectId is required' });
+    if (!(await assertCanModifyProject(req, res, body.projectId))) return;
 
     const validationInput: AssignmentValidationInput = {
       teamMemberId: body.teamMemberId ?? null,
@@ -296,6 +322,7 @@ router.put('/:id', requirePermission('ProjectAssignments', 'create'), async (req
 
     const before = await getTeamMemberProjectById(id);
     if (!before) return res.status(404).json({ error: 'Team member project not found' });
+    if (!(await assertCanModifyProject(req, res, before.projectId))) return;
 
     if (body.projectAssignmentAllocation !== undefined) {
       const validationInput: AssignmentValidationInput = {
@@ -367,6 +394,7 @@ router.patch('/:id/change-rate', requirePermission('ProjectAssignments', 'create
 
     const currentAssignment = await getTeamMemberProjectById(id);
     if (!currentAssignment) return res.status(404).json({ error: 'Team member project not found' });
+    if (!(await assertCanModifyProject(req, res, currentAssignment.projectId))) return;
 
     const startDateObj = new Date(newStartDate);
     if (startDateObj <= new Date(currentAssignment.projectAssignmentStartDate)) {
@@ -447,6 +475,7 @@ router.patch('/:id', requirePermission('ProjectAssignments', 'create'), async (r
 
     const before = await getTeamMemberProjectById(id);
     if (!before) return res.status(404).json({ error: 'Team member project not found' });
+    if (!(await assertCanModifyProject(req, res, before.projectId))) return;
 
     const updated = await updateTeamMemberProject(id, updateData);
     if (!updated) return res.status(404).json({ error: 'Team member project not found' });
@@ -486,6 +515,11 @@ router.delete('/bulk', requirePermission('ProjectAssignments', 'delete'), async 
       assignmentIds.map((id) => getTeamMemberProjectById(id)),
     );
 
+    const targetProjectIds = new Set(before.filter(Boolean).map((a) => a!.projectId));
+    for (const projectId of targetProjectIds) {
+      if (!(await assertCanModifyProject(req, res, projectId))) return;
+    }
+
     await bulkRemoveAssignments(assignmentIds, lastBillableDateObj, dsUserId);
 
     for (const record of before) {
@@ -515,6 +549,7 @@ router.delete('/:id', requirePermission('ProjectAssignments', 'delete'), async (
 
     const before = await getTeamMemberProjectById(id);
     if (!before) return res.status(404).json({ error: 'Team member project not found' });
+    if (!(await assertCanModifyProject(req, res, before.projectId))) return;
 
     await deleteTeamMemberProject(id);
 

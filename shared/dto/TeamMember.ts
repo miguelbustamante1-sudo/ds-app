@@ -23,6 +23,8 @@ export interface TeamMemberDTO {
   roleName?: string | null;
   tierBandDescription?: string | null;
   shiftDescription?: string | null;
+  /** The member's currently active project assignments (FR-009). Empty when unassigned. */
+  assignedProjects?: { projectId: number; projectName: string | null }[];
 }
 
 export interface CreateTeamMemberDTO {
@@ -69,4 +71,14 @@ export interface AvailableResourceDTO {
 export interface AvailableResourceUnderSupervisorDTO extends AvailableResourceDTO {
   availableAllocation: number;           // 100 - totalAllocation
   countryCurrencySymbol: string | null;  // from Country.countryCurrencySymbol
+}
+
+/**
+ * HiringTeamLeadOptionDTO - Minimal shape for the hiring wizard's team-lead ComboBox
+ */
+export interface HiringTeamLeadOptionDTO {
+  teamMemberId: number;
+  teamMemberNames: string;
+  teamMemberSurnames: string;
+  workdayId: string | null;
 }

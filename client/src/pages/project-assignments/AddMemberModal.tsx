@@ -102,7 +102,7 @@ export function AddMemberModal({
   const filteredMembers = useMemo(() => {
     const q = search.toLowerCase();
     return benchMembers.filter((m) =>
-      `${m.teamMemberNames} ${m.teamMemberSurnames}`.toLowerCase().includes(q),
+      `${m.teamMemberNames} ${m.teamMemberSurnames} ${m.workdayId ?? ''}`.toLowerCase().includes(q),
     );
   }, [benchMembers, search]);
 
@@ -438,9 +438,14 @@ export function AddMemberModal({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {m.teamMemberNames} {m.teamMemberSurnames}
+                        {m.workdayId && (
+                          <span className="text-muted-foreground font-normal"> ({m.workdayId})</span>
+                        )}
                       </p>
-                      {m.teamMemberSeniority && (
-                        <p className="text-xs text-muted-foreground">{m.teamMemberSeniority}</p>
+                      {(m.tierBandDescription ?? m.teamMemberSeniority) && (
+                        <p className="text-xs text-muted-foreground">
+                          {m.tierBandDescription ?? m.teamMemberSeniority}
+                        </p>
                       )}
                     </div>
                     <span className="text-sm text-muted-foreground w-20 text-right shrink-0">

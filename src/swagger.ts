@@ -29,6 +29,10 @@ export const openapiSpec = {
     { name: 'RBACRoles', description: 'RBAC role endpoints' },
     { name: 'RBACUserRoles', description: 'RBAC user-role endpoints' },
     { name: 'RBACOptions', description: 'RBAC options (resources) endpoints' },
+    { name: 'JobProfile', description: 'Skill, group, and job profile lookup/derivation endpoints (endorsement form)' },
+    { name: 'TeamManagement', description: 'Team-Lead self-service team management and OM change-request approval workflow (FR-011)' },
+    { name: 'ProjectGrants', description: 'Per-project ownership/view grants and modify-rights checks (FR-012, FR-013)' },
+    { name: 'Hiring', description: 'Endorsement-to-hiring wizard endpoints' },
   ],
   paths: {
     '/api/ping': {
@@ -1081,6 +1085,285 @@ export const openapiSpec = {
             },
           },
           '400': { description: 'Invalid supervisor id' },
+        },
+      },
+    },
+    '/api/skills': {
+      get: {
+        tags: ['JobProfile'],
+        summary: 'List skills (BU / Premium)',
+        responses: {
+          '200': {
+            description: 'An array of skills',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          skillId: { type: 'integer' },
+                          skillName: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/groups': {
+      get: {
+        tags: ['JobProfile'],
+        summary: 'List groups (A / B / C / D)',
+        responses: {
+          '200': {
+            description: 'An array of groups',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          groupId: { type: 'integer' },
+                          groupName: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/job-profiles/derive': {
+      get: {
+        tags: ['JobProfile'],
+        summary: 'Derive the Workday job profile from position, tier/band, skill, and group',
+        parameters: [
+          { name: 'posId', in: 'query', required: true, schema: { type: 'integer' } },
+          { name: 'tibId', in: 'query', required: true, schema: { type: 'integer' } },
+          { name: 'sklId', in: 'query', required: true, schema: { type: 'integer' } },
+          { name: 'grpId', in: 'query', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Derived job profile, or null fields when no mapping exists yet',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      properties: {
+                        jobProfileId: { type: 'integer', nullable: true },
+                        jobProfileName: { type: 'string', nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Missing or invalid posId/tibId/sklId/grpId' },
+        },
+      },
+    },
+    '/api/hiring/pending-approval': {
+      get: {
+        tags: ['Hiring'],
+        summary: 'List Pending endorsements that do not yet have a hiring record',
+        responses: {
+          '200': {
+            description: 'An array of endorsements with project/country/tier-band detail',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: { type: 'array', items: { type: 'object' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/hiring/team-leads': {
+      get: {
+        tags: ['Hiring'],
+        summary: 'List active team members eligible to be selected as a hiring\'s team lead',
+        responses: {
+          '200': {
+            description: 'An array of team-lead options',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          teamMemberId: { type: 'integer' },
+                          teamMemberNames: { type: 'string' },
+                          teamMemberSurnames: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/hiring/by-endorsement/{endorsementId}': {
+      parameters: [{ name: 'endorsementId', in: 'path', required: true, schema: { type: 'integer' } }],
+      get: {
+        tags: ['Hiring'],
+        summary: 'Get the hiring record (if any) linked to an endorsement',
+        responses: {
+          '200': {
+            description: 'The hiring record, or null if none exists yet; includes processedTeamMember when status is Processed',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: { type: 'object', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Invalid endorsementId' },
+        },
+      },
+    },
+    '/api/team-management/my-team': {
+      get: {
+        tags: ['TeamManagement'],
+        summary: "Get the authenticated Team Lead's full reporting hierarchy for management",
+        responses: {
+          '200': { description: 'Array of team members with editable-field snapshot' },
+          '403': { description: 'Authenticated user has no associated team member record' },
+        },
+      },
+    },
+    '/api/team-management/members/{id}': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      patch: {
+        tags: ['TeamManagement'],
+        summary: 'Free-edit a report (known-as, shift, active-assignment functional area / client contact) — no approval required',
+        responses: {
+          '200': { description: 'Updated team member snapshot' },
+          '403': { description: 'Target team member is not in the caller\'s reporting hierarchy' },
+        },
+      },
+    },
+    '/api/team-management/members/{id}/change-requests': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      post: {
+        tags: ['TeamManagement'],
+        summary: 'Submit an approval-required change (tier/band, primary role, legal name) for OM review',
+        responses: {
+          '201': { description: 'Created change request (Pending)' },
+          '400': { description: 'No fields changed' },
+          '403': { description: 'Target team member is not in the caller\'s reporting hierarchy' },
+        },
+      },
+    },
+    '/api/team-management/members/{id}/attrition': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      post: {
+        tags: ['TeamManagement'],
+        summary: 'Submit an attrition request (last working day) for OM review',
+        responses: {
+          '201': { description: 'Created change request (Pending, type=attrition)' },
+          '400': { description: 'teamMemberEndDate is required' },
+        },
+      },
+    },
+    '/api/team-management/change-requests/pending': {
+      get: {
+        tags: ['TeamManagement'],
+        summary: 'List all pending team-member change requests (OM approval inbox)',
+        responses: { '200': { description: 'Array of pending change requests' } },
+      },
+    },
+    '/api/team-management/change-requests/{id}/approve': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      patch: {
+        tags: ['TeamManagement'],
+        summary: 'Approve a pending change request and apply it to the team member',
+        responses: {
+          '200': { description: 'Updated change request (Approved)' },
+          '400': { description: 'Change request is not Pending' },
+          '404': { description: 'Change request not found' },
+        },
+      },
+    },
+    '/api/team-management/change-requests/{id}/reject': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      patch: {
+        tags: ['TeamManagement'],
+        summary: 'Reject a pending change request',
+        responses: {
+          '200': { description: 'Updated change request (Rejected)' },
+          '400': { description: 'Change request is not Pending' },
+          '404': { description: 'Change request not found' },
+        },
+      },
+    },
+    '/api/project-grants/can-modify/{projectId}': {
+      parameters: [{ name: 'projectId', in: 'path', required: true, schema: { type: 'integer' } }],
+      get: {
+        tags: ['ProjectGrants'],
+        summary: "Check the caller's modify rights on a project (PM or 'owner' grant)",
+        responses: { '200': { description: '{ canModify: boolean }' } },
+      },
+    },
+    '/api/project-grants': {
+      get: {
+        tags: ['ProjectGrants'],
+        summary: 'List access grants for a project (admin)',
+        parameters: [{ name: 'projectId', in: 'query', required: true, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'Array of project grants' } },
+      },
+      post: {
+        tags: ['ProjectGrants'],
+        summary: "Grant a team member 'owner' or 'view' access to a project (admin) — FR-013",
+        responses: {
+          '201': { description: 'Created grant' },
+          '400': { description: 'Grant already exists for this project/team member' },
+        },
+      },
+    },
+    '/api/project-grants/{id}': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      delete: {
+        tags: ['ProjectGrants'],
+        summary: 'Remove a project access grant (admin)',
+        responses: {
+          '204': { description: 'Deleted' },
+          '404': { description: 'Grant not found' },
         },
       },
     },

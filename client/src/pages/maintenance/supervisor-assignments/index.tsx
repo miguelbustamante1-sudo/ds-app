@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO } from '@shared/dto';
 import {
@@ -58,6 +59,7 @@ const formatTeamMemberDisplay = (
 };
 
 export function SupervisorAssignmentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [formOpen, setFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<SupervisorAssignmentDTO | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -67,6 +69,29 @@ export function SupervisorAssignmentsPage() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
+
+  // Deep-link from the hiring wizard's Success step (FR-008): auto-open the create dialog,
+  // pre-filled with the team lead as supervisor and the new hire as team member.
+  const deepLinkSupervisorId = searchParams.get('supervisorId') ?? undefined;
+  const deepLinkTeamMemberId = searchParams.get('teamMemberId') ?? undefined;
+
+  useEffect(() => {
+    if (deepLinkSupervisorId && deepLinkTeamMemberId) {
+      setEditingAssignment(undefined);
+      setFormOpen(true);
+    }
+    // Only ever auto-open once, from the params present on initial load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Clear the deep-link params once the dialog closes (submitted or cancelled) so a refresh
+  // doesn't reopen it.
+  useEffect(() => {
+    if (!formOpen && (searchParams.get('supervisorId') || searchParams.get('teamMemberId'))) {
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen]);
 
   const assignments = useEntityList<SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO>({
     endpoint: '/api/supervisor-assignments',
@@ -320,6 +345,8 @@ export function SupervisorAssignmentsPage() {
             prev.map((i) => (i.supervisorAssignmentId === item.supervisorAssignmentId ? item : i))
           )
         }
+        initialSupervisorId={deepLinkSupervisorId}
+        initialTeamMemberId={deepLinkTeamMemberId}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

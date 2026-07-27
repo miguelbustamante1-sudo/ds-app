@@ -51,6 +51,10 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       tierBandDescription: item.tierBand?.tierBandDescription ?? null,
       shiftId:             item.shiftId ?? null,
       shiftDescription:    item.shift?.description ?? null,
+      assignedProjects: item.projectAssignments.map((pa) => ({
+        projectId:   pa.projectId,
+        projectName: pa.project.projectName,
+      })),
     }));
     res.json(dtos);
   } catch (err) {

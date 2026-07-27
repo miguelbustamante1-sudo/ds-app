@@ -53,6 +53,7 @@ export async function updateCardValue(
 
   return {
     cardValueId:        row.cardValueId,
+    cardTypeId:         row.cardTypeId,
     cardValueAmount:    Number(row.cardValueAmount),
     cardValueCurrency:  row.cardValueCurrency,
     cardValueIsActive:  row.cardValueIsActive,

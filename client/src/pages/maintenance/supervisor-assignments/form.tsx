@@ -35,6 +35,9 @@ interface SupervisorAssignmentFormDialogProps {
   onSuccess: () => void;
   onCreated?: (item: SupervisorAssignmentDTO) => void;
   onUpdated?: (item: SupervisorAssignmentDTO) => void;
+  /** Prefill values for create mode — used by the hiring wizard's supervisor-assignment deep-link (FR-008). */
+  initialSupervisorId?: string;
+  initialTeamMemberId?: string;
 }
 
 export function SupervisorAssignmentFormDialog({
@@ -44,6 +47,8 @@ export function SupervisorAssignmentFormDialog({
   onSuccess,
   onCreated,
   onUpdated,
+  initialSupervisorId,
+  initialTeamMemberId,
 }: SupervisorAssignmentFormDialogProps) {
   const { toast } = useToast();
   const isEditing = !!assignment;
@@ -103,14 +108,14 @@ export function SupervisorAssignmentFormDialog({
         });
       } else {
         reset({
-          teamMemberId: '',
-          supervisorId: '',
+          teamMemberId: initialTeamMemberId ?? '',
+          supervisorId: initialSupervisorId ?? '',
           supervisorAssignmentStartDate: '',
           supervisorAssignmentEndDate: '',
         });
       }
     }
-  }, [open, assignment, reset]);
+  }, [open, assignment, reset, initialSupervisorId, initialTeamMemberId]);
 
   const onSubmit = async (data: SupervisorAssignmentFormData) => {
     try {

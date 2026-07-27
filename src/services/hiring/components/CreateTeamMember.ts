@@ -6,8 +6,8 @@ export interface CreateTeamMemberInput {
   startDate: Date;             // hiring.startDate
   countryId: number;           // endorsement.countryId
   workdayId: string;           // hiring.workdayId (guaranteed non-null at this stage)
-  seniority: string;           // endorsement.tierBand.tierBandDescription
-  tierBandId: number;          // endorsement.tibId
+  seniority: string;           // endorsement.tierBand.tierBandDescription, or mock fallback (TEMP DEMO)
+  tierBandId: number | null;   // endorsement.tibId (nullable — TEMP DEMO, Tier/Band not yet required)
   primaryRoleId: number;       // endorsement.posId
   createdByUserId: number;     // req.user.dsUserId
 }

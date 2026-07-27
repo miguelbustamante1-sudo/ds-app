@@ -14,7 +14,7 @@ export const hiringHubConfig: HubConfig = {
     },
     {
       title: 'Endorsements',
-      description: 'Submit and review BSA endorsements for team members.',
+      description: 'Review and manage existing BSA endorsements. New endorsements are submitted through the Hiring wizard.',
       path: '/endorsements',
       role: 'bsa',
       permission: 'Endorsements',

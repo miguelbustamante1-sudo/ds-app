@@ -16,7 +16,7 @@ export async function ensureTeamMemberProjectsTableExists(): Promise<boolean> {
 export async function getAllTeamMemberProjects() {
   return await prisma.projectAssignment.findMany({
     include: {
-      teamMember: true,
+      teamMember: { include: { tierBand: true } },
       project: { include: { client: { include: { contacts: true } } } },
       clientContact: true,
     },
@@ -27,6 +27,21 @@ export async function getAllTeamMemberProjects() {
 export async function getTeamMemberProjectById(id: number): Promise<ProjectAssignment | null> {
   return await prisma.projectAssignment.findUnique({
     where: { projectAssignmentId: id },
+  });
+}
+
+/** Most recent currently-active assignment for a team member, or null if unassigned. */
+export async function getActiveProjectAssignmentForTeamMember(teamMemberId: number): Promise<ProjectAssignment | null> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return await prisma.projectAssignment.findFirst({
+    where: {
+      teamMemberId,
+      projectAssignmentDeleted: false,
+      OR: [{ projectAssignmentEndDate: null }, { projectAssignmentEndDate: { gte: today } }],
+    },
+    orderBy: { projectAssignmentStartDate: 'desc' },
   });
 }
 
@@ -57,7 +72,7 @@ export async function getTeamMemberProjectsByTeamMember(
 export async function getTeamMemberProjectsByProject(projectId: number) {
   return await prisma.projectAssignment.findMany({
     where: { projectId },
-    include: { teamMember: true, clientContact: true },
+    include: { teamMember: { include: { tierBand: true } }, clientContact: true },
     orderBy: { projectAssignmentId: 'asc' },
   });
 }
@@ -104,24 +119,29 @@ export async function getBenchAvailableMembers(): Promise<BenchAvailableMemberDT
     teamMemberNames: string;
     teamMemberSurnames: string;
     teamMemberSeniority: string | null;
+    tierBandDescription: string | null;
+    workdayId: string | null;
     totalAllocation: string;
   };
 
   const rows = await prisma.$queryRaw<RawRow[]>`
     SELECT
-      tms.tms_id        AS "teamMemberId",
-      tms.tms_names     AS "teamMemberNames",
-      tms.tms_surnames  AS "teamMemberSurnames",
-      tms.tms_seniority AS "teamMemberSeniority",
+      tms.tms_id           AS "teamMemberId",
+      tms.tms_names        AS "teamMemberNames",
+      tms.tms_surnames     AS "teamMemberSurnames",
+      tms.tms_seniority    AS "teamMemberSeniority",
+      tib.tib_description  AS "tierBandDescription",
+      tms.wdid             AS "workdayId",
       COALESCE(SUM(tmp.tmp_allocation), 0) AS "totalAllocation"
     FROM ds.tbl_team_members tms
+    LEFT JOIN ds.tib_tier_band tib ON tib.tib_id = tms.tib_id
     LEFT JOIN ds.tmp_team_member_project tmp ON (
       tmp.tms_id = tms.tms_id
       AND tmp.tmp_deleted = false
       AND COALESCE(tmp.tmp_end_date, '2050-12-31'::date) >= ${today}::date
     )
     WHERE (tms.tms_enddat IS NULL OR tms.tms_enddat > ${today}::date)
-    GROUP BY tms.tms_id, tms.tms_names, tms.tms_surnames, tms.tms_seniority
+    GROUP BY tms.tms_id, tms.tms_names, tms.tms_surnames, tms.tms_seniority, tib.tib_description, tms.wdid
     HAVING COALESCE(SUM(tmp.tmp_allocation), 0) < 100
     ORDER BY tms.tms_names, tms.tms_surnames
   `;
@@ -131,6 +151,8 @@ export async function getBenchAvailableMembers(): Promise<BenchAvailableMemberDT
     teamMemberNames: r.teamMemberNames,
     teamMemberSurnames: r.teamMemberSurnames,
     teamMemberSeniority: r.teamMemberSeniority,
+    tierBandDescription: r.tierBandDescription,
+    workdayId: r.workdayId,
     totalAllocation: Number(r.totalAllocation),
   }));
 }

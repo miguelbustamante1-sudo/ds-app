@@ -1,8 +1,16 @@
 import express from 'express';
 import type { Response } from 'express';
 import type { CreateHiringDTO, UpdateHiringDTO } from '@shared/dto';
-import { getApprovedEndorsementsWithoutHiring, getPendingHirings, getHiringById } from '../services/hiring/repository';
+import {
+  getApprovedEndorsementsWithoutHiring,
+  getPendingApprovalEndorsements,
+  getPendingHirings,
+  getHiringById,
+  getHiringByEndorsementId,
+} from '../services/hiring/repository';
+import { getHiringTeamLeadOptions } from '../services/teamMember/queries/getHiringTeamLeadOptions';
 import { hiringOrchestrator } from '../services/hiring';
+import { AppError } from '../errors/AppError';
 import { error } from '../logger';
 import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
 
@@ -27,6 +35,56 @@ router.get('/pending', requirePermission('Hiring', 'read'), async (req: Authenti
   } catch (err) {
     error(err);
     res.status(500).json({ error: 'Failed to fetch pending hirings' });
+  }
+});
+
+// GET /hiring/pending-approval — pending endorsements with no hiring record yet
+// NOTE: must be registered before /:id so it isn't swallowed by that param route.
+router.get('/pending-approval', requirePermission('Hiring', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await getPendingApprovalEndorsements();
+    res.json({ data });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch pending-approval endorsements' });
+  }
+});
+
+// GET /hiring/team-leads — active team members eligible to be a hiring's team lead
+// NOTE: must be registered before /:id so it isn't swallowed by that param route.
+router.get('/team-leads', requirePermission('Hiring', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await getHiringTeamLeadOptions();
+    res.json({ data });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch team lead options' });
+  }
+});
+
+// GET /hiring/by-endorsement/:endorsementId — hiring record (if any) for a given endorsement
+router.get('/by-endorsement/:endorsementId', requirePermission('Hiring', 'read'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const endorsementId = Number(req.params.endorsementId);
+    if (Number.isNaN(endorsementId)) throw new AppError('Invalid endorsementId', 400);
+
+    const data = await getHiringByEndorsementId(endorsementId);
+    res.json({ data });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    error(err);
+    res.status(500).json({ error: 'Failed to fetch hiring by endorsement' });
   }
 });
 

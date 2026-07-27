@@ -52,6 +52,7 @@ export async function createCardValue(data: CreateCardValueInput): Promise<GiftC
 
   return {
     cardValueId:        row.cardValueId,
+    cardTypeId:         row.cardTypeId,
     cardValueAmount:    Number(row.cardValueAmount),
     cardValueCurrency:  row.cardValueCurrency,
     cardValueIsActive:  row.cardValueIsActive,

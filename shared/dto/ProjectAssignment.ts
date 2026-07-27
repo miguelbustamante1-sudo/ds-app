@@ -44,6 +44,8 @@ export interface UpdateProjectAssignmentDTO {
 export interface ProjectAssignmentWithDetailsDTO extends ProjectAssignmentDTO {
   teamMemberName: string | null;
   teamMemberSeniority: string | null;
+  /** Catalog-backed level (TierBand.tierBandDescription) — prefer this over teamMemberSeniority for display (TD-003/DEC-005). */
+  tierBandDescription: string | null;
   projectName: string | null;
   clientContactName: string | null;
   clientName: string | null;
@@ -55,6 +57,9 @@ export interface BenchAvailableMemberDTO {
   teamMemberNames: string;
   teamMemberSurnames: string;
   teamMemberSeniority: string | null;
+  /** Catalog-backed level (TierBand.tierBandDescription) — prefer this over teamMemberSeniority for display (TD-003/DEC-005). */
+  tierBandDescription: string | null;
+  workdayId: string | null;
   totalAllocation: number;
 }
 

@@ -11,6 +11,8 @@ interface FloatingToolbarProps {
   hasSelection: boolean;
   projectId: number | null;
   isBenchSelected: boolean;
+  /** FR-012 — false when the caller lacks modify rights on the selected project (view-only). */
+  canModify: boolean;
   onRemove: () => void;
   onChangeRate: () => void;
   onAddMember: () => void;
@@ -21,6 +23,7 @@ export function FloatingToolbar({
   hasSelection,
   projectId,
   isBenchSelected,
+  canModify,
   onRemove,
   onChangeRate,
   onAddMember,
@@ -35,7 +38,7 @@ export function FloatingToolbar({
               <Button
                 size="icon"
                 variant="outline"
-                disabled={!hasSelection}
+                disabled={!hasSelection || !canModify}
                 onClick={onRemove}
                 aria-label="Remove from project"
               >
@@ -52,7 +55,7 @@ export function FloatingToolbar({
               <Button
                 size="icon"
                 variant="outline"
-                disabled={!hasSelection}
+                disabled={!hasSelection || !canModify}
                 onClick={onChangeRate}
                 aria-label="Change bill rate"
               >
@@ -69,7 +72,7 @@ export function FloatingToolbar({
               <Button
                 size="icon"
                 variant="outline"
-                disabled={projectId === null}
+                disabled={projectId === null || !canModify}
                 onClick={onAddMember}
                 aria-label="Add team member"
               >
@@ -81,7 +84,7 @@ export function FloatingToolbar({
         </Tooltip>
 
         {isBenchSelected && (
-          <Button size="sm" onClick={onAssignToProject}>
+          <Button size="sm" onClick={onAssignToProject} disabled={!canModify}>
             Assign to project
           </Button>
         )}
