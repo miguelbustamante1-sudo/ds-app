@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================
+# Local Environment Setup Script
+# Builds and runs the entire stack (app + database) in Docker.
+# This NEVER touches production.
+# ============================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+ENV_LOCAL="$PROJECT_ROOT/.env.local"
+COMPOSE_FILE="$PROJECT_ROOT/docker-compose.local.yml"
+
+# ---- Check .env.local exists ----
+if [ ! -f "$ENV_LOCAL" ]; then
+  echo "Error: .env.local not found at $ENV_LOCAL"
+  echo "Create it with the required environment variables (see HowToRunLocally.md)."
+  exit 1
+fi
+
+# ---- Check Docker is available ----
+if ! command -v docker &> /dev/null; then
+  echo "Error: docker command not found."
+  echo "Make sure Rancher Desktop is installed and configured:"
+  echo "  1. Open Rancher Desktop"
+  echo "  2. Go to Preferences > Container Engine and select 'dockerd (moby)'"
+  echo "  3. Go to Preferences > Application > Path Management and enable it"
+  echo "  4. Restart your terminal"
+  exit 1
+fi
+
+if ! docker info &> /dev/null; then
+  echo "Error: Docker daemon is not running. Please start Rancher Desktop and try again."
+  exit 1
+fi
+
+cd "$PROJECT_ROOT"
+
+# ---- Clean up: stop previous containers, remove volumes and cached images ----
+echo ""
+echo "Cleaning up previous containers and images..."
+docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
+docker image rm ds-app-db-setup ds-app-app 2>/dev/null || true
+
+# ---- Step 1: Start the database ----
+echo ""
+echo "Starting local PostgreSQL container..."
+docker compose -f "$COMPOSE_FILE" up -d postgres-local
+
+echo "Waiting for PostgreSQL to be ready..."
+until docker compose -f "$COMPOSE_FILE" exec -T postgres-local pg_isready -U postgres -d ds_app_local &> /dev/null; do
+  sleep 1
+done
+echo "PostgreSQL is ready."
+
+# ---- Step 2: Push Prisma schema to local database ----
+echo ""
+echo "Pushing Prisma schema to local database..."
+docker compose -f "$COMPOSE_FILE" --profile setup run --rm db-setup
+
+# ---- Step 3: Seed the database ----
+SEED_FILE="$SCRIPT_DIR/seed.sql"
+if [ -f "$SEED_FILE" ]; then
+
+  # Read and validate DEV_USERNAME from .env.local
+  DEV_USERNAME=$(grep -E "^DEV_USERNAME=" "$ENV_LOCAL" | cut -d= -f2 | tr -d ' ')
+  if [ -z "$DEV_USERNAME" ] || [ "$DEV_USERNAME" = "email.com" ] || [ "$DEV_USERNAME" = "your@email.com" ]; then
+    echo ""
+    echo "Error: DEV_USERNAME is not set or still has the placeholder value in .env.local"
+    echo "Set DEV_USERNAME (and VITE_DEV_USERNAME) to your email address, then run setup again."
+    exit 1
+  fi
+
+  echo ""
+  echo "Seeding the database (dev user: $DEV_USERNAME)..."
+  docker compose -f "$COMPOSE_FILE" exec -T postgres-local \
+    psql -U postgres -d ds_app_local \
+    -v dev_email="$DEV_USERNAME" \
+    -f /dev/stdin < "$SEED_FILE" 2>&1 || true
+  echo "Seed complete (duplicate rows are skipped on re-runs)."
+fi
+
+# ---- Step 4: Build and start the application ----
+echo ""
+echo "Building and starting the application..."
+docker compose -f "$COMPOSE_FILE" up -d --build app
+
+echo ""
+echo "============================================================"
+echo "Local environment is running!"
+echo ""
+echo "  App:            http://localhost:3000"
+echo "  Database:       localhost:5433 (user: postgres / password: postgres)"
+echo ""
+echo "  View logs:      docker compose -f docker-compose.local.yml logs -f app"
+echo "  Stop all:       docker compose -f docker-compose.local.yml down"
+echo "  Reset DB:       docker compose -f docker-compose.local.yml down -v"
+echo "============================================================"

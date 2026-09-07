@@ -1,0 +1,49 @@
+import { createContext, ReactNode, useContext, useState } from 'react';
+
+type SidebarTheme = 'dark' | 'light';
+
+interface LayoutState {
+  sidebarCollapse: boolean;
+  setSidebarCollapse: (open: boolean) => void;
+  sidebarTheme: SidebarTheme;
+  setSidebarTheme: (theme: SidebarTheme) => void;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+}
+
+const LayoutContext = createContext<LayoutState | undefined>(undefined);
+
+interface LayoutProviderProps {
+  children: ReactNode;
+}
+
+export function LayoutProvider({ children }: LayoutProviderProps) {
+  const [sidebarCollapse, setSidebarCollapse] = useState(true);
+  const [sidebarTheme, setSidebarTheme] = useState<SidebarTheme>('light');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <LayoutContext.Provider
+      value={{
+        sidebarCollapse,
+        setSidebarCollapse,
+        sidebarTheme,
+        setSidebarTheme,
+        mobileMenuOpen,
+        setMobileMenuOpen,
+      }}
+    >
+      {children}
+    </LayoutContext.Provider>
+  );
+}
+
+export const useLayout = () => {
+  const context = useContext(LayoutContext);
+
+  if (!context) {
+    throw new Error('useLayout must be used within a LayoutProvider');
+  }
+
+  return context;
+};

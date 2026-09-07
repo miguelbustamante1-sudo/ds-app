@@ -1,0 +1,51 @@
+import { prisma } from '../../../../db/prisma';
+import type { GiftCardReasonDTO } from '../../../../../shared/dto/GiftCardReason';
+import { GiftCardValidationError } from '../../errors';
+
+export interface UpdateReasonInput {
+  reasonName?: string;
+}
+
+export function validateUpdateReason(raw: Record<string, unknown>): UpdateReasonInput {
+  const { reasonName } = raw;
+  const data: UpdateReasonInput = {};
+
+  if (reasonName !== undefined) {
+    if (typeof reasonName !== 'string' || reasonName.trim() === '') {
+      throw new GiftCardValidationError('`reasonName` must be a non-empty string');
+    }
+    data.reasonName = reasonName.trim();
+  }
+  if (Object.keys(data).length === 0) {
+    throw new GiftCardValidationError('At least one field must be provided: reasonName');
+  }
+  return data;
+}
+
+export async function updateReason(
+  id:   number,
+  data: UpdateReasonInput,
+): Promise<GiftCardReasonDTO | null> {
+  const row = await prisma.giftCardReason.update({
+    where: { reasonId: id },
+    data: {
+      ...(data.reasonName !== undefined && { reasonName: data.reasonName }),
+    },
+    select: {
+      reasonId:        true,
+      reasonName:      true,
+      reasonIsActive:  true,
+      reasonCreatedBy: true,
+      reasonCreatedAt: true,
+      createdBy:       { select: { userName: true } },
+    },
+  });
+  return {
+    reasonId:        row.reasonId,
+    reasonName:      row.reasonName,
+    reasonIsActive:  row.reasonIsActive,
+    reasonCreatedBy: row.reasonCreatedBy,
+    reasonCreatedByUserName: row.createdBy?.userName ?? null,
+    reasonCreatedAt: row.reasonCreatedAt.toISOString(),
+  };
+}

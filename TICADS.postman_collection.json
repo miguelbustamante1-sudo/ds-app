@@ -1,0 +1,624 @@
+{
+  "info": {
+    "_postman_id": "e282fd47-2beb-4ec1-bbd1-6efebd644d3d",
+    "name": "TICADS",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51128827",
+    "_collection_link": "https://go.postman.co/collection/51128827-e282fd47-2beb-4ec1-bbd1-6efebd644d3d?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "persistence-template",
+      "item": [
+        {
+          "name": "Get all",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/api/persistence-template/?limit=10&page=1",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-template",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/api/persistence-template/:id",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-template",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "24"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "/*pm.test(\"Status code is 404\", () => {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "});*/"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_id\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/persistence-template/:id",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-template",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "24"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_id\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/persistence-template/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-template",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "persistence-data-type",
+      "item": [
+        {
+          "name": "Get all",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/api/persistence-data-type/?limit=3&page=2",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-data-type",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "3"
+                },
+                {
+                  "key": "page",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "persistence-table",
+      "item": [
+        {
+          "name": "Get all",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/api/persistence-table/?limit=10&page=1",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "persistence-table",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "tests",
+      "item": [
+        {
+          "name": "persistence-template",
+          "item": [
+            {
+              "name": "Update by ID - 400 - primary key",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_id\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/:id",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "24"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - primary key",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_id\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - no matching column - not valid column name",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_x_id\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - no matching column - allowNull mismatch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_name\",\r\n      \"type\": \"VARCHAR\",\r\n      \"length\": 100,\r\n      \"allowNull\": true,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - no matching column - datatype mismatch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_name\",\r\n      \"type\": \"INTEGER\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - not valid errorHandlingStrategy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT_X\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_name\",\r\n      \"type\": \"VARCHAR\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 400 - table not found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries_x\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_name\",\r\n      \"type\": \"VARCHAR\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create - 200 - OK",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", () => {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_name\",\r\n      \"type\": \"VARCHAR\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update by ID - 400 - no matching column",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", () => {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"name\": \"basic-template-16\",\r\n  \"description\": \"This is basic template 16\",\r\n  \"targetTable\": \"ds.cou_countries\",\r\n  \"enabled\": true,\r\n  \"errorHandlingStrategy\": \"STOP_ON_FIRST_ERROR_AND_COMMIT\",\r\n  \"duplicatesHandlingStrategy\": \"REPLACE\",\r\n  \"columns\": [\r\n    {\r\n      \"index\": 1,\r\n      \"name\": \"cou_X_name\",\r\n      \"type\": \"VARCHAR\",\r\n      \"length\": 100,\r\n      \"allowNull\": false,\r\n      \"comment\": \"oK\"\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{host}}/api/persistence-template/:id",
+                  "host": [
+                    "{{host}}"
+                  ],
+                  "path": [
+                    "api",
+                    "persistence-template",
+                    ":id"
+                  ],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "24"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

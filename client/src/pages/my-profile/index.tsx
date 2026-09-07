@@ -1,0 +1,517 @@
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  Toolbar,
+  ToolbarDescription,
+  ToolbarHeading,
+  ToolbarPageTitle,
+} from '@/components/ui/toolbar';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { User, Briefcase, MapPin, Calendar, Users, CalendarDays, Building2, XCircle } from 'lucide-react';
+import {
+  ColumnDef,
+  getCoreRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
+import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
+import { DataGridTable } from '@/components/ui/data-grid-table';
+import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/auth/auth-provider';
+import { useMyProfile } from '@/hooks/useMyProfile';
+import { useMyTimeOffOperations } from '@/hooks/useMyTimeOffOperations';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+import { apiGet, ApiError } from '@/lib/api';
+import { MyHolidaySwapsSection } from './components/MyHolidaySwapsSection';
+import { ProjectsSection } from './components/ProjectsSection';
+import { CancelMyTimeOffDialog } from '@/pages/timeoff/components/CancelMyTimeOffDialog';
+import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
+
+function canCancelTimeOff(timeOff: TimeOffWithDetailsDTO): boolean {
+  const statusLower = timeOff.statusName.toLowerCase();
+  if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return false;
+  const required = Math.max(timeOff.categoryCountryDaysBefore ?? 0, 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDate = parseUTCDateAsLocal(String(timeOff.timeOffStartDate));
+  startDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((startDate.getTime() - today.getTime()) / 86_400_000);
+  return diffDays > required;
+}
+
+function getStatusVariant(statusName: string): 'success' | 'secondary' | 'destructive' | 'outline' {
+  const s = statusName.toLowerCase();
+  if (s.includes('approved') || s.includes('acknowledged')) return 'success';
+  if (s.includes('tentative') || s.includes('pending')) return 'secondary';
+  if (s.includes('cancelled') || s.includes('rejected')) return 'destructive';
+  return 'outline';
+}
+
+export function MyProfilePage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { profile, loading, loadProfile } = useMyProfile({
+    onError: (msg) => toast({ title: 'Error', description: msg, variant: 'destructive' }),
+  });
+
+  const [timeOffs, setTimeOffs] = useState<TimeOffWithDetailsDTO[]>([]);
+  const [loadingTimeOffs, setLoadingTimeOffs] = useState(false);
+  const [showAllTimeOffs, setShowAllTimeOffs] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'timeOffStartDate', desc: false }]);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOffWithDetailsDTO | null>(null);
+
+  const operations = useMyTimeOffOperations({
+    onSuccess: (msg) => toast({ title: 'Success', description: msg }),
+    onError: (err) => toast({ title: 'Error', description: err, variant: 'destructive' }),
+  });
+
+  const loadTimeOffs = useCallback(async () => {
+    setLoadingTimeOffs(true);
+    try {
+      const data = await apiGet<TimeOffWithDetailsDTO[]>('/api/time-offs/my-requests');
+      setTimeOffs(data);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load time-off records';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setLoadingTimeOffs(false);
+    }
+  }, [toast]);
+
+  const handleCancelConfirm = async (timeOffId: number, comment: string) => {
+    await operations.cancelTimeOff(timeOffId, comment);
+    await loadTimeOffs();
+  };
+
+  useEffect(() => {
+    if (user?.teamMemberId) {
+      loadProfile();
+      loadTimeOffs();
+    }
+  }, [user?.teamMemberId]);
+
+  const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
+    () => [
+      {
+        accessorKey: 'categoryName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Category" />,
+        size: 150,
+        meta: { headerTitle: 'Category', skeleton: <Skeleton className="h-4 w-24" /> },
+      },
+      {
+        accessorKey: 'timeOffStartDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.timeOffStartDate),
+        size: 120,
+        meta: { headerTitle: 'Start Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'timeOffEndDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="End Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.timeOffEndDate),
+        size: 120,
+        meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'timeOffDays',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Days" />,
+        size: 70,
+        meta: { headerTitle: 'Days', skeleton: <Skeleton className="h-4 w-8" /> },
+      },
+      {
+        accessorKey: 'statusName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => (
+          <Badge variant={getStatusVariant(row.original.statusName)}>
+            {row.original.statusName}
+          </Badge>
+        ),
+        size: 130,
+        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          if (!canCancelTimeOff(row.original)) return null;
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTimeOff(row.original);
+                setCancelDialogOpen(true);
+              }}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+          );
+        },
+        size: 110,
+        meta: { headerTitle: 'Actions', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+    ],
+    []
+  );
+
+  const filteredTimeOffs = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return timeOffs.filter((t) => {
+      const isCancelled = t.statusName.toLowerCase().includes('cancelled');
+      if (isCancelled && !showCancelled) return false;
+      if (!showAllTimeOffs) {
+        const end = parseUTCDateAsLocal(String(t.timeOffEndDate));
+        end.setHours(0, 0, 0, 0);
+        if (end < today) return false;
+      }
+      return true;
+    });
+  }, [timeOffs, showAllTimeOffs, showCancelled]);
+
+  const table = useReactTable({
+    data: filteredTimeOffs,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  if (!user?.teamMemberId) {
+    return (
+      <div className="container">
+        <Toolbar>
+          <ToolbarHeading>
+            <ToolbarPageTitle>My Profile</ToolbarPageTitle>
+            <ToolbarDescription>Your account is not linked to a team member profile.</ToolbarDescription>
+          </ToolbarHeading>
+        </Toolbar>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="container">
+        <Toolbar>
+          <ToolbarHeading>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+          </ToolbarHeading>
+        </Toolbar>
+        <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64 md:col-span-2 lg:col-span-4" />
+          <Skeleton className="h-64 md:col-span-2 lg:col-span-4" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="container">
+        <Toolbar>
+          <ToolbarHeading>
+            <ToolbarPageTitle>My Profile</ToolbarPageTitle>
+            <ToolbarDescription>Could not load your profile information.</ToolbarDescription>
+          </ToolbarHeading>
+        </Toolbar>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container">
+      <Toolbar>
+        <ToolbarHeading>
+          <ToolbarPageTitle>My Profile</ToolbarPageTitle>
+          <ToolbarDescription>
+            {profile.teamMemberKnownAs && (
+              <span className="mr-2">"{profile.teamMemberKnownAs}"</span>
+            )}
+            {profile.workdayId && <span>WDID: {profile.workdayId}</span>}
+          </ToolbarDescription>
+        </ToolbarHeading>
+      </Toolbar>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Personal Information */}
+        <Card>
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <User className="h-4 w-4" />
+              Personal Information
+            </CardTitle>
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
+                <dd className="text-sm mt-1">
+                  {profile.teamMemberNames} {profile.teamMemberSurnames}
+                </dd>
+              </div>
+              {profile.teamMemberKnownAs && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Known As</dt>
+                  <dd className="text-sm mt-1">{profile.teamMemberKnownAs}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Workday ID</dt>
+                <dd className="text-sm mt-1">{profile.workdayId || '-'}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Work Information */}
+        <Card>
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <Briefcase className="h-4 w-4" />
+              Work Information
+            </CardTitle>
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Seniority</dt>
+                <dd className="text-sm mt-1">{profile.teamMemberSeniority || '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Primary Role</dt>
+                <dd className="text-sm mt-1">{profile.primaryRoleName || '-'}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Location */}
+        <Card>
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <MapPin className="h-4 w-4" />
+              Location
+            </CardTitle>
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Country</dt>
+                <dd className="text-sm mt-1 flex items-center gap-2">
+                  {profile.countryName || '-'}
+                  {profile.countryIso && (
+                    <span className="text-xs text-muted-foreground">
+                      ({profile.countryIso})
+                    </span>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Supervision Details */}
+        <Card>
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <Users className="h-4 w-4" />
+              Supervision Details
+            </CardTitle>
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Report Type</dt>
+                <dd className="text-sm mt-1">
+                  <Badge variant={profile.reportType === 'Direct' ? 'primary' : 'secondary'}>
+                    {profile.reportType}
+                  </Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Assignment Start Date</dt>
+                <dd className="text-sm mt-1 flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  {formatUTCDate(profile.supervisorAssignmentStartDate)}
+                </dd>
+              </div>
+              {profile.supervisorAssignmentEndDate && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Assignment End Date</dt>
+                  <dd className="text-sm mt-1 flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    {formatUTCDate(profile.supervisorAssignmentEndDate)}
+                  </dd>
+                </div>
+              )}
+              {profile.teamMemberEndDate && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">End Date</dt>
+                  <dd className="text-sm mt-1 flex items-center gap-2 text-destructive">
+                    <Calendar className="h-3 w-3" />
+                    {formatUTCDate(profile.teamMemberEndDate)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Current Projects */}
+        <ProjectsSection projects={profile.currentProjects} />
+
+        {/* Workday Information */}
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardContent>
+            <CardTitle className="flex items-center gap-2 mb-4">
+              <Building2 className="h-4 w-4" />
+              Workday Information
+            </CardTitle>
+            {!profile.workdayId ? (
+              <p className="text-sm text-muted-foreground">No Workday ID linked to your profile</p>
+            ) : (
+              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Hire Date</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.hireDate ? formatUTCDate(profile.hireDate) : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Work Style</dt>
+                  <dd className="text-sm mt-1">{profile.workStyle || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Gender</dt>
+                  <dd className="text-sm mt-1">{profile.gender || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Birth Date</dt>
+                  <dd className="text-sm mt-1">{profile.birthDate || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Parenthood</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.parenthood === null ? '-' : profile.parenthood ? 'Yes' : 'No'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Billing Status</dt>
+                  <dd className="text-sm mt-1">{profile.billingStatus || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Cost Center</dt>
+                  <dd className="text-sm mt-1">{profile.costCenterNames || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Direct Manager (Workday)</dt>
+                  <dd className="text-sm mt-1">{profile.directManager || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Corporate Email</dt>
+                  <dd className="text-sm mt-1">{profile.corporateEmail || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Personal Email</dt>
+                  <dd className="text-sm mt-1">{profile.personalEmail || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Cellphone</dt>
+                  <dd className="text-sm mt-1">{profile.cellphone || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Home Phone</dt>
+                  <dd className="text-sm mt-1">{profile.homePhone || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Vacation Days</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.vacation != null ? `${profile.vacation} days` : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Personal Days</dt>
+                  <dd className="text-sm mt-1">
+                    {profile.personalDays != null ? `${profile.personalDays} days` : '-'}
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Holiday Swaps */}
+        <MyHolidaySwapsSection />
+
+        {/* Time Off */}
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardContent className="space-y-4">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Time Off
+            </CardTitle>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-all-my"
+                  checked={showAllTimeOffs}
+                  onCheckedChange={(checked) => setShowAllTimeOffs(checked === true)}
+                />
+                <Label htmlFor="show-all-my" className="text-sm font-medium leading-none">
+                  Show past
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-cancelled-my"
+                  checked={showCancelled}
+                  onCheckedChange={(checked) => setShowCancelled(checked === true)}
+                />
+                <Label htmlFor="show-cancelled-my" className="text-sm font-medium leading-none">
+                  Show cancelled
+                </Label>
+              </div>
+            </div>
+
+            {loadingTimeOffs ? (
+              <div className="space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <DataGridContainer>
+                <DataGrid
+                  table={table}
+                  recordCount={filteredTimeOffs.length}
+                  tableLayout={{ columnsResizable: true, headerBackground: true, headerBorder: true, rowBorder: true }}
+                >
+                  <DataGridTable />
+                </DataGrid>
+              </DataGridContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <CancelMyTimeOffDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        timeOff={selectedTimeOff}
+        onConfirm={handleCancelConfirm}
+        loading={operations.loading}
+      />
+    </div>
+  );
+}

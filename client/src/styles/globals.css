@@ -1,0 +1,190 @@
+/* Tailwind Core */
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+/* UDS Design System Tokens (auto-generated) */
+@import './uds-theme.css';
+
+/** Dark Mode Variant **/
+@custom-variant dark (&:is(.dark *));
+
+/** Colors - UDS TELUS tokens mapped to Metronic semantic variables **/
+:root {
+  --background: var(--color-uds-system-grey-0);
+  --foreground: var(--color-uds-system-grey-900);
+  --card: var(--color-uds-system-grey-0);
+  --card-foreground: var(--color-uds-system-grey-900);
+  --popover: var(--color-uds-system-grey-0);
+  --popover-foreground: var(--color-uds-system-grey-900);
+  /* Primary → UDS TELUS Purple */
+  --primary: var(--color-uds-telus-purple-500);
+  --primary-foreground: var(--color-uds-system-grey-0);
+  /* Secondary → UDS System Grey light */
+  --secondary: var(--color-uds-system-grey-100);
+  --secondary-foreground: var(--color-uds-system-grey-800);
+  --muted: var(--color-uds-system-grey-100);
+  --muted-foreground: var(--color-uds-system-grey-500);
+  --accent: var(--color-uds-telus-purple-50);
+  --accent-foreground: var(--color-uds-telus-purple-500);
+  /* Destructive → UDS System Red */
+  --destructive: var(--color-uds-system-red-500);
+  --destructive-foreground: var(--color-uds-system-grey-0);
+  /* Charts → UDS semantic colors */
+  --chart-1: var(--color-uds-system-blue-500);
+  --chart-2: var(--color-uds-telus-green-500);
+  --chart-3: var(--color-uds-system-amber-400);
+  --chart-4: var(--color-uds-system-red-500);
+  --chart-5: var(--color-uds-telus-purple-400);
+  /* Borders & inputs */
+  --border: var(--color-uds-system-grey-200);
+  --input: var(--color-uds-system-grey-200);
+  --ring: var(--color-uds-telus-purple-400);
+  --radius: 0.5rem;
+}
+
+/** Dark Mode — UDS TELUS Deep Purple palette **/
+.dark {
+  /* Backgrounds: deep plum brand colors instead of generic zinc */
+  --background: var(--color-uds-telus-purple-900);
+  --foreground: var(--color-uds-system-grey-50);
+  --card: var(--color-uds-telus-purple-800);
+  --card-foreground: var(--color-uds-system-grey-50);
+  --popover: var(--color-uds-telus-purple-800);
+  --popover-foreground: var(--color-uds-system-grey-100);
+  /* Primary: lighter purple so it pops on dark backgrounds */
+  --primary: var(--color-uds-telus-purple-300);
+  --primary-foreground: var(--color-uds-system-grey-0);
+  /* Secondary */
+  --secondary: var(--color-uds-telus-purple-700);
+  --secondary-foreground: var(--color-uds-system-grey-100);
+  --muted: var(--color-uds-telus-purple-700);
+  --muted-foreground: var(--color-uds-system-grey-400);
+  --accent: var(--color-uds-telus-purple-600);
+  --accent-foreground: var(--color-uds-telus-purple-200);
+  /* Destructive → UDS System Red (same, readable in dark) */
+  --destructive: var(--color-uds-system-red-400);
+  --destructive-foreground: var(--color-uds-system-grey-0);
+  /* Charts */
+  --chart-1: var(--color-uds-system-blue-400);
+  --chart-2: var(--color-uds-telus-green-400);
+  --chart-3: var(--color-uds-system-amber-300);
+  --chart-4: var(--color-uds-system-red-400);
+  --chart-5: var(--color-uds-telus-purple-300);
+  /* Borders: semi-transparent light overlay for subtle elevation */
+  --border: var(--color-uds-telus-purple-600);
+  --input: var(--color-uds-telus-purple-700);
+  --ring: var(--color-uds-telus-purple-300);
+}
+
+/** Theme Setup **/
+@theme inline {
+  /** Base Colors **/
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  /** Base Styles **/
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /** UDS Card Shadows — purple-tinted elevation **/
+  --shadow-uds-card: 0 2px 12px 0 rgba(75, 40, 109, 0.10), 0 1px 3px 0 rgba(75, 40, 109, 0.06);
+  --shadow-uds-card-hover: 0 6px 24px 0 rgba(75, 40, 109, 0.16), 0 2px 6px 0 rgba(75, 40, 109, 0.08);
+  --shadow-uds-card-elevated: 0 10px 40px 0 rgba(75, 40, 109, 0.20), 0 4px 12px 0 rgba(75, 40, 109, 0.10);
+
+  /** Animations **/
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-flag-count-pulse: flag-count-pulse 1.6s ease-in-out infinite;
+
+  @keyframes flag-count-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+}
+
+/** Global Styles **/
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  *:focus-visible {
+    @apply outline-ring rounded-xs shadow-none outline-2 outline-offset-3 transition-none!;
+  }
+}
+
+/** Custom Scrollbar **/
+@layer base {
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--input);
+    border-radius: 5px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
+  }
+}
+
+/** Smooth scroll **/
+html {
+  scroll-behavior: smooth;
+}
+
+/** Custom Containers **/
+@utility container {
+  @apply mx-auto max-w-none px-4 lg:px-5;
+}
+
+@utility container-fluid {
+  @apply w-full mx-auto px-4 lg:px-5;
+}
+
+/* Metronic Configs */
+@import './config.metronic.css';

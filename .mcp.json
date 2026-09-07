@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ds-app": {
+      "url": "https://ds-app-dev-600309317644.us-central1.run.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer <MCP_API_KEY>"
+      }
+    }
+  }
+}

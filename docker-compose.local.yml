@@ -1,0 +1,57 @@
+services:
+  postgres-local:
+    image: postgres:16-alpine
+    container_name: ds_app_local_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ds_app_local
+    ports:
+      - "5433:5432"
+    volumes:
+      - ds_app_local_data:/var/lib/postgresql/data
+      - ./scripts/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ds_app_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-off service: pushes the Prisma schema to the local database
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      target: prisma-setup
+    depends_on:
+      postgres-local:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-local:5432/ds_app_local
+    profiles: ["setup"]
+
+  # The application (server + client)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        VITE_ENABLE_DEV_LOGIN: "true"
+        VITE_DEV_USERNAME: ${VITE_DEV_USERNAME:-}
+    container_name: ds_app_local
+    depends_on:
+      postgres-local:
+        condition: service_healthy
+    env_file: .env.local
+    environment:
+      # Override host/port to use the Docker network instead of localhost
+      DATABASE_URL: postgresql://postgres:postgres@postgres-local:5432/ds_app_local
+      DB_HOST: postgres-local
+      DB_PORT: 5432
+      NODE_ENV: development
+      PORT: 8080
+    ports:
+      - "3000:8080"
+
+volumes:
+  ds_app_local_data:

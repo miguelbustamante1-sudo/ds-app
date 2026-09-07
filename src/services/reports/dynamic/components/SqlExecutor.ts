@@ -1,0 +1,166 @@
+import type { Response } from 'express';
+import { prisma } from '../../../../db/prisma';
+import { getReportById } from '../../../../db/dynamicReports';
+import { assertSqlSafe, extractParams } from './SqlSafetyGuard';
+import type { ExecuteResponseDTO } from '@shared/dto/DynamicReport';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function serializeBigInts(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    result[key] = typeof value === 'bigint' ? Number(value) : value;
+  }
+  return result;
+}
+
+function escapeCsvField(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function rowsToCsvLines(rows: Record<string, unknown>[]): string {
+  return rows.map((row) => Object.values(row).map(escapeCsvField).join(',')).join('\r\n');
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Loads the report definition, validates its SQL, substitutes user-supplied
+ * values for {paramName} placeholders, and executes a paginated query.
+ */
+export async function executeSql(
+  reportId: number,
+  params: Record<string, string | number | boolean | null>,
+  page: number,
+  pageSize: number,
+): Promise<ExecuteResponseDTO> {
+  // Step 1: Load report definition
+  const report = await getReportById(reportId);
+  if (!report) {
+    throw new Error(`Report ${reportId} not found.`);
+  }
+
+  // Step 2: Validate SQL (reject if tampered since creation)
+  assertSqlSafe(report.reportSqlQuery);
+
+  // Step 3: Get ordered placeholder list
+  const placeholders = extractParams(report.reportSqlQuery);
+
+  // Step 4 & 5: Build positional param values and replace {paramName} → $N
+  const baseValues: unknown[] = [];
+  let baseSql = report.reportSqlQuery;
+
+  // Replace each placeholder in order, assigning $1, $2, ... positional params.
+  // We need to process all occurrences in left-to-right order so indices align.
+  // Build a mapping: placeholderName → $N (using first-occurrence order)
+  const paramIndex = new Map<string, number>();
+  placeholders.forEach((name, i) => {
+    paramIndex.set(name, i + 1);
+    const value = Object.prototype.hasOwnProperty.call(params, name) ? params[name] ?? null : null;
+    baseValues.push(value);
+  });
+
+  // Replace all occurrences of {paramName} with the correct $N
+  baseSql = baseSql.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_match, name: string) => {
+    const idx = paramIndex.get(name);
+    if (idx === undefined) return 'NULL';
+    return `$${idx}`;
+  });
+
+  // Step 6 & 7: Count query
+  const countSql = `SELECT COUNT(*)::int AS total FROM (${baseSql}) AS __count__`;
+  const countResult = await prisma.$queryRawUnsafe<[{ total: number }]>(
+    countSql,
+    ...baseValues,
+  );
+  const total = Number(countResult[0]?.total ?? 0);
+
+  // Step 6 & 7: Data query with pagination
+  const offset = page * pageSize;
+  const limitIdx = baseValues.length + 1;
+  const offsetIdx = baseValues.length + 2;
+  const dataSql = `${baseSql} LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+  const dataValues = [...baseValues, pageSize, offset];
+
+  const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+    dataSql,
+    ...dataValues,
+  );
+
+  // Step 8: Return ExecuteResponseDTO
+  return {
+    data: rows.map(serializeBigInts),
+    total,
+    page,
+    pageSize,
+  };
+}
+
+const CSV_BATCH_SIZE = 10_000;
+
+/**
+ * Streams the full result set of a report as CSV directly to the Express response.
+ * Fetches rows in batches of 10 000 to avoid loading the entire dataset into memory.
+ */
+export async function streamCsvToResponse(
+  reportId: number,
+  params: Record<string, string | number | boolean | null>,
+  res: Response,
+): Promise<void> {
+  const report = await getReportById(reportId);
+  if (!report) throw new Error(`Report ${reportId} not found.`);
+
+  assertSqlSafe(report.reportSqlQuery);
+
+  const placeholders = extractParams(report.reportSqlQuery);
+
+  const baseValues: unknown[] = [];
+  let baseSql = report.reportSqlQuery;
+
+  const paramIndex = new Map<string, number>();
+  placeholders.forEach((name, i) => {
+    paramIndex.set(name, i + 1);
+    const value = Object.prototype.hasOwnProperty.call(params, name) ? params[name] ?? null : null;
+    baseValues.push(value);
+  });
+
+  baseSql = baseSql.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, (_match, name: string) => {
+    const idx = paramIndex.get(name);
+    if (idx === undefined) return 'NULL';
+    return `$${idx}`;
+  });
+
+  let offset = 0;
+  let headerWritten = false;
+
+  while (true) {
+    const limitIdx = baseValues.length + 1;
+    const offsetIdx = baseValues.length + 2;
+    const dataSql = `${baseSql} LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+    const dataValues = [...baseValues, CSV_BATCH_SIZE, offset];
+
+    const rows = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(dataSql, ...dataValues);
+    if (rows.length === 0) break;
+
+    const serialized = rows.map(serializeBigInts);
+
+    if (!headerWritten) {
+      // serialized is non-empty — we checked rows.length === 0 above
+      const header = Object.keys(serialized[0]!).join(',');
+      res.write(header + '\r\n');
+      headerWritten = true;
+    }
+
+    res.write(rowsToCsvLines(serialized) + '\r\n');
+    offset += rows.length;
+
+    if (rows.length < CSV_BATCH_SIZE) break;
+  }
+
+  res.end();
+}
