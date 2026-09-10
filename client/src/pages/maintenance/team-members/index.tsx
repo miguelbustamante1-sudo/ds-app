@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '@shared/dto';
+import { Pencil, Plus, Search, Trash2, Users, Briefcase, Globe, UserMinus } from 'lucide-react';
+import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO, WorkdayInfoDTO } from '@shared/dto';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -19,6 +19,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,12 +37,14 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { TeamMemberFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatUTCDate } from '@/lib/utils';
+import { apiGet } from '@/lib/api';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 
 const formatDate = (date: Date | string | null) => {
   if (!date) return '-';
@@ -69,6 +72,10 @@ export function TeamMembersPage() {
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
 
+  const [workdayInfoList, setWorkdayInfoList] = useState<WorkdayInfoDTO[]>([]);
+  const [workdayInfoLoading, setWorkdayInfoLoading] = useState(false);
+  const canReadWorkdayInfo = canRead('WorkdayInfo');
+
   const visibleTeamMembers = useMemo(
     () =>
       showInactive
@@ -76,6 +83,42 @@ export function TeamMembersPage() {
         : teamMembers.items.filter((tm) => tm.teamMemberEndDate === null),
     [teamMembers.items, showInactive]
   );
+
+  const activeTeamMembers = useMemo(
+    () => teamMembers.items.filter((tm) => tm.teamMemberEndDate === null),
+    [teamMembers.items]
+  );
+
+  const billingStatusByWorkdayId = useMemo(() => {
+    const map = new Map<string, string | null>();
+    workdayInfoList.forEach((w) => map.set(w.wdid, w.billingStatus));
+    return map;
+  }, [workdayInfoList]);
+
+  const totalBillable = useMemo(
+    () =>
+      activeTeamMembers.filter(
+        (tm) => tm.workdayId && billingStatusByWorkdayId.get(tm.workdayId) === 'Billable'
+      ).length,
+    [activeTeamMembers, billingStatusByWorkdayId]
+  );
+
+  const countriesRepresented = useMemo(() => {
+    const countries = new Set<string>();
+    activeTeamMembers.forEach((tm) => {
+      if (tm.countryName) countries.add(tm.countryName);
+    });
+    return countries.size;
+  }, [activeTeamMembers]);
+
+  const endedThisMonth = useMemo(() => {
+    const now = new Date();
+    return teamMembers.items.filter((tm) => {
+      if (!tm.teamMemberEndDate) return false;
+      const endDate = parseUTCDateAsLocal(String(tm.teamMemberEndDate));
+      return endDate.getFullYear() === now.getFullYear() && endDate.getMonth() === now.getMonth();
+    }).length;
+  }, [teamMembers.items]);
 
   const handleEdit = (teamMember: TeamMemberDTO) => {
     setEditingTeamMember(teamMember);
@@ -218,6 +261,15 @@ export function TeamMembersPage() {
     teamMembers.loadItems();
   }, []);
 
+  useEffect(() => {
+    if (!canReadWorkdayInfo) return;
+    setWorkdayInfoLoading(true);
+    apiGet<WorkdayInfoDTO[]>('/api/workday-info')
+      .then(setWorkdayInfoList)
+      .catch(() => setWorkdayInfoList([]))
+      .finally(() => setWorkdayInfoLoading(false));
+  }, [canReadWorkdayInfo]);
+
   const handleCreate = () => {
     setEditingTeamMember(undefined);
     setFormOpen(true);
@@ -258,6 +310,7 @@ export function TeamMembersPage() {
           <ToolbarDescription>Manage team members catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/maintenance-hub" />
           {canCreate('TeamMembers') && (
             <Button onClick={handleCreate}>
               <Plus size={16} className="me-1" />
@@ -266,6 +319,54 @@ export function TeamMembersPage() {
           )}
         </ToolbarActions>
       </Toolbar>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Active</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {teamMembers.loading ? '—' : activeTeamMembers.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Billable</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {!canReadWorkdayInfo ? 'N/A' : teamMembers.loading || workdayInfoLoading ? '—' : totalBillable}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Countries</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {teamMembers.loading ? '—' : countriesRepresented}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <UserMinus className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ended This Month</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {teamMembers.loading ? '—' : endedThisMonth}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Search Input */}
       <div className="relative mt-6 max-w-sm">
