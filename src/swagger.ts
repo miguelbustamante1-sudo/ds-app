@@ -1279,6 +1279,7 @@ export const openapiSpec = {
           tms_last_upddat: { type: 'string', format: 'date', nullable: true },
           tms_stadat: { type: 'string', format: 'date' },
           tms_enddat: { type: 'string', format: 'date', nullable: true },
+          tms_company_end_date: { type: 'string', format: 'date', nullable: true },
           cou_id: { type: 'integer', nullable: true },
           tms_supervisor_id: { type: 'integer', nullable: true },
           tms_names: { type: 'string' },

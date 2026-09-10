@@ -23,6 +23,7 @@ import type { TeamMemberDTO, UpdateTeamMemberDTO } from '@shared/dto';
 interface FormValues {
   teamMemberStartDate: string;
   teamMemberEndDate: string;
+  teamMemberCompanyEndDate: string;
 }
 
 interface Props {
@@ -49,6 +50,9 @@ export function DatesSection({ teamMember, onSaved }: Props) {
         teamMemberEndDate: teamMember.teamMemberEndDate
           ? formatUTCDate(teamMember.teamMemberEndDate, 'yyyy-MM-dd')
           : '',
+        teamMemberCompanyEndDate: teamMember.teamMemberCompanyEndDate
+          ? formatUTCDate(teamMember.teamMemberCompanyEndDate, 'yyyy-MM-dd')
+          : '',
       });
     }
   }, [teamMember, editing, reset]);
@@ -65,6 +69,7 @@ export function DatesSection({ teamMember, onSaved }: Props) {
         {
           teamMemberStartDate: values.teamMemberStartDate,
           teamMemberEndDate: values.teamMemberEndDate || null,
+          teamMemberCompanyEndDate: values.teamMemberCompanyEndDate || null,
         },
       );
       toast({ title: 'Success', description: 'Dates updated' });
@@ -194,6 +199,10 @@ export function DatesSection({ teamMember, onSaved }: Props) {
                 <Label htmlFor="ds-end">End Date</Label>
                 <Input id="ds-end" type="date" {...register('teamMemberEndDate')} />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="ds-company-end">Company End Date</Label>
+                <Input id="ds-company-end" type="date" {...register('teamMemberCompanyEndDate')} />
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
                   Cancel
@@ -215,6 +224,12 @@ export function DatesSection({ teamMember, onSaved }: Props) {
                 <dt className="text-sm font-medium text-muted-foreground">End Date</dt>
                 <dd className="text-sm mt-1">
                   {teamMember.teamMemberEndDate ? formatUTCDate(teamMember.teamMemberEndDate) : '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Company End Date</dt>
+                <dd className="text-sm mt-1">
+                  {teamMember.teamMemberCompanyEndDate ? formatUTCDate(teamMember.teamMemberCompanyEndDate) : '-'}
                 </dd>
               </div>
             </dl>

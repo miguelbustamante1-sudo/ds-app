@@ -17,6 +17,7 @@ interface RawActiveTeamMember {
   team_member_known_as: string | null;
   team_member_seniority: string;
   team_member_end_date: Date | null;
+  team_member_company_end_date: Date | null;
   team_member_start_date: Date;
   primary_role_name: string | null;
   country_id: number | null;
@@ -47,6 +48,7 @@ export async function getAllActiveTeamMembers(): Promise<TeamMemberReportDTO[]> 
       tm.tms_known_as                                                   AS team_member_known_as,
       tm.tms_seniority                                                  AS team_member_seniority,
       tm.tms_enddat                                                     AS team_member_end_date,
+      tm.tms_company_end_date                                          AS team_member_company_end_date,
       tm.tms_stadat                                                     AS team_member_start_date,
       r.pos_name                                                        AS primary_role_name,
       c.cou_id                                                          AS country_id,
@@ -94,6 +96,7 @@ export async function getAllActiveTeamMembers(): Promise<TeamMemberReportDTO[]> 
       tm.tms_known_as,
       tm.tms_seniority,
       tm.tms_enddat,
+      tm.tms_company_end_date,
       tm.tms_stadat,
       r.pos_name,
       c.cou_id,
@@ -126,6 +129,7 @@ export async function getAllActiveTeamMembers(): Promise<TeamMemberReportDTO[]> 
       teamMemberFullName: `${row.team_member_names} ${row.team_member_surnames}`,
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
+      teamMemberCompanyEndDate: row.team_member_company_end_date,
       teamMemberStartDate: row.team_member_start_date,
       primaryRoleName: row.primary_role_name,
       countryId: row.country_id != null ? Number(row.country_id) : null,

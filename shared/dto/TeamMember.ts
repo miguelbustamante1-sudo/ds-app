@@ -5,6 +5,7 @@ export interface TeamMemberDTO {
   teamMemberKnownAs: string | null;
   teamMemberStartDate: Date;
   teamMemberEndDate: Date | null;
+  teamMemberCompanyEndDate: Date | null;
   countryId: number | null;
   countryIso?: string | null;
   workdayId: string | null;
@@ -45,6 +46,7 @@ export interface UpdateTeamMemberDTO {
   teamMemberKnownAs?: string | null;
   teamMemberStartDate?: Date | string;
   teamMemberEndDate?: Date | string | null;
+  teamMemberCompanyEndDate?: Date | string | null;
   countryId?: number | null;
   teamMemberPrimaryRole?: number | null;
   tierBandId?: number;

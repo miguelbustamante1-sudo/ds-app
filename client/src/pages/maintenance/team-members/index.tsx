@@ -171,6 +171,13 @@ export function TeamMembersPage() {
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
+        accessorKey: 'teamMemberCompanyEndDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Company End Date" />,
+        cell: ({ row }) => formatDate(row.original.teamMemberCompanyEndDate),
+        size: 120,
+        meta: { headerTitle: 'Company End Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (

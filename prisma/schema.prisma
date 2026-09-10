@@ -108,6 +108,7 @@ model TeamMember {
   teamMemberKnownAs                 String?                @map("tms_known_as") @db.VarChar(100)
   teamMemberStartDate               DateTime               @map("tms_stadat") @db.Date
   teamMemberEndDate                 DateTime?              @map("tms_enddat") @db.Date
+  teamMemberCompanyEndDate          DateTime?              @map("tms_company_end_date") @db.Date
   countryId                         Int?                   @map("cou_id")
   workdayId                         String?                @unique @map("wdid") @db.VarChar(100)
   teamMemberSeniority               String                 @map("tms_seniority") @db.VarChar(100)
