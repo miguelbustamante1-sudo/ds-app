@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/config/general.config';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,6 +16,9 @@ export function Footer() {
             >
               Digital Solutions
             </a>
+          </div>
+          <div className="flex order-1 md:order-2 font-normal text-sm">
+            <span className="text-muted-foreground">v{APP_VERSION}</span>
           </div>
         </div>
       </div>

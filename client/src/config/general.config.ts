@@ -7,4 +7,7 @@ const generalSettings = {
   aboutLink: 'https://keenthemes.com/metronic',
 };
 
-export { generalSettings };
+// Kept in sync manually with the latest entry in CHANGELOG.md
+const APP_VERSION = '2.0.0';
+
+export { generalSettings, APP_VERSION };
