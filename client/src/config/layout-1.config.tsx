@@ -116,7 +116,11 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Supervisor Time Off', path: '/supervisor-time-off', permission: 'SupervisorTimeOff' },
       { title: 'Team Holiday Swaps', path: '/supervisor-holiday-swaps', permission: 'SupervisorHolidaySwaps' },
       { title: 'Time Off Review', path: '/time-off-management', permission: 'TimeOffReview' },
-      { title: 'Approval Management', path: '/approval-management' },
+      { title: 'Time Off Exception', path: '/timeoff-exception', role: 'bsa', permission: 'TimeOffException' },
+      { title: 'Holiday Swap Exception', path: '/holiday-swap-exception', role: 'bsa', permission: 'HolidaySwapException' },
+      { title: 'Supervisor Time Off V2', path: '/supervisor-time-off-v2', permission: 'SupervisorTimeOffV2' },
+      { title: 'Comp Time — Supervisor', path: '/comp-time/supervisor', permission: 'SupervisorCompTime' },
+      { title: 'Approval Management', path: '/approval-management', permission: 'SupervisorTimeOff' },
     ],
   },
   {

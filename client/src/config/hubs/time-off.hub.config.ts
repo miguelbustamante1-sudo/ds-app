@@ -47,11 +47,13 @@ export const timeOffHubConfig: HubConfig = {
       title: 'Comp Time — Supervisor',
       description: 'Review and manage compensatory time balances and requests across your team.',
       path: '/comp-time/supervisor',
+      permission: 'SupervisorCompTime',
     },
     {
       title: 'Approval Management',
       description: 'Multi-level approval queue for compensatory time requests requiring sign-off.',
       path: '/approval-management',
+      permission: 'SupervisorTimeOff',
     },
   ],
 };
