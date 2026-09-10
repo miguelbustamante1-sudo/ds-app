@@ -19,7 +19,7 @@ client/.env
 client/.env.local
 **/.env
 
-uploads/
+/uploads/
 *.log
 
 documents/
