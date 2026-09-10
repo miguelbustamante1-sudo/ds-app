@@ -33,6 +33,7 @@ export interface TeamMemberReportDTO {
   teamMemberFullName: string;               // knownAs + surnames, or names + surnames
   teamMemberSeniority: string;
   teamMemberEndDate: Date | null;
+  teamMemberCompanyEndDate?: Date | null;
   teamMemberStartDate: Date | null;
   primaryRoleName: string | null;
   countryId: number | null;

@@ -56,6 +56,14 @@ export async function updateTeamMember(
         : dto.teamMemberEndDate;
   }
 
+  if (dto.teamMemberCompanyEndDate !== undefined) {
+    data.teamMemberCompanyEndDate = dto.teamMemberCompanyEndDate === null
+      ? null
+      : typeof dto.teamMemberCompanyEndDate === 'string'
+        ? new Date(dto.teamMemberCompanyEndDate)
+        : dto.teamMemberCompanyEndDate;
+  }
+
   const updated = await dbUpdate(id, data);
   if (!updated) throw new TeamMemberNotFoundError('Team member not found');
 

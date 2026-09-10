@@ -35,6 +35,7 @@ interface TeamMemberFormData {
   teamMemberFullLegalName: string;
   teamMemberStartDate: string;
   teamMemberEndDate: string;
+  teamMemberCompanyEndDate: string;
   countryId: string;
   teamMemberPrimaryRole: string;
   tierBandId: string;
@@ -86,6 +87,7 @@ export function TeamMemberFormDialog({
       teamMemberFullLegalName: '',
       teamMemberStartDate: '',
       teamMemberEndDate: '',
+      teamMemberCompanyEndDate: '',
       countryId: '',
       teamMemberPrimaryRole: '',
       tierBandId: '',
@@ -160,6 +162,9 @@ export function TeamMemberFormDialog({
         const endDate = teamMember.teamMemberEndDate
           ? formatUTCDate(teamMember.teamMemberEndDate, 'yyyy-MM-dd')
           : '';
+        const companyEndDate = teamMember.teamMemberCompanyEndDate
+          ? formatUTCDate(teamMember.teamMemberCompanyEndDate, 'yyyy-MM-dd')
+          : '';
         reset({
           teamMemberNames: teamMember.teamMemberNames,
           teamMemberSurnames: teamMember.teamMemberSurnames,
@@ -167,6 +172,7 @@ export function TeamMemberFormDialog({
           teamMemberFullLegalName: teamMember.teamMemberFullLegalName || '',
           teamMemberStartDate: startDate,
           teamMemberEndDate: endDate,
+          teamMemberCompanyEndDate: companyEndDate,
           countryId: teamMember.countryId?.toString() || '',
           teamMemberPrimaryRole: teamMember.teamMemberPrimaryRole?.toString() || '',
           tierBandId: teamMember.tierBandId?.toString() || '',
@@ -182,6 +188,7 @@ export function TeamMemberFormDialog({
           teamMemberFullLegalName: '',
           teamMemberStartDate: '',
           teamMemberEndDate: '',
+          teamMemberCompanyEndDate: '',
           countryId: '',
           teamMemberPrimaryRole: '',
           tierBandId: '',
@@ -203,6 +210,7 @@ export function TeamMemberFormDialog({
           teamMemberFullLegalName: data.teamMemberFullLegalName.trim() || null,
           teamMemberStartDate: data.teamMemberStartDate,
           teamMemberEndDate: data.teamMemberEndDate || null,
+          teamMemberCompanyEndDate: data.teamMemberCompanyEndDate || null,
           countryId: data.countryId ? Number(data.countryId) : null,
           teamMemberPrimaryRole: data.teamMemberPrimaryRole ? Number(data.teamMemberPrimaryRole) : null,
           tierBandId: Number(data.tierBandId),
@@ -456,6 +464,17 @@ export function TeamMemberFormDialog({
                 <p className="text-sm text-muted-foreground">
                   Leave blank for active members
                 </p>
+              </div>
+            )}
+
+            {isEditing && (
+              <div className="space-y-2">
+                <Label htmlFor="teamMemberCompanyEndDate">Company End Date</Label>
+                <Input
+                  id="teamMemberCompanyEndDate"
+                  type="date"
+                  {...register('teamMemberCompanyEndDate')}
+                />
               </div>
             )}
 
