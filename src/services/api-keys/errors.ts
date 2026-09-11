@@ -27,3 +27,17 @@ export class UnknownPermissionError extends AppError {
     this.name = 'UnknownPermissionError';
   }
 }
+
+export class PermissionCatalogEntryNotFoundError extends AppError {
+  constructor() {
+    super('Permission catalog entry not found', 404);
+    this.name = 'PermissionCatalogEntryNotFoundError';
+  }
+}
+
+export class DuplicatePermissionCatalogEntryError extends AppError {
+  constructor(resource: string, action: string) {
+    super(`A catalog entry for ${resource}.${action} already exists`, 409);
+    this.name = 'DuplicatePermissionCatalogEntryError';
+  }
+}

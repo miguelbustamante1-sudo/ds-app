@@ -51,7 +51,7 @@ export function IssueKeyDialog({ open, onOpenChange, onSuccess }: IssueKeyDialog
       setAcknowledged(false);
       setCopied(false);
       fetchPermissionCatalog()
-        .then(setPermissionCatalog)
+        .then((catalog) => setPermissionCatalog(catalog.filter((c) => c.apcIsActive)))
         .catch(() => {
           toast({ title: 'Error', description: 'Failed to load permission catalog', variant: 'destructive' });
         });

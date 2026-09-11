@@ -27,4 +27,15 @@ export interface ApiPermissionCatalogDTO {
   apcResource: string;
   apcAction: 'read' | 'create' | 'delete';
   apcLabel: string;
+  apcIsActive: boolean;
+}
+
+export interface CreatePermissionCatalogEntryDTO {
+  apcResource: string;
+  apcAction: 'read' | 'create' | 'delete';
+  apcLabel: string;
+}
+
+export interface UpdatePermissionCatalogEntryDTO {
+  apcLabel?: string;
 }

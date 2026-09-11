@@ -42,6 +42,7 @@ import { TimeOffStatusesPage } from '@/pages/maintenance/time-off-statuses';
 import { WorkdayInfoPage } from '@/pages/maintenance/workday-info';
 import { WorkdayInfoDetailPage } from '@/pages/maintenance/workday-info/detail';
 import { FunctionalAreaPage } from '@/pages/maintenance/functional-area';
+import { PermissionCatalogPage } from '@/pages/maintenance/permission-catalog';
 import { FlagTypeActionsPage } from '@/pages/maintenance/flag-type-actions';
 import { ShiftsPage } from '@/pages/maintenance/shifts';
 import { KnowledgeBasePage } from '@/pages/maintenance/knowledge-base';
@@ -211,6 +212,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/workday-info" element={<WorkdayInfoPage />} />
         <Route path="/maintenance/workday-info/:wdid" element={<WorkdayInfoDetailPage />} />
         <Route path="/maintenance/functional-areas" element={<FunctionalAreaPage />} />
+        <Route path="/maintenance/permission-catalog" element={<PermissionCatalogPage />} />
         <Route path="/maintenance/flag-type-actions" element={<FlagTypeActionsPage />} />
         <Route path="/maintenance/shifts" element={<ShiftsPage />} />
         <Route path="/maintenance/knowledge-base" element={<KnowledgeBasePage />} />
