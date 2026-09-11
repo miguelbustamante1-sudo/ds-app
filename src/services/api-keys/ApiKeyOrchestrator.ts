@@ -1,12 +1,29 @@
+import { Prisma } from '@prisma/client';
 import { listApiKeys } from './components/ListApiKeys';
 import { issueApiKey } from './components/IssueApiKey';
 import { revokeApiKey } from './components/RevokeApiKey';
 import { deleteApiKey } from './components/DeleteApiKey';
-import { getActivePermissionCatalog } from './components/GetPermissionCatalog';
+import { getAllPermissionCatalog } from './components/GetPermissionCatalog';
+import { createPermissionCatalogEntry } from './components/CreatePermissionCatalogEntry';
+import { updatePermissionCatalogEntry } from './components/UpdatePermissionCatalogEntry';
+import { deletePermissionCatalogEntry } from './components/DeletePermissionCatalogEntry';
+import { DuplicatePermissionCatalogEntryError } from './errors';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
-import type { IssueApiKeyDTO, IssueApiKeyResponseDTO, ApiKeyDTO } from '@shared/dto';
+import type {
+  IssueApiKeyDTO,
+  IssueApiKeyResponseDTO,
+  ApiKeyDTO,
+  ApiPermissionCatalogDTO,
+  CreatePermissionCatalogEntryDTO,
+  UpdatePermissionCatalogEntryDTO,
+} from '@shared/dto';
 
 const API_KEY_TABLE = 'ds.apk_api_keys';
+const PERMISSION_CATALOG_TABLE = 'ds.apc_api_permission_catalog';
+
+function isPrismaKnownError(err: unknown, code: string): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === code;
+}
 
 async function orchestrateIssueKey(
   input: IssueApiKeyDTO,
@@ -57,10 +74,69 @@ async function orchestrateDeleteKey(
   });
 }
 
+async function orchestrateCreatePermissionCatalogEntry(
+  input: CreatePermissionCatalogEntryDTO,
+  createdBy: number,
+  createdByEmail: string,
+): Promise<ApiPermissionCatalogDTO> {
+  try {
+    const created = await createPermissionCatalogEntry(input, createdBy);
+    await auditOrchestrator.log({
+      entityName: PERMISSION_CATALOG_TABLE,
+      entityId: String(created.apcId),
+      createdBy: createdByEmail,
+      oldValues: null,
+      newValues: created as unknown as Record<string, unknown>,
+      comment: `Permission catalog entry created: ${input.apcResource}.${input.apcAction}`,
+    });
+    return created;
+  } catch (err: unknown) {
+    if (isPrismaKnownError(err, 'P2002')) {
+      throw new DuplicatePermissionCatalogEntryError(input.apcResource, input.apcAction);
+    }
+    throw err;
+  }
+}
+
+async function orchestrateUpdatePermissionCatalogEntry(
+  apcId: number,
+  input: UpdatePermissionCatalogEntryDTO,
+  updatedByEmail: string,
+): Promise<ApiPermissionCatalogDTO> {
+  const { before, after } = await updatePermissionCatalogEntry(apcId, input);
+  await auditOrchestrator.log({
+    entityName: PERMISSION_CATALOG_TABLE,
+    entityId: String(apcId),
+    createdBy: updatedByEmail,
+    oldValues: before as unknown as Record<string, unknown>,
+    newValues: after as unknown as Record<string, unknown>,
+    comment: `Permission catalog entry updated: ${after.apcResource}.${after.apcAction}`,
+  });
+  return after;
+}
+
+async function orchestrateDeletePermissionCatalogEntry(
+  apcId: number,
+  deletedByEmail: string,
+): Promise<void> {
+  const { before, after } = await deletePermissionCatalogEntry(apcId);
+  await auditOrchestrator.log({
+    entityName: PERMISSION_CATALOG_TABLE,
+    entityId: String(apcId),
+    createdBy: deletedByEmail,
+    oldValues: before as unknown as Record<string, unknown>,
+    newValues: after as unknown as Record<string, unknown>,
+    comment: `Permission catalog entry deactivated: ${after.apcResource}.${after.apcAction}`,
+  });
+}
+
 export const apiKeyOrchestrator = {
   listKeys: listApiKeys,
   issueKey: orchestrateIssueKey,
   revokeKey: orchestrateRevokeKey,
   deleteKey: orchestrateDeleteKey,
-  getPermissionCatalog: getActivePermissionCatalog,
+  getPermissionCatalog: getAllPermissionCatalog,
+  createPermissionCatalogEntry: orchestrateCreatePermissionCatalogEntry,
+  updatePermissionCatalogEntry: orchestrateUpdatePermissionCatalogEntry,
+  deletePermissionCatalogEntry: orchestrateDeletePermissionCatalogEntry,
 };

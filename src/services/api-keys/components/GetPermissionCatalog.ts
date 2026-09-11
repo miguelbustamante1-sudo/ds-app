@@ -1,9 +1,8 @@
 import { prisma } from '../../../db/prisma';
 import type { ApiPermissionCatalogDTO } from '@shared/dto';
 
-export async function getActivePermissionCatalog(): Promise<ApiPermissionCatalogDTO[]> {
+export async function getAllPermissionCatalog(): Promise<ApiPermissionCatalogDTO[]> {
   const rows = await prisma.apiPermissionCatalog.findMany({
-    where: { apcIsActive: true },
     orderBy: { apcId: 'asc' },
   });
 
@@ -12,5 +11,6 @@ export async function getActivePermissionCatalog(): Promise<ApiPermissionCatalog
     apcResource: r.apcResource,
     apcAction: r.apcAction as 'read' | 'create' | 'delete',
     apcLabel: r.apcLabel,
+    apcIsActive: r.apcIsActive,
   }));
 }

@@ -3,7 +3,11 @@ import { requirePermission } from '../../../middleware/auth';
 import type { AuthenticatedRequest } from '../../../middleware/auth';
 import { apiKeyOrchestrator } from '../ApiKeyOrchestrator';
 import { dsUserId, actorEmail, catchHandler } from '../../../routes/routeUtils';
-import type { IssueApiKeyDTO } from '@shared/dto';
+import type {
+  IssueApiKeyDTO,
+  CreatePermissionCatalogEntryDTO,
+  UpdatePermissionCatalogEntryDTO,
+} from '@shared/dto';
 
 const router = Router();
 
@@ -29,6 +33,68 @@ router.get(
     try {
       const catalog = await apiKeyOrchestrator.getPermissionCatalog();
       res.json({ data: catalog });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
+// POST /api/admin/api-keys/permission-catalog
+router.post(
+  '/permission-catalog',
+  requirePermission('RBACApiKeys', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const body = req.body as CreatePermissionCatalogEntryDTO;
+      const created = await apiKeyOrchestrator.createPermissionCatalogEntry(
+        body,
+        dsUserId(req),
+        actorEmail(req),
+      );
+      res.status(201).json({ data: created });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
+// PUT /api/admin/api-keys/permission-catalog/:id
+router.put(
+  '/permission-catalog/:id',
+  requirePermission('RBACApiKeys', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params['id'] ?? '', 10);
+      if (isNaN(id)) {
+        res.status(400).json({ error: 'Invalid permission catalog entry id' });
+        return;
+      }
+      const body = req.body as UpdatePermissionCatalogEntryDTO;
+      const updated = await apiKeyOrchestrator.updatePermissionCatalogEntry(
+        id,
+        body,
+        actorEmail(req),
+      );
+      res.json({ data: updated });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
+// DELETE /api/admin/api-keys/permission-catalog/:id
+router.delete(
+  '/permission-catalog/:id',
+  requirePermission('RBACApiKeys', 'delete'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params['id'] ?? '', 10);
+      if (isNaN(id)) {
+        res.status(400).json({ error: 'Invalid permission catalog entry id' });
+        return;
+      }
+      await apiKeyOrchestrator.deletePermissionCatalogEntry(id, actorEmail(req));
+      res.status(204).send();
     } catch (err) {
       catchHandler(err, res);
     }

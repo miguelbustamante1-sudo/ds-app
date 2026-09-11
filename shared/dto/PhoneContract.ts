@@ -49,6 +49,29 @@ export interface PhoneContractActiveAssignmentDTO {
   phoneType: string | null;
 }
 
+export interface CorporatePhoneAssignmentReportRowDTO {
+  effectiveMonth: string;
+  description: string;
+  prId: string | null;
+  prName: string | null;
+  projectManager: string | null;
+  tmCountry: string | null;
+  billRate: number;
+  wdid: string | null;
+  billable: string;
+  remarks: string | null;
+  phoneNumber: string;
+  createdBy: string;
+  actualCost: number | null;
+}
+
+export interface CorporatePhoneAssignmentReportQueryDTO {
+  startDate?: string;
+  endDate?: string;
+  projectIds?: string;
+  projectManager?: string;
+}
+
 export interface PhoneContractDTO {
   phoneLineId: number;
   phoneNumber: string;

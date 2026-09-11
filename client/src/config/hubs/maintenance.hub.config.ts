@@ -162,6 +162,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'SopLibrary',
     },
     {
+      title: 'API Permission Catalog',
+      description: 'Manage the resource/action pairs that can be granted to external API keys.',
+      path: '/maintenance/permission-catalog',
+      permission: 'RBACApiKeys',
+    },
+    {
       title: 'Reports',
       description: 'Access Maintenance and data quality reports.',
       path: '/reports?module=maintenance',

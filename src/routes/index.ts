@@ -83,6 +83,7 @@ import giftCardReasonsRouter from '../services/giftcards/catalogs/reasons/reason
 import giftCardTypesRouter from '../services/giftcards/catalogs/cardTypes/cardTypes.routes';
 import giftCardValuesRouter from '../services/giftcards/catalogs/cardValues/cardValues.routes';
 import phoneContractsRouter from './phoneContracts.routes';
+import phoneContractsExternalRouter from './phoneContractsExternal.routes';
 import laptopInventoryRouter from './laptopInventory.routes';
 import payrolRouter from './payrol.routes';
 import bonusImpactRouter from './bonusImpact.routes';
@@ -151,6 +152,7 @@ export default function registerRoutes() {
   router.use('/timeoff-period-maintenance', timeoffPeriodMaintenanceRouter);
   router.use('/compensatory-time', compensatoryTimeRouter);
   router.use('/phone-contracts', phoneContractsRouter);
+  router.use('/phone-contracts/external', phoneContractsExternalRouter);
   router.use('/laptops', laptopInventoryRouter);
   router.use('/payrol', payrolRouter);
   router.use('/bonus-impacts', bonusImpactRouter);
