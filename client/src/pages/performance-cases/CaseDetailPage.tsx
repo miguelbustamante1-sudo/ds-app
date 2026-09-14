@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { Toolbar, ToolbarActions, ToolbarHeading, ToolbarPageTitle } from '@/components/ui/toolbar';
@@ -43,7 +43,7 @@ export function CaseDetailPage() {
   const [checkIns, setCheckIns] = useState<PerformanceCaseCheckInDTO[]>([]);
   const [checkInsLoading, setCheckInsLoading] = useState(false);
 
-  async function loadCheckIns(id: number) {
+  const loadCheckIns = useCallback(async (id: number) => {
     setCheckInsLoading(true);
     try {
       setCheckIns(await listCheckIns(id));
@@ -52,7 +52,7 @@ export function CaseDetailPage() {
     } finally {
       setCheckInsLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     if (!caseId) return;
@@ -67,7 +67,7 @@ export function CaseDetailPage() {
         toast({ title: 'Cannot open case', description: String(err), variant: 'destructive' });
         navigate('/performance-cases');
       });
-  }, [caseId, navigate, toast]);
+  }, [caseId, navigate, toast, loadCheckIns]);
 
   const currentPhase = perfCase?.currentPhase;
   useEffect(() => {
