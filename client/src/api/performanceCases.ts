@@ -1,25 +1,33 @@
-import { apiGet, apiPost, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
 import type {
   CreatePerformanceCaseDTO,
   PerformanceCaseDTO,
+  PerformanceCaseDisplayDTO,
   PerformanceCasePhaseDTO,
+  PerformanceCasePhaseName,
   AdvancePhaseDTO,
   CreateCheckInDTO,
   PerformanceCaseCheckInDTO,
   PerformanceSeverityTier,
+  SavePhaseFieldsDTO,
   UpdatePlanEndDateDTO,
+  PerformanceCaseManagerDTO,
 } from '@shared/dto';
 
 export function createPerformanceCase(input: CreatePerformanceCaseDTO): Promise<PerformanceCaseDTO> {
   return apiPost<PerformanceCaseDTO, CreatePerformanceCaseDTO>('/api/performance-cases', input);
 }
 
-export function getAllCases(): Promise<PerformanceCaseDTO[]> {
-  return apiGet<PerformanceCaseDTO[]>('/api/performance-cases');
+export function getAllCases(): Promise<PerformanceCaseDisplayDTO[]> {
+  return apiGet<PerformanceCaseDisplayDTO[]>('/api/performance-cases');
 }
 
-export function getPerformanceCase(caseId: number): Promise<PerformanceCaseDTO> {
-  return apiGet<PerformanceCaseDTO>(`/api/performance-cases/${caseId}`);
+export function getPerformanceCase(caseId: number): Promise<PerformanceCaseDisplayDTO> {
+  return apiGet<PerformanceCaseDisplayDTO>(`/api/performance-cases/${caseId}`);
+}
+
+export function getCasePhases(caseId: number): Promise<PerformanceCasePhaseDTO[]> {
+  return apiGet<PerformanceCasePhaseDTO[]>(`/api/performance-cases/${caseId}/phases`);
 }
 
 export function deleteCase(caseId: number): Promise<void> {
@@ -37,6 +45,17 @@ export function savePhaseFields(
   return apiPost<PerformanceCasePhaseDTO, Record<string, unknown>>(
     `/api/performance-cases/${caseId}/phase-fields`,
     fields,
+  );
+}
+
+export function saveCompletedPhaseFields(
+  caseId: number,
+  phase: PerformanceCasePhaseName,
+  fields: Record<string, unknown>,
+): Promise<PerformanceCasePhaseDTO> {
+  return apiPut<PerformanceCasePhaseDTO, SavePhaseFieldsDTO>(
+    `/api/performance-cases/${caseId}/phases/${phase}/fields`,
+    { fields },
   );
 }
 
@@ -75,6 +94,10 @@ export function createCheckIn(caseId: number, input: CreateCheckInDTO): Promise<
   return apiPost<PerformanceCaseCheckInDTO, CreateCheckInDTO>(`/api/performance-cases/${caseId}/checkins`, input);
 }
 
+export function listCheckIns(caseId: number): Promise<PerformanceCaseCheckInDTO[]> {
+  return apiGet<PerformanceCaseCheckInDTO[]>(`/api/performance-cases/${caseId}/checkins`);
+}
+
 export interface CaseDocumentDTO {
   documentId: number;
   caseId: number;
@@ -106,8 +129,11 @@ export function attachDocument(
 export interface ManagerViewRow {
   caseId: number;
   caseCode: string;
+  caseLabel: string | null;
   teamMemberId: number;
-  teamMemberName: string | null;
+  teamMemberNames: string | null;
+  teamMemberSurnames: string | null;
+  teamMemberWorkdayId: string | null;
   teamLeaderId: number;
   severityTier: string;
   currentPhase: string;
@@ -133,10 +159,14 @@ export function getPortfolioSummary(): Promise<PortfolioSummary> {
   return apiGet<PortfolioSummary>('/api/performance-cases/portfolio-summary');
 }
 
-export function getHrPartnerView(): Promise<PerformanceCaseDTO[]> {
-  return apiGet<PerformanceCaseDTO[]>('/api/performance-cases/hr-partner-view');
+export function getHrPartnerView(): Promise<PerformanceCaseDisplayDTO[]> {
+  return apiGet<PerformanceCaseDisplayDTO[]>('/api/performance-cases/hr-partner-view');
 }
 
 export function updatePlanEndDate(caseId: number, input: UpdatePlanEndDateDTO): Promise<PerformanceCasePhaseDTO> {
   return apiPost<PerformanceCasePhaseDTO, UpdatePlanEndDateDTO>(`/api/performance-cases/${caseId}/plan-end-date`, input);
+}
+
+export function lookupManagerForTeamMember(teamMemberId: number): Promise<PerformanceCaseManagerDTO> {
+  return apiGet<PerformanceCaseManagerDTO>(`/api/performance-cases/manager-lookup/${teamMemberId}`);
 }

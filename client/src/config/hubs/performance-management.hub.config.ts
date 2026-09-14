@@ -29,5 +29,11 @@ export const performanceManagementHubConfig: HubConfig = {
       path: '/performance-cases/hr-partner-view',
       permission: 'PerformanceCases',
     },
+    {
+      title: 'Performance Cases Report',
+      description: 'Reporting view of performance cases (opens the Reports area).',
+      path: '/reports/performance-cases',
+      permission: 'PerformanceCases',
+    },
   ],
 };

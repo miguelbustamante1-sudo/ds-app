@@ -1,8 +1,9 @@
 import { prisma } from '../../../db/prisma';
 import { toPerformanceCaseDTO } from '../mappers';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import { attachTeamMemberDisplay } from './AttachTeamMemberDisplay';
+import type { PerformanceCaseDisplayDTO } from '@shared/dto';
 
-export async function getCasesForHrPartner(hrPartnerTeamMemberId: number): Promise<PerformanceCaseDTO[]> {
+export async function getCasesForHrPartner(hrPartnerTeamMemberId: number): Promise<PerformanceCaseDisplayDTO[]> {
   const cases = await prisma.performanceCase.findMany({
     where: {
       OR: [
@@ -12,5 +13,5 @@ export async function getCasesForHrPartner(hrPartnerTeamMemberId: number): Promi
     },
     orderBy: { createdDate: 'desc' },
   });
-  return cases.map(toPerformanceCaseDTO);
+  return attachTeamMemberDisplay(cases.map(toPerformanceCaseDTO));
 }

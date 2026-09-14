@@ -12,6 +12,30 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.1.0] - 2026-09-14
+
+### Added
+
+**Performance Management**
+- Navigate back to any completed phase from the stepper to review it, and edit it while the case is active (FB-03)
+- Check-in history grid on the case page (FB-07)
+- Manager name and email pre-filled from the team member's L1 manager in the hierarchy, still editable (FB-09)
+- Case lists and the case title show `Team Member (WDID) - Case Code - Reason`; search covers all three; HR Partner view gained search (FB-04)
+- Hub card linking to the Performance Cases report
+
+### Changed
+
+**Performance Management**
+- Case visibility and edits are scoped to the case's Team Leader, their upward hierarchy, the snapshotted OM/AGM/Director/HR Partner, and admins (FB-02)
+- OM RCA sign-off can only be recorded by the case's OM (or an admin), notifies the Team Leader, and shows who signed and when (FB-06)
+- TM Acceptance Date uses a date picker (FB-05)
+
+### Fixed
+
+**Performance Management**
+- "Save Progress" data now reappears when returning to a case (FB-01)
+- Document upload limit (5 MB per file) is shown in the UI and oversized files return a clear error (FB-08)
+
 ## [2.0.0] - 2026-09-04
 
 ### Added

@@ -1,16 +1,27 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
-import { uploadMiddleware } from '../middleware/multer';
+import { uploadMiddleware, MAX_UPLOAD_BYTES } from '../middleware/multer';
 import { createUpload, findUploadById, getSignedUrl } from '../services/uploads/uploadService';
 import { AppError } from '../errors/AppError';
 
 const router = Router();
 
+function handleSingleFile(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  uploadMiddleware.single('file')(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({ error: `File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit` });
+      return;
+    }
+    next(err);
+  });
+}
+
 // POST /api/uploads
 router.post(
   '/',
   authMiddleware,
-  uploadMiddleware.single('file'),
+  handleSingleFile,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!req.file) throw new AppError('No file provided', 400);

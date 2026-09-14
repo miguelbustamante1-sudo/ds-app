@@ -3,7 +3,7 @@ import type { PerformanceCasePhaseName } from '@shared/dto';
 export interface PhaseFieldSpec {
   key: string;
   label: string;
-  type: 'textarea' | 'combobox';
+  type: 'textarea' | 'combobox' | 'date';
   options?: { value: string; label: string }[];
 }
 
@@ -29,7 +29,7 @@ export const PHASE_FIELD_SPECS: Record<PerformanceCasePhaseName, PhaseFieldSpec[
     { key: 'actionPlan', label: 'Action Plan', type: 'textarea' },
     { key: 'managerCommitment', label: 'Manager Commitment', type: 'textarea' },
   ],
-  PHASE_4: [{ key: 'tmAcceptanceDate', label: 'TM Acceptance Date', type: 'textarea' }],
+  PHASE_4: [{ key: 'tmAcceptanceDate', label: 'TM Acceptance Date', type: 'date' }],
   PHASE_5: [{ key: 'weeklyUpdate', label: 'Weekly Update', type: 'textarea' }],
   PHASE_6: [{ key: 'closureSummary', label: 'Closure Summary', type: 'textarea' }],
   POST_CLOSURE: [],

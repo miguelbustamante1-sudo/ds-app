@@ -5,22 +5,8 @@ import { computeNextCheckInDate } from '../rcaFrequencyTable';
 import { spawnPhaseTask } from './SpawnPhaseTask';
 import { resolveCaseStakeholders } from './ResolveCaseStakeholders';
 import { sendCaseNotification } from './SendCaseNotification';
+import { toPerformanceCaseCheckInDTO } from '../mappers';
 import type { CreateCheckInDTO, PerformanceCaseCheckInDTO, PerformanceRcaType } from '@shared/dto';
-
-function toCheckInDTO(row: {
-  checkInId: number; caseId: number; checkInDate: Date; tmUpdate: string | null;
-  managerFeedbackReceived: boolean; status: string; emailSent: boolean;
-}): PerformanceCaseCheckInDTO {
-  return {
-    checkInId: row.checkInId,
-    caseId: row.caseId,
-    checkInDate: row.checkInDate.toISOString(),
-    tmUpdate: row.tmUpdate,
-    managerFeedbackReceived: row.managerFeedbackReceived,
-    status: row.status as PerformanceCaseCheckInDTO['status'],
-    emailSent: row.emailSent,
-  };
-}
 
 export async function createCheckIn(
   caseId: number,
@@ -109,5 +95,5 @@ export async function createCheckIn(
     });
   }
 
-  return toCheckInDTO(created);
+  return toPerformanceCaseCheckInDTO(created);
 }

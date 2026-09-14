@@ -14,7 +14,7 @@ const STATUS_OPTIONS = [
   { value: 'NO_PROGRESS', label: 'No Progress' },
 ];
 
-export function CheckInForm({ caseId }: { caseId: number }) {
+export function CheckInForm({ caseId, onLogged }: { caseId: number; onLogged: () => void }) {
   const { toast } = useToast();
   const { control, handleSubmit, reset } = useForm<CreateCheckInDTO>({
     defaultValues: {
@@ -30,6 +30,7 @@ export function CheckInForm({ caseId }: { caseId: number }) {
       await createCheckIn(caseId, values);
       toast({ title: 'Check-in logged' });
       reset();
+      onLogged();
     } catch (err) {
       toast({ title: 'Failed to log check-in', description: String(err), variant: 'destructive' });
     }

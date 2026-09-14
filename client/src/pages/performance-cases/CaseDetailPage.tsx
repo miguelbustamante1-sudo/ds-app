@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { Toolbar, ToolbarActions, ToolbarHeading, ToolbarPageTitle } from '@/components/ui/toolbar';
@@ -16,29 +16,88 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
-import { getPerformanceCase, deleteCase } from '@/api/performanceCases';
+import { getPerformanceCase, getCasePhases, deleteCase, listCheckIns } from '@/api/performanceCases';
 import { PhaseStepper } from './PhaseStepper';
 import { PhaseFieldsForm } from './PhaseFieldsForm';
 import { CheckInForm } from './CheckInForm';
+import { CheckInHistory } from './CheckInHistory';
 import { CaseActionButtons } from './CaseActionButtons';
 import { DocumentsPanel } from './DocumentsPanel';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import { formatCaseTitle } from './caseDisplay';
+import type {
+  PerformanceCaseCheckInDTO,
+  PerformanceCaseDTO,
+  PerformanceCaseDisplayDTO,
+  PerformanceCasePhaseDTO,
+  PerformanceCasePhaseName,
+} from '@shared/dto';
 
 export function CaseDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [perfCase, setPerfCase] = useState<PerformanceCaseDTO | null>(null);
+  const [perfCase, setPerfCase] = useState<PerformanceCaseDisplayDTO | null>(null);
+  const [phases, setPhases] = useState<PerformanceCasePhaseDTO[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<PerformanceCasePhaseName | null>(null);
+  const [checkIns, setCheckIns] = useState<PerformanceCaseCheckInDTO[]>([]);
+  const [checkInsLoading, setCheckInsLoading] = useState(false);
+
+  const loadCheckIns = useCallback(async (id: number) => {
+    setCheckInsLoading(true);
+    try {
+      setCheckIns(await listCheckIns(id));
+    } catch (err) {
+      toast({ title: 'Failed to load check-ins', description: String(err), variant: 'destructive' });
+    } finally {
+      setCheckInsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!caseId) return;
-    getPerformanceCase(Number(caseId)).then(setPerfCase);
-  }, [caseId]);
+    const id = Number(caseId);
+    Promise.all([getPerformanceCase(id), getCasePhases(id)])
+      .then(([c, p]) => {
+        setPerfCase(c);
+        setPhases(p);
+        void loadCheckIns(id);
+      })
+      .catch((err: unknown) => {
+        toast({ title: 'Cannot open case', description: String(err), variant: 'destructive' });
+        navigate('/performance-cases');
+      });
+  }, [caseId, navigate, toast, loadCheckIns]);
+
+  const currentPhase = perfCase?.currentPhase;
+  useEffect(() => {
+    if (currentPhase) setSelectedPhase(currentPhase);
+  }, [currentPhase]);
+
+  function handlePhaseSaved(saved: PerformanceCasePhaseDTO) {
+    setPhases((prev) => prev.map((p) => (p.phasePkId === saved.phasePkId ? saved : p)));
+  }
+
+  function mergeCase(updated: PerformanceCaseDTO) {
+    setPerfCase((prev) => (prev ? { ...prev, ...updated } : updated));
+  }
+
+  async function handleAdvanced(updated: PerformanceCaseDTO) {
+    try {
+      const refreshedPhases = await getCasePhases(updated.caseId);
+      setPhases(refreshedPhases);
+    } catch (err) {
+      toast({ title: 'Failed to refresh phases', description: String(err), variant: 'destructive' });
+    } finally {
+      mergeCase(updated);
+    }
+  }
 
   if (!perfCase) return null;
 
   const isDeletable = perfCase.currentPhase === 'PHASE_0' && perfCase.caseStatus === 'ACTIVE';
+  const activePhase = selectedPhase ?? perfCase.currentPhase;
+  const isViewingCurrent = activePhase === perfCase.currentPhase;
 
   async function handleDeleteConfirm() {
     if (!perfCase) return;
@@ -57,9 +116,7 @@ export function CaseDetailPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>
-            {`${perfCase.caseCode}${perfCase.caseLabel ? ` — ${perfCase.caseLabel}` : ''}`}
-          </ToolbarPageTitle>
+          <ToolbarPageTitle>{formatCaseTitle(perfCase)}</ToolbarPageTitle>
         </ToolbarHeading>
         <ToolbarActions>
           <Button variant="outline" onClick={() => navigate('/performance-cases')}>
@@ -77,20 +134,33 @@ export function CaseDetailPage() {
       <Card>
         <CardContent>
           <CardTitle className="mb-4">Phase Progress</CardTitle>
-          <PhaseStepper currentPhase={perfCase.currentPhase} />
+          <PhaseStepper currentPhase={perfCase.currentPhase} selectedPhase={activePhase} onSelect={setSelectedPhase} />
           <div className="mt-6">
-            <PhaseFieldsForm perfCase={perfCase} onAdvanced={setPerfCase} />
+            <PhaseFieldsForm
+              perfCase={perfCase}
+              phase={activePhase}
+              phaseRow={phases.find((p) => p.phase === activePhase)}
+              onSaved={handlePhaseSaved}
+              onAdvanced={handleAdvanced}
+            />
           </div>
-          {perfCase.currentPhase === 'PHASE_5' && (
+          {isViewingCurrent && perfCase.currentPhase === 'PHASE_5' && (
             <div className="mt-6">
-              <CheckInForm caseId={perfCase.caseId} />
+              <CheckInForm caseId={perfCase.caseId} onLogged={() => void loadCheckIns(perfCase.caseId)} />
             </div>
           )}
-          <div className="mt-6">
-            <CaseActionButtons perfCase={perfCase} onUpdated={setPerfCase} />
-          </div>
+          {isViewingCurrent && (
+            <div className="mt-6">
+              <CaseActionButtons perfCase={perfCase} onUpdated={mergeCase} />
+            </div>
+          )}
         </CardContent>
       </Card>
+      {(checkIns.length > 0 || perfCase.currentPhase === 'PHASE_5') && (
+        <div className="mt-6">
+          <CheckInHistory checkIns={checkIns} loading={checkInsLoading} />
+        </div>
+      )}
       <div className="mt-6">
         <DocumentsPanel caseId={perfCase.caseId} />
       </div>
