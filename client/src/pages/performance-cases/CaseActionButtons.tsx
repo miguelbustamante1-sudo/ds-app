@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +18,6 @@ interface ClosureCriteriaFormValues {
 }
 
 interface PlanEndDateFormValues {
-  open: boolean;
   newEndDate: string;
   changeComment: string;
   hintForSuccessTriggered: boolean;
@@ -48,11 +47,25 @@ export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProp
       noNewEscalationLast2Weeks: perfCase.noNewEscalationLast2Weeks ?? false,
     },
   });
+  const { reset: resetCriteria } = criteriaForm;
 
+  useEffect(() => {
+    resetCriteria({
+      clientConfirmedImprovement: perfCase.clientConfirmedImprovement ?? false,
+      metricImprovedVsBaseline: perfCase.metricImprovedVsBaseline ?? false,
+      noNewEscalationLast2Weeks: perfCase.noNewEscalationLast2Weeks ?? false,
+    });
+  }, [
+    perfCase.clientConfirmedImprovement,
+    perfCase.metricImprovedVsBaseline,
+    perfCase.noNewEscalationLast2Weeks,
+    resetCriteria,
+  ]);
+
+  const [planEndDateOpen, setPlanEndDateOpen] = useState(false);
   const planForm = useForm<PlanEndDateFormValues>({
-    defaultValues: { open: false, newEndDate: '', changeComment: '', hintForSuccessTriggered: false },
+    defaultValues: { newEndDate: '', changeComment: '', hintForSuccessTriggered: false },
   });
-  const planOpen = planForm.watch('open');
   const planEndDate = planForm.watch('newEndDate');
   const planComment = planForm.watch('changeComment');
 
@@ -96,6 +109,7 @@ export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProp
       await updatePlanEndDate(perfCase.caseId, payload);
       toast({ title: 'Plan end date updated' });
       planForm.reset();
+      setPlanEndDateOpen(false);
     } catch (err) {
       toast({ title: 'Failed to update plan end date', description: String(err), variant: 'destructive' });
     }
@@ -165,7 +179,7 @@ export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProp
       {phaseContent}
       {showPlanEndDateControl && (
         <div className="mt-4 space-y-2">
-          {planOpen ? (
+          {planEndDateOpen ? (
             <form className="space-y-2" onSubmit={planForm.handleSubmit(handleUpdatePlanEndDate)}>
               <Input type="date" className="w-[200px]" {...planForm.register('newEndDate', { required: true })} />
               <Textarea placeholder="Reason for change" {...planForm.register('changeComment', { required: true })} />
@@ -180,7 +194,14 @@ export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProp
                 <Label>Hint for success triggered</Label>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => planForm.reset()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    planForm.reset();
+                    setPlanEndDateOpen(false);
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={!planEndDate || !planComment.trim()}>
@@ -189,7 +210,7 @@ export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProp
               </div>
             </form>
           ) : (
-            <Button type="button" variant="outline" onClick={() => planForm.setValue('open', true)}>
+            <Button type="button" variant="outline" onClick={() => setPlanEndDateOpen(true)}>
               Change Plan End Date
             </Button>
           )}
