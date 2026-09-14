@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComboBox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
@@ -70,13 +71,15 @@ export function PhaseFieldsForm({ perfCase, phaseRow, onSaved, onAdvanced }: Pha
           <Controller
             name={spec.key}
             control={control}
-            render={({ field }) =>
-              spec.type === 'combobox' ? (
-                <ComboBox options={spec.options ?? []} value={field.value} onValueChange={field.onChange} />
-              ) : (
-                <Textarea rows={8} {...field} />
-              )
-            }
+            render={({ field }) => {
+              if (spec.type === 'combobox') {
+                return <ComboBox options={spec.options ?? []} value={field.value} onValueChange={field.onChange} />;
+              }
+              if (spec.type === 'date') {
+                return <Input type="date" className="w-[200px]" {...field} />;
+              }
+              return <Textarea rows={8} {...field} />;
+            }}
           />
         </div>
       ))}
