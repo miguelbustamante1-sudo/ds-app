@@ -82,6 +82,9 @@ export function DocumentsPanel({ caseId }: { caseId: number }) {
         <Button variant="outline" className="mt-2" onClick={() => fileInputRef.current?.click()}>
           Attach Document
         </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          Any file type. Maximum 5 MB per file; no limit on the number of documents.
+        </p>
       </CardContent>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
