@@ -13,6 +13,11 @@ import type {
 } from '@shared/dto';
 import type { SignoffGate } from '../components/RecordSignoff';
 import type { ClosureCriteriaInput } from '../components/RecordClosureCriteria';
+import type { CaseActor } from '../PerformanceCaseOrchestrator';
+
+function caseActor(req: AuthenticatedRequest): CaseActor {
+  return { teamMemberId: tmId(req), isAdmin: req.user?.roles.includes('admin') ?? false };
+}
 
 const router = Router();
 
@@ -38,7 +43,7 @@ router.get(
   requirePermission('PerformanceCases', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const result = await performanceCaseOrchestrator.getAllCases();
+      const result = await performanceCaseOrchestrator.getAllCases(caseActor(req));
       res.json({ data: result });
     } catch (err) {
       catchHandler(err, res);
@@ -90,7 +95,7 @@ router.get(
   requirePermission('PerformanceCases', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const result = await performanceCaseOrchestrator.getCase(Number(req.params['id']));
+      const result = await performanceCaseOrchestrator.getCase(Number(req.params['id']), caseActor(req));
       res.json({ data: result });
     } catch (err) {
       catchHandler(err, res);
@@ -103,7 +108,7 @@ router.get(
   requirePermission('PerformanceCases', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const result = await performanceCaseOrchestrator.getCasePhases(Number(req.params['id']));
+      const result = await performanceCaseOrchestrator.getCasePhases(Number(req.params['id']), caseActor(req));
       res.json({ data: result });
     } catch (err) {
       catchHandler(err, res);
@@ -118,9 +123,9 @@ router.delete(
     try {
       await performanceCaseOrchestrator.deleteCase(
         Number(req.params['id']),
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
-        tmId(req),
       );
       res.status(204).send();
     } catch (err) {
@@ -137,6 +142,7 @@ router.post(
       const result = await performanceCaseOrchestrator.advancePhase(
         Number(req.params['id']),
         req.body as AdvancePhaseDTO,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -158,6 +164,7 @@ router.post(
         Number(req.params['id']),
         to,
         reason,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -178,6 +185,7 @@ router.post(
       const result = await performanceCaseOrchestrator.recordSignoff(
         Number(req.params['id']),
         gate,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -195,6 +203,7 @@ router.post(
     try {
       const result = await performanceCaseOrchestrator.recordCalibration(
         Number(req.params['id']),
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -213,6 +222,7 @@ router.post(
       const result = await performanceCaseOrchestrator.recordClosureCriteria(
         Number(req.params['id']),
         req.body as ClosureCriteriaInput,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -231,6 +241,7 @@ router.post(
       const result = await performanceCaseOrchestrator.savePhaseFields(
         Number(req.params['id']),
         req.body as Record<string, unknown>,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -253,6 +264,7 @@ router.post(
         newEndDate,
         changeComment,
         hintForSuccessTriggered,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -274,6 +286,7 @@ router.post(
         Number(req.params['id']),
         uploadId,
         documentLabel,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
@@ -289,7 +302,7 @@ router.get(
   requirePermission('PerformanceCases', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const result = await performanceCaseOrchestrator.listDocuments(Number(req.params['id']));
+      const result = await performanceCaseOrchestrator.listDocuments(Number(req.params['id']), caseActor(req));
       res.json({ data: result });
     } catch (err) {
       catchHandler(err, res);
@@ -305,6 +318,7 @@ router.delete(
       await performanceCaseOrchestrator.deleteDocument(
         Number(req.params['id']),
         Number(req.params['documentId']),
+        caseActor(req),
         actorEmail(req),
       );
       res.status(204).send();
@@ -322,6 +336,7 @@ router.post(
       const result = await performanceCaseOrchestrator.createCheckIn(
         Number(req.params['id']),
         req.body as CreateCheckInDTO,
+        caseActor(req),
         dsUserId(req),
         actorEmail(req),
       );
