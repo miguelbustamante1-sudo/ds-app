@@ -22,7 +22,7 @@ import { PhaseFieldsForm } from './PhaseFieldsForm';
 import { CheckInForm } from './CheckInForm';
 import { CaseActionButtons } from './CaseActionButtons';
 import { DocumentsPanel } from './DocumentsPanel';
-import type { PerformanceCaseDTO, PerformanceCasePhaseDTO } from '@shared/dto';
+import type { PerformanceCaseDTO, PerformanceCasePhaseDTO, PerformanceCasePhaseName } from '@shared/dto';
 
 export function CaseDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
@@ -31,6 +31,7 @@ export function CaseDetailPage() {
   const [perfCase, setPerfCase] = useState<PerformanceCaseDTO | null>(null);
   const [phases, setPhases] = useState<PerformanceCasePhaseDTO[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<PerformanceCasePhaseName | null>(null);
 
   useEffect(() => {
     if (!caseId) return;
@@ -46,6 +47,11 @@ export function CaseDetailPage() {
       });
   }, [caseId, navigate, toast]);
 
+  const currentPhase = perfCase?.currentPhase;
+  useEffect(() => {
+    if (currentPhase) setSelectedPhase(currentPhase);
+  }, [currentPhase]);
+
   function handlePhaseSaved(saved: PerformanceCasePhaseDTO) {
     setPhases((prev) => prev.map((p) => (p.phasePkId === saved.phasePkId ? saved : p)));
   }
@@ -58,6 +64,8 @@ export function CaseDetailPage() {
   if (!perfCase) return null;
 
   const isDeletable = perfCase.currentPhase === 'PHASE_0' && perfCase.caseStatus === 'ACTIVE';
+  const activePhase = selectedPhase ?? perfCase.currentPhase;
+  const isViewingCurrent = activePhase === perfCase.currentPhase;
 
   async function handleDeleteConfirm() {
     if (!perfCase) return;
@@ -96,23 +104,26 @@ export function CaseDetailPage() {
       <Card>
         <CardContent>
           <CardTitle className="mb-4">Phase Progress</CardTitle>
-          <PhaseStepper currentPhase={perfCase.currentPhase} />
+          <PhaseStepper currentPhase={perfCase.currentPhase} selectedPhase={activePhase} onSelect={setSelectedPhase} />
           <div className="mt-6">
             <PhaseFieldsForm
               perfCase={perfCase}
-              phaseRow={phases.find((p) => p.phase === perfCase.currentPhase)}
+              phase={activePhase}
+              phaseRow={phases.find((p) => p.phase === activePhase)}
               onSaved={handlePhaseSaved}
               onAdvanced={handleAdvanced}
             />
           </div>
-          {perfCase.currentPhase === 'PHASE_5' && (
+          {isViewingCurrent && perfCase.currentPhase === 'PHASE_5' && (
             <div className="mt-6">
               <CheckInForm caseId={perfCase.caseId} />
             </div>
           )}
-          <div className="mt-6">
-            <CaseActionButtons perfCase={perfCase} onUpdated={setPerfCase} />
-          </div>
+          {isViewingCurrent && (
+            <div className="mt-6">
+              <CaseActionButtons perfCase={perfCase} onUpdated={setPerfCase} />
+            </div>
+          )}
         </CardContent>
       </Card>
       <div className="mt-6">
