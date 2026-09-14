@@ -1,12 +1,14 @@
-import { apiGet, apiPost, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
 import type {
   CreatePerformanceCaseDTO,
   PerformanceCaseDTO,
   PerformanceCasePhaseDTO,
+  PerformanceCasePhaseName,
   AdvancePhaseDTO,
   CreateCheckInDTO,
   PerformanceCaseCheckInDTO,
   PerformanceSeverityTier,
+  SavePhaseFieldsDTO,
   UpdatePlanEndDateDTO,
 } from '@shared/dto';
 
@@ -41,6 +43,17 @@ export function savePhaseFields(
   return apiPost<PerformanceCasePhaseDTO, Record<string, unknown>>(
     `/api/performance-cases/${caseId}/phase-fields`,
     fields,
+  );
+}
+
+export function saveCompletedPhaseFields(
+  caseId: number,
+  phase: PerformanceCasePhaseName,
+  fields: Record<string, unknown>,
+): Promise<PerformanceCasePhaseDTO> {
+  return apiPut<PerformanceCasePhaseDTO, SavePhaseFieldsDTO>(
+    `/api/performance-cases/${caseId}/phases/${phase}/fields`,
+    { fields },
   );
 }
 

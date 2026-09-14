@@ -8,12 +8,15 @@ import type {
   AdvancePhaseDTO,
   CreateCheckInDTO,
   CreatePerformanceCaseDTO,
+  PerformanceCasePhaseName,
   PerformanceSeverityTier,
+  SavePhaseFieldsDTO,
   UpdatePlanEndDateDTO,
 } from '@shared/dto';
 import type { SignoffGate } from '../components/RecordSignoff';
 import type { ClosureCriteriaInput } from '../components/RecordClosureCriteria';
 import type { CaseActor } from '../PerformanceCaseOrchestrator';
+import { PHASE_ORDER } from '../phaseConfig';
 
 function caseActor(req: AuthenticatedRequest): CaseActor {
   return { teamMemberId: tmId(req), isAdmin: req.user?.roles.includes('admin') ?? false };
@@ -241,6 +244,30 @@ router.post(
       const result = await performanceCaseOrchestrator.savePhaseFields(
         Number(req.params['id']),
         req.body as Record<string, unknown>,
+        caseActor(req),
+        dsUserId(req),
+        actorEmail(req),
+      );
+      res.json({ data: result });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
+router.put(
+  '/:id/phases/:phase/fields',
+  requirePermission('PerformanceCases', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const phase = req.params['phase'] as PerformanceCasePhaseName;
+      if (!PHASE_ORDER.includes(phase)) throw new AppError('Unknown phase', 400);
+      const { fields } = req.body as SavePhaseFieldsDTO;
+      if (!fields || typeof fields !== 'object') throw new AppError('fields is required', 400);
+      const result = await performanceCaseOrchestrator.saveCompletedPhaseFields(
+        Number(req.params['id']),
+        phase,
+        fields,
         caseActor(req),
         dsUserId(req),
         actorEmail(req),

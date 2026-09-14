@@ -103,3 +103,7 @@ export interface UpdatePlanEndDateDTO {
   changeComment: string;
   hintForSuccessTriggered: boolean;
 }
+
+export interface SavePhaseFieldsDTO {
+  fields: Record<string, unknown>;
+}

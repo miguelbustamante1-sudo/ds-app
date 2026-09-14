@@ -9,6 +9,7 @@ import { recordClosureCriteria, type ClosureCriteriaInput } from './components/R
 import { spawnRegressionCase } from './components/SpawnRegressionCase';
 import { createCheckIn } from './components/CreateCheckIn';
 import { savePhaseFields } from './components/SavePhaseFields';
+import { saveCompletedPhaseFields } from './components/SaveCompletedPhaseFields';
 import { updatePlanEndDate } from './components/UpdatePlanEndDate';
 import { attachDocument } from './components/AttachDocument';
 import { listDocuments } from './components/ListDocuments';
@@ -23,6 +24,7 @@ import type {
   AdvancePhaseDTO,
   CreateCheckInDTO,
   CreatePerformanceCaseDTO,
+  PerformanceCasePhaseName,
   PerformanceSeverityTier,
 } from '@shared/dto';
 
@@ -123,6 +125,18 @@ export class PerformanceCaseOrchestrator {
   ) {
     await assertCaseAccess(caseId, actor);
     return savePhaseFields(caseId, fields, actingUserId, actingUserEmail);
+  }
+
+  async saveCompletedPhaseFields(
+    caseId: number,
+    phase: PerformanceCasePhaseName,
+    fields: Record<string, unknown>,
+    actor: CaseActor,
+    actingUserId: number,
+    actingUserEmail: string,
+  ) {
+    await assertCaseAccess(caseId, actor);
+    return saveCompletedPhaseFields(caseId, phase, fields, actingUserId, actingUserEmail);
   }
 
   async updatePlanEndDate(
