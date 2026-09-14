@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { ComboBox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { apiGet } from '@/lib/api';
-import { createPerformanceCase } from '@/api/performanceCases';
+import { createPerformanceCase, lookupManagerForTeamMember } from '@/api/performanceCases';
 import type { CreatePerformanceCaseDTO, PerformanceSeverityTier, TeamMemberDTO } from '@shared/dto';
 
 const SEVERITY_OPTIONS = [
@@ -34,7 +34,7 @@ interface CreateCaseDialogProps {
 export function CreateCaseDialog({ open, onOpenChange, onCreated }: CreateCaseDialogProps) {
   const { toast } = useToast();
   const [teamMembers, setTeamMembers] = useState<TeamMemberDTO[]>([]);
-  const { control, handleSubmit, reset } = useForm<CreateCaseFormValues>({
+  const { control, handleSubmit, reset, watch, setValue } = useForm<CreateCaseFormValues>({
     defaultValues: {
       teamMemberId: null,
       teamLeaderId: null,
@@ -49,6 +49,25 @@ export function CreateCaseDialog({ open, onOpenChange, onCreated }: CreateCaseDi
     if (!open) return;
     void apiGet<TeamMemberDTO[]>('/api/team-members/active').then(setTeamMembers).catch(() => {});
   }, [open]);
+
+  const watchedTeamMemberId = watch('teamMemberId');
+
+  useEffect(() => {
+    if (!watchedTeamMemberId) return;
+    let cancelled = false;
+    lookupManagerForTeamMember(watchedTeamMemberId)
+      .then((manager) => {
+        if (cancelled) return;
+        if (manager.managerName) setValue('managerName', manager.managerName, { shouldDirty: true });
+        if (manager.managerEmail) setValue('managerEmail', manager.managerEmail, { shouldDirty: true });
+      })
+      .catch(() => {
+        // No pre-fill available — the user types the manager manually.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [watchedTeamMemberId, setValue]);
 
   const memberOptions = teamMembers.map((m) => ({
     value: String(m.teamMemberId),
@@ -143,6 +162,9 @@ export function CreateCaseDialog({ open, onOpenChange, onCreated }: CreateCaseDi
               control={control}
               render={({ field }) => <Input type="email" {...field} />}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Pre-filled from the team member&apos;s L1 manager when available — edit if incorrect.
+            </p>
           </div>
           <div>
             <Label>Reason (optional)</Label>
