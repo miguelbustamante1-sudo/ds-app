@@ -4,8 +4,11 @@ import { getReportsForPerformanceReview } from '../../teamMember/queries/getRepo
 export interface ManagerViewRow {
   caseId: number;
   caseCode: string;
+  caseLabel: string | null;
   teamMemberId: number;
-  teamMemberName: string | null;
+  teamMemberNames: string | null;
+  teamMemberSurnames: string | null;
+  teamMemberWorkdayId: string | null;
   teamLeaderId: number;
   severityTier: string;
   currentPhase: string;
@@ -29,19 +32,23 @@ export async function getManagerView(requestingTeamMemberId: number): Promise<Ma
   const teamMemberIds = [...new Set(cases.map((c) => c.teamMemberId))];
   const teamMembers = await prisma.teamMember.findMany({
     where: { teamMemberId: { in: teamMemberIds } },
-    select: { teamMemberId: true, teamMemberNames: true, teamMemberSurnames: true },
+    select: { teamMemberId: true, teamMemberNames: true, teamMemberSurnames: true, workdayId: true },
   });
-  const nameById = new Map(teamMembers.map((t) => [t.teamMemberId, `${t.teamMemberNames} ${t.teamMemberSurnames}`]));
+  const memberById = new Map(teamMembers.map((t) => [t.teamMemberId, t]));
 
   const now = new Date();
   return cases.map((c) => {
     const currentPhaseRow = c.phases[0];
     const lastCheckIn = c.checkIns[0];
+    const member = memberById.get(c.teamMemberId);
     return {
       caseId: c.caseId,
       caseCode: c.caseCode,
+      caseLabel: c.caseLabel,
       teamMemberId: c.teamMemberId,
-      teamMemberName: nameById.get(c.teamMemberId) ?? null,
+      teamMemberNames: member?.teamMemberNames ?? null,
+      teamMemberSurnames: member?.teamMemberSurnames ?? null,
+      teamMemberWorkdayId: member?.workdayId ?? null,
       teamLeaderId: c.teamLeaderId,
       severityTier: c.severityTier,
       currentPhase: c.currentPhase,

@@ -65,6 +65,14 @@ export interface PerformanceCaseDTO {
   updatedDate: string | null;
 }
 
+export interface PerformanceCaseDisplayDTO extends PerformanceCaseDTO {
+  // Optional joined fields for display — not always present
+  teamMemberNames?: string | null;
+  teamMemberSurnames?: string | null;
+  teamMemberWorkdayId?: string | null;
+  rcaSignoffByName?: string | null;
+}
+
 export interface PerformanceCasePhaseDTO {
   phasePkId: number;
   caseId: number;
