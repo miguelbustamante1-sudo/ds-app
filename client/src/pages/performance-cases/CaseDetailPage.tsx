@@ -22,13 +22,19 @@ import { PhaseFieldsForm } from './PhaseFieldsForm';
 import { CheckInForm } from './CheckInForm';
 import { CaseActionButtons } from './CaseActionButtons';
 import { DocumentsPanel } from './DocumentsPanel';
-import type { PerformanceCaseDTO, PerformanceCasePhaseDTO, PerformanceCasePhaseName } from '@shared/dto';
+import { formatCaseTitle } from './caseDisplay';
+import type {
+  PerformanceCaseDTO,
+  PerformanceCaseDisplayDTO,
+  PerformanceCasePhaseDTO,
+  PerformanceCasePhaseName,
+} from '@shared/dto';
 
 export function CaseDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [perfCase, setPerfCase] = useState<PerformanceCaseDTO | null>(null);
+  const [perfCase, setPerfCase] = useState<PerformanceCaseDisplayDTO | null>(null);
   const [phases, setPhases] = useState<PerformanceCasePhaseDTO[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState<PerformanceCasePhaseName | null>(null);
@@ -56,10 +62,14 @@ export function CaseDetailPage() {
     setPhases((prev) => prev.map((p) => (p.phasePkId === saved.phasePkId ? saved : p)));
   }
 
+  function mergeCase(updated: PerformanceCaseDTO) {
+    setPerfCase((prev) => (prev ? { ...prev, ...updated } : updated));
+  }
+
   async function handleAdvanced(updated: PerformanceCaseDTO) {
     const refreshedPhases = await getCasePhases(updated.caseId);
     setPhases(refreshedPhases);
-    setPerfCase(updated);
+    mergeCase(updated);
   }
 
   if (!perfCase) return null;
@@ -85,9 +95,7 @@ export function CaseDetailPage() {
     <div className="container">
       <Toolbar>
         <ToolbarHeading>
-          <ToolbarPageTitle>
-            {`${perfCase.caseCode}${perfCase.caseLabel ? ` — ${perfCase.caseLabel}` : ''}`}
-          </ToolbarPageTitle>
+          <ToolbarPageTitle>{formatCaseTitle(perfCase)}</ToolbarPageTitle>
         </ToolbarHeading>
         <ToolbarActions>
           <Button variant="outline" onClick={() => navigate('/performance-cases')}>
@@ -122,7 +130,7 @@ export function CaseDetailPage() {
           )}
           {isViewingCurrent && (
             <div className="mt-6">
-              <CaseActionButtons perfCase={perfCase} onUpdated={setPerfCase} />
+              <CaseActionButtons perfCase={perfCase} onUpdated={mergeCase} />
             </div>
           )}
         </CardContent>

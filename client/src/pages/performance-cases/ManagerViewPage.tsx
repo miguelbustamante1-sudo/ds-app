@@ -25,6 +25,7 @@ import { BackToHubButton } from '@/components/BackToHubButton';
 import { formatUTCDate } from '@/lib/utils';
 import { getManagerView } from '@/api/performanceCases';
 import type { ManagerViewRow } from '@/api/performanceCases';
+import { formatCaseTitle } from './caseDisplay';
 
 const SEVERITY_TIER_OPTIONS = [
   { label: 'Standard', value: 'STANDARD' },
@@ -71,18 +72,14 @@ export function ManagerViewPage() {
   const columns = useMemo<ColumnDef<ManagerViewRow>[]>(
     () => [
       {
-        accessorKey: 'caseCode',
+        id: 'caseTitle',
+        accessorFn: (row) => formatCaseTitle(row),
         header: ({ column }) => <DataGridColumnHeader title="Case" column={column} />,
         cell: ({ row }) => (
-          <button onClick={() => navigate(`/performance-cases/${row.original.caseId}`)} className="underline">
-            {row.original.caseCode}
+          <button onClick={() => navigate(`/performance-cases/${row.original.caseId}`)} className="underline text-left">
+            {formatCaseTitle(row.original)}
           </button>
         ),
-      },
-      {
-        accessorKey: 'teamMemberName',
-        header: ({ column }) => <DataGridColumnHeader title="Team Member" column={column} />,
-        cell: ({ row }) => row.original.teamMemberName ?? '—',
       },
       {
         accessorKey: 'severityTier',
@@ -147,10 +144,10 @@ export function ManagerViewPage() {
 
       <div className="flex items-center gap-2 mt-6">
         <Input
-          placeholder="Search case code..."
-          value={(table.getColumn('caseCode')?.getFilterValue() as string) ?? ''}
-          onChange={(e) => table.getColumn('caseCode')?.setFilterValue(e.target.value)}
-          className="h-8 w-[180px]"
+          placeholder="Search team member, case code, reason..."
+          value={(table.getColumn('caseTitle')?.getFilterValue() as string) ?? ''}
+          onChange={(e) => table.getColumn('caseTitle')?.setFilterValue(e.target.value)}
+          className="h-8 w-[280px]"
         />
         {table.getColumn('severityTier') && (
           <DataGridColumnFilter column={table.getColumn('severityTier')} title="Tier" options={SEVERITY_TIER_OPTIONS} />

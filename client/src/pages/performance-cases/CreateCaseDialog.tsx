@@ -145,8 +145,12 @@ export function CreateCaseDialog({ open, onOpenChange, onCreated }: CreateCaseDi
             />
           </div>
           <div>
-            <Label>Case Label (optional)</Label>
-            <Controller name="caseLabel" control={control} render={({ field }) => <Input {...field} />} />
+            <Label>Reason (optional)</Label>
+            <Controller
+              name="caseLabel"
+              control={control}
+              render={({ field }) => <Input placeholder="e.g. Low CSAT Score" {...field} />}
+            />
           </div>
           <DialogFooter>
             <Button type="submit">Create Case</Button>

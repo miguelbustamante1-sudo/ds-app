@@ -36,7 +36,8 @@ import { formatUTCDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getAllCases, deleteCase } from '@/api/performanceCases';
 import { CreateCaseDialog } from './CreateCaseDialog';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import { formatCaseTitle } from './caseDisplay';
+import type { PerformanceCaseDisplayDTO } from '@shared/dto';
 
 const SEVERITY_TIER_OPTIONS = [
   { label: 'Standard', value: 'STANDARD' },
@@ -64,7 +65,7 @@ const CASE_STATUS_OPTIONS = [
 
 // A case can only be deleted while it's still sitting in creation — no phase advancement,
 // sign-offs, check-ins, or closure activity has happened yet. Enforced again server-side.
-function isDeletable(perfCase: PerformanceCaseDTO): boolean {
+function isDeletable(perfCase: PerformanceCaseDisplayDTO): boolean {
   return perfCase.currentPhase === 'PHASE_0' && perfCase.caseStatus === 'ACTIVE';
 }
 
@@ -72,11 +73,11 @@ export function PerformanceCasesPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
-  const [rows, setRows] = useState<PerformanceCaseDTO[]>([]);
+  const [rows, setRows] = useState<PerformanceCaseDisplayDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingCase, setDeletingCase] = useState<PerformanceCaseDTO | null>(null);
+  const [deletingCase, setDeletingCase] = useState<PerformanceCaseDisplayDTO | null>(null);
 
   function loadCases() {
     setLoading(true);
@@ -89,7 +90,7 @@ export function PerformanceCasesPage() {
     loadCases();
   }, []);
 
-  function handleDeleteClick(perfCase: PerformanceCaseDTO) {
+  function handleDeleteClick(perfCase: PerformanceCaseDisplayDTO) {
     setDeletingCase(perfCase);
     setDeleteDialogOpen(true);
   }
@@ -108,14 +109,15 @@ export function PerformanceCasesPage() {
     }
   }
 
-  const columns = useMemo<ColumnDef<PerformanceCaseDTO>[]>(
+  const columns = useMemo<ColumnDef<PerformanceCaseDisplayDTO>[]>(
     () => [
       {
-        accessorKey: 'caseCode',
+        id: 'caseTitle',
+        accessorFn: (row) => formatCaseTitle(row),
         header: ({ column }) => <DataGridColumnHeader title="Case" column={column} />,
         cell: ({ row }) => (
-          <button onClick={() => navigate(`/performance-cases/${row.original.caseId}`)} className="underline">
-            {row.original.caseCode}
+          <button onClick={() => navigate(`/performance-cases/${row.original.caseId}`)} className="underline text-left">
+            {formatCaseTitle(row.original)}
           </button>
         ),
       },
@@ -189,10 +191,10 @@ export function PerformanceCasesPage() {
 
       <div className="flex items-center gap-2 mt-6">
         <Input
-          placeholder="Search case code..."
-          value={(table.getColumn('caseCode')?.getFilterValue() as string) ?? ''}
-          onChange={(e) => table.getColumn('caseCode')?.setFilterValue(e.target.value)}
-          className="h-8 w-[180px]"
+          placeholder="Search team member, case code, reason..."
+          value={(table.getColumn('caseTitle')?.getFilterValue() as string) ?? ''}
+          onChange={(e) => table.getColumn('caseTitle')?.setFilterValue(e.target.value)}
+          className="h-8 w-[280px]"
         />
         {table.getColumn('severityTier') && (
           <DataGridColumnFilter column={table.getColumn('severityTier')} title="Tier" options={SEVERITY_TIER_OPTIONS} />
