@@ -80,7 +80,7 @@ export class PerformanceCaseOrchestrator {
     actingUserEmail: string,
   ) {
     await assertCaseAccess(caseId, actor);
-    return recordSignoff(caseId, gate, actingUserId, actingUserEmail);
+    return recordSignoff(caseId, gate, actor, actingUserId, actingUserEmail);
   }
 
   async recordCalibration(caseId: number, actor: CaseActor, actingUserId: number, actingUserEmail: string) {

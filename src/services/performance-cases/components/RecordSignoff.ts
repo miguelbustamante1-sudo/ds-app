@@ -5,6 +5,7 @@ import { toPerformanceCaseDTO } from '../mappers';
 import { resolveCaseStakeholders } from './ResolveCaseStakeholders';
 import { sendCaseNotification } from './SendCaseNotification';
 import { writeWorkdayOutboxEntry } from './WriteWorkdayOutboxEntry';
+import type { CaseActor } from './ResolveCaseAccess';
 import type { PerformanceCaseDTO, PostClosureCheckpoint } from '@shared/dto';
 
 export type SignoffGate = 'rca' | 'closure';
@@ -12,6 +13,7 @@ export type SignoffGate = 'rca' | 'closure';
 export async function recordSignoff(
   caseId: number,
   gate: SignoffGate,
+  actor: CaseActor,
   actingUserId: number,
   actingUserEmail: string,
 ): Promise<PerformanceCaseDTO> {
@@ -23,6 +25,12 @@ export async function recordSignoff(
   }
   if (gate === 'closure' && perfCase.currentPhase !== 'PHASE_6') {
     throw new AppError('Closure sign-off can only be recorded during Phase 6', 400);
+  }
+  if (gate === 'rca' && perfCase.rcaSignoffBy) {
+    throw new AppError('RCA sign-off has already been recorded', 409);
+  }
+  if (gate === 'rca' && !actor.isAdmin && perfCase.omId !== actor.teamMemberId) {
+    throw new AppError('Only the case Operations Manager can record the RCA sign-off', 403);
   }
   if (gate === 'closure') {
     const criteriaMet = [
@@ -48,9 +56,22 @@ export async function recordSignoff(
     entityName: 'pmc_performance_cases',
     entityId: String(caseId),
     createdBy: actingUserEmail,
-    oldValues: null,
-    newValues: { gate, signedOffBy: actingUserId } as unknown as Record<string, unknown>,
+    oldValues: perfCase as unknown as Record<string, unknown>,
+    newValues: updated as unknown as Record<string, unknown>,
+    comment: gate === 'rca' ? 'OM RCA sign-off recorded' : 'Closure sign-off recorded',
   });
+
+  if (gate === 'rca') {
+    const stakeholders = await resolveCaseStakeholders(caseId);
+    await sendCaseNotification({
+      caseId,
+      caseCode: perfCase.caseCode,
+      title: 'OM RCA sign-off recorded',
+      message: 'The Operations Manager signed off the RCA. Phase 2 can now be completed and advanced.',
+      recipientTeamMemberIds: [perfCase.teamLeaderId],
+      stakeholders,
+    });
+  }
 
   if (gate === 'closure') {
     const stakeholders = await resolveCaseStakeholders(caseId);

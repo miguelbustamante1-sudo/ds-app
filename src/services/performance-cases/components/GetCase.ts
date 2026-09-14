@@ -12,5 +12,13 @@ export async function getCase(caseId: number, actor: CaseActor): Promise<Perform
   if (!(await canAccessCase(perfCase, actor))) throw new AppError('Access denied', 403);
   const [withDisplay] = await attachTeamMemberDisplay([toPerformanceCaseDTO(perfCase)]);
   if (!withDisplay) throw new AppError('Case not found', 404);
-  return withDisplay;
+  let rcaSignoffByName: string | null = null;
+  if (perfCase.rcaSignoffBy) {
+    const signer = await prisma.user.findUnique({
+      where: { userId: perfCase.rcaSignoffBy },
+      select: { userName: true },
+    });
+    rcaSignoffByName = signer?.userName ?? null;
+  }
+  return { ...withDisplay, rcaSignoffByName };
 }
