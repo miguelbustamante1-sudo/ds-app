@@ -1,44 +1,74 @@
-import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/auth/auth-provider';
+import { formatUTCDate } from '@/lib/utils';
 import { recordSignoff, recordClosureCriteria, updatePlanEndDate } from '@/api/performanceCases';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import type { PerformanceCaseDTO, PerformanceCaseDisplayDTO, UpdatePlanEndDateDTO } from '@shared/dto';
 
-export function CaseActionButtons({
-  perfCase,
-  onUpdated,
-}: {
-  perfCase: PerformanceCaseDTO;
+interface ClosureCriteriaFormValues {
+  clientConfirmedImprovement: boolean;
+  metricImprovedVsBaseline: boolean;
+  noNewEscalationLast2Weeks: boolean;
+}
+
+interface PlanEndDateFormValues {
+  open: boolean;
+  newEndDate: string;
+  changeComment: string;
+  hintForSuccessTriggered: boolean;
+}
+
+interface CaseActionButtonsProps {
+  perfCase: PerformanceCaseDisplayDTO;
   onUpdated: (updated: PerformanceCaseDTO) => void;
-}) {
+}
+
+const CLOSURE_CRITERIA: { name: keyof ClosureCriteriaFormValues; label: string }[] = [
+  { name: 'clientConfirmedImprovement', label: 'Client/manager confirmed improvement' },
+  { name: 'metricImprovedVsBaseline', label: 'Metric improved vs. baseline' },
+  { name: 'noNewEscalationLast2Weeks', label: 'No new escalation in final 2 weeks' },
+];
+
+export function CaseActionButtons({ perfCase, onUpdated }: CaseActionButtonsProps) {
   const { toast } = useToast();
-  const [criteria, setCriteria] = useState({
-    clientConfirmedImprovement: false,
-    metricImprovedVsBaseline: false,
-    noNewEscalationLast2Weeks: false,
+  const { user } = useAuth();
+  const isAdmin = user?.roles.includes('admin') ?? false;
+  const isOm = user?.teamMemberId != null && user.teamMemberId === perfCase.omId;
+
+  const criteriaForm = useForm<ClosureCriteriaFormValues>({
+    defaultValues: {
+      clientConfirmedImprovement: perfCase.clientConfirmedImprovement ?? false,
+      metricImprovedVsBaseline: perfCase.metricImprovedVsBaseline ?? false,
+      noNewEscalationLast2Weeks: perfCase.noNewEscalationLast2Weeks ?? false,
+    },
   });
-  const [planEndDateOpen, setPlanEndDateOpen] = useState(false);
-  const [newEndDate, setNewEndDate] = useState('');
-  const [changeComment, setChangeComment] = useState('');
-  const [hintTriggered, setHintTriggered] = useState(false);
+
+  const planForm = useForm<PlanEndDateFormValues>({
+    defaultValues: { open: false, newEndDate: '', changeComment: '', hintForSuccessTriggered: false },
+  });
+  const planOpen = planForm.watch('open');
+  const planEndDate = planForm.watch('newEndDate');
+  const planComment = planForm.watch('changeComment');
 
   async function handleRcaSignoff() {
     try {
       const updated = await recordSignoff(perfCase.caseId, 'rca');
-      toast({ title: 'RCA signed off' });
+      toast({ title: 'RCA signed off', description: 'The Team Leader has been notified.' });
       onUpdated(updated);
     } catch (err) {
       toast({ title: 'Failed to sign off', description: String(err), variant: 'destructive' });
     }
   }
 
-  async function handleClosureCriteria() {
+  async function handleClosureCriteria(values: ClosureCriteriaFormValues) {
     try {
-      const updated = await recordClosureCriteria(perfCase.caseId, criteria);
+      const updated = await recordClosureCriteria(perfCase.caseId, { ...values });
       toast({ title: 'Closure criteria recorded' });
       onUpdated(updated);
     } catch (err) {
@@ -56,57 +86,73 @@ export function CaseActionButtons({
     }
   }
 
-  async function handleUpdatePlanEndDate() {
+  async function handleUpdatePlanEndDate(values: PlanEndDateFormValues) {
     try {
-      await updatePlanEndDate(perfCase.caseId, {
-        newEndDate,
-        changeComment,
-        hintForSuccessTriggered: hintTriggered,
-      });
+      const payload: UpdatePlanEndDateDTO = {
+        newEndDate: values.newEndDate,
+        changeComment: values.changeComment.trim(),
+        hintForSuccessTriggered: values.hintForSuccessTriggered,
+      };
+      await updatePlanEndDate(perfCase.caseId, payload);
       toast({ title: 'Plan end date updated' });
-      setPlanEndDateOpen(false);
+      planForm.reset();
     } catch (err) {
       toast({ title: 'Failed to update plan end date', description: String(err), variant: 'destructive' });
     }
   }
 
-  let phaseContent: React.ReactNode = null;
+  let phaseContent: ReactNode = null;
 
   if (perfCase.currentPhase === 'PHASE_2') {
-    phaseContent = <Button onClick={handleRcaSignoff}>Record OM RCA Sign-off</Button>;
+    if (perfCase.rcaSignoffDate) {
+      phaseContent = (
+        <p className="text-sm">
+          OM RCA sign-off recorded by <span className="font-medium">{perfCase.rcaSignoffByName ?? 'unknown user'}</span> on{' '}
+          {formatUTCDate(perfCase.rcaSignoffDate)}. You can now complete Phase 2 and advance.
+        </p>
+      );
+    } else if (isOm || isAdmin) {
+      phaseContent = (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Recording the sign-off confirms the Operations Manager reviewed the RCA. It unblocks
+            &quot;Complete Phase &amp; Advance&quot; to Plan + Commitment and notifies the Team Leader.
+          </p>
+          <Button onClick={handleRcaSignoff}>Record OM RCA Sign-off</Button>
+        </div>
+      );
+    } else {
+      phaseContent = (
+        <p className="text-sm text-muted-foreground">
+          Waiting for the Operations Manager&apos;s RCA sign-off. The OM was notified when the RCA document was saved;
+          Phase 2 cannot be completed until it is recorded.
+        </p>
+      );
+    }
   }
 
   if (perfCase.currentPhase === 'PHASE_6') {
     phaseContent = (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Checkbox
-            checked={criteria.clientConfirmedImprovement}
-            onCheckedChange={(v) => setCriteria((c) => ({ ...c, clientConfirmedImprovement: Boolean(v) }))}
-          />
-          <Label>Client/manager confirmed improvement</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            checked={criteria.metricImprovedVsBaseline}
-            onCheckedChange={(v) => setCriteria((c) => ({ ...c, metricImprovedVsBaseline: Boolean(v) }))}
-          />
-          <Label>Metric improved vs. baseline</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            checked={criteria.noNewEscalationLast2Weeks}
-            onCheckedChange={(v) => setCriteria((c) => ({ ...c, noNewEscalationLast2Weeks: Boolean(v) }))}
-          />
-          <Label>No new escalation in final 2 weeks</Label>
-        </div>
+      <form className="space-y-3" onSubmit={criteriaForm.handleSubmit(handleClosureCriteria)}>
+        {CLOSURE_CRITERIA.map(({ name, label }) => (
+          <div key={name} className="flex items-center gap-2">
+            <Controller
+              name={name}
+              control={criteriaForm.control}
+              render={({ field }) => <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />}
+            />
+            <Label>{label}</Label>
+          </div>
+        ))}
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleClosureCriteria}>
+          <Button type="submit" variant="outline">
             Save Criteria
           </Button>
-          <Button onClick={handleClosureSignoff}>Record Closure Sign-off</Button>
+          <Button type="button" onClick={handleClosureSignoff}>
+            Record Closure Sign-off
+          </Button>
         </div>
-      </div>
+      </form>
     );
   }
 
@@ -119,29 +165,31 @@ export function CaseActionButtons({
       {phaseContent}
       {showPlanEndDateControl && (
         <div className="mt-4 space-y-2">
-          {planEndDateOpen ? (
-            <div className="space-y-2">
-              <Input type="date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} />
-              <Textarea
-                placeholder="Reason for change"
-                value={changeComment}
-                onChange={(e) => setChangeComment(e.target.value)}
-              />
+          {planOpen ? (
+            <form className="space-y-2" onSubmit={planForm.handleSubmit(handleUpdatePlanEndDate)}>
+              <Input type="date" className="w-[200px]" {...planForm.register('newEndDate', { required: true })} />
+              <Textarea placeholder="Reason for change" {...planForm.register('changeComment', { required: true })} />
               <div className="flex items-center gap-2">
-                <Checkbox checked={hintTriggered} onCheckedChange={(v) => setHintTriggered(Boolean(v))} />
+                <Controller
+                  name="hintForSuccessTriggered"
+                  control={planForm.control}
+                  render={({ field }) => (
+                    <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(Boolean(v))} />
+                  )}
+                />
                 <Label>Hint for success triggered</Label>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setPlanEndDateOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => planForm.reset()}>
                   Cancel
                 </Button>
-                <Button onClick={handleUpdatePlanEndDate} disabled={!newEndDate || !changeComment.trim()}>
+                <Button type="submit" disabled={!planEndDate || !planComment.trim()}>
                   Save New End Date
                 </Button>
               </div>
-            </div>
+            </form>
           ) : (
-            <Button variant="outline" onClick={() => setPlanEndDateOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => planForm.setValue('open', true)}>
               Change Plan End Date
             </Button>
           )}
