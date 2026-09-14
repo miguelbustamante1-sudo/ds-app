@@ -83,9 +83,14 @@ export function CaseDetailPage() {
   }
 
   async function handleAdvanced(updated: PerformanceCaseDTO) {
-    const refreshedPhases = await getCasePhases(updated.caseId);
-    setPhases(refreshedPhases);
-    mergeCase(updated);
+    try {
+      const refreshedPhases = await getCasePhases(updated.caseId);
+      setPhases(refreshedPhases);
+    } catch (err) {
+      toast({ title: 'Failed to refresh phases', description: String(err), variant: 'destructive' });
+    } finally {
+      mergeCase(updated);
+    }
   }
 
   if (!perfCase) return null;
