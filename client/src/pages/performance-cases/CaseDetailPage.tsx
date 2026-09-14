@@ -35,11 +35,16 @@ export function CaseDetailPage() {
   useEffect(() => {
     if (!caseId) return;
     const id = Number(caseId);
-    Promise.all([getPerformanceCase(id), getCasePhases(id)]).then(([c, p]) => {
-      setPerfCase(c);
-      setPhases(p);
-    });
-  }, [caseId]);
+    Promise.all([getPerformanceCase(id), getCasePhases(id)])
+      .then(([c, p]) => {
+        setPerfCase(c);
+        setPhases(p);
+      })
+      .catch((err: unknown) => {
+        toast({ title: 'Cannot open case', description: String(err), variant: 'destructive' });
+        navigate('/performance-cases');
+      });
+  }, [caseId, navigate, toast]);
 
   function handlePhaseSaved(saved: PerformanceCasePhaseDTO) {
     setPhases((prev) => prev.map((p) => (p.phasePkId === saved.phasePkId ? saved : p)));
