@@ -16,25 +16,39 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
-import { getPerformanceCase, deleteCase } from '@/api/performanceCases';
+import { getPerformanceCase, getCasePhases, deleteCase } from '@/api/performanceCases';
 import { PhaseStepper } from './PhaseStepper';
 import { PhaseFieldsForm } from './PhaseFieldsForm';
 import { CheckInForm } from './CheckInForm';
 import { CaseActionButtons } from './CaseActionButtons';
 import { DocumentsPanel } from './DocumentsPanel';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import type { PerformanceCaseDTO, PerformanceCasePhaseDTO } from '@shared/dto';
 
 export function CaseDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [perfCase, setPerfCase] = useState<PerformanceCaseDTO | null>(null);
+  const [phases, setPhases] = useState<PerformanceCasePhaseDTO[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!caseId) return;
-    getPerformanceCase(Number(caseId)).then(setPerfCase);
+    const id = Number(caseId);
+    Promise.all([getPerformanceCase(id), getCasePhases(id)]).then(([c, p]) => {
+      setPerfCase(c);
+      setPhases(p);
+    });
   }, [caseId]);
+
+  function handlePhaseSaved(saved: PerformanceCasePhaseDTO) {
+    setPhases((prev) => prev.map((p) => (p.phasePkId === saved.phasePkId ? saved : p)));
+  }
+
+  async function handleAdvanced(updated: PerformanceCaseDTO) {
+    setPerfCase(updated);
+    setPhases(await getCasePhases(updated.caseId));
+  }
 
   if (!perfCase) return null;
 
@@ -79,7 +93,12 @@ export function CaseDetailPage() {
           <CardTitle className="mb-4">Phase Progress</CardTitle>
           <PhaseStepper currentPhase={perfCase.currentPhase} />
           <div className="mt-6">
-            <PhaseFieldsForm perfCase={perfCase} onAdvanced={setPerfCase} />
+            <PhaseFieldsForm
+              perfCase={perfCase}
+              phaseRow={phases.find((p) => p.phase === perfCase.currentPhase)}
+              onSaved={handlePhaseSaved}
+              onAdvanced={handleAdvanced}
+            />
           </div>
           {perfCase.currentPhase === 'PHASE_5' && (
             <div className="mt-6">

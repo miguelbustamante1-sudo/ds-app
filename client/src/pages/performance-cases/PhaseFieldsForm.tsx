@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -6,24 +7,41 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { savePhaseFields, advancePhase } from '@/api/performanceCases';
 import { PHASE_FIELD_SPECS } from './phaseFieldKeys';
-import type { PerformanceCaseDTO } from '@shared/dto';
+import type { PhaseFieldSpec } from './phaseFieldKeys';
+import type { PerformanceCaseDTO, PerformanceCasePhaseDTO } from '@shared/dto';
 
 interface PhaseFieldsFormProps {
   perfCase: PerformanceCaseDTO;
+  phaseRow: PerformanceCasePhaseDTO | undefined;
+  onSaved: (saved: PerformanceCasePhaseDTO) => void;
   onAdvanced: (updated: PerformanceCaseDTO) => void;
 }
 
-export function PhaseFieldsForm({ perfCase, onAdvanced }: PhaseFieldsFormProps) {
+function valuesFromRow(specs: PhaseFieldSpec[], row: PerformanceCasePhaseDTO | undefined): Record<string, string> {
+  return Object.fromEntries(
+    specs.map((s) => {
+      const stored = row?.fields[s.key];
+      return [s.key, typeof stored === 'string' ? stored : ''];
+    }),
+  );
+}
+
+export function PhaseFieldsForm({ perfCase, phaseRow, onSaved, onAdvanced }: PhaseFieldsFormProps) {
   const { toast } = useToast();
   const specs = PHASE_FIELD_SPECS[perfCase.currentPhase];
-  const { control, handleSubmit, getValues } = useForm<Record<string, string>>({
-    defaultValues: Object.fromEntries(specs.map((s) => [s.key, ''])),
+  const { control, handleSubmit, getValues, reset } = useForm<Record<string, string>>({
+    defaultValues: valuesFromRow(specs, phaseRow),
   });
+
+  useEffect(() => {
+    reset(valuesFromRow(specs, phaseRow));
+  }, [phaseRow, specs, reset]);
 
   async function onSave() {
     try {
-      await savePhaseFields(perfCase.caseId, getValues());
-      toast({ title: 'Saved' });
+      const saved = await savePhaseFields(perfCase.caseId, getValues());
+      onSaved(saved);
+      toast({ title: 'Progress saved' });
     } catch (err) {
       toast({ title: 'Failed to save', description: String(err), variant: 'destructive' });
     }
