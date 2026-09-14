@@ -19,6 +19,7 @@ import { getCasesForHrPartner } from './components/GetCasesForHrPartner';
 import { getAllCases } from './components/GetAllCases';
 import { deleteDocument } from './components/DeleteDocument';
 import { deleteCase } from './components/DeleteCase';
+import { getManagerForTeamMember } from './components/GetManagerForTeamMember';
 import { assertCaseAccess, type CaseActor } from './components/ResolveCaseAccess';
 import type {
   AdvancePhaseDTO,
@@ -48,6 +49,10 @@ export class PerformanceCaseOrchestrator {
 
   async getCase(caseId: number, actor: CaseActor) {
     return getCase(caseId, actor);
+  }
+
+  async getManagerForTeamMember(teamMemberId: number) {
+    return getManagerForTeamMember(teamMemberId);
   }
 
   async getCasePhases(caseId: number, actor: CaseActor) {

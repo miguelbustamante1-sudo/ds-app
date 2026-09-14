@@ -94,6 +94,19 @@ router.get(
 );
 
 router.get(
+  '/manager-lookup/:teamMemberId',
+  requirePermission('PerformanceCases', 'create'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await performanceCaseOrchestrator.getManagerForTeamMember(Number(req.params['teamMemberId']));
+      res.json({ data: result });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
+router.get(
   '/:id',
   requirePermission('PerformanceCases', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {

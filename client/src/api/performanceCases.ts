@@ -11,6 +11,7 @@ import type {
   PerformanceSeverityTier,
   SavePhaseFieldsDTO,
   UpdatePlanEndDateDTO,
+  PerformanceCaseManagerDTO,
 } from '@shared/dto';
 
 export function createPerformanceCase(input: CreatePerformanceCaseDTO): Promise<PerformanceCaseDTO> {
@@ -160,4 +161,8 @@ export function getHrPartnerView(): Promise<PerformanceCaseDisplayDTO[]> {
 
 export function updatePlanEndDate(caseId: number, input: UpdatePlanEndDateDTO): Promise<PerformanceCasePhaseDTO> {
   return apiPost<PerformanceCasePhaseDTO, UpdatePlanEndDateDTO>(`/api/performance-cases/${caseId}/plan-end-date`, input);
+}
+
+export function lookupManagerForTeamMember(teamMemberId: number): Promise<PerformanceCaseManagerDTO> {
+  return apiGet<PerformanceCaseManagerDTO>(`/api/performance-cases/manager-lookup/${teamMemberId}`);
 }

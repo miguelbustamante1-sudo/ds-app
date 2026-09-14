@@ -115,3 +115,8 @@ export interface UpdatePlanEndDateDTO {
 export interface SavePhaseFieldsDTO {
   fields: Record<string, unknown>;
 }
+
+export interface PerformanceCaseManagerDTO {
+  managerName: string | null;
+  managerEmail: string | null;
+}
