@@ -22,6 +22,10 @@ export function getPerformanceCase(caseId: number): Promise<PerformanceCaseDTO> 
   return apiGet<PerformanceCaseDTO>(`/api/performance-cases/${caseId}`);
 }
 
+export function getCasePhases(caseId: number): Promise<PerformanceCasePhaseDTO[]> {
+  return apiGet<PerformanceCasePhaseDTO[]>(`/api/performance-cases/${caseId}/phases`);
+}
+
 export function deleteCase(caseId: number): Promise<void> {
   return apiDelete<void>(`/api/performance-cases/${caseId}`);
 }

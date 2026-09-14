@@ -1,6 +1,7 @@
 import { createCase } from './components/CreateCase';
 import { advancePhase } from './components/AdvancePhase';
 import { getCase } from './components/GetCase';
+import { getCasePhases } from './components/GetCasePhases';
 import { upgradeSeverity } from './components/UpgradeSeverity';
 import { recordSignoff, type SignoffGate } from './components/RecordSignoff';
 import { recordCalibration } from './components/RecordCalibration';
@@ -40,6 +41,10 @@ export class PerformanceCaseOrchestrator {
 
   async getCase(caseId: number) {
     return getCase(caseId);
+  }
+
+  async getCasePhases(caseId: number) {
+    return getCasePhases(caseId);
   }
 
   async upgradeSeverity(

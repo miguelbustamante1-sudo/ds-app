@@ -98,6 +98,19 @@ router.get(
   },
 );
 
+router.get(
+  '/:id/phases',
+  requirePermission('PerformanceCases', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await performanceCaseOrchestrator.getCasePhases(Number(req.params['id']));
+      res.json({ data: result });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
 router.delete(
   '/:id',
   requirePermission('PerformanceCases', 'delete'),
