@@ -94,6 +94,10 @@ export function createCheckIn(caseId: number, input: CreateCheckInDTO): Promise<
   return apiPost<PerformanceCaseCheckInDTO, CreateCheckInDTO>(`/api/performance-cases/${caseId}/checkins`, input);
 }
 
+export function listCheckIns(caseId: number): Promise<PerformanceCaseCheckInDTO[]> {
+  return apiGet<PerformanceCaseCheckInDTO[]>(`/api/performance-cases/${caseId}/checkins`);
+}
+
 export interface CaseDocumentDTO {
   documentId: number;
   caseId: number;

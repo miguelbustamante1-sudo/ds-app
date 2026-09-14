@@ -8,6 +8,7 @@ import { recordCalibration } from './components/RecordCalibration';
 import { recordClosureCriteria, type ClosureCriteriaInput } from './components/RecordClosureCriteria';
 import { spawnRegressionCase } from './components/SpawnRegressionCase';
 import { createCheckIn } from './components/CreateCheckIn';
+import { listCheckIns } from './components/ListCheckIns';
 import { savePhaseFields } from './components/SavePhaseFields';
 import { saveCompletedPhaseFields } from './components/SaveCompletedPhaseFields';
 import { updatePlanEndDate } from './components/UpdatePlanEndDate';
@@ -119,6 +120,11 @@ export class PerformanceCaseOrchestrator {
   ) {
     await assertCaseAccess(caseId, actor);
     return createCheckIn(caseId, input, actingUserId, actingUserEmail);
+  }
+
+  async listCheckIns(caseId: number, actor: CaseActor) {
+    await assertCaseAccess(caseId, actor);
+    return listCheckIns(caseId);
   }
 
   async savePhaseFields(

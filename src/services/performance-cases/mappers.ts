@@ -1,5 +1,10 @@
-import type { PerformanceCase, PerformanceCasePhase } from '@prisma/client';
-import type { PerformanceCaseDTO, PerformanceCasePhaseDTO, SeverityTierHistoryEntry } from '@shared/dto';
+import type { PerformanceCase, PerformanceCaseCheckIn, PerformanceCasePhase } from '@prisma/client';
+import type {
+  PerformanceCaseCheckInDTO,
+  PerformanceCaseDTO,
+  PerformanceCasePhaseDTO,
+  SeverityTierHistoryEntry,
+} from '@shared/dto';
 
 export function toPerformanceCaseDTO(row: PerformanceCase): PerformanceCaseDTO {
   return {
@@ -47,5 +52,17 @@ export function toPerformanceCasePhaseDTO(row: PerformanceCasePhase): Performanc
     completedBy: row.completedBy,
     etaDate: row.etaDate?.toISOString() ?? null,
     fields: row.fields as Record<string, unknown>,
+  };
+}
+
+export function toPerformanceCaseCheckInDTO(row: PerformanceCaseCheckIn): PerformanceCaseCheckInDTO {
+  return {
+    checkInId: row.checkInId,
+    caseId: row.caseId,
+    checkInDate: row.checkInDate.toISOString(),
+    tmUpdate: row.tmUpdate,
+    managerFeedbackReceived: row.managerFeedbackReceived,
+    status: row.status as PerformanceCaseCheckInDTO['status'],
+    emailSent: row.emailSent,
   };
 }

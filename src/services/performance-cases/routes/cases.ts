@@ -387,4 +387,17 @@ router.post(
   },
 );
 
+router.get(
+  '/:id/checkins',
+  requirePermission('PerformanceCases', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await performanceCaseOrchestrator.listCheckIns(Number(req.params['id']), caseActor(req));
+      res.json({ data: result });
+    } catch (err) {
+      catchHandler(err, res);
+    }
+  },
+);
+
 export default router;
