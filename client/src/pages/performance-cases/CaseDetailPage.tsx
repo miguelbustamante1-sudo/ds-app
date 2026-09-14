@@ -16,14 +16,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
-import { getPerformanceCase, getCasePhases, deleteCase } from '@/api/performanceCases';
+import { getPerformanceCase, getCasePhases, deleteCase, listCheckIns } from '@/api/performanceCases';
 import { PhaseStepper } from './PhaseStepper';
 import { PhaseFieldsForm } from './PhaseFieldsForm';
 import { CheckInForm } from './CheckInForm';
+import { CheckInHistory } from './CheckInHistory';
 import { CaseActionButtons } from './CaseActionButtons';
 import { DocumentsPanel } from './DocumentsPanel';
 import { formatCaseTitle } from './caseDisplay';
 import type {
+  PerformanceCaseCheckInDTO,
   PerformanceCaseDTO,
   PerformanceCaseDisplayDTO,
   PerformanceCasePhaseDTO,
@@ -38,6 +40,17 @@ export function CaseDetailPage() {
   const [phases, setPhases] = useState<PerformanceCasePhaseDTO[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState<PerformanceCasePhaseName | null>(null);
+  const [checkIns, setCheckIns] = useState<PerformanceCaseCheckInDTO[]>([]);
+  const [checkInsLoading, setCheckInsLoading] = useState(false);
+
+  async function loadCheckIns(id: number) {
+    setCheckInsLoading(true);
+    try {
+      setCheckIns(await listCheckIns(id));
+    } finally {
+      setCheckInsLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!caseId) return;
@@ -46,6 +59,7 @@ export function CaseDetailPage() {
       .then(([c, p]) => {
         setPerfCase(c);
         setPhases(p);
+        void loadCheckIns(id);
       })
       .catch((err: unknown) => {
         toast({ title: 'Cannot open case', description: String(err), variant: 'destructive' });
@@ -125,7 +139,7 @@ export function CaseDetailPage() {
           </div>
           {isViewingCurrent && perfCase.currentPhase === 'PHASE_5' && (
             <div className="mt-6">
-              <CheckInForm caseId={perfCase.caseId} />
+              <CheckInForm caseId={perfCase.caseId} onLogged={() => void loadCheckIns(perfCase.caseId)} />
             </div>
           )}
           {isViewingCurrent && (
@@ -135,6 +149,11 @@ export function CaseDetailPage() {
           )}
         </CardContent>
       </Card>
+      {(checkIns.length > 0 || perfCase.currentPhase === 'PHASE_5') && (
+        <div className="mt-6">
+          <CheckInHistory checkIns={checkIns} loading={checkInsLoading} />
+        </div>
+      )}
       <div className="mt-6">
         <DocumentsPanel caseId={perfCase.caseId} />
       </div>
