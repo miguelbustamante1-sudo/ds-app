@@ -47,6 +47,8 @@ export function CaseDetailPage() {
     setCheckInsLoading(true);
     try {
       setCheckIns(await listCheckIns(id));
+    } catch (err) {
+      toast({ title: 'Failed to load check-ins', description: String(err), variant: 'destructive' });
     } finally {
       setCheckInsLoading(false);
     }
