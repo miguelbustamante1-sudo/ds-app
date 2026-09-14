@@ -57,8 +57,9 @@ export function CaseDetailPage() {
   }
 
   async function handleAdvanced(updated: PerformanceCaseDTO) {
+    const refreshedPhases = await getCasePhases(updated.caseId);
+    setPhases(refreshedPhases);
     setPerfCase(updated);
-    setPhases(await getCasePhases(updated.caseId));
   }
 
   if (!perfCase) return null;
