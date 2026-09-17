@@ -11,6 +11,7 @@ export interface SupervisorAssignmentTeamMemberInfo {
   teamMemberNames: string;
   teamMemberSurnames: string;
   workdayId: string | null;
+  teamMemberEndDate: Date | null;
 }
 
 /**

@@ -23,6 +23,7 @@ const includeTeamMemberInfo = {
       teamMemberNames: true,
       teamMemberSurnames: true,
       workdayId: true,
+      teamMemberEndDate: true,
     },
   },
   supervisor: {
@@ -31,6 +32,7 @@ const includeTeamMemberInfo = {
       teamMemberNames: true,
       teamMemberSurnames: true,
       workdayId: true,
+      teamMemberEndDate: true,
     },
   },
 };
