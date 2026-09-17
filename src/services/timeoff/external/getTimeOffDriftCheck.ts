@@ -26,7 +26,7 @@ export async function getTimeOffDriftCheck(workdayId: string, date: Date): Promi
     return { reason: 'UNKNOWN_WORKDAY_ID' };
   }
 
-  if (teamMember.teamMemberEndDate && teamMember.teamMemberEndDate < new Date()) {
+  if (teamMember.teamMemberEndDate && teamMember.teamMemberEndDate < date) {
     return {
       reason: 'EMPLOYEE_INACTIVE',
       teamMemberEndDate: teamMember.teamMemberEndDate,
