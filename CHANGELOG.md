@@ -12,6 +12,13 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.2.0] - 2026-09-17
+
+### Added
+
+**Time Off**
+- External API-key-gated endpoints for third-party integrations: `GET /api/time-offs/external/feed` returns active time-offs (workday id, email, name, dates, status) overlapping a given date range; `POST /api/time-offs/external/drift-check` explains why a previously-seen time-off record is no longer in the feed (unknown workday id, employee inactive, dates changed, status changed, deleted, still valid, or no record found)
+
 ## [2.1.0] - 2026-09-14
 
 ### Added
