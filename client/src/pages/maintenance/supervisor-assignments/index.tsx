@@ -220,7 +220,7 @@ export function SupervisorAssignmentsPage() {
     assignments.items.forEach((item) => {
       if (item.supervisor) {
         const value = item.supervisor.teamMemberId.toString();
-        const label = `${item.supervisor.teamMemberNames} ${item.supervisor.teamMemberSurnames}`;
+        const label = formatTeamMemberDisplay(item.supervisor);
         unique.set(value, label);
       }
     });
@@ -232,7 +232,7 @@ export function SupervisorAssignmentsPage() {
     assignments.items.forEach((item) => {
       if (item.teamMember) {
         const value = item.teamMember.teamMemberId.toString();
-        const label = `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`;
+        const label = formatTeamMemberDisplay(item.teamMember);
         unique.set(value, label);
       }
     });
