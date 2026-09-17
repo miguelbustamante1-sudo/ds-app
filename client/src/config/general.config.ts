@@ -8,6 +8,6 @@ const generalSettings = {
 };
 
 // Kept in sync manually with the latest entry in CHANGELOG.md
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 
 export { generalSettings, APP_VERSION };

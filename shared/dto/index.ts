@@ -25,6 +25,8 @@ export * from './SupervisedTeamMember';
 export * from './TeamMember';
 export * from './TeamMemberReport';
 export * from './TimeOff';
+export * from './TimeOffExternalFeed';
+export * from './TimeOffExternalDriftCheck';
 export * from './TimeOffPeriodMaintenance';
 export * from './TimeOffCategory';
 export * from './CategoryCountry';
