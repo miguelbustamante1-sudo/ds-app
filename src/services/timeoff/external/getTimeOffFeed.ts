@@ -5,7 +5,11 @@ import type { TimeOffExternalFeedEntryDTO } from '@shared/dto/TimeOffExternalFee
 const EXCLUDED_STATUS_IDS = [4, 5, 6, 7];
 
 export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<TimeOffExternalFeedEntryDTO[]> {
+  // Normalized to midnight UTC so the comparison is calendar-day (matches how
+  // date-only columns like tto_enddat are stored), not sensitive to what time
+  // of day this query happens to run.
   const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
   const rows = await prisma.timeOff.findMany({
     where: {
       timeOffActive: 1,
