@@ -62,7 +62,7 @@ router.post(
   requirePermission('TimeOffExternalDriftCheck', 'read'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const body = req.body as DriftCheckRequestDTO;
+      const body = (req.body ?? {}) as DriftCheckRequestDTO;
       if (!body.workdayId || typeof body.workdayId !== 'string') {
         throw new AppError('workdayId is required', 400);
       }
