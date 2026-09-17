@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO } from '@shared/dto';
+import { Link } from 'react-router-dom';
+import type {
+  SupervisorAssignmentDTO,
+  CreateSupervisorAssignmentDTO,
+  UpdateSupervisorAssignmentDTO,
+  SupervisorCoverageDTO,
+} from '@shared/dto';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -38,6 +44,7 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+import { apiGet } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
@@ -86,8 +93,12 @@ export function SupervisorAssignmentsPage() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     { id: 'status', value: ['Active'] },
   ]);
+  const [activeCoverageBySupervisor, setActiveCoverageBySupervisor] = useState<
+    Map<number, { toSupervisorName: string; coverageEndDate: Date | string | null }>
+  >(new Map());
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
+  const hasCoverageReadPermission = canRead('SupervisorCoverage');
 
   const assignments = useEntityList<SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO>({
     endpoint: '/api/supervisor-assignments',
@@ -119,7 +130,22 @@ export function SupervisorAssignmentsPage() {
         id: 'supervisor',
         accessorFn: (row) => formatTeamMemberDisplay(row.supervisor),
         header: ({ column }) => <DataGridColumnHeader column={column} title="Supervisor" />,
-        cell: ({ row }) => formatTeamMemberDisplay(row.original.supervisor),
+        cell: ({ row }) => {
+          const coverage = row.original.supervisor
+            ? activeCoverageBySupervisor.get(row.original.supervisor.teamMemberId)
+            : undefined;
+          return (
+            <div className="flex items-center gap-2">
+              <span>{formatTeamMemberDisplay(row.original.supervisor)}</span>
+              {coverage && (
+                <Badge variant="info">
+                  Covered by {coverage.toSupervisorName}
+                  {coverage.coverageEndDate ? ` until ${formatDate(coverage.coverageEndDate)}` : ''}
+                </Badge>
+              )}
+            </div>
+          );
+        },
         filterFn: (row, _id, value: string[]) => {
           if (!value.length) return true;
           return value.includes(row.original.supervisor?.teamMemberId?.toString() ?? '');
@@ -194,7 +220,7 @@ export function SupervisorAssignmentsPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [canCreate, canDelete],
+    [canCreate, canDelete, activeCoverageBySupervisor],
   );
 
   const table = useReactTable({
@@ -214,6 +240,34 @@ export function SupervisorAssignmentsPage() {
   useEffect(() => {
     assignments.loadItems();
   }, []);
+
+  useEffect(() => {
+    if (!hasCoverageReadPermission) return;
+    apiGet<SupervisorCoverageDTO[]>('/api/supervisor-coverage')
+      .then((records) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const map = new Map<number, { toSupervisorName: string; coverageEndDate: Date | string | null }>();
+        records.forEach((r) => {
+          const start = parseUTCDateAsLocal(r.coverageStartDate);
+          const isActive =
+            !r.coverageEndedAt &&
+            start <= today &&
+            (!r.coverageEndDate || parseUTCDateAsLocal(r.coverageEndDate) >= today);
+          if (isActive) {
+            map.set(r.fromSupervisorId, {
+              toSupervisorName: `${r.toSupervisor.teamMemberNames} ${r.toSupervisor.teamMemberSurnames}`,
+              coverageEndDate: r.coverageEndDate,
+            });
+          }
+        });
+        setActiveCoverageBySupervisor(map);
+      })
+      .catch(() => {
+        setActiveCoverageBySupervisor(new Map());
+        toast({ title: 'Error', description: 'Failed to load supervisor coverage', variant: 'destructive' });
+      });
+  }, [hasCoverageReadPermission]);
 
   // Filter options for supervisor and team member columns
   const supervisorOptions = useMemo(() => {
@@ -293,6 +347,11 @@ export function SupervisorAssignmentsPage() {
         </ToolbarHeading>
         <ToolbarActions>
           <BackToHubButton hubPath="/maintenance-hub" />
+          {hasCoverageReadPermission && (
+            <Button variant="outline" asChild>
+              <Link to="/maintenance/supervisor-coverage">Manage Coverage</Link>
+            </Button>
+          )}
           {canCreate('SupervisorAssignments') && (
             <>
               <Button variant="outline" onClick={() => setTransferDialogOpen(true)}>
