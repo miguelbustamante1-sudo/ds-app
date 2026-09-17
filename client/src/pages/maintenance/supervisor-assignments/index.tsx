@@ -36,13 +36,14 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { SupervisorAssignmentFormDialog } from './form';
 import { SupervisorAssignmentTransferDialog } from './transfer-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 const formatDate = (date: Date | string | null) => {
   if (!date) return '-';
@@ -57,6 +58,23 @@ const formatTeamMemberDisplay = (
   return teamMember.workdayId ? `${teamMember.workdayId} - ${name}` : name;
 };
 
+type TeamMemberStatus = 'Active' | 'Retired';
+
+const STATUS_OPTIONS: Array<{ label: string; value: TeamMemberStatus }> = [
+  { label: 'Active', value: 'Active' },
+  { label: 'Retired', value: 'Retired' },
+];
+
+const getTeamMemberStatus = (
+  teamMember: { teamMemberEndDate: Date | string | null } | null
+): TeamMemberStatus => {
+  if (!teamMember?.teamMemberEndDate) return 'Active';
+  const endDate = parseUTCDateAsLocal(teamMember.teamMemberEndDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return endDate <= today ? 'Retired' : 'Active';
+};
+
 export function SupervisorAssignmentsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<SupervisorAssignmentDTO | undefined>();
@@ -64,7 +82,9 @@ export function SupervisorAssignmentsPage() {
   const [deletingAssignment, setDeletingAssignment] = useState<SupervisorAssignmentDTO | null>(null);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: 'status', value: ['Active'] },
+  ]);
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
 
@@ -117,6 +137,25 @@ export function SupervisorAssignmentsPage() {
         },
         size: 250,
         meta: { headerTitle: 'Team Member', skeleton: <Skeleton className="h-4 w-40" /> },
+      },
+      {
+        id: 'status',
+        accessorFn: (row) => getTeamMemberStatus(row.teamMember),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
+          const status = getTeamMemberStatus(row.original.teamMember);
+          return (
+            <Badge variant={status === 'Active' ? 'success' : 'secondary'}>
+              {status}
+            </Badge>
+          );
+        },
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(getTeamMemberStatus(row.original.teamMember));
+        },
+        size: 100,
+        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         accessorKey: 'supervisorAssignmentStartDate',
@@ -267,6 +306,13 @@ export function SupervisorAssignmentsPage() {
       </Toolbar>
 
       <div className="flex items-center gap-2 mt-6">
+        {table.getColumn('status') && (
+          <DataGridColumnFilter
+            column={table.getColumn('status')}
+            title="Status"
+            options={STATUS_OPTIONS}
+          />
+        )}
         {table.getColumn('supervisor') && (
           <DataGridColumnFilter
             column={table.getColumn('supervisor')}
