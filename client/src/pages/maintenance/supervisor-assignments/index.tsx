@@ -21,6 +21,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -291,6 +292,7 @@ export function SupervisorAssignmentsPage() {
           <ToolbarDescription>Manage supervisor to team member assignments</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/maintenance-hub" />
           {canCreate('SupervisorAssignments') && (
             <>
               <Button variant="outline" onClick={() => setTransferDialogOpen(true)}>
