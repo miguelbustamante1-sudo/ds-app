@@ -11,4 +11,5 @@ export interface TimeOffExternalFeedEntryDTO {
   startDate: Date;
   endDate: Date;
   status: string;
+  type: string;
 }

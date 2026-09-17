@@ -25,6 +25,7 @@ export interface StillValidResult {
   startDate: Date;
   endDate: Date;
   status: string;
+  type: string;
 }
 
 export interface DatesChangedResult {

@@ -25,6 +25,7 @@ export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<Ti
       timeOffStartDate: true,
       timeOffEndDate: true,
       status: { select: { statusName: true } },
+      category: { select: { categoryName: true } },
       teamMember: {
         select: {
           workdayId: true,
@@ -53,6 +54,7 @@ export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<Ti
       startDate: row.timeOffStartDate,
       endDate: row.timeOffEndDate,
       status: row.status?.statusName ?? 'Unknown',
+      type: row.category?.categoryName ?? 'Unknown',
     });
   }
   return result;

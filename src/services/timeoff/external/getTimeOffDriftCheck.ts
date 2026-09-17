@@ -41,7 +41,10 @@ export async function getTimeOffDriftCheck(workdayId: string, date: Date): Promi
       timeOffStartDate: { lte: date },
       timeOffEndDate: { gte: date },
     },
-    include: { status: { select: { statusName: true } } },
+    include: {
+      status: { select: { statusName: true } },
+      category: { select: { categoryName: true } },
+    },
   });
 
   if (currentMatch) {
@@ -50,6 +53,7 @@ export async function getTimeOffDriftCheck(workdayId: string, date: Date): Promi
       startDate: currentMatch.timeOffStartDate,
       endDate: currentMatch.timeOffEndDate,
       status: currentMatch.status?.statusName ?? 'Unknown',
+      type: currentMatch.category?.categoryName ?? 'Unknown',
     };
   }
 
