@@ -5,12 +5,15 @@ import type { TimeOffExternalFeedEntryDTO } from '@shared/dto/TimeOffExternalFee
 const EXCLUDED_STATUS_IDS = [4, 5, 6, 7];
 
 export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<TimeOffExternalFeedEntryDTO[]> {
+  const today = new Date();
   const rows = await prisma.timeOff.findMany({
     where: {
       timeOffActive: 1,
       statusId: { notIn: EXCLUDED_STATUS_IDS },
       timeOffStartDate: { lte: endDate },
-      timeOffEndDate: { gte: startDate },
+      // Overlaps the caller's range AND hasn't already ended — past time-offs are excluded
+      // from the feed even if the caller's range covers them.
+      timeOffEndDate: { gte: startDate, gt: today },
       teamMember: { workdayId: { not: null } },
     },
     select: {
