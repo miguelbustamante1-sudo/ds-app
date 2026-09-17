@@ -6,31 +6,59 @@
  * match in this priority order: DATES_CHANGED, STATUS_CHANGED, DELETED.
  */
 
-export type DriftCheckReason =
-  | 'UNKNOWN_WORKDAY_ID'
-  | 'EMPLOYEE_INACTIVE'
-  | 'STILL_VALID'
-  | 'DATES_CHANGED'
-  | 'STATUS_CHANGED'
-  | 'DELETED'
-  | 'NO_RECORD_FOUND';
-
 export interface DriftCheckRequestDTO {
   workdayId: string;
   date: string;
 }
 
-export interface DriftCheckResponseDTO {
-  reason: DriftCheckReason;
-  teamMemberEndDate?: Date;
-  startDate?: Date;
-  endDate?: Date;
-  status?: string;
-  oldStartDate?: Date;
-  oldEndDate?: Date;
-  newStartDate?: Date;
-  newEndDate?: Date;
-  oldStatus?: number;
-  newStatus?: number;
-  changedDate?: Date;
+export interface UnknownWorkdayIdResult {
+  reason: 'UNKNOWN_WORKDAY_ID';
 }
+
+export interface EmployeeInactiveResult {
+  reason: 'EMPLOYEE_INACTIVE';
+  teamMemberEndDate: Date;
+}
+
+export interface StillValidResult {
+  reason: 'STILL_VALID';
+  startDate: Date;
+  endDate: Date;
+  status: string;
+}
+
+export interface DatesChangedResult {
+  reason: 'DATES_CHANGED';
+  oldStartDate: Date;
+  oldEndDate: Date;
+  newStartDate: Date;
+  newEndDate: Date;
+  changedDate: Date;
+}
+
+export interface StatusChangedResult {
+  reason: 'STATUS_CHANGED';
+  oldStatus: number;
+  newStatus: number;
+  changedDate: Date;
+}
+
+export interface DeletedResult {
+  reason: 'DELETED';
+  changedDate: Date;
+}
+
+export interface NoRecordFoundResult {
+  reason: 'NO_RECORD_FOUND';
+}
+
+export type DriftCheckResponseDTO =
+  | UnknownWorkdayIdResult
+  | EmployeeInactiveResult
+  | StillValidResult
+  | DatesChangedResult
+  | StatusChangedResult
+  | DeletedResult
+  | NoRecordFoundResult;
+
+export type DriftCheckReason = DriftCheckResponseDTO['reason'];
