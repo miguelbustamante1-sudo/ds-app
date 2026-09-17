@@ -201,6 +201,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       { title: 'Functional Areas', path: '/maintenance/functional-areas', permission: 'FunctionalAreas' },
       { title: 'Users', path: '/maintenance/users', permission: 'Users' },
       { title: 'Supervisor Assignments', path: '/maintenance/supervisor-assignments', permission: 'SupervisorAssignments' },
+      { title: 'Supervisor Coverage', path: '/maintenance/supervisor-coverage', permission: 'SupervisorCoverage' },
       { title: 'Type of Time Off', path: '/maintenance/time-off-types', permission: 'TimeOffCategories' },
       { title: 'Type by Country', path: '/maintenance/category-country', permission: 'TimeOffCategoriesByCountry' },
       { title: 'Tier Bands', path: '/maintenance/tier-bands', permission: 'TierBands' },
