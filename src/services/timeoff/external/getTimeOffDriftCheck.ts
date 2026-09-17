@@ -93,10 +93,15 @@ export async function getTimeOffDriftCheck(workdayId: string, date: Date): Promi
   const oldStatusId = Number(oldValues.sta_id);
   const newStatusId = Number(newValues.sta_id);
   if (ACTIVE_STATUS_IDS.includes(oldStatusId) && INACTIVE_STATUS_IDS.includes(newStatusId)) {
+    const statusRows = await prisma.timeOffStatus.findMany({
+      where: { statusId: { in: [oldStatusId, newStatusId] } },
+      select: { statusId: true, statusName: true },
+    });
+    const statusNameById = new Map(statusRows.map((row) => [row.statusId, row.statusName]));
     return {
       reason: 'STATUS_CHANGED',
-      oldStatus: oldStatusId,
-      newStatus: newStatusId,
+      oldStatus: statusNameById.get(oldStatusId) ?? 'Unknown',
+      newStatus: statusNameById.get(newStatusId) ?? 'Unknown',
       changedDate,
     };
   }

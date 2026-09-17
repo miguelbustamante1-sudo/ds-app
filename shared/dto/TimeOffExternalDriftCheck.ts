@@ -38,8 +38,8 @@ export interface DatesChangedResult {
 
 export interface StatusChangedResult {
   reason: 'STATUS_CHANGED';
-  oldStatus: number;
-  newStatus: number;
+  oldStatus: string;
+  newStatus: string;
   changedDate: Date;
 }
 
