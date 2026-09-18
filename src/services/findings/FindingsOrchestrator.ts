@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import {
   getActiveWatchedFields,
@@ -13,7 +13,7 @@ import type { RunFindingsResultDto, FindingDto } from './types';
 
 export class FindingsOrchestrator {
   async runFindings(triggeredByEmail: string): Promise<RunFindingsResultDto> {
-    const runId = uuidv4();
+    const runId = randomUUID();
     const entityType = 'project';
 
     const [watchedFields, snapshots, approvedStates] = await Promise.all([
