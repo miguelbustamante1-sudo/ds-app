@@ -151,6 +151,7 @@ import { ManagerViewPage } from '@/pages/performance-cases/ManagerViewPage';
 import { PortfolioSummaryPage } from '@/pages/performance-cases/PortfolioSummaryPage';
 import { HrPartnerViewPage } from '@/pages/performance-cases/HrPartnerViewPage';
 import { PerformanceCasesReportPage } from '@/pages/reports/performance-cases';
+import { FindingsPage } from '@/pages/maintenance/findings';
 
 export function AppRoutingSetup() {
   return (
@@ -236,6 +237,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/email-test" element={<EmailTestPage />} />
         <Route path="/maintenance/email-statistics" element={<EmailStatisticsPage />} />
         <Route path="/maintenance/email-message-insights" element={<EmailMessageInsightsPage />} />
+        <Route path="/maintenance/findings" element={<FindingsPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />

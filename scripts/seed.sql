@@ -826,3 +826,26 @@ VALUES
    'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield',
    'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1)
 ON CONFLICT (fgs_sow_id) DO NOTHING;
+
+-- Findings — Change Detection Platform (added 2026-09-18)
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
+  VALUES (58, 'Findings', 'milton.ayala2@telusdigital.com', now()) ON CONFLICT (opt_id) DO NOTHING;
+
+DO $$
+BEGIN
+  -- admin (rol_id=1)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Findings' AND rol_id = 1) THEN
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id)
+      VALUES ('Findings', true, true, true, NULL, NOW(), 58, 1);
+  END IF;
+  -- user (rol_id=2)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'Findings' AND rol_id = 2) THEN
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id)
+      VALUES ('Findings', true, true, true, NULL, NOW(), 58, 2);
+  END IF;
+END $$;
+
+-- Partial unique index on ds.fnd_findings (Prisma schema DSL cannot express partial indexes)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_fingerprint
+    ON ds.fnd_findings (fnd_fingerprint)
+    WHERE status = 'open';
