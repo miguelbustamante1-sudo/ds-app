@@ -130,3 +130,6 @@ export * from './FlagIntake';
 
 // Performance Management DTOs
 export * from './PerformanceCase';
+
+// Change Detection — Watched Entities & Fields DTOs
+export * from './WatchedField';

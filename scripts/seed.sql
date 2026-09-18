@@ -876,27 +876,27 @@ DO UPDATE SET aps_payload = EXCLUDED.aps_payload, aps_approved_at = now();
 
 -- 21. Watched Entity and Fields for Change Detection Platform
 -- Seed the 'project' entity type and its 13 watched fields
-INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at)
-  VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now())
+INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at, cde_created_by)
+  VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now(), 'system_seed')
   ON CONFLICT (cde_entity_type) DO NOTHING;
 
 -- 13 watched fields for project entity type (field_id auto-increments, so just INSERT)
 -- Field paths must match exactly with snp_payload JSON keys in es.snp_entity_snapshot
-INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at)
+INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at, cdf_created_by)
 VALUES
-  ('project', 'project_name',          'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'project_type',          'Project Type',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'start_date',            'Start Date',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'end_date',              'End Date',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'project_manager',       'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'director',              'Director',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'sow',                   'SOW',                    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'wbs_code',              'WBS Code',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'region',                'Region',                 'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'line_of_business',      'Line of Business',       'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'practice',              'Practice',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now())
+  ('project', 'project_name',          'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'project_type',          'Project Type',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'start_date',            'Start Date',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'end_date',              'End Date',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'project_manager',       'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'director',              'Director',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'sow',                   'SOW',                    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'wbs_code',              'WBS Code',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'region',                'Region',                 'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'line_of_business',      'Line of Business',       'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'practice',              'Practice',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed')
 ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
 
 -- Findings — Change Detection Platform (added 2026-09-18)
@@ -921,3 +921,45 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_fingerprint
     ON ds.fnd_findings (fnd_fingerprint)
     WHERE status = 'open';
+
+-- WatchedFields — Object/Field Manager screen (added 2026-09-18)
+INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
+  VALUES (59, 'WatchedFields', 'milton.ayala2@telusdigital.com', now()) ON CONFLICT (opt_id) DO NOTHING;
+
+DO $$
+BEGIN
+  -- admin (rol_id=1)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'WatchedFields' AND rol_id = 1) THEN
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id)
+      VALUES ('WatchedFields', true, true, true, NULL, NOW(), 59, 1);
+  END IF;
+  -- user (rol_id=2)
+  IF NOT EXISTS (SELECT 1 FROM sec.per_permissions WHERE per_resource = 'WatchedFields' AND rol_id = 2) THEN
+    INSERT INTO sec.per_permissions (per_resource, per_read, per_write, per_delete, per_description, updated_at, opt_id, rol_id)
+      VALUES ('WatchedFields', true, true, true, NULL, NOW(), 59, 2);
+  END IF;
+END $$;
+
+-- CHECK constraints on ds.cdf_watched_fields (Prisma schema DSL cannot express CHECK
+-- constraints). Mirrored from prisma/scripts/add_watched_fields_check_constraints.sql,
+-- because seed.sql is the only file setup-local-db.sh actually executes.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_cdf_data_type') THEN
+    ALTER TABLE ds.cdf_watched_fields
+      ADD CONSTRAINT chk_cdf_data_type CHECK (cdf_data_type IN
+        ('text', 'number', 'boolean', 'date', 'datetime', 'picklist'));
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_cdf_comparison_mode') THEN
+    ALTER TABLE ds.cdf_watched_fields
+      ADD CONSTRAINT chk_cdf_comparison_mode CHECK (cdf_comparison_mode IN
+        ('exact', 'case_insensitive', 'numeric_tolerance', 'date_only'));
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_cdf_significance') THEN
+    ALTER TABLE ds.cdf_watched_fields
+      ADD CONSTRAINT chk_cdf_significance CHECK (cdf_significance IN
+        ('material', 'informational'));
+  END IF;
+END $$;
