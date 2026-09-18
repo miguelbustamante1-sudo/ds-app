@@ -16,7 +16,10 @@ import { EndorsementPositionComboBox } from '@/pages/endorsements/components/End
 import { EndorsementSkillComboBox } from '@/pages/endorsements/components/EndorsementSkillComboBox';
 import { EndorsementGroupComboBox } from '@/pages/endorsements/components/EndorsementGroupComboBox';
 import { EndorsementCurrencyComboBox } from '@/pages/endorsements/components/EndorsementCurrencyComboBox';
+import { TechnologyComboBox } from '@/pages/endorsements/components/TechnologyComboBox';
 import { useDerivedJobProfile } from '@/pages/endorsements/components/useDerivedJobProfile';
+import { useTechnologiesForPosition } from '@/pages/endorsements/components/useTechnologiesForPosition';
+import { useDerivedGroup } from '@/pages/endorsements/components/useDerivedGroup';
 import { BonusSubcategoryComboBox } from '@/pages/endorsements/components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '@/pages/endorsements/components/BonusMetadataFields';
 import { BonusSummaryTable } from '@/pages/endorsements/components/BonusSummaryTable';
@@ -57,12 +60,42 @@ export function RoleRateStep({ form, onBack, onSubmitted, readOnly = false, endo
   const tibIdValue = watch('tibId');
   const sklIdValue = watch('sklId');
   const grpIdValue = watch('grpId');
+  const tecIdValue = watch('tecId');
   const billingRateCurrencyValue = watch('billingRateCurrency');
   const countryIdValue = watch('countryId');
   const startDateValue = watch('startDate');
 
+  const numericPosId = posIdValue ? Number(posIdValue) : null;
+
+  // Technology only shows for positions whose Group actually varies by it (e.g. Back End Developer).
+  const { technologies, loading: technologiesLoading } = useTechnologiesForPosition(numericPosId);
+  const requiresTechnology = technologies.length > 0;
+
+  const { group: derivedGroup } = useDerivedGroup(
+    numericPosId,
+    tecIdValue ? Number(tecIdValue) : null,
+    requiresTechnology,
+  );
+
+  // Position change invalidates any previously chosen Technology.
+  useEffect(() => {
+    if (readOnly) return;
+    setValue('tecId', '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posIdValue]);
+
+  // Once Group is derived, keep the form's grpId in sync so submission and the Job Profile
+  // derivation below both see it — the manual picker only takes over when nothing derives.
+  useEffect(() => {
+    if (readOnly) return;
+    if (derivedGroup?.groupId != null) {
+      setValue('grpId', derivedGroup.groupId.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedGroup]);
+
   const { jobProfile } = useDerivedJobProfile(
-    posIdValue ? Number(posIdValue) : null,
+    numericPosId,
     tibIdValue ? Number(tibIdValue) : null,
     sklIdValue ? Number(sklIdValue) : null,
     grpIdValue ? Number(grpIdValue) : null,
@@ -267,6 +300,20 @@ export function RoleRateStep({ form, onBack, onSubmitted, readOnly = false, endo
           <input type="hidden" {...register('tibId')} />
         </div>
 
+        {/* Technology — only shown for positions whose Group varies by it */}
+        {requiresTechnology && (
+          <div className="space-y-2">
+            <Label>Technology</Label>
+            <TechnologyComboBox
+              technologies={technologies}
+              value={tecIdValue}
+              onValueChange={(value) => setValue('tecId', value)}
+              loading={technologiesLoading}
+              disabled={readOnly}
+            />
+          </div>
+        )}
+
         {/* Skill */}
         <div className="space-y-2">
           <Label>Skill</Label>
@@ -277,14 +324,18 @@ export function RoleRateStep({ form, onBack, onSubmitted, readOnly = false, endo
           />
         </div>
 
-        {/* Group */}
+        {/* Group — derived read-only once Position (+ Technology) resolves it, manual otherwise */}
         <div className="space-y-2">
           <Label>Group</Label>
-          <EndorsementGroupComboBox
-            value={grpIdValue}
-            onValueChange={(value) => setValue('grpId', value)}
-            disabled={readOnly}
-          />
+          {derivedGroup?.groupId != null ? (
+            <Input readOnly disabled value={derivedGroup.groupName ?? ''} />
+          ) : (
+            <EndorsementGroupComboBox
+              value={grpIdValue}
+              onValueChange={(value) => setValue('grpId', value)}
+              disabled={readOnly}
+            />
+          )}
         </div>
 
         {/* Billing Rate Currency */}
@@ -311,8 +362,8 @@ export function RoleRateStep({ form, onBack, onSubmitted, readOnly = false, endo
           />
         </div>
 
-        {/* Job Profile — derived, read-only, full width */}
-        <div className="space-y-2 md:col-span-2">
+        {/* Job Profile — derived, read-only */}
+        <div className="space-y-2">
           <Label>Job Profile</Label>
           <Input
             readOnly
@@ -320,6 +371,12 @@ export function RoleRateStep({ form, onBack, onSubmitted, readOnly = false, endo
             value={jobProfile?.jobProfileName ?? ''}
             placeholder="Select position, tier/band, skill, and group to derive the job profile"
           />
+        </div>
+
+        {/* Job Code — derived, read-only */}
+        <div className="space-y-2">
+          <Label>Job Code</Label>
+          <Input readOnly disabled value={jobProfile?.jobProfileCode ?? ''} placeholder="Derived with the job profile" />
         </div>
       </div>
 

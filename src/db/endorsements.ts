@@ -15,7 +15,7 @@ export async function getEndorsements(status?: string): Promise<Endorsement[]> {
       position: { select: { posId: true, posName: true } },
       skill: { select: { skillId: true, skillName: true } },
       group: { select: { groupId: true, groupName: true } },
-      jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
+      jobProfile: { select: { jobProfileId: true, jobProfileName: true, jobProfileCode: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -68,7 +68,7 @@ export async function createEndorsement(data: EndorsementWriteData): Promise<End
       position: { select: { posId: true, posName: true } },
       skill: { select: { skillId: true, skillName: true } },
       group: { select: { groupId: true, groupName: true } },
-      jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
+      jobProfile: { select: { jobProfileId: true, jobProfileName: true, jobProfileCode: true } },
     },
   });
 }
@@ -133,7 +133,7 @@ export const ENDORSEMENT_INCLUDE = {
   position: { select: { posId: true, posName: true } },
   skill: { select: { skillId: true, skillName: true } },
   group: { select: { groupId: true, groupName: true } },
-  jobProfile: { select: { jobProfileId: true, jobProfileName: true } },
+  jobProfile: { select: { jobProfileId: true, jobProfileName: true, jobProfileCode: true } },
   endorsementBonuses: {
     include: {
       bonusSubcategory: {

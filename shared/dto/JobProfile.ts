@@ -24,13 +24,32 @@ export interface GroupDTO {
 export interface JobProfileDTO {
   jobProfileId: number;
   jobProfileName: string;
+  jobProfileCode: string | null;
 }
 
 /**
  * DerivedJobProfileDTO - Result of deriving a job profile from position, tier/band, skill, and group.
- * Both fields are null when no mapping row exists yet for the given combination.
+ * All fields are null when no mapping row exists yet for the given combination.
  */
 export interface DerivedJobProfileDTO {
   jobProfileId: number | null;
   jobProfileName: string | null;
+  jobProfileCode: string | null;
+}
+
+/**
+ * TechnologyDTO - Full technology data returned to client
+ */
+export interface TechnologyDTO {
+  technologyId: number;
+  technologyName: string;
+}
+
+/**
+ * DerivedGroupDTO - Result of deriving a Group from position (+ technology).
+ * Both fields are null when no mapping row exists yet for the given combination.
+ */
+export interface DerivedGroupDTO {
+  groupId: number | null;
+  groupName: string | null;
 }

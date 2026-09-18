@@ -1171,6 +1171,7 @@ export const openapiSpec = {
                       properties: {
                         jobProfileId: { type: 'integer', nullable: true },
                         jobProfileName: { type: 'string', nullable: true },
+                        jobProfileCode: { type: 'string', nullable: true },
                       },
                     },
                   },
@@ -1179,6 +1180,72 @@ export const openapiSpec = {
             },
           },
           '400': { description: 'Missing or invalid posId/tibId/sklId/grpId' },
+        },
+      },
+    },
+    '/api/position-groups/technologies': {
+      get: {
+        tags: ['JobProfile'],
+        summary: 'List the technologies a position varies its Group by',
+        description:
+          'An empty array means the position has a single fixed Group regardless of technology (or is not mapped yet) — the frontend should not show a Technology selector in that case.',
+        parameters: [{ name: 'posId', in: 'query', required: true, schema: { type: 'integer' } }],
+        responses: {
+          '200': {
+            description: 'An array of technologies (possibly empty)',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          technologyId: { type: 'integer' },
+                          technologyName: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Missing or invalid posId' },
+        },
+      },
+    },
+    '/api/position-groups/derive': {
+      get: {
+        tags: ['JobProfile'],
+        summary: 'Derive the Group (A/B/C/D) from position (+ technology)',
+        parameters: [
+          { name: 'posId', in: 'query', required: true, schema: { type: 'integer' } },
+          { name: 'tecId', in: 'query', required: false, schema: { type: 'integer' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Derived group, or null fields when no mapping exists yet',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      properties: {
+                        groupId: { type: 'integer', nullable: true },
+                        groupName: { type: 'string', nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '400': { description: 'Missing or invalid posId' },
         },
       },
     },

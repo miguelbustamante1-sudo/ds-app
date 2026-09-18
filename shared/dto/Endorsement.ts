@@ -80,6 +80,7 @@ export interface EndorsementWithDetailsDTO extends EndorsementDTO {
   jobProfile: {
     jobProfileId: number;
     jobProfileName: string;
+    jobProfileCode: string | null;
   } | null;
   endorsementBonuses?: EndorsementBonusWithCategoryDTO[];
 }

@@ -36,7 +36,10 @@ import { EndorsementClientManagerEmailField } from '../components/EndorsementCli
 import { EndorsementSkillComboBox } from '../components/EndorsementSkillComboBox';
 import { EndorsementGroupComboBox } from '../components/EndorsementGroupComboBox';
 import { EndorsementCurrencyComboBox } from '../components/EndorsementCurrencyComboBox';
+import { TechnologyComboBox } from '../components/TechnologyComboBox';
 import { useDerivedJobProfile } from '../components/useDerivedJobProfile';
+import { useTechnologiesForPosition } from '../components/useTechnologiesForPosition';
+import { useDerivedGroup } from '../components/useDerivedGroup';
 import { BonusSubcategoryComboBox } from '../components/BonusSubcategoryComboBox';
 import { BonusMetadataFields } from '../components/BonusMetadataFields';
 import { BonusDetailTable } from './BonusDetailTable';
@@ -61,6 +64,9 @@ interface EndorsementFormData {
   billingRateCurrency: string;
   sklId: string;
   grpId: string;
+  /** UI-only: not persisted — used solely to derive grpId for positions whose Group
+   *  varies by technology (e.g. Back End Developer). */
+  tecId: string;
   comment: string;
 }
 
@@ -161,6 +167,7 @@ export function EndorsementDetailPage() {
       billingRateCurrency: '',
       sklId: '',
       grpId: '',
+      tecId: '',
       comment: '',
     },
   });
@@ -170,10 +177,40 @@ export function EndorsementDetailPage() {
   const posIdValue = watch('posId');
   const sklIdValue = watch('sklId');
   const grpIdValue = watch('grpId');
+  const tecIdValue = watch('tecId');
   const billingRateCurrencyValue = watch('billingRateCurrency');
 
+  const numericPosId = posIdValue ? Number(posIdValue) : null;
+
+  // Technology only shows for positions whose Group actually varies by it (e.g. Back End Developer).
+  const { technologies, loading: technologiesLoading } = useTechnologiesForPosition(numericPosId);
+  const requiresTechnology = technologies.length > 0;
+
+  const { group: derivedGroup } = useDerivedGroup(
+    numericPosId,
+    tecIdValue ? Number(tecIdValue) : null,
+    requiresTechnology,
+  );
+
+  // Position change (while editing) invalidates any previously chosen Technology.
+  useEffect(() => {
+    if (!isEditing) return;
+    setValue('tecId', '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posIdValue]);
+
+  // Once Group is derived, keep the form's grpId in sync — the manual picker only takes
+  // over when nothing derives (e.g. an unmapped position, or a technology not yet picked).
+  useEffect(() => {
+    if (!isEditing) return;
+    if (derivedGroup?.groupId != null) {
+      setValue('grpId', derivedGroup.groupId.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedGroup]);
+
   const { jobProfile } = useDerivedJobProfile(
-    posIdValue ? Number(posIdValue) : null,
+    numericPosId,
     tibIdValue ? Number(tibIdValue) : null,
     sklIdValue ? Number(sklIdValue) : null,
     grpIdValue ? Number(grpIdValue) : null,
@@ -203,6 +240,7 @@ export function EndorsementDetailPage() {
         billingRateCurrency: endorsement.billingRateCurrency ?? '',
         sklId: endorsement.sklId != null ? String(endorsement.sklId) : '',
         grpId: endorsement.grpId != null ? String(endorsement.grpId) : '',
+        tecId: '',
         comment: endorsement.comment ?? '',
       });
     }
@@ -669,6 +707,23 @@ export function EndorsementDetailPage() {
               </dd>
             </div>
 
+            {/* Technology — only shown while editing, for positions whose Group varies by it */}
+            {isEditing && requiresTechnology && (
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">
+                  <Label>Technology</Label>
+                </dt>
+                <dd className="text-sm mt-1">
+                  <TechnologyComboBox
+                    technologies={technologies}
+                    value={tecIdValue}
+                    onValueChange={(value) => setValue('tecId', value)}
+                    loading={technologiesLoading}
+                  />
+                </dd>
+              </div>
+            )}
+
             {/* Skill */}
             <div>
               <dt className="text-sm font-medium text-muted-foreground">
@@ -687,7 +742,7 @@ export function EndorsementDetailPage() {
               </dd>
             </div>
 
-            {/* Group */}
+            {/* Group — derived read-only once Position (+ Technology) resolves it, manual otherwise */}
             <div>
               <dt className="text-sm font-medium text-muted-foreground">
                 {isEditing && <Label>Group</Label>}
@@ -695,23 +750,35 @@ export function EndorsementDetailPage() {
               </dt>
               <dd className="text-sm mt-1">
                 {isEditing ? (
-                  <EndorsementGroupComboBox
-                    value={grpIdValue}
-                    onValueChange={(value) => setValue('grpId', value)}
-                  />
+                  derivedGroup?.groupId != null ? (
+                    <Input readOnly disabled value={derivedGroup.groupName ?? ''} />
+                  ) : (
+                    <EndorsementGroupComboBox
+                      value={grpIdValue}
+                      onValueChange={(value) => setValue('grpId', value)}
+                    />
+                  )
                 ) : (
                   endorsement.group?.groupName ?? '—'
                 )}
               </dd>
             </div>
 
-            {/* Job Profile — derived, read-only, full width */}
-            <div className="md:col-span-2">
+            {/* Job Profile — derived, read-only */}
+            <div>
               <dt className="text-sm font-medium text-muted-foreground">Job Profile</dt>
               <dd className="text-sm mt-1">
                 {isEditing
                   ? (jobProfile?.jobProfileName ?? 'Select position, tier/band, skill, and group to derive the job profile')
                   : (endorsement.jobProfile?.jobProfileName ?? '—')}
+              </dd>
+            </div>
+
+            {/* Job Code — derived, read-only */}
+            <div>
+              <dt className="text-sm font-medium text-muted-foreground">Job Code</dt>
+              <dd className="text-sm mt-1">
+                {isEditing ? (jobProfile?.jobProfileCode ?? '—') : (endorsement.jobProfile?.jobProfileCode ?? '—')}
               </dd>
             </div>
 

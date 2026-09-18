@@ -25,15 +25,16 @@ export async function findJobProfileMapping(
 ): Promise<DerivedJobProfileDTO> {
   const mapping = await prisma.jobProfileMapping.findUnique({
     where: { posId_tibId_sklId_grpId: { posId, tibId, sklId, grpId } },
-    select: { jobProfile: { select: { jobProfileId: true, jobProfileName: true } } },
+    select: { jobProfile: { select: { jobProfileId: true, jobProfileName: true, jobProfileCode: true } } },
   });
 
   if (!mapping) {
-    return { jobProfileId: null, jobProfileName: null };
+    return { jobProfileId: null, jobProfileName: null, jobProfileCode: null };
   }
 
   return {
     jobProfileId: mapping.jobProfile.jobProfileId,
     jobProfileName: mapping.jobProfile.jobProfileName,
+    jobProfileCode: mapping.jobProfile.jobProfileCode,
   };
 }

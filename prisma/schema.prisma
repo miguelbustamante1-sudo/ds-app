@@ -97,6 +97,8 @@ model Position {
   teamMembers     TeamMember[]
   endorsements    Endorsement[]
   jobProfileMappings JobProfileMapping[]
+  groupMappings   PositionGroupMapping[]
+  baseCodes       PositionBaseCode[]
 
   @@map("pos_positions")
   @@schema("ds")
@@ -408,6 +410,7 @@ model Group {
   groupName          String              @unique @map("grp_name") @db.VarChar(50)
   endorsements       Endorsement[]
   jobProfileMappings JobProfileMapping[]
+  groupMappings      PositionGroupMapping[]
 
   @@map("grp_group")
   @@schema("ds")
@@ -416,10 +419,47 @@ model Group {
 model JobProfile {
   jobProfileId       Int                 @id @default(autoincrement()) @map("jbp_id") @db.Integer
   jobProfileName     String              @unique @map("jbp_name") @db.Text
+  jobProfileCode     String?             @map("jbp_job_code") @db.VarChar(20)
   endorsements       Endorsement[]
   jobProfileMappings JobProfileMapping[]
 
   @@map("jbp_job_profile")
+  @@schema("ds")
+}
+
+model Technology {
+  technologyId    Int                    @id @default(autoincrement()) @map("tec_id") @db.Integer
+  technologyName  String                 @unique @map("tec_name") @db.VarChar(50)
+  groupMappings   PositionGroupMapping[]
+
+  @@map("tec_technology")
+  @@schema("ds")
+}
+
+model PositionGroupMapping {
+  positionGroupMappingId Int         @id @default(autoincrement()) @map("pgm_id") @db.Integer
+  posId                  Int         @map("pos_id")
+  tecId                  Int?        @map("tec_id")
+  grpId                  Int         @map("grp_id")
+  position               Position    @relation(fields: [posId], references: [posId], onDelete: Restrict, map: "pgm_position_group_mapping_pos_id_fkey")
+  technology             Technology? @relation(fields: [tecId], references: [technologyId], onDelete: Restrict, map: "pgm_position_group_mapping_tec_id_fkey")
+  group                  Group       @relation(fields: [grpId], references: [groupId], onDelete: Restrict, map: "pgm_position_group_mapping_grp_id_fkey")
+
+  @@map("pgm_position_group_mapping")
+  @@schema("ds")
+}
+
+model PositionBaseCode {
+  positionBaseCodeId Int      @id @default(autoincrement()) @map("pbc_id") @db.Integer
+  posId              Int      @map("pos_id")
+  tibId              Int      @map("tib_id")
+  baseTitle          String   @map("pbc_base_title") @db.Text
+  baseCode           String   @map("pbc_base_code") @db.VarChar(20)
+  position           Position @relation(fields: [posId], references: [posId], onDelete: Restrict, map: "pbc_position_base_code_pos_id_fkey")
+  tierBand           TierBand @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "pbc_position_base_code_tib_id_fkey")
+
+  @@unique([posId, tibId], map: "uq_pbc_position_base_code")
+  @@map("pbc_position_base_code")
   @@schema("ds")
 }
 
@@ -716,6 +756,7 @@ model TierBand {
   endorsements        Endorsement[]
   teamMembers         TeamMember[]
   jobProfileMappings  JobProfileMapping[]
+  baseCodes           PositionBaseCode[]
 
   @@map("tib_tier_band")
   @@schema("ds")

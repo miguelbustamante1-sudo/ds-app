@@ -21,6 +21,9 @@ export interface WizardFormData {
   startDate: string;
   sklId: string;
   grpId: string;
+  /** UI-only: not submitted with the endorsement — used solely to derive grpId for positions
+   *  whose Group varies by technology (e.g. Back End Developer). */
+  tecId: string;
   comment: string;
 }
 

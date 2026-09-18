@@ -26,6 +26,7 @@ export function useWizardForm() {
       startDate: today(),
       sklId: '',
       grpId: '',
+      tecId: '',
       comment: '',
     },
   });

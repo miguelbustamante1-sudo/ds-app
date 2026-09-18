@@ -28,6 +28,7 @@ import tierBandsRouter from './tierBands';
 import skillsRouter from './skills.routes';
 import groupsRouter from './groups.routes';
 import jobProfilesRouter from './jobProfiles.routes';
+import positionGroupsRouter from './positionGroups.routes';
 import teamManagementRouter from './teamManagement';
 import projectGrantsRouter from './projectGrants';
 import bonusSubcategoriesRouter from './bonusSubcategories';
@@ -117,6 +118,7 @@ export default function registerRoutes() {
   router.use('/skills', skillsRouter);
   router.use('/groups', groupsRouter);
   router.use('/job-profiles', jobProfilesRouter);
+  router.use('/position-groups', positionGroupsRouter);
   router.use('/team-management', teamManagementRouter);
   router.use('/project-grants', projectGrantsRouter);
   router.use('/bonus-subcategories', bonusSubcategoriesRouter);
