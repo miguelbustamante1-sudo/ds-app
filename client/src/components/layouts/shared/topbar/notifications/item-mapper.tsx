@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { timeAgo } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import { NotificationDTO } from '@shared/dto';
@@ -70,10 +71,18 @@ export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecli
   const { itemType, payload, createdAt, isRead, actionType, id } = notification;
   const ItemComponent = ITEM_COMPONENTS[itemType];
   const timeDisplay = timeAgo(createdAt);
+  const navigate = useNavigate();
+  const typedPayload = payload as Record<string, unknown>;
 
   const handleClick = () => {
     if (!isRead) {
       onMarkAsRead(id);
+    }
+
+    const link = typedPayload.link;
+    if (typeof link === 'string' && link.length > 0) {
+      navigate(`${link}?recipientId=${id}`);
+      onNavigate?.();
     }
   };
 
@@ -81,7 +90,6 @@ export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecli
     return <FallbackItem itemType={itemType} />;
   }
 
-  const typedPayload = payload as Record<string, unknown>;
   const isActionable = typedPayload.isActionable === true && actionType === 'actionable';
 
   const extraProps: Record<string, unknown> = { onNavigate, notificationRecipientId: id };
