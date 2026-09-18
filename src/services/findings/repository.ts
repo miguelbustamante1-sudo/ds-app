@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma';
-import type { WatchedField, FindingDto } from './types';
+import type { WatchedField, FindingDto, OpenFindingRef } from './types';
 
 export async function getActiveWatchedFields(entityType: string): Promise<WatchedField[]> {
   const fields = await prisma.cdfWatchedField.findMany({
@@ -55,51 +55,18 @@ export async function getApprovedStates(entityType: string): Promise<Record<stri
   return map;
 }
 
-export async function getExistingOpenFindingsByFingerprint(fingerprints: string[]): Promise<Map<string, any>> {
+export async function getOpenFindingRefs(entityType: string): Promise<OpenFindingRef[]> {
   const findings = await prisma.fndFinding.findMany({
-    where: {
-      fingerprint: {
-        in: fingerprints,
-      },
-      status: 'open',
-    },
-    select: {
-      fingerprint: true,
-      findingId: true,
-      occurrenceCount: true,
-      entityType: true,
-      entityId: true,
-      fieldPath: true,
-      changeType: true,
-      oldValue: true,
-      newValue: true,
-      severity: true,
-      status: true,
-      assignee: true,
-      firstSeen: true,
-      lastSeen: true,
-    },
+    where: { entityType, status: 'open' },
+    select: { findingId: true, entityId: true, fieldPath: true, newValue: true },
   });
 
-  const map = new Map<string, any>();
-  findings.forEach((f) => {
-    map.set(f.fingerprint, {
-      findingId: f.findingId,
-      entityType: f.entityType,
-      entityId: f.entityId,
-      fieldPath: f.fieldPath,
-      changeType: f.changeType,
-      oldValue: f.oldValue,
-      newValue: f.newValue,
-      severity: f.severity,
-      status: f.status,
-      assignee: f.assignee,
-      firstSeen: f.firstSeen,
-      lastSeen: f.lastSeen,
-      occurrenceCount: f.occurrenceCount,
-    });
-  });
-  return map;
+  return findings.map((f) => ({
+    findingId: f.findingId,
+    entityId: f.entityId,
+    fieldPath: f.fieldPath,
+    newValue: f.newValue,
+  }));
 }
 
 export async function getOpenFindings(entityType: string): Promise<FindingDto[]> {
@@ -148,4 +115,45 @@ export async function getOpenFindings(entityType: string): Promise<FindingDto[]>
     occurrenceCount: f.occurrenceCount,
     fieldDisplayName: f.fieldPath ? fieldMap.get(f.fieldPath) : undefined,
   }));
+}
+
+export async function countApprovedStates(entityType: string): Promise<number> {
+  return prisma.apsApprovedState.count({ where: { entityType } });
+}
+
+export async function countSnapshots(entityType: string): Promise<number> {
+  return prisma.snpEntitySnapshot.count({ where: { entityType } });
+}
+
+export async function startRunLog(
+  entityType: string,
+  expectedRowCount: number,
+  actualRowCount: number,
+) {
+  return prisma.rnlRunLog.create({
+    data: { entityType, status: 'running', startedAt: new Date(), expectedRowCount, actualRowCount },
+  });
+}
+
+export async function completeRunLog(
+  runLogId: number,
+  counts: { recordsCompared: number; findingsOpened: number; findingsClosed: number },
+) {
+  return prisma.rnlRunLog.update({
+    where: { runLogId },
+    data: {
+      status: 'completed',
+      finishedAt: new Date(),
+      recordsCompared: counts.recordsCompared,
+      findingsOpened: counts.findingsOpened,
+      findingsClosed: counts.findingsClosed,
+    },
+  });
+}
+
+export async function failRunLog(runLogId: number, message: string) {
+  return prisma.rnlRunLog.update({
+    where: { runLogId },
+    data: { status: 'failed', finishedAt: new Date(), error: message },
+  });
 }

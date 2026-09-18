@@ -917,9 +917,14 @@ BEGIN
   END IF;
 END $$;
 
--- Partial unique index on ds.fnd_findings (Prisma schema DSL cannot express partial indexes)
-CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_fingerprint
-    ON ds.fnd_findings (fnd_fingerprint)
+-- Open-finding dedup guarantee (Prisma schema DSL cannot express partial indexes).
+-- Keyed on the columns, not the fingerprint: the fingerprint embeds new_value, so it
+-- changes when the drifted value changes and cannot enforce one open finding per field.
+-- Mirrored from prisma/scripts/replace_fnd_open_dedup_index.sql.
+DROP INDEX IF EXISTS ds.uq_fnd_open_fingerprint;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_entity_field
+    ON ds.fnd_findings (cde_entity_type, fnd_entity_id, cdf_field_path)
+    NULLS NOT DISTINCT
     WHERE status = 'open';
 
 -- WatchedFields — Object/Field Manager screen (added 2026-09-18)
