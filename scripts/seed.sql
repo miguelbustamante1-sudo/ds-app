@@ -867,7 +867,62 @@ CROSS JOIN (VALUES
 ) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
 ON CONFLICT DO NOTHING;
 
--- 20. Watched Entity and Fields for Change Detection Platform
+-- 20. Baseline Approved States for Change Detection Platform
+-- Baseline data for the 6 projects — snapshots will be uploaded via TSV importer
+INSERT INTO ds.aps_approved_state (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at)
+VALUES
+  ('project','PR-004121', jsonb_build_object(
+    'region','Central America','practice','System Engineering & Support',
+    'telus_business_unit','CIO','wbs_code','<Multiple From File>','sow','2560',
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2026-01-01',
+    'end_date','2026-12-31','project_manager','Kevin Fino Herrera (10017904)',
+    'project_name','TELUS CIO (SPACE) Digitization Campus - 2026 (Andre Medeiros)',
+    'contract_type','T & M Date'), NULL, now()),
+  ('project','PR-004141', jsonb_build_object(
+    'region','Central America','practice','System Engineering & Support',
+    'telus_business_unit',null,'wbs_code',null,'sow','320808 (PO # 7010141648)',
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2025-12-16',
+    'end_date','2026-12-15','project_manager','Luis Hernandez Campos (10018554)',
+    'project_name','Mastercard - Prepaid Management Services SOW 2 Dev and QA - 2026',
+    'contract_type','T & M Date'), NULL, now()),
+  ('project','PR-004156', jsonb_build_object(
+    'region','Central America','practice','System Engineering & Support',
+    'telus_business_unit','TCS','wbs_code',null,'sow',null,
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2026-01-01',
+    'end_date','2026-12-31','project_manager','José Ruiz Fuentes (10100302)',
+    'project_name','TELUS TCS - SOW 2026 - Smart Home Security - TICA',
+    'contract_type','T & M Date'), NULL, now()),
+  ('project','PR-005460', jsonb_build_object(
+    'region','Central America','practice','System Engineering & Support',
+    'telus_business_unit','CIO','wbs_code',null,'sow','2560',
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2026-03-02',
+    'end_date','2026-12-31','project_manager','Kevin Fino Herrera (10017904)',
+    'project_name','TELUS CIO - Shopping Cart-Project - TICA',
+    'contract_type','T & M Date'), NULL, now()),
+  ('project','PR-005988', jsonb_build_object(
+    'region','All TELUS Digital Solutions','practice','System Engineering & Support',
+    'telus_business_unit','TCS','wbs_code',null,'sow',null,
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2026-07-01',
+    'end_date','2027-03-05','project_manager','Kevin Fino Herrera (10017904)',
+    'project_name','TELUS - Personalization and Publishing Products (Dinesh)',
+    'contract_type','T & M Date'), NULL, now()),
+  ('project','PR-006119', jsonb_build_object(
+    'region','Central America','practice','System Engineering & Support',
+    'telus_business_unit','TCS','wbs_code',null,'sow',null,
+    'project_type','Client','director','Arturo Marenco Rodriguez (10016568)',
+    'line_of_business','Enterprise Technology','start_date','2026-09-01',
+    'end_date','2026-12-31','project_manager','Luis Hernandez Campos (10018554)',
+    'project_name','TELUS TCS- Kim-Bernard-Paula-Koodo Digital-2026- TICA',
+    'contract_type','T & M Date'), NULL, now())
+ON CONFLICT (cde_entity_type, aps_entity_id)
+DO UPDATE SET aps_payload = EXCLUDED.aps_payload, aps_approved_at = EXCLUDED.aps_approved_at;
+
+-- 21. Watched Entity and Fields for Change Detection Platform
 -- Seed the 'project' entity type and its 13 watched fields
 INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at)
   VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now())
