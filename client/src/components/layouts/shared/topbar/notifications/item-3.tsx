@@ -1,4 +1,3 @@
-﻿import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   AvatarFallback,
@@ -13,17 +12,14 @@ interface Item3Props {
   avatar: string;
   badgeColor: 'online' | 'offline' | 'busy' | 'away' | null | undefined;
   description: string;
-  link: string;
   day: string;
   timeDisplay?: string;
   info: string;
   actionType?: string;
   onAccept?: () => void;
   onDecline?: () => void;
-  onNavigate?: () => void;
   sourceId?: number;
   sourceEntity?: string;
-  notificationRecipientId?: number;
 }
 
 export default function Item3({
@@ -31,25 +27,21 @@ export default function Item3({
   avatar,
   badgeColor,
   description,
-  link,
   day,
   timeDisplay,
   info,
   actionType,
   onAccept,
   onDecline,
-  onNavigate,
-  notificationRecipientId,
 }: Item3Props) {
-  const navigate = useNavigate();
-  const resolvedLink = notificationRecipientId
-    ? `${link}?recipientId=${notificationRecipientId}`
-    : link;
-
-  const handleViewDetails = (e: React.MouseEvent) => {
+  const handleAccept = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onNavigate?.();
-    navigate(resolvedLink);
+    onAccept?.();
+  };
+
+  const handleDecline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDecline?.();
   };
 
   return (
@@ -69,11 +61,7 @@ export default function Item3({
               {userName}
             </span>
             <span className="text-secondary-foreground"> {description} </span>
-            <span
-              role="link"
-              className="hover:text-primary text-primary underline cursor-pointer"
-              onClick={handleViewDetails}
-            >
+            <span className="text-primary underline">
               View details
             </span>
             <span className="text-secondary-foreground"> {day}</span>
@@ -87,10 +75,10 @@ export default function Item3({
 
         {actionType !== 'readonly' && (
           <div className="flex flex-wrap gap-2.5">
-            <Button size="sm" variant="outline" onClick={onDecline}>
+            <Button size="sm" variant="outline" onClick={handleDecline}>
               Decline
             </Button>
-            <Button size="sm" variant="mono" onClick={onAccept}>
+            <Button size="sm" variant="mono" onClick={handleAccept}>
               Accept
             </Button>
           </div>
