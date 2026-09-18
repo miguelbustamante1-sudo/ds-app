@@ -869,7 +869,7 @@ ON CONFLICT DO NOTHING;
 
 -- 20. Watched Entity and Fields for Change Detection Platform
 -- Seed the 'project' entity type and its 13 watched fields
-INSERT INTO ds.cde_watched_entity (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at)
+INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at)
   VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now())
   ON CONFLICT (cde_entity_type) DO NOTHING;
 
