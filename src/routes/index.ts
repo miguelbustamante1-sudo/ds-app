@@ -98,6 +98,7 @@ import fieldglassSowsRouter from './fieldglassSow.routes';
 import externalBonusIntakeRouter from './externalBonusIntake.routes';
 import performanceCasesRouter from '../services/performance-cases/routes/cases';
 import findingsRouter from './findings.routes';
+import watchedFieldsRouter from './watchedFields.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -200,6 +201,7 @@ export default function registerRoutes() {
   router.use('/bonuses/external', externalBonusIntakeRouter);
   router.use('/performance-cases', performanceCasesRouter);
   router.use('/findings', findingsRouter);
+  router.use('/watched-fields', watchedFieldsRouter);
 
   return router;
 }

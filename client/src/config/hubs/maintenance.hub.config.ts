@@ -202,5 +202,11 @@ export const maintenanceHubConfig: HubConfig = {
       path: '/maintenance/findings',
       permission: 'Findings',
     },
+    {
+      title: 'Object & Field Manager',
+      description: 'Configure which entities and fields change detection watches.',
+      path: '/maintenance/watched-fields',
+      permission: 'WatchedFields',
+    },
   ],
 };

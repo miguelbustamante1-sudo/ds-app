@@ -152,6 +152,7 @@ import { PortfolioSummaryPage } from '@/pages/performance-cases/PortfolioSummary
 import { HrPartnerViewPage } from '@/pages/performance-cases/HrPartnerViewPage';
 import { PerformanceCasesReportPage } from '@/pages/reports/performance-cases';
 import { FindingsPage } from '@/pages/maintenance/findings';
+import { WatchedFieldsPage } from '@/pages/maintenance/watched-fields';
 
 export function AppRoutingSetup() {
   return (
@@ -238,6 +239,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/email-statistics" element={<EmailStatisticsPage />} />
         <Route path="/maintenance/email-message-insights" element={<EmailMessageInsightsPage />} />
         <Route path="/maintenance/findings" element={<FindingsPage />} />
+        <Route path="/maintenance/watched-fields" element={<WatchedFieldsPage />} />
         <Route path="/hiring" element={<HiringPage />} />
         <Route path="/hiring/new" element={<HiringDetailPage />} />
         <Route path="/hiring/:id" element={<HiringDetailPage />} />

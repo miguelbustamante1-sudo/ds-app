@@ -2577,6 +2577,9 @@ model CdeWatchedEntity {
   active           Boolean @default(true) @map("cde_active")
   seededAt         DateTime? @map("cde_seeded_at") @db.Timestamptz(6)
   createdAt        DateTime @default(now()) @map("cde_created_at") @db.Timestamptz(6)
+  createdBy        String?   @map("cde_created_by") @db.Text
+  updatedBy        String?   @map("cde_updated_by") @db.Text
+  updatedAt        DateTime? @map("cde_updated_at") @db.Timestamptz(6)
 
   watchedFields CdfWatchedField[]
   detectionRules RulDetectionRule[]
@@ -2605,6 +2608,9 @@ model CdfWatchedField {
   effectiveFrom DateTime @default(dbgenerated("CURRENT_DATE")) @map("cdf_effective_from") @db.Date
   active        Boolean @default(true) @map("cdf_active")
   createdAt     DateTime @default(now()) @map("cdf_created_at") @db.Timestamptz(6)
+  createdBy     String?   @map("cdf_created_by") @db.Text
+  updatedBy     String?   @map("cdf_updated_by") @db.Text
+  updatedAt     DateTime? @map("cdf_updated_at") @db.Timestamptz(6)
 
   watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_cdf_cde")
 

@@ -133,3 +133,5 @@ export * from './PerformanceCase';
 
 // Audit History DTOs
 export * from './AuditHistory';
+// Change Detection — Watched Entities & Fields DTOs
+export * from './WatchedField';
