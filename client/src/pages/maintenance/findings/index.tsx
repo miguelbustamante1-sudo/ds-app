@@ -18,8 +18,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CardTitle } from '@/components/ui/card-title';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
