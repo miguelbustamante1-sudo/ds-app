@@ -36,6 +36,7 @@ export * from './User';
 export * from './WorkdayInfo';
 export * from './FunctionalArea';
 export * from './FlagTypeAction';
+export * from './Finding';
 
 // Communication DTOs
 export * from './Notification';

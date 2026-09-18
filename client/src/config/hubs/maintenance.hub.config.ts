@@ -196,5 +196,11 @@ export const maintenanceHubConfig: HubConfig = {
       path: '/maintenance/email-message-insights',
       permission: 'EmailAdmin',
     },
+    {
+      title: 'Findings',
+      description: 'Monitor changes detected in watched fields across projects.',
+      path: '/maintenance/findings',
+      permission: 'Findings',
+    },
   ],
 };

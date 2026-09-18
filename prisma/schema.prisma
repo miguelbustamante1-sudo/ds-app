@@ -945,6 +945,9 @@ model PersistenceJob {
   updatedBy             String?              @map("pjo_updated_by") @db.VarChar(255)
   updatedAt             DateTime?            @map("pjo_updated_at") @db.Timestamptz(6)
   template              PersistenceTemplate  @relation(fields: [persistenceTemplateId], references: [id], onDelete: Restrict, map: "fk_pjo_pte")
+  observations          ObsObservation[]
+  changeEvents          CevChangeEvent[]
+  runLogs               RnlRunLog[]
 
   @@index([persistenceTemplateId], map: "idx_pjo_pte_id")
   @@index([status], map: "idx_pjo_status")
@@ -1310,6 +1313,7 @@ model WinWorkflowInstance {
   context      WicWorkflowInstanceContext[]
   dependencies WidWorkflowInstanceTaskDependency[]
   auditLogs    WalWorkflowAuditLog[]
+  findings     FndFinding[]
 
   @@index([wflId], map: "idx_win_wfl_id")
   @@index([status, startedAt], map: "idx_win_status_started")
@@ -2488,4 +2492,247 @@ model WorkdayBoostSync {
 
   @@map("wko_workday_boost_sync")
   @@schema("es")
+}
+
+/// Salesforce Entity Snapshot — landing table for change-detection platform
+model SnpEntitySnapshot {
+  snapshotId Int      @id @default(autoincrement()) @map("snp_id") @db.Integer
+  entityType String   @map("snp_entity_type") @db.Text
+  entityId   String   @map("snp_entity_id") @db.Text
+  payload    Json     @map("snp_payload")
+  loadedAt   DateTime @default(now()) @map("snp_loaded_at") @db.Timestamptz(6)
+
+  @@unique([entityType, entityId], map: "uk_snp_entity_type_id")
+  @@index([payload], type: Gin, map: "idx_snp_payload_gin")
+  @@map("snp_entity_snapshot")
+  @@schema("es")
+}
+
+/// Change-detection platform: watched entity type configuration
+model CdeWatchedEntity {
+  entityType       String  @id @map("cde_entity_type") @db.Text
+  label            String  @map("cde_label") @db.Text
+  ownerEmail       String? @map("cde_owner_email") @db.VarChar(255)
+  completenessPct  Decimal? @map("cde_completeness_pct") @db.Decimal
+  active           Boolean @default(true) @map("cde_active")
+  seededAt         DateTime? @map("cde_seeded_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("cde_created_at") @db.Timestamptz(6)
+
+  watchedFields CdfWatchedField[]
+  detectionRules RulDetectionRule[]
+  routing RtgRouting[]
+  observations ObsObservation[]
+  approvedStates ApsApprovedState[]
+  changeEvents CevChangeEvent[]
+  findings FndFinding[]
+  runLogs RnlRunLog[]
+
+  @@map("cde_watched_entities")
+  @@schema("ds")
+}
+
+/// Change-detection platform: field configuration for an entity type
+model CdfWatchedField {
+  fieldId       Int     @id @default(autoincrement()) @map("cdf_id") @db.Integer
+  entityType    String  @map("cde_entity_type") @db.Text
+  fieldPath     String  @map("cdf_field_path") @db.Text
+  displayName   String  @map("cdf_display_name") @db.Text
+  dataType      String  @map("cdf_data_type") @db.VarChar(50)
+  comparisonMode String @default("exact") @map("cdf_comparison_mode") @db.VarChar(50)
+  tolerance     Decimal? @map("cdf_tolerance") @db.Decimal
+  nullEqualsEmpty Boolean @default(false) @map("cdf_null_equals_empty")
+  significance  String @default("material") @map("cdf_significance") @db.VarChar(50)
+  effectiveFrom DateTime @default(dbgenerated("CURRENT_DATE")) @map("cdf_effective_from") @db.Date
+  active        Boolean @default(true) @map("cdf_active")
+  createdAt     DateTime @default(now()) @map("cdf_created_at") @db.Timestamptz(6)
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_cdf_cde")
+
+  @@unique([entityType, fieldPath], map: "uk_cdf_entity_field")
+  @@index([entityType], map: "idx_cdf_entity_type")
+  @@map("cdf_watched_fields")
+  @@schema("ds")
+}
+
+/// Change-detection platform: detection rule
+model RulDetectionRule {
+  ruleId    Int     @id @default(autoincrement()) @map("rul_id") @db.Integer
+  entityType String @map("cde_entity_type") @db.Text
+  ruleClass String  @map("rul_class") @db.VarChar(50)
+  ruleType  String  @map("rul_type") @db.VarChar(100)
+  definition Json   @map("rul_definition")
+  severity  String @default("medium") @map("rul_severity") @db.VarChar(50)
+  version   Int    @default(1) @map("rul_version") @db.Integer
+  active    Boolean @default(true) @map("rul_active")
+  createdAt DateTime @default(now()) @map("rul_created_at") @db.Timestamptz(6)
+  createdBy String? @map("rul_created_by") @db.VarChar(255)
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_rul_cde")
+  routing RtgRouting[]
+  findings FndFinding[]
+  runCoverage RncRunCoverage[]
+
+  @@index([entityType], map: "idx_rul_entity_type")
+  @@map("rul_detection_rules")
+  @@schema("ds")
+}
+
+/// Change-detection platform: routing configuration (field or rule → assignee)
+model RtgRouting {
+  routingId  Int     @id @default(autoincrement()) @map("rtg_id") @db.Integer
+  entityType String  @map("cde_entity_type") @db.Text
+  fieldPath  String? @map("cdf_field_path") @db.Text
+  ruleId     Int?    @map("rul_id") @db.Integer
+  assignee   String  @map("rtg_assignee") @db.VarChar(255)
+  priority   Int    @default(100) @map("rtg_priority") @db.Integer
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_rtg_cde")
+  detectionRule RulDetectionRule? @relation(fields: [ruleId], references: [ruleId], onDelete: Restrict, map: "fk_rtg_rul")
+
+  @@index([entityType], map: "idx_rtg_entity_type")
+  @@index([ruleId], map: "idx_rtg_rule_id")
+  @@map("rtg_routing")
+  @@schema("ds")
+}
+
+/// Change-detection platform: immutable observation history
+model ObsObservation {
+  observationId Int     @id @default(autoincrement()) @map("obs_id") @db.Integer
+  persistenceJobId Int? @map("pjo_id") @db.Integer
+  entityType String     @map("cde_entity_type") @db.Text
+  entityId String       @map("obs_entity_id") @db.Text
+  payload Json          @map("obs_payload")
+  rowHash String        @map("obs_row_hash") @db.Text
+  createdAt DateTime    @default(now()) @map("obs_created_at") @db.Timestamptz(6)
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_obs_cde")
+  persistenceJob PersistenceJob? @relation(fields: [persistenceJobId], references: [id], onDelete: SetNull, map: "fk_obs_pjo")
+
+  @@index([entityType, entityId], map: "idx_obs_entity")
+  @@index([persistenceJobId], map: "idx_obs_pjo")
+  @@index([payload], type: Gin, map: "idx_obs_payload_gin")
+  @@map("obs_observations")
+  @@schema("ds")
+}
+
+/// Change-detection platform: approved/frozen state snapshot
+model ApsApprovedState {
+  entityType       String    @map("cde_entity_type") @db.Text
+  entityId String         @map("aps_entity_id") @db.Text
+  payload Json            @map("aps_payload")
+  approvedAt DateTime     @default(now()) @map("aps_approved_at") @db.Timestamptz(6)
+  approvedBy String?      @map("aps_approved_by") @db.VarChar(255)
+  sourceFindingId Int?    @map("fnd_source_finding") @db.Integer
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_aps_cde")
+  sourceFinding FndFinding? @relation("ApsSourceFinding", fields: [sourceFindingId], references: [findingId], onDelete: SetNull, map: "fk_aps_fnd")
+
+  @@id([entityType, entityId])
+  @@index([entityType], map: "idx_aps_entity_type")
+  @@map("aps_approved_state")
+  @@schema("ds")
+}
+
+/// Change-detection platform: change event (materialized diff)
+model CevChangeEvent {
+  changeEventId Int     @id @default(autoincrement()) @map("cev_id") @db.Integer
+  entityType String     @map("cde_entity_type") @db.Text
+  entityId String       @map("cev_entity_id") @db.Text
+  persistenceJobId Int? @map("pjo_id") @db.Integer
+  changeType String     @map("cev_change_type") @db.VarChar(50)
+  fieldPath String?     @map("cdf_field_path") @db.Text
+  oldValue Json?        @map("cev_old_value")
+  newValue Json?        @map("cev_new_value")
+  detectedAt DateTime   @default(now()) @map("cev_detected_at") @db.Timestamptz(6)
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_cev_cde")
+  persistenceJob PersistenceJob? @relation(fields: [persistenceJobId], references: [id], onDelete: SetNull, map: "fk_cev_pjo")
+
+  @@index([entityType, entityId, detectedAt(sort: Desc)], map: "idx_cev_entity")
+  @@index([persistenceJobId], map: "idx_cev_pjo")
+  @@map("cev_change_events")
+  @@schema("ds")
+}
+
+/// Change-detection platform: finding (dedup'd via fingerprint + status)
+model FndFinding {
+  findingId Int       @id @default(autoincrement()) @map("fnd_id") @db.Integer
+  fingerprint String  @map("fnd_fingerprint") @db.Text
+  entityType String   @map("cde_entity_type") @db.Text
+  entityId String     @map("fnd_entity_id") @db.Text
+  fieldPath String?   @map("cdf_field_path") @db.Text
+  ruleId Int?         @map("rul_id") @db.Integer
+  ruleVersion Int?    @map("rul_version") @db.Integer
+  changeType String?  @map("change_type") @db.VarChar(50)
+  oldValue Json?      @map("old_value")
+  newValue Json?      @map("new_value")
+  severity String     @default("medium") @map("severity") @db.VarChar(50)
+  status String       @default("open") @map("status") @db.VarChar(50)
+  assignee String?    @map("assignee") @db.VarChar(255)
+  firstSeen DateTime  @default(now()) @map("first_seen") @db.Timestamptz(6)
+  lastSeen DateTime   @default(now()) @map("last_seen") @db.Timestamptz(6)
+  occurrenceCount Int @default(1) @map("occurrence_count") @db.Integer
+  supersededById Int? @map("superseded_by") @db.Integer
+  resolution String?  @map("resolution") @db.Text
+  resolvedBy String?  @map("resolved_by") @db.VarChar(255)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  workflowInstanceId String? @map("win_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("fnd_created_at") @db.Timestamptz(6)
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_fnd_cde")
+  detectionRule RulDetectionRule? @relation(fields: [ruleId], references: [ruleId], onDelete: Restrict, map: "fk_fnd_rul")
+  supersedingFinding FndFinding? @relation("FndSupersession", fields: [supersededById], references: [findingId], onDelete: SetNull, map: "fk_fnd_superseded")
+  supersessedFindings FndFinding[] @relation("FndSupersession")
+  workflowInstance WinWorkflowInstance? @relation(fields: [workflowInstanceId], references: [winId], onDelete: SetNull, map: "fk_fnd_win")
+  approvedStates ApsApprovedState[] @relation("ApsSourceFinding")
+
+  @@index([fingerprint], map: "idx_fnd_fingerprint")
+  @@index([entityType, entityId], map: "idx_fnd_entity")
+  @@index([status], map: "idx_fnd_open")
+  @@index([assignee], map: "idx_fnd_assignee")
+  @@map("fnd_findings")
+  @@schema("ds")
+}
+
+/// Change-detection platform: run log (import + completeness guard)
+model RnlRunLog {
+  runLogId Int     @id @default(autoincrement()) @map("rnl_id") @db.Integer
+  entityType String @map("cde_entity_type") @db.Text
+  persistenceJobId Int? @map("pjo_id") @db.Integer
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
+  status String   @default("running") @map("status") @db.VarChar(50)
+  expectedRowCount Int? @map("expected_row_count") @db.Integer
+  actualRowCount Int?  @map("actual_row_count") @db.Integer
+  completenessResult String? @map("completeness_result") @db.VarChar(50)
+  overrideReason String? @map("override_reason") @db.Text
+  recordsCompared Int? @map("records_compared") @db.Integer
+  findingsOpened Int? @map("findings_opened") @db.Integer
+  findingsClosed Int? @map("findings_closed") @db.Integer
+  error String?   @map("error") @db.Text
+
+  watchedEntity CdeWatchedEntity @relation(fields: [entityType], references: [entityType], onDelete: Restrict, map: "fk_rnl_cde")
+  persistenceJob PersistenceJob? @relation(fields: [persistenceJobId], references: [id], onDelete: SetNull, map: "fk_rnl_pjo")
+  runCoverage RncRunCoverage[]
+
+  @@index([entityType, startedAt(sort: Desc)], map: "idx_rnl_entity_time")
+  @@map("rnl_run_log")
+  @@schema("ds")
+}
+
+/// Change-detection platform: run coverage (field/rule evaluated count)
+model RncRunCoverage {
+  coverageId Int     @id @default(autoincrement()) @map("rnc_id") @db.Integer
+  runLogId Int      @map("rnl_id") @db.Integer
+  fieldPath String? @map("cdf_field_path") @db.Text
+  ruleId Int?       @map("rul_id") @db.Integer
+  recordsEvaluated Int @map("records_evaluated") @db.Integer
+
+  runLog RnlRunLog @relation(fields: [runLogId], references: [runLogId], onDelete: Cascade, map: "fk_rnc_rnl")
+  detectionRule RulDetectionRule? @relation(fields: [ruleId], references: [ruleId], onDelete: Restrict, map: "fk_rnc_rul")
+
+  @@index([runLogId], map: "idx_rnc_run_log_id")
+  @@index([ruleId], map: "idx_rnc_rule_id")
+  @@map("rnc_run_coverage")
+  @@schema("ds")
 }
