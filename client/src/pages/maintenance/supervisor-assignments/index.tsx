@@ -68,7 +68,7 @@ const formatTeamMemberDisplay = (
 
 type TeamMemberStatus = 'Active' | 'Retired';
 
-const STATUS_OPTIONS: Array<{ label: string; value: TeamMemberStatus }> = [
+const EMPLOYEE_STATUS_OPTIONS: Array<{ label: string; value: TeamMemberStatus }> = [
   { label: 'Active', value: 'Active' },
   { label: 'Retired', value: 'Retired' },
 ];
@@ -83,6 +83,23 @@ const getTeamMemberStatus = (
   return endDate <= today ? 'Retired' : 'Active';
 };
 
+type AssignmentStatus = 'Active' | 'Ended';
+
+const ASSIGNMENT_STATUS_OPTIONS: Array<{ label: string; value: AssignmentStatus }> = [
+  { label: 'Active', value: 'Active' },
+  { label: 'Ended', value: 'Ended' },
+];
+
+const getAssignmentStatus = (
+  supervisorAssignmentEndDate: Date | string | null
+): AssignmentStatus => {
+  if (!supervisorAssignmentEndDate) return 'Active';
+  const endDate = parseUTCDateAsLocal(supervisorAssignmentEndDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return endDate <= today ? 'Ended' : 'Active';
+};
+
 export function SupervisorAssignmentsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<SupervisorAssignmentDTO | undefined>();
@@ -91,7 +108,8 @@ export function SupervisorAssignmentsPage() {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    { id: 'status', value: ['Active'] },
+    { id: 'employeeStatus', value: ['Active'] },
+    { id: 'assignmentStatus', value: ['Active'] },
   ]);
   const [activeCoverageBySupervisor, setActiveCoverageBySupervisor] = useState<
     Map<number, { toSupervisorName: string; coverageEndDate: Date | string | null }>
@@ -166,9 +184,9 @@ export function SupervisorAssignmentsPage() {
         meta: { headerTitle: 'Team Member', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
-        id: 'status',
+        id: 'employeeStatus',
         accessorFn: (row) => getTeamMemberStatus(row.teamMember),
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Employee Status" />,
         cell: ({ row }) => {
           const status = getTeamMemberStatus(row.original.teamMember);
           return (
@@ -182,7 +200,7 @@ export function SupervisorAssignmentsPage() {
           return value.includes(getTeamMemberStatus(row.original.teamMember));
         },
         size: 100,
-        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
+        meta: { headerTitle: 'Employee Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         accessorKey: 'supervisorAssignmentStartDate',
@@ -197,6 +215,25 @@ export function SupervisorAssignmentsPage() {
         cell: ({ row }) => formatDate(row.original.supervisorAssignmentEndDate),
         size: 120,
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        id: 'assignmentStatus',
+        accessorFn: (row) => getAssignmentStatus(row.supervisorAssignmentEndDate),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Assignment Status" />,
+        cell: ({ row }) => {
+          const status = getAssignmentStatus(row.original.supervisorAssignmentEndDate);
+          return (
+            <Badge variant={status === 'Active' ? 'success' : 'secondary'}>
+              {status}
+            </Badge>
+          );
+        },
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(getAssignmentStatus(row.original.supervisorAssignmentEndDate));
+        },
+        size: 130,
+        meta: { headerTitle: 'Assignment Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         id: 'actions',
@@ -367,11 +404,18 @@ export function SupervisorAssignmentsPage() {
       </Toolbar>
 
       <div className="flex items-center gap-2 mt-6">
-        {table.getColumn('status') && (
+        {table.getColumn('employeeStatus') && (
           <DataGridColumnFilter
-            column={table.getColumn('status')}
-            title="Status"
-            options={STATUS_OPTIONS}
+            column={table.getColumn('employeeStatus')}
+            title="Employee Status"
+            options={EMPLOYEE_STATUS_OPTIONS}
+          />
+        )}
+        {table.getColumn('assignmentStatus') && (
+          <DataGridColumnFilter
+            column={table.getColumn('assignmentStatus')}
+            title="Assignment Status"
+            options={ASSIGNMENT_STATUS_OPTIONS}
           />
         )}
         {table.getColumn('supervisor') && (
