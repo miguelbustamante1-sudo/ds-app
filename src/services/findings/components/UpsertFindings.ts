@@ -18,6 +18,10 @@ export async function upsertFindings(
   const results: UpsertFindingsResult[] = [];
 
   for (const diff of diffs) {
+    // Convert values to JSON strings for JSONB storage
+    const oldValueJson = diff.oldValue === null ? null : JSON.stringify(diff.oldValue);
+    const newValueJson = diff.newValue === null ? null : JSON.stringify(diff.newValue);
+
     const rows = await prisma.$queryRaw<Array<{ fnd_id: number; fnd_fingerprint: string; xmax: number }>>`
       INSERT INTO ds.fnd_findings (
         fnd_fingerprint,
@@ -39,8 +43,8 @@ export async function upsertFindings(
         ${diff.entityId},
         ${diff.fieldPath},
         ${diff.changeType},
-        ${diff.oldValue},
-        ${diff.newValue},
+        ${oldValueJson}::jsonb,
+        ${newValueJson}::jsonb,
         'medium',
         'open',
         NOW(),
@@ -54,11 +58,12 @@ export async function upsertFindings(
       RETURNING fnd_id, fnd_fingerprint, (xmax = 0)::int as xmax
     `;
 
-    if (rows.length > 0) {
+    const row = rows[0];
+    if (row) {
       results.push({
-        findingId: rows[0].fnd_id,
-        fingerprint: rows[0].fnd_fingerprint,
-        inserted: rows[0].xmax === 0,
+        findingId: row.fnd_id,
+        fingerprint: row.fnd_fingerprint,
+        inserted: row.xmax === 0,
       });
     }
   }
