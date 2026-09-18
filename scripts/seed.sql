@@ -874,21 +874,22 @@ INSERT INTO ds.cde_watched_entity (cde_entity_type, cde_label, cde_owner_email, 
   ON CONFLICT (cde_entity_type) DO NOTHING;
 
 -- 13 watched fields for project entity type (field_id auto-increments, so just INSERT)
+-- Field paths must match exactly with snp_payload JSON keys in es.snp_entity_snapshot
 INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at)
 VALUES
-  ('project', 'Name',              'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Status',            'Project Status',         'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'StartDate',         'Start Date',             'date',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'EndDate',           'End Date',               'date',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Budget',            'Budget Amount',          'numeric', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Manager',           'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Client',            'Client Name',            'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Scope',             'Project Scope',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'RiskLevel',         'Risk Level',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'TeamSize',          'Team Size',              'integer', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'Methodology',       'Project Methodology',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'CostCenter',        'Cost Center',            'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
-  ('project', 'ProfitabilityPct',  'Profitability %',        'numeric', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now())
+  ('project', 'project_name',          'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'project_type',          'Project Type',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'start_date',            'Start Date',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'end_date',              'End Date',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'project_manager',       'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'director',              'Director',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'sow',                   'SOW',                    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'wbs_code',              'WBS Code',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'region',                'Region',                 'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'line_of_business',      'Line of Business',       'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'practice',              'Practice',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now())
 ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
 
 -- Findings — Change Detection Platform (added 2026-09-18)
