@@ -27,3 +27,8 @@ export interface RunFindingsResultDto {
   fieldsChecked: number;
   observationsRecorded: number;
 }
+
+export interface FindingStatusCountDto {
+  status: string;
+  count: number;
+}
