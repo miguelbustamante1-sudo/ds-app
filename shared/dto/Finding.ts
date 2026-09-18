@@ -18,8 +18,12 @@ export interface FindingDto {
 
 export interface RunFindingsResultDto {
   runId: string;
+  runLogId: number;
   findingsCreated: number;
   findingsUpdated: number;
+  findingsResolved: number;
+  findingsSuperseded: number;
   entitiesCompared: number;
   fieldsChecked: number;
+  observationsRecorded: number;
 }

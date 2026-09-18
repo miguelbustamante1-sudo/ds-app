@@ -2692,7 +2692,6 @@ model FndFinding {
   workflowInstance WinWorkflowInstance? @relation(fields: [workflowInstanceId], references: [winId], onDelete: SetNull, map: "fk_fnd_win")
   approvedStates ApsApprovedState[] @relation("ApsSourceFinding")
 
-  @@index([fingerprint], map: "idx_fnd_fingerprint")
   @@index([entityType, entityId], map: "idx_fnd_entity")
   @@index([status], map: "idx_fnd_open")
   @@index([assignee], map: "idx_fnd_assignee")

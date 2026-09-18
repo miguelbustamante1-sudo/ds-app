@@ -1,87 +1,138 @@
 import { randomUUID } from 'crypto';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import {
+  completeRunLog,
+  countApprovedStates,
+  countSnapshots,
+  failRunLog,
   getActiveWatchedFields,
-  getSnapshots,
   getApprovedStates,
-  getExistingOpenFindingsByFingerprint,
+  getOpenFindingRefs,
+  getSnapshots,
+  startRunLog,
   getOpenFindings as repositoryGetOpenFindings,
 } from './repository';
-import { computeFindingsDiff } from './components/ComputeFindingsDiff';
-import { upsertFindings } from './components/UpsertFindings';
+import { reconcileFindings } from './components/ReconcileFindings';
+import { applyFindingsPlan, type FindingMutation } from './components/ApplyFindingsPlan';
+import { buildObservations, recordObservations } from './components/RecordObservations';
 import type { RunFindingsResultDto, FindingDto } from './types';
 
-export class FindingsOrchestrator {
-  async runFindings(triggeredByEmail: string): Promise<RunFindingsResultDto> {
-    const runId = randomUUID();
-    const entityType = 'project';
+const AUDIT_COMMENTS: Record<FindingMutation['kind'], string> = {
+  open: 'Finding opened by change detection run',
+  recur: 'Finding recurrence recorded by change detection run',
+  self_resolve: 'Finding self-resolved: value reverted to approved baseline',
+  supersede: 'Finding superseded by a newer value',
+};
 
-    const [watchedFields, snapshots, approvedStates] = await Promise.all([
-      getActiveWatchedFields(entityType),
-      getSnapshots(entityType),
-      getApprovedStates(entityType),
+export class FindingsOrchestrator {
+  async runFindings(triggeredByEmail: string, entityType = 'project'): Promise<RunFindingsResultDto> {
+    const runId = randomUUID();
+
+    const [expectedRowCount, actualRowCount] = await Promise.all([
+      countApprovedStates(entityType),
+      countSnapshots(entityType),
     ]);
 
-    const diffs = computeFindingsDiff(entityType, watchedFields, snapshots, approvedStates);
+    const runLog = await startRunLog(entityType, expectedRowCount, actualRowCount);
 
-    if (diffs.length === 0) {
-      return {
-        runId,
-        findingsCreated: 0,
-        findingsUpdated: 0,
-        entitiesCompared: Object.keys(snapshots).length,
-        fieldsChecked: watchedFields.length,
-      };
-    }
+    await auditOrchestrator.log({
+      entityName: 'rnl_run_log',
+      entityId: String(runLog.runLogId),
+      createdBy: triggeredByEmail,
+      oldValues: null,
+      newValues: { rnl_id: runLog.runLogId, status: 'running', expectedRowCount, actualRowCount },
+      comment: `Change detection run started for ${entityType}`,
+    });
 
-    const fingerprints = diffs.map((d) => d.fingerprint);
-    const existingFindings = await getExistingOpenFindingsByFingerprint(fingerprints);
+    try {
+      const [watchedFields, snapshots, approvedStates, openFindings] = await Promise.all([
+        getActiveWatchedFields(entityType),
+        getSnapshots(entityType),
+        getApprovedStates(entityType),
+        getOpenFindingRefs(entityType),
+      ]);
 
-    const upsertResults = await upsertFindings(entityType, diffs);
+      const { actions, entitiesCompared } = reconcileFindings(
+        entityType,
+        watchedFields,
+        snapshots,
+        approvedStates,
+        openFindings,
+      );
 
-    let findingsCreated = 0;
-    let findingsUpdated = 0;
+      const { result, mutations } = await applyFindingsPlan(entityType, actions);
 
-    for (const result of upsertResults) {
-      const existingFinding = existingFindings.get(result.fingerprint);
-
-      if (result.inserted) {
-        findingsCreated++;
+      for (const mutation of mutations) {
         await auditOrchestrator.log({
           entityName: 'fnd_findings',
-          entityId: result.findingId.toString(),
+          entityId: String(mutation.findingId),
           createdBy: triggeredByEmail,
-          oldValues: null,
-          newValues: {
-            fnd_id: result.findingId,
-            fnd_fingerprint: result.fingerprint,
-          },
-          comment: 'Finding created by change detection run',
-        });
-      } else {
-        findingsUpdated++;
-        await auditOrchestrator.log({
-          entityName: 'fnd_findings',
-          entityId: result.findingId.toString(),
-          createdBy: triggeredByEmail,
-          oldValues: existingFinding || null,
-          newValues: {
-            fnd_id: result.findingId,
-            fnd_fingerprint: result.fingerprint,
-            occurrence_count: existingFinding ? existingFinding.occurrenceCount + 1 : 1,
-          },
-          comment: 'Finding occurrence count updated',
+          oldValues: mutation.before,
+          newValues: mutation.after,
+          comment: AUDIT_COMMENTS[mutation.kind],
         });
       }
-    }
 
-    return {
-      runId,
-      findingsCreated,
-      findingsUpdated,
-      entitiesCompared: Object.keys(snapshots).length,
-      fieldsChecked: watchedFields.length,
-    };
+      const observationsRecorded = await recordObservations(entityType, buildObservations(snapshots));
+
+      if (observationsRecorded > 0) {
+        await auditOrchestrator.log({
+          entityName: 'obs_observations',
+          entityId: String(runLog.runLogId),
+          createdBy: triggeredByEmail,
+          oldValues: null,
+          newValues: { rnl_id: runLog.runLogId, rows_inserted: observationsRecorded },
+          comment: `${observationsRecorded} observation rows recorded for ${entityType}`,
+        });
+      }
+
+      const completed = await completeRunLog(runLog.runLogId, {
+        recordsCompared: entitiesCompared,
+        findingsOpened: result.opened,
+        findingsClosed: result.resolved,
+      });
+
+      await auditOrchestrator.log({
+        entityName: 'rnl_run_log',
+        entityId: String(runLog.runLogId),
+        createdBy: triggeredByEmail,
+        oldValues: { rnl_id: runLog.runLogId, status: 'running' },
+        newValues: {
+          rnl_id: completed.runLogId,
+          status: completed.status,
+          recordsCompared: completed.recordsCompared,
+          findingsOpened: completed.findingsOpened,
+          findingsClosed: completed.findingsClosed,
+        },
+        comment: `Change detection run completed for ${entityType}`,
+      });
+
+      return {
+        runId,
+        runLogId: runLog.runLogId,
+        findingsCreated: result.opened,
+        findingsUpdated: result.recurred,
+        findingsResolved: result.resolved,
+        findingsSuperseded: result.superseded,
+        entitiesCompared,
+        fieldsChecked: watchedFields.length,
+        observationsRecorded,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      await failRunLog(runLog.runLogId, message);
+
+      await auditOrchestrator.log({
+        entityName: 'rnl_run_log',
+        entityId: String(runLog.runLogId),
+        createdBy: triggeredByEmail,
+        oldValues: { rnl_id: runLog.runLogId, status: 'running' },
+        newValues: { rnl_id: runLog.runLogId, status: 'failed', error: message },
+        comment: `Change detection run failed for ${entityType}`,
+      });
+
+      throw err;
+    }
   }
 
   async getOpenFindings(entityType: string = 'project'): Promise<FindingDto[]> {
