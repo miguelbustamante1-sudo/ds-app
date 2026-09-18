@@ -867,6 +867,30 @@ CROSS JOIN (VALUES
 ) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
 ON CONFLICT DO NOTHING;
 
+-- 20. Watched Entity and Fields for Change Detection Platform
+-- Seed the 'project' entity type and its 13 watched fields
+INSERT INTO ds.cde_watched_entity (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at)
+  VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now())
+  ON CONFLICT (cde_entity_type) DO NOTHING;
+
+-- 13 watched fields for project entity type (field_id auto-increments, so just INSERT)
+INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at)
+VALUES
+  ('project', 'Name',              'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Status',            'Project Status',         'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'StartDate',         'Start Date',             'date',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'EndDate',           'End Date',               'date',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Budget',            'Budget Amount',          'numeric', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Manager',           'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Client',            'Client Name',            'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Scope',             'Project Scope',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'RiskLevel',         'Risk Level',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'TeamSize',          'Team Size',              'integer', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'Methodology',       'Project Methodology',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'CostCenter',        'Cost Center',            'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now()),
+  ('project', 'ProfitabilityPct',  'Profitability %',        'numeric', 'exact',  NULL, false, 'material', CURRENT_DATE, true, now())
+ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
+
 -- Findings — Change Detection Platform (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
   VALUES (58, 'Findings', 'milton.ayala2@telusdigital.com', now()) ON CONFLICT (opt_id) DO NOTHING;
