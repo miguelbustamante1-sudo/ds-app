@@ -21,7 +21,7 @@ export interface FindingDto {
   firstSeen: string;
   lastSeen: string;
   occurrenceCount: number;
-  fieldDisplayName?: string;
+  fieldDisplayName?: string | undefined;
 }
 
 export interface DiffRow {
