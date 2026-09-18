@@ -859,11 +859,9 @@ INSERT INTO di.ptc_persistence_template_columns (
 SELECT nt.pte_id, v.*
 FROM new_template nt
 CROSS JOIN (VALUES
-    (0, 'snp_id',           'integer',                   NULL::int, false, 'unmapped: identity PK, DB auto-fills', NULL::text,    -1),
-    (1, 'snp_entity_type',  'text',                      NULL::int, false, NULL::text,                              'entity_type', -1),
-    (2, 'snp_entity_id',    'text',                      NULL::int, false, NULL::text,                              'entity_id',   -1),
-    (3, 'snp_payload',      'jsonb',                     NULL::int, false, NULL::text,                              'payload',     -1),
-    (4, 'snp_loaded_at',    'timestamp with time zone',  NULL::int, false, 'unmapped: DB default now()',            NULL::text,    -1)
+    (0, 'snp_entity_type',  'text',   NULL::int, false, NULL::text, 'entity_type', -1),
+    (1, 'snp_entity_id',    'text',   NULL::int, false, NULL::text, 'entity_id',   -1),
+    (2, 'snp_payload',      'jsonb',  NULL::int, false, NULL::text, 'payload',     -1)
 ) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
 ON CONFLICT DO NOTHING;
 
