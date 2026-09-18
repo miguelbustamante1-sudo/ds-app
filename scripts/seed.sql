@@ -865,16 +865,7 @@ CROSS JOIN (VALUES
 ) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
 ON CONFLICT DO NOTHING;
 
--- 20. Baseline Approved States for Change Detection Platform
--- Link each project baseline to its current entity snapshot payload
-INSERT INTO ds.aps_approved_state (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at)
-SELECT 'project', snp_entity_id, snp_payload, NULL, now()
-FROM es.snp_entity_snapshot
-WHERE snp_entity_type = 'project'
-ON CONFLICT (cde_entity_type, aps_entity_id)
-DO UPDATE SET aps_payload = EXCLUDED.aps_payload, aps_approved_at = now();
-
--- 21. Watched Entity and Fields for Change Detection Platform
+-- 20. Watched Entity and Fields for Change Detection Platform
 -- Seed the 'project' entity type and its 13 watched fields
 INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at, cde_created_by)
   VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now(), 'system_seed')
@@ -898,6 +889,23 @@ VALUES
   ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
   ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed')
 ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
+
+-- 21. Baseline Approved States for Change Detection Platform
+-- Must run AFTER section 20: fk_aps_cde references ds.cde_watched_entities.
+-- Literal baselines, deliberately NOT derived from es.snp_entity_snapshot. That table is
+-- empty on a fresh setup (it is populated by TSV upload, never by this seed), so the old
+-- SELECT-based version inserted zero rows after a `down -v`. DO NOTHING is also load
+-- bearing: DO UPDATE would overwrite an approved baseline with whatever has since drifted
+-- into the snapshot, silently erasing the drift the detection run is meant to find.
+INSERT INTO ds.aps_approved_state (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at)
+VALUES
+  ('project', 'PR-004121', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": "<Multiple From File>", "start_date": "2026-01-01", "project_name": "TELUS CIO (SPACE) Digitization Campus - 2026 (Andre Medeiros)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-004141', '{"sow": "320808 (PO # 7010141648)", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-15", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2025-12-16", "project_name": "Mastercard - Prepaid Management Services SOW 2 Dev and QA - 2026", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "telus_business_unit": null}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-004156', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-01-01", "project_name": "TELUS TCS - SOW 2026 - Smart Home Security - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "José Ruiz Fuentes (10100302)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-005460', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-03-02", "project_name": "TELUS CIO - Shopping Cart-Project - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-005988', '{"sow": null, "region": "All TELUS Digital Solutions", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2027-03-05", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-07-01", "project_name": "TELUS - Personalization and Publishing Products (Dinesh)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-006119', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-09-01", "project_name": "TELUS TCS- Kim-Bernard-Paula-Koodo Digital-2026- TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now())
+ON CONFLICT (cde_entity_type, aps_entity_id) DO NOTHING;
 
 -- Findings — Change Detection Platform (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
