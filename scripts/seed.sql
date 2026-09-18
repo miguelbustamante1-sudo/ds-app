@@ -827,6 +827,46 @@ VALUES
    'Priya Anand', 'Marcus Webb, Elena Ruiz, Sam Whitfield', 1)
 ON CONFLICT (fgs_sow_id) DO NOTHING;
 
+-- 19. Persistence Template: Entity Snapshot (Land Test)
+-- Direct-DB insert for the change-detection platform Land stage
+WITH new_template AS (
+    INSERT INTO di.pte_persistence_templates (
+        pte_id, pte_name, pte_description, pte_enabled, pte_has_csv_header,
+        pte_separator, pte_truncate_before_import, pte_error_handling_strategy,
+        pte_duplicates_handling_strategy, pte_target_table, pte_created_by, pte_created_at
+    )
+    SELECT
+        COALESCE(MAX(pte_id), 0) + 1,
+        'Entity Snapshot (Land Test)',
+        'Change-detection platform Land-stage table. jsonb payload column — source files must be RFC-4180-quoted on the payload field (JSON is quote-dense; required even with Tab separator, confirmed 2026-09-18). snp_id (identity PK) left unmapped, append-only through this template.',
+        true,
+        true,
+        E'\t',
+        true,
+        'STOP_ON_FIRST_ERROR_AND_ROLLBACK',
+        'INSERT',
+        'es.snp_entity_snapshot',
+        'milton.ayala2@telusdigital.com',
+        now()
+    FROM di.pte_persistence_templates
+    WHERE NOT EXISTS (SELECT 1 FROM di.pte_persistence_templates WHERE pte_target_table = 'es.snp_entity_snapshot')
+    RETURNING pte_id
+)
+INSERT INTO di.ptc_persistence_template_columns (
+    pte_id, ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment,
+    ptc_csv_column_name, ptc_csv_column_index
+)
+SELECT nt.pte_id, v.*
+FROM new_template nt
+CROSS JOIN (VALUES
+    (0, 'snp_id',           'integer',                   NULL::int, false, 'unmapped: identity PK, DB auto-fills', NULL::text,    -1),
+    (1, 'snp_entity_type',  'text',                      NULL::int, false, NULL::text,                              'entity_type', -1),
+    (2, 'snp_entity_id',    'text',                      NULL::int, false, NULL::text,                              'entity_id',   -1),
+    (3, 'snp_payload',      'jsonb',                     NULL::int, false, NULL::text,                              'payload',     -1),
+    (4, 'snp_loaded_at',    'timestamp with time zone',  NULL::int, false, 'unmapped: DB default now()',            NULL::text,    -1)
+) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
+ON CONFLICT DO NOTHING;
+
 -- Findings — Change Detection Platform (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
   VALUES (58, 'Findings', 'milton.ayala2@telusdigital.com', now()) ON CONFLICT (opt_id) DO NOTHING;
