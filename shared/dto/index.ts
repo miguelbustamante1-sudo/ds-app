@@ -20,6 +20,7 @@ export * from './Role';
 export * from './Project';
 export * from './ProjectAssignment';
 export * from './SupervisorAssignment';
+export * from './SupervisorCoverage';
 export * from './AuthorizerAssignment';
 export * from './SupervisedTeamMember';
 export * from './TeamMember';

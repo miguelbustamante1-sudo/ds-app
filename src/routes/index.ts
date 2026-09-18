@@ -16,6 +16,7 @@ import rbacUserRolesRouter from './rbacUserRoles';
 import rbacOptionsRouter from './rbacOptions';
 import rbacAuthUsersRouter from './rbacAuthUsers';
 import supervisorAssignmentsRouter from './supervisorAssignments';
+import supervisorCoverageRouter from './supervisorCoverage';
 import authorizerAssignmentsRouter from './authorizerAssignments';
 import holidaysRouter from './holidays';
 import timeOffHolidaysRouter from './timeOffHolidays';
@@ -116,6 +117,7 @@ export default function registerRoutes() {
   router.use('/rbac/options', rbacOptionsRouter);
   router.use('/rbac/auth-users', rbacAuthUsersRouter);
   router.use('/supervisor-assignments', supervisorAssignmentsRouter);
+  router.use('/supervisor-coverage', supervisorCoverageRouter);
   router.use('/authorizer-assignments', authorizerAssignmentsRouter);
   router.use('/holidays', holidaysRouter);
   router.use('/time-off-holidays', timeOffHolidaysRouter);

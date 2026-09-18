@@ -56,8 +56,24 @@ export async function getReports(
   const depthLimit = includeFullHierarchy ? 10 : 1;
 
   const results = await prisma.$queryRaw<RawTeamMemberReport[]>`
-    WITH RECURSIVE team_hierarchy AS (
-      -- Base case: direct reports of the supervisor
+    WITH RECURSIVE effective_supervisors AS (
+      -- The requesting supervisor themself, plus anyone whose team they are
+      -- currently covering for. This is a flat, one-level substitution — not
+      -- recursive — because coverage chaining is rejected at creation time
+      -- (SupervisorCoverageOrchestrator.create), not resolved here.
+      SELECT ${supervisorId}::integer AS effective_supervisor_id
+      UNION ALL
+      -- cov.tms_id = the original supervisor being covered; supervisorId is tms_id_to (the covering supervisor)
+      SELECT cov.tms_id
+      FROM ds.cov_supervisor_coverage cov
+      WHERE cov.tms_id_to = ${supervisorId}
+        AND cov.cov_stadat <= ${today}
+        AND (cov.cov_enddat IS NULL OR cov.cov_enddat >= ${today})
+        AND cov.cov_ended_at IS NULL
+    ),
+    team_hierarchy AS (
+      -- Base case: direct reports of the supervisor, or of anyone they are
+      -- currently covering for
       SELECT
         sa.tms_id         AS team_member_id,
         sa.txs_stadat     AS txs_stadat,
@@ -65,7 +81,7 @@ export async function getReports(
         'Direct'::text    AS report_type,
         1                 AS depth
       FROM ds.tbl_tms_x_supervisor sa
-      WHERE sa.sup_id = ${supervisorId}
+      WHERE sa.sup_id IN (SELECT effective_supervisor_id FROM effective_supervisors)
         AND sa.txs_stadat <= ${today}
         AND (sa.txs_enddat IS NULL OR sa.txs_enddat >= ${today})
 

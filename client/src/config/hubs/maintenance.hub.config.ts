@@ -60,6 +60,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'SupervisorAssignments',
     },
     {
+      title: 'Supervisor Coverage',
+      description: 'Manage temporary coverage arrangements between supervisors.',
+      path: '/maintenance/supervisor-coverage',
+      permission: 'SupervisorCoverage',
+    },
+    {
       title: 'Team Members',
       description: 'Manage team member profiles and settings.',
       path: '/maintenance/team-members',

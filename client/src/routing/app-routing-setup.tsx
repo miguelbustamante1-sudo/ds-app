@@ -12,6 +12,7 @@ import { MaintenanceTeamMemberDetailPage } from '@/pages/maintenance/team-member
 import { UsersPage } from '@/pages/maintenance/users';
 import { UserEditPage } from '@/pages/maintenance/users/edit';
 import { SupervisorAssignmentsPage } from '@/pages/maintenance/supervisor-assignments';
+import { SupervisorCoveragePage } from '@/pages/maintenance/supervisor-coverage';
 import { HolidaysPage } from '@/pages/maintenance/holidays';
 import { CategoryCountryPage } from '@/pages/maintenance/category-country';
 import { MyTimeOffPage } from '@/pages/timeoff';
@@ -199,6 +200,7 @@ export function AppRoutingSetup() {
         <Route path="/maintenance/users" element={<UsersPage />} />
         <Route path="/maintenance/users/:id" element={<UserEditPage />} />
         <Route path="/maintenance/supervisor-assignments" element={<SupervisorAssignmentsPage />} />
+        <Route path="/maintenance/supervisor-coverage" element={<SupervisorCoveragePage />} />
         <Route path="/maintenance/team-member-bonuses" element={<TeamMemberBonusesPage />} />
         <Route path="/maintenance/holidays" element={<HolidaysPage />} />
         <Route path="/maintenance/category-country" element={<CategoryCountryPage />} />

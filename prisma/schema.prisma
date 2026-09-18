@@ -133,6 +133,8 @@ model TeamMember {
   projectAssignments                ProjectAssignment[]
   supervisorAssignmentsAsSupervisor SupervisorAssignment[] @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
   supervisorAssignments             SupervisorAssignment[] @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
+  supervisorCoverageAsFrom          SupervisorCoverage[]   @relation("SupervisorCoverageFrom")
+  supervisorCoverageAsTo            SupervisorCoverage[]   @relation("SupervisorCoverageTo")
   managedProjects                   Project[]
   benchAssignments                  Bench[]        @relation("BenchTeamMember")
   supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
@@ -408,6 +410,9 @@ model User {
   oncallsCreated               TmoTeamMemberOncall[] @relation("tmo_team_member_oncall_tmo_created_byTotbl_users")
   oncallsUpdated               TmoTeamMemberOncall[] @relation("tmo_team_member_oncall_tmo_updated_byTotbl_users")
   supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
+  supervisorCoverageEnded      SupervisorCoverage[]   @relation("SupervisorCoverageEndedBy")
+  supervisorCoverageCreated    SupervisorCoverage[]   @relation("SupervisorCoverageCreatedBy")
+  supervisorCoverageUpdated    SupervisorCoverage[]   @relation("SupervisorCoverageUpdatedBy")
   recipients                   Recipient[]
   phoneCreatedLines            CorporatePhoneLine[]       @relation("CplCreatedBy")
   phoneUpdatedLines            CorporatePhoneLine[]       @relation("CplUpdatedBy")
@@ -1002,6 +1007,31 @@ model Bench {
   @@index([supervisorId], map: "idx_ben_tms_id_supervisor")
   @@index([functionalAreaId], map: "idx_ben_far_id")
   @@map("ben_bench")
+  @@schema("ds")
+}
+
+model SupervisorCoverage {
+  supervisorCoverageId Int       @id @default(autoincrement()) @map("cov_id") @db.Integer
+  fromSupervisorId     Int       @map("tms_id") @db.Integer
+  toSupervisorId       Int       @map("tms_id_to") @db.Integer
+  coverageStartDate    DateTime  @map("cov_stadat") @db.Date
+  coverageEndDate      DateTime? @map("cov_enddat") @db.Date
+  coverageEndedAt      DateTime? @map("cov_ended_at") @db.Timestamptz(6)
+  coverageEndedBy      Int?      @map("cov_ended_by") @db.Integer
+  coverageCreatedBy    Int       @map("cov_created_by") @db.Integer
+  coverageCreatedAt    DateTime  @default(now()) @map("cov_created_at") @db.Timestamptz(6)
+  coverageUpdatedBy    Int?      @map("cov_updated_by") @db.Integer
+  coverageUpdatedAt    DateTime? @map("cov_updated_at") @db.Timestamptz(6)
+
+  fromSupervisor TeamMember @relation("SupervisorCoverageFrom", fields: [fromSupervisorId], references: [teamMemberId], onDelete: Restrict, map: "fk_cov_tms")
+  toSupervisor   TeamMember @relation("SupervisorCoverageTo", fields: [toSupervisorId], references: [teamMemberId], onDelete: Restrict, map: "fk_cov_tms_to")
+  endedByUser    User?      @relation("SupervisorCoverageEndedBy", fields: [coverageEndedBy], references: [userId], map: "fk_cov_ended_by")
+  createdByUser  User       @relation("SupervisorCoverageCreatedBy", fields: [coverageCreatedBy], references: [userId], map: "fk_cov_cby")
+  updatedByUser  User?      @relation("SupervisorCoverageUpdatedBy", fields: [coverageUpdatedBy], references: [userId], map: "fk_cov_uby")
+
+  @@index([fromSupervisorId], map: "idx_cov_tms_id")
+  @@index([toSupervisorId], map: "idx_cov_tms_id_to")
+  @@map("cov_supervisor_coverage")
   @@schema("ds")
 }
 

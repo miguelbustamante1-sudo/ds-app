@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO } from '@shared/dto';
+import { Link } from 'react-router-dom';
+import type {
+  SupervisorAssignmentDTO,
+  CreateSupervisorAssignmentDTO,
+  UpdateSupervisorAssignmentDTO,
+  SupervisorCoverageDTO,
+} from '@shared/dto';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -21,6 +27,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +43,15 @@ import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
+import { apiGet } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { SupervisorAssignmentFormDialog } from './form';
 import { SupervisorAssignmentTransferDialog } from './transfer-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 const formatDate = (date: Date | string | null) => {
   if (!date) return '-';
@@ -57,6 +66,40 @@ const formatTeamMemberDisplay = (
   return teamMember.workdayId ? `${teamMember.workdayId} - ${name}` : name;
 };
 
+type TeamMemberStatus = 'Active' | 'Retired';
+
+const EMPLOYEE_STATUS_OPTIONS: Array<{ label: string; value: TeamMemberStatus }> = [
+  { label: 'Active', value: 'Active' },
+  { label: 'Retired', value: 'Retired' },
+];
+
+const getTeamMemberStatus = (
+  teamMember: { teamMemberEndDate: Date | string | null } | null
+): TeamMemberStatus => {
+  if (!teamMember?.teamMemberEndDate) return 'Active';
+  const endDate = parseUTCDateAsLocal(teamMember.teamMemberEndDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return endDate <= today ? 'Retired' : 'Active';
+};
+
+type AssignmentStatus = 'Active' | 'Ended';
+
+const ASSIGNMENT_STATUS_OPTIONS: Array<{ label: string; value: AssignmentStatus }> = [
+  { label: 'Active', value: 'Active' },
+  { label: 'Ended', value: 'Ended' },
+];
+
+const getAssignmentStatus = (
+  supervisorAssignmentEndDate: Date | string | null
+): AssignmentStatus => {
+  if (!supervisorAssignmentEndDate) return 'Active';
+  const endDate = parseUTCDateAsLocal(supervisorAssignmentEndDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return endDate <= today ? 'Ended' : 'Active';
+};
+
 export function SupervisorAssignmentsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<SupervisorAssignmentDTO | undefined>();
@@ -64,9 +107,16 @@ export function SupervisorAssignmentsPage() {
   const [deletingAssignment, setDeletingAssignment] = useState<SupervisorAssignmentDTO | null>(null);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: 'employeeStatus', value: ['Active'] },
+    { id: 'assignmentStatus', value: ['Active'] },
+  ]);
+  const [activeCoverageBySupervisor, setActiveCoverageBySupervisor] = useState<
+    Map<number, { toSupervisorName: string; coverageEndDate: Date | string | null }>
+  >(new Map());
   const { toast } = useToast();
   const { canRead, canCreate, canDelete } = usePermissions();
+  const hasCoverageReadPermission = canRead('SupervisorCoverage');
 
   const assignments = useEntityList<SupervisorAssignmentDTO, CreateSupervisorAssignmentDTO, UpdateSupervisorAssignmentDTO>({
     endpoint: '/api/supervisor-assignments',
@@ -98,7 +148,22 @@ export function SupervisorAssignmentsPage() {
         id: 'supervisor',
         accessorFn: (row) => formatTeamMemberDisplay(row.supervisor),
         header: ({ column }) => <DataGridColumnHeader column={column} title="Supervisor" />,
-        cell: ({ row }) => formatTeamMemberDisplay(row.original.supervisor),
+        cell: ({ row }) => {
+          const coverage = row.original.supervisor
+            ? activeCoverageBySupervisor.get(row.original.supervisor.teamMemberId)
+            : undefined;
+          return (
+            <div className="flex items-center gap-2">
+              <span>{formatTeamMemberDisplay(row.original.supervisor)}</span>
+              {coverage && (
+                <Badge variant="info">
+                  Covered by {coverage.toSupervisorName}
+                  {coverage.coverageEndDate ? ` until ${formatDate(coverage.coverageEndDate)}` : ''}
+                </Badge>
+              )}
+            </div>
+          );
+        },
         filterFn: (row, _id, value: string[]) => {
           if (!value.length) return true;
           return value.includes(row.original.supervisor?.teamMemberId?.toString() ?? '');
@@ -119,6 +184,25 @@ export function SupervisorAssignmentsPage() {
         meta: { headerTitle: 'Team Member', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
+        id: 'employeeStatus',
+        accessorFn: (row) => getTeamMemberStatus(row.teamMember),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Employee Status" />,
+        cell: ({ row }) => {
+          const status = getTeamMemberStatus(row.original.teamMember);
+          return (
+            <Badge variant={status === 'Active' ? 'success' : 'secondary'}>
+              {status}
+            </Badge>
+          );
+        },
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(getTeamMemberStatus(row.original.teamMember));
+        },
+        size: 100,
+        meta: { headerTitle: 'Employee Status', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
         accessorKey: 'supervisorAssignmentStartDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Start Date" />,
         cell: ({ row }) => formatDate(row.original.supervisorAssignmentStartDate),
@@ -131,6 +215,25 @@ export function SupervisorAssignmentsPage() {
         cell: ({ row }) => formatDate(row.original.supervisorAssignmentEndDate),
         size: 120,
         meta: { headerTitle: 'End Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        id: 'assignmentStatus',
+        accessorFn: (row) => getAssignmentStatus(row.supervisorAssignmentEndDate),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Assignment Status" />,
+        cell: ({ row }) => {
+          const status = getAssignmentStatus(row.original.supervisorAssignmentEndDate);
+          return (
+            <Badge variant={status === 'Active' ? 'success' : 'secondary'}>
+              {status}
+            </Badge>
+          );
+        },
+        filterFn: (row, _id, value: string[]) => {
+          if (!value.length) return true;
+          return value.includes(getAssignmentStatus(row.original.supervisorAssignmentEndDate));
+        },
+        size: 130,
+        meta: { headerTitle: 'Assignment Status', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         id: 'actions',
@@ -154,7 +257,7 @@ export function SupervisorAssignmentsPage() {
         meta: { headerClassName: 'text-right', cellClassName: 'text-right', skeleton: <Skeleton className="h-8 w-20 ml-auto" /> },
       },
     ],
-    [canCreate, canDelete],
+    [canCreate, canDelete, activeCoverageBySupervisor],
   );
 
   const table = useReactTable({
@@ -175,13 +278,41 @@ export function SupervisorAssignmentsPage() {
     assignments.loadItems();
   }, []);
 
+  useEffect(() => {
+    if (!hasCoverageReadPermission) return;
+    apiGet<SupervisorCoverageDTO[]>('/api/supervisor-coverage')
+      .then((records) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const map = new Map<number, { toSupervisorName: string; coverageEndDate: Date | string | null }>();
+        records.forEach((r) => {
+          const start = parseUTCDateAsLocal(r.coverageStartDate);
+          const isActive =
+            !r.coverageEndedAt &&
+            start <= today &&
+            (!r.coverageEndDate || parseUTCDateAsLocal(r.coverageEndDate) >= today);
+          if (isActive) {
+            map.set(r.fromSupervisorId, {
+              toSupervisorName: `${r.toSupervisor.teamMemberNames} ${r.toSupervisor.teamMemberSurnames}`,
+              coverageEndDate: r.coverageEndDate,
+            });
+          }
+        });
+        setActiveCoverageBySupervisor(map);
+      })
+      .catch(() => {
+        setActiveCoverageBySupervisor(new Map());
+        toast({ title: 'Error', description: 'Failed to load supervisor coverage', variant: 'destructive' });
+      });
+  }, [hasCoverageReadPermission]);
+
   // Filter options for supervisor and team member columns
   const supervisorOptions = useMemo(() => {
     const unique = new Map<string, string>();
     assignments.items.forEach((item) => {
       if (item.supervisor) {
         const value = item.supervisor.teamMemberId.toString();
-        const label = `${item.supervisor.teamMemberNames} ${item.supervisor.teamMemberSurnames}`;
+        const label = formatTeamMemberDisplay(item.supervisor);
         unique.set(value, label);
       }
     });
@@ -193,7 +324,7 @@ export function SupervisorAssignmentsPage() {
     assignments.items.forEach((item) => {
       if (item.teamMember) {
         const value = item.teamMember.teamMemberId.toString();
-        const label = `${item.teamMember.teamMemberNames} ${item.teamMember.teamMemberSurnames}`;
+        const label = formatTeamMemberDisplay(item.teamMember);
         unique.set(value, label);
       }
     });
@@ -252,6 +383,12 @@ export function SupervisorAssignmentsPage() {
           <ToolbarDescription>Manage supervisor to team member assignments</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/maintenance-hub" />
+          {hasCoverageReadPermission && (
+            <Button variant="outline" asChild>
+              <Link to="/maintenance/supervisor-coverage">Manage Coverage</Link>
+            </Button>
+          )}
           {canCreate('SupervisorAssignments') && (
             <>
               <Button variant="outline" onClick={() => setTransferDialogOpen(true)}>
@@ -267,6 +404,20 @@ export function SupervisorAssignmentsPage() {
       </Toolbar>
 
       <div className="flex items-center gap-2 mt-6">
+        {table.getColumn('employeeStatus') && (
+          <DataGridColumnFilter
+            column={table.getColumn('employeeStatus')}
+            title="Employee Status"
+            options={EMPLOYEE_STATUS_OPTIONS}
+          />
+        )}
+        {table.getColumn('assignmentStatus') && (
+          <DataGridColumnFilter
+            column={table.getColumn('assignmentStatus')}
+            title="Assignment Status"
+            options={ASSIGNMENT_STATUS_OPTIONS}
+          />
+        )}
         {table.getColumn('supervisor') && (
           <DataGridColumnFilter
             column={table.getColumn('supervisor')}

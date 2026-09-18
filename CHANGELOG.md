@@ -12,6 +12,19 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.3.0] - 2026-09-17
+
+### Added
+
+**Supervisor Assignments**
+- Temporary Supervisor Coverage: a supervisor can temporarily cover another's team for a defined window, with full approval and dashboard authority flowing through automatically — managed on its own page (Maintenance/Governance hubs), with a status indicator and "Manage Coverage" link on the Supervisor Assignments page
+- Workday ID is now searchable in the Supervisor and Team Member filters on the Supervisor Assignments page
+
+### Changed
+
+**Supervisor Assignments**
+- Retired team members are hidden from the Supervisor Assignments list by default (a Status filter reveals them)
+
 ## [2.2.0] - 2026-09-17
 
 ### Added
