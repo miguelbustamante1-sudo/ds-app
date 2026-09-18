@@ -1,5 +1,4 @@
 ﻿import { Bell, Info, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface GenericItemProps {
   title?: string;
@@ -52,13 +51,9 @@ export default function GenericNotificationItem({
           {link && (
             <>
               <span className="rounded-full size-1 bg-mono/30" />
-              <Link
-                to={link}
-                className="text-xs text-primary hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <span className="text-xs text-primary hover:underline">
                 View details
-              </Link>
+              </span>
             </>
           )}
         </div>
