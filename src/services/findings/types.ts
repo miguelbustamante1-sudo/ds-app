@@ -72,3 +72,8 @@ export interface ApplyPlanResult {
   resolved: number;
   superseded: number;
 }
+
+export interface FindingStatusCountDto {
+  status: string;
+  count: number;
+}

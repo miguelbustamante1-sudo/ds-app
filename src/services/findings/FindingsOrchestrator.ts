@@ -10,12 +10,13 @@ import {
   getOpenFindingRefs,
   getSnapshots,
   startRunLog,
-  getOpenFindings as repositoryGetOpenFindings,
+  getFindings as repositoryGetFindings,
+  getStatusCounts as repositoryGetStatusCounts,
 } from './repository';
 import { reconcileFindings } from './components/ReconcileFindings';
 import { applyFindingsPlan, type FindingMutation } from './components/ApplyFindingsPlan';
 import { buildObservations, recordObservations } from './components/RecordObservations';
-import type { RunFindingsResultDto, FindingDto } from './types';
+import type { RunFindingsResultDto, FindingDto, FindingStatusCountDto } from './types';
 
 const AUDIT_COMMENTS: Record<FindingMutation['kind'], string> = {
   open: 'Finding opened by change detection run',
@@ -135,8 +136,12 @@ export class FindingsOrchestrator {
     }
   }
 
-  async getOpenFindings(entityType: string = 'project'): Promise<FindingDto[]> {
-    return repositoryGetOpenFindings(entityType);
+  async getFindings(entityType = 'project', status?: string): Promise<FindingDto[]> {
+    return repositoryGetFindings(entityType, status);
+  }
+
+  async getStatusCounts(entityType = 'project'): Promise<FindingStatusCountDto[]> {
+    return repositoryGetStatusCounts(entityType);
   }
 }
 
