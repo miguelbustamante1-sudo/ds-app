@@ -18,6 +18,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -28,22 +29,42 @@ import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { apiGet, apiPost } from '@/lib/api';
-import type { FindingDto, RunFindingsResultDto } from '@shared/dto';
+import type { FindingDto, FindingStatusCountDto, RunFindingsResultDto } from '@shared/dto';
+
+const CHANGE_TYPE_VARIANT: Record<string, 'success' | 'destructive' | 'warning'> = {
+  added: 'success',
+  deleted: 'destructive',
+  modified: 'warning',
+};
+
+const STATUS_VARIANT: Record<string, 'primary' | 'success' | 'secondary'> = {
+  open: 'primary',
+  self_resolved: 'success',
+  superseded: 'secondary',
+};
+
+// Statuses are whatever the data contains, so unknown values still render sensibly.
+function humanize(value: string) {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function FindingsPage() {
   const [findings, setFindings] = useState<FindingDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [lastRunSummary, setLastRunSummary] = useState<RunFindingsResultDto | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>('open');
+  const [statusCounts, setStatusCounts] = useState<FindingStatusCountDto[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const { toast } = useToast();
   const { canRead, canCreate } = usePermissions();
 
-  const loadFindings = async () => {
+  const loadFindings = async (status: string | null) => {
     try {
       setLoading(true);
-      const data = await apiGet<FindingDto[]>('/api/findings');
+      const query = status ? `?status=${encodeURIComponent(status)}` : '';
+      const data = await apiGet<FindingDto[]>(`/api/findings${query}`);
       setFindings(data);
     } catch (error: any) {
       toast({
@@ -56,8 +77,24 @@ export function FindingsPage() {
     }
   };
 
+  const loadStatuses = async () => {
+    try {
+      setStatusCounts(await apiGet<FindingStatusCountDto[]>('/api/findings/statuses'));
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load finding statuses',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
-    loadFindings();
+    loadFindings(statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadStatuses();
   }, []);
 
   const handleRunFindings = async () => {
@@ -69,7 +106,7 @@ export function FindingsPage() {
         title: 'Success',
         description: 'Findings run completed',
       });
-      await loadFindings();
+      await Promise.all([loadFindings(statusFilter), loadStatuses()]);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -96,6 +133,21 @@ export function FindingsPage() {
         cell: ({ getValue }) => getValue() || '—',
         size: 160,
         meta: { headerTitle: 'Field', skeleton: <Skeleton className="h-4 w-32" /> },
+      },
+      {
+        accessorKey: 'changeType',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Type" />,
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null;
+          if (!value) return <span className="text-muted-foreground">—</span>;
+          return (
+            <Badge variant={CHANGE_TYPE_VARIANT[value] ?? 'secondary'} appearance="light">
+              {humanize(value)}
+            </Badge>
+          );
+        },
+        size: 110,
+        meta: { headerTitle: 'Type', skeleton: <Skeleton className="h-4 w-16" /> },
       },
       {
         accessorKey: 'oldValue',
@@ -150,9 +202,32 @@ export function FindingsPage() {
         size: 140,
         meta: { headerTitle: 'Occurrence Count', skeleton: <Skeleton className="h-4 w-12" /> },
       },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        cell: ({ getValue }) => {
+          const value = getValue() as string | null;
+          if (!value) return <span className="text-muted-foreground">—</span>;
+          return (
+            <Badge variant={STATUS_VARIANT[value] ?? 'secondary'} appearance="light">
+              {humanize(value)}
+            </Badge>
+          );
+        },
+        size: 130,
+        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
     ],
     [],
   );
+
+  const filterOptions = useMemo(() => {
+    const options = [...statusCounts];
+    if (statusFilter && !options.some((o) => o.status === statusFilter)) {
+      options.push({ status: statusFilter, count: 0 });
+    }
+    return options;
+  }, [statusCounts, statusFilter]);
 
   const table = useReactTable({
     data: findings,
@@ -227,6 +302,32 @@ export function FindingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Button
+          variant={statusFilter === null ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setStatusFilter(null)}
+        >
+          All
+          <Badge variant="secondary" appearance="light" className="ms-2">
+            {statusCounts.reduce((sum, s) => sum + s.count, 0)}
+          </Badge>
+        </Button>
+        {filterOptions.map((option) => (
+          <Button
+            key={option.status}
+            variant={statusFilter === option.status ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter(option.status)}
+          >
+            {humanize(option.status)}
+            <Badge variant="secondary" appearance="light" className="ms-2">
+              {option.count}
+            </Badge>
+          </Button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="text-muted-foreground text-sm py-4">Loading findings...</div>

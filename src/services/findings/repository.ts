@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma';
-import type { WatchedField, FindingDto, OpenFindingRef } from './types';
+import type { WatchedField, FindingDto, OpenFindingRef, FindingStatusCountDto } from './types';
 
 export async function getActiveWatchedFields(entityType: string): Promise<WatchedField[]> {
   const fields = await prisma.cdfWatchedField.findMany({
@@ -69,11 +69,11 @@ export async function getOpenFindingRefs(entityType: string): Promise<OpenFindin
   }));
 }
 
-export async function getOpenFindings(entityType: string): Promise<FindingDto[]> {
+export async function getFindings(entityType: string, status?: string): Promise<FindingDto[]> {
   const findings = await prisma.fndFinding.findMany({
     where: {
       entityType,
-      status: 'open',
+      ...(status ? { status } : {}),
     },
     select: {
       findingId: true,
@@ -156,4 +156,16 @@ export async function failRunLog(runLogId: number, message: string) {
     where: { runLogId },
     data: { status: 'failed', finishedAt: new Date(), error: message },
   });
+}
+
+/** Statuses actually present in the data, so new ones surface as filters without a code change. */
+export async function getStatusCounts(entityType: string): Promise<FindingStatusCountDto[]> {
+  const rows = await prisma.fndFinding.groupBy({
+    by: ['status'],
+    where: { entityType },
+    _count: { _all: true },
+    orderBy: { status: 'asc' },
+  });
+
+  return rows.map((row) => ({ status: row.status, count: row._count._all }));
 }
