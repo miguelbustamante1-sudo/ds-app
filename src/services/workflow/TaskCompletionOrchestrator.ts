@@ -335,17 +335,24 @@ class TaskCompletionOrchestrator {
         }
       }
 
-      // Step 8: Run routing engine
-      const routing = await runRoutingEngine(tx, {
-        witId,
-        winId: task.winId,
-        wtkId: task.wtkId,
-        outcomeCode,
-      });
+      // Steps 8 and 9 are skipped for DATABASE-type templates — the outcome
+      // procedure already created and activated whatever comes next (spec §4.3)
+      // inside this same transaction. Declared outside the guard so Step 11
+      // (also guarded, further below) can read routing.routeFound.
+      let routing: Awaited<ReturnType<typeof runRoutingEngine>> | undefined;
 
-      // Step 9: Activate next tasks
-      for (const nextWitId of routing.nextWitIds) {
-        const join = await evaluateJoinCondition(tx, nextWitId, task.winId);
+      if (instanceRef?.template.executionType !== 'DATABASE') {
+        // Step 8: Run routing engine
+        routing = await runRoutingEngine(tx, {
+          witId,
+          winId: task.winId,
+          wtkId: task.wtkId,
+          outcomeCode,
+        });
+
+        // Step 9: Activate next tasks
+        for (const nextWitId of routing.nextWitIds) {
+          const join = await evaluateJoinCondition(tx, nextWitId, task.winId);
 
         if (join.shouldActivate) {
           const nextTask = await tx.witWorkflowInstanceTask.findUnique({
@@ -437,6 +444,7 @@ class TaskCompletionOrchestrator {
             },
           });
         }
+        }
       }
 
       // Step 10: Write WAL for completed task
@@ -452,54 +460,60 @@ class TaskCompletionOrchestrator {
         },
       });
 
-      // Step 11: Check workflow completion
-      const remainingCount = await tx.witWorkflowInstanceTask.count({
-        where: {
-          winId: task.winId,
-          state: { in: ['ACTIVE', 'PENDING'] },
-        },
-      });
+      // Step 11: Check workflow completion — skipped for DATABASE-type templates,
+      // whose completion already happened inside the outcome procedure (spec §4.3b).
+      if (instanceRef?.template.executionType !== 'DATABASE') {
+        const remainingCount = await tx.witWorkflowInstanceTask.count({
+          where: {
+            winId: task.winId,
+            state: { in: ['ACTIVE', 'PENDING'] },
+          },
+        });
 
-      if (remainingCount === 0) {
-        const instanceFailed =
-          newState === 'FAILED' &&
-          !routing.routeFound &&
-          task.retryCount >= task.maxRetryCount;
+        if (remainingCount === 0) {
+          const instanceFailed =
+            newState === 'FAILED' &&
+            // Non-null assertion: this block only runs when executionType !==
+            // 'DATABASE', the exact same condition under which `routing` was
+            // assigned above — it is never read while still undefined.
+            !routing!.routeFound &&
+            task.retryCount >= task.maxRetryCount;
 
-        if (instanceFailed) {
-          await tx.winWorkflowInstance.update({
-            where: { winId: task.winId },
-            data: {
-              status: 'FAILED',
-              completedAt: now,
-              completedBy: completedByUserId,
-            },
-          });
+          if (instanceFailed) {
+            await tx.winWorkflowInstance.update({
+              where: { winId: task.winId },
+              data: {
+                status: 'FAILED',
+                completedAt: now,
+                completedBy: completedByUserId,
+              },
+            });
 
-          await tx.walWorkflowAuditLog.create({
-            data: {
-              winId: task.winId,
-              eventType: 'INSTANCE_FAILED',
-              performedBy: completedBy,
-            },
-          });
-        } else {
-          await tx.winWorkflowInstance.update({
-            where: { winId: task.winId },
-            data: {
-              status: 'COMPLETED',
-              completedAt: now,
-              completedBy: completedByUserId,
-            },
-          });
+            await tx.walWorkflowAuditLog.create({
+              data: {
+                winId: task.winId,
+                eventType: 'INSTANCE_FAILED',
+                performedBy: completedBy,
+              },
+            });
+          } else {
+            await tx.winWorkflowInstance.update({
+              where: { winId: task.winId },
+              data: {
+                status: 'COMPLETED',
+                completedAt: now,
+                completedBy: completedByUserId,
+              },
+            });
 
-          await tx.walWorkflowAuditLog.create({
-            data: {
-              winId: task.winId,
-              eventType: 'INSTANCE_COMPLETED',
-              performedBy: completedBy,
-            },
-          });
+            await tx.walWorkflowAuditLog.create({
+              data: {
+                winId: task.winId,
+                eventType: 'INSTANCE_COMPLETED',
+                performedBy: completedBy,
+              },
+            });
+          }
         }
       }
 
