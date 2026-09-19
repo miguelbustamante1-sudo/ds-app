@@ -39,7 +39,19 @@ export async function instantiateTeamMemberChangeAuthWorkflow(
     select: { wflId: true, instantiateProcName: true },
   });
 
-  if (!template?.instantiateProcName) {
+  if (!template) {
+    console.warn(
+      `instantiateTeamMemberChangeAuthWorkflow: no PUBLISHED template with code ` +
+      `'${TEAM_MEMBER_CHANGE_AUTH_TEMPLATE_CODE}' found — skipping for teamMemberId=${input.teamMemberId}`,
+    );
+    return false;
+  }
+
+  if (!template.instantiateProcName) {
+    console.warn(
+      `instantiateTeamMemberChangeAuthWorkflow: template '${TEAM_MEMBER_CHANGE_AUTH_TEMPLATE_CODE}' ` +
+      `(wflId=${template.wflId}) has no instantiateProcName set — skipping for teamMemberId=${input.teamMemberId}`,
+    );
     return false;
   }
 
