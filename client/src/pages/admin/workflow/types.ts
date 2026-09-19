@@ -9,6 +9,8 @@ export interface WflWorkflowTemplate {
   effectiveFrom: string | null;
   effectiveTo: string | null;
   wecId: string | null;
+  executionType: string;
+  instantiateProcName: string | null;
   tasks?: WtkWorkflowTemplateTask[];
   routes?: WtrWorkflowTemplateRoute[];
   dependencies?: WtdWorkflowTemplateDependency[];
@@ -65,6 +67,8 @@ export interface WtoWorkflowTemplateTaskOutcome {
   description: string | null;
   isTerminal: boolean;
   triggersOutcomeAction: boolean;
+  executionType: string;
+  outcomeProcName: string | null;
 }
 
 export interface WtrWorkflowTemplateRoute {
