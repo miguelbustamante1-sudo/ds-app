@@ -8,6 +8,7 @@ import { retryTask } from '../components/RetryTaskHandler';
 import { claimTask, unclaimTask } from '../components/ClaimTask';
 import { reassignTask } from '../components/ReassignTask';
 import { getTaskInbox } from '../components/GetTaskInbox';
+import { flattenInstanceContext } from '../components/FlattenInstanceContext';
 import { getBusinessReferenceLinkResolver } from '../components/BusinessReferenceLinkRegistry';
 import { logWorkflowActionFailure } from '../components/LogWorkflowActionFailure';
 import { WorkflowInstanceNotFoundError } from '../errors';
@@ -85,7 +86,7 @@ router.get(
             include: { inputValues: true },
           },
           instance: {
-            select: { businessReferenceType: true, businessReferenceId: true },
+            select: { businessReferenceType: true, businessReferenceId: true, context: true },
           },
         },
       });
@@ -93,6 +94,11 @@ router.get(
       if (!task) {
         throw new WorkflowInstanceNotFoundError('Task not found');
       }
+
+      // Generic passthrough of the instance's context bag — this route has no
+      // idea what any key means (e.g. Team Member Change Auth's 'changedFields'),
+      // it just forwards whatever the instantiate/outcome procedure wrote there.
+      const context = flattenInstanceContext(task.instance.context);
 
       // Outcomes aren't copied into instance-scoped tables (TaskCompletionOrchestrator
       // validates the submitted outcomeCode against this same live table), so the set
@@ -116,7 +122,7 @@ router.get(
       }
 
       const { instance: _instance, ...taskFields } = task;
-      res.json({ data: { ...taskFields, outcomes, entityUrl, entitySummary } });
+      res.json({ data: { ...taskFields, outcomes, entityUrl, entitySummary, context } });
     } catch (err: unknown) {
       catchHandler(err, res);
     }

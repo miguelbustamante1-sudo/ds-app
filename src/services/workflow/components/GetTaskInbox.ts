@@ -11,6 +11,12 @@ export interface TaskInboxItem {
   state: string;
   outcomeCode: string | null;
   isOverdue: boolean;
+  // Claim/release only makes sense for ROLE-assigned tasks, which fan out to
+  // multiple eligible users until one claims it. USER/DYNAMIC/
+  // DYNAMIC_TD_HIERARCHY/CONTEXT tasks always have resolvedUserId set
+  // directly — that's assignment, not a claim, so there's no "release" for
+  // the frontend to offer even though resolvedUserId looks the same either way.
+  assignmentType: string;
   isClaimed: boolean;
   isClaimedByMe: boolean;
   claimedByUserId: number | null;
@@ -78,6 +84,7 @@ export async function getTaskInbox(
         state: task.state,
         outcomeCode: task.outcomeCode,
         isOverdue: task.dueAt !== null && task.dueAt < now,
+        assignmentType: task.assignmentType,
         isClaimed: task.resolvedUserId !== null,
         isClaimedByMe: task.resolvedUserId === dsUserId,
         claimedByUserId: task.resolvedUserId,

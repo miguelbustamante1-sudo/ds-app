@@ -263,6 +263,18 @@ export function WorkflowTasksTab() {
             );
           }
           if (item.state === 'ACTIVE') {
+            // Claim/Release/Claimed only apply to ROLE-assigned tasks — every
+            // other assignment type (USER/DYNAMIC/DYNAMIC_TD_HIERARCHY/CONTEXT)
+            // always has resolvedUserId set directly by assignment, not by a
+            // claim, so there's nothing to claim or release even though
+            // isClaimed/isClaimedByMe would otherwise look the same.
+            if (item.assignmentType !== 'ROLE') {
+              return (
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => openDrawer(item)}>Open</Button>
+                </div>
+              );
+            }
             if (item.isClaimedByMe) {
               return (
                 <div className="flex justify-end items-center gap-2">

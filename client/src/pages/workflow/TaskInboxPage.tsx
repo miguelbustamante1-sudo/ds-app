@@ -5,12 +5,14 @@ import {
   ToolbarDescription,
 } from '@/components/ui/toolbar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useSearchParams } from 'react-router';
 import { usePermissions } from '@/hooks/usePermissions';
 import { WorkflowTasksTab } from './WorkflowTasksTab';
 import { StandaloneTasksTab } from '@/pages/standalone-tasks/StandaloneTasksTab';
 
 export function TaskInboxPage() {
   const { canRead } = usePermissions();
+  const [searchParams] = useSearchParams();
 
   if (!canRead('Workflow') && !canRead('StandaloneTask')) {
     return (
@@ -19,6 +21,19 @@ export function TaskInboxPage() {
       </div>
     );
   }
+
+  // A notification link (e.g. from a workflow task assignment) can request a
+  // specific tab via ?tab=workflow — falls back to the existing default order
+  // when absent or the requested tab isn't one this user can see.
+  const requestedTab = searchParams.get('tab');
+  const defaultTab =
+    requestedTab === 'workflow' && canRead('Workflow')
+      ? 'workflow'
+      : requestedTab === 'standalone' && canRead('StandaloneTask')
+        ? 'standalone'
+        : canRead('StandaloneTask')
+          ? 'standalone'
+          : 'workflow';
 
   return (
     <div className="container">
@@ -29,7 +44,7 @@ export function TaskInboxPage() {
         </ToolbarHeading>
       </Toolbar>
 
-      <Tabs defaultValue={canRead('StandaloneTask') ? 'standalone' : 'workflow'} className="mt-6">
+      <Tabs defaultValue={defaultTab} className="mt-6">
         <TabsList>
           {canRead('StandaloneTask') && (
             <TabsTrigger value="standalone">Standalone Tasks</TabsTrigger>

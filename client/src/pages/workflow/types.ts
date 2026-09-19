@@ -8,6 +8,7 @@ export interface TaskInboxItem {
   state: string;
   outcomeCode: string | null;
   isOverdue: boolean;
+  assignmentType: string;
   isClaimed: boolean;
   isClaimedByMe: boolean;
   claimedByUserId: string | null;
@@ -42,6 +43,17 @@ export interface WitInstanceTask {
   outcomes?: WtoTaskOutcome[];
   entityUrl: string | null;
   entitySummary: string | null;
+  // Generic flattened wic_workflow_instance_context bag — the engine has no
+  // idea what any key means. Domain-specific procedures decide what's under
+  // it (e.g. Team Member Change Auth's 'changedFields'); this frontend only
+  // renders keys it specifically recognizes, everything else is ignored.
+  context?: Record<string, unknown>;
+}
+
+export interface ChangedFieldDiff {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
 }
 
 export interface WtoTaskOutcome {
