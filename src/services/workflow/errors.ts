@@ -167,3 +167,10 @@ export class DatabaseProcedureNotFoundError extends AppError {
     this.name = 'DatabaseProcedureNotFoundError';
   }
 }
+
+export class AdminJumpAssigneeRequiredError extends AppError {
+  constructor(message = 'assigneeUserId is required when jumping to a CONTEXT-assigned task') {
+    super(message, 400);
+    this.name = 'AdminJumpAssigneeRequiredError';
+  }
+}
