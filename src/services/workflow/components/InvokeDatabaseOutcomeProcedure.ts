@@ -15,6 +15,16 @@ export interface InvokeDatabaseOutcomeProcedureInput {
 export interface DatabaseOutcomeActivation {
   activated_wit_id: string | null;
   activated_user_id: number | null;
+  // Optional audit snapshot of the domain mutation this procedure performed.
+  // No domain procedure returns these yet (out of scope for this plan set) —
+  // once one does, TaskCompletionOrchestrator logs them via auditOrchestrator.log
+  // post-commit (Rule 3.4; this call path always has TypeScript present, so it
+  // is not exempt the way the instantiate-procedure path is).
+  entity_name?: string | null;
+  entity_id?: string | null;
+  old_values?: Record<string, unknown> | null;
+  new_values?: Record<string, unknown> | null;
+  comment?: string | null;
 }
 
 /**

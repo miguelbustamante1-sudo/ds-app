@@ -242,15 +242,23 @@ class TaskCompletionOrchestrator {
           businessReferenceType: true,
           businessReferenceId: true,
           ownerUserId: true,
-          template: { select: { executionType: true } },
         },
       });
 
+      // Decides per-outcome, not per-template (spec §2.2 — a CODE-type template
+      // may mix in individual DATABASE-type outcomes). Steps 8/9/11 below must
+      // read this exact same flag, not the template's own executionType, or a
+      // mixed template double-runs routing/completion on top of what the
+      // procedure already did in its own transaction.
+      let outcomeHandledByDatabase = false;
+
       if (matchedOutcome?.executionType === 'DATABASE' && matchedOutcome.outcomeProcName) {
+        outcomeHandledByDatabase = true;
+
         // DATABASE-type outcome: call its configured procedure instead of the TS
         // registry. The procedure also owns routing (spec §4.3) and instance
         // completion (spec §4.3b) for this outcome — nothing downstream in Steps
-        // 8/9/11 needs to run for this path (see Task 3 below).
+        // 8/9/11 needs to run for this path.
         const activation = await invokeDatabaseOutcomeProcedure(tx, {
           procName: matchedOutcome.outcomeProcName,
           winId: task.winId,
@@ -274,6 +282,26 @@ class TaskCompletionOrchestrator {
             witId: activation.activated_wit_id,
             userId: activation.activated_user_id,
           });
+        }
+
+        // Rule 3.4 / Governance/05's "Database-Native Workflow Instantiation
+        // Exemption": this outcome path always has TypeScript present, so it is
+        // NOT exempt — the domain mutation the procedure performed must still go
+        // through auditOrchestrator.log post-commit, same shape as the CODE-type
+        // handler branch below. No domain procedure returns these fields yet
+        // (out of scope for this plan set), so this is inert today and activates
+        // the moment a future domain's procedure starts returning them.
+        if (activation?.entity_name && activation.entity_id) {
+          postCommit.hook = async () => {
+            await auditOrchestrator.log({
+              entityName: activation.entity_name as string,
+              entityId: activation.entity_id as string,
+              createdBy: completedBy,
+              oldValues: activation.old_values ?? null,
+              newValues: activation.new_values ?? null,
+              comment: activation.comment ?? `DATABASE-type outcome '${outcomeCode}' procedure executed`,
+            });
+          };
         }
       } else if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
         const handler = getOutcomeHandler(instanceRef.businessReferenceType);
@@ -335,13 +363,15 @@ class TaskCompletionOrchestrator {
         }
       }
 
-      // Steps 8 and 9 are skipped for DATABASE-type templates — the outcome
-      // procedure already created and activated whatever comes next (spec §4.3)
+      // Steps 8 and 9 are skipped when this outcome ran via a DATABASE procedure
+      // — it already created and activated whatever comes next (spec §4.3)
       // inside this same transaction. Declared outside the guard so Step 11
-      // (also guarded, further below) can read routing.routeFound.
+      // (also guarded, further below) can read routing.routeFound. Guarded on
+      // outcomeHandledByDatabase (per-outcome), not the template's own
+      // executionType — a CODE-type template may mix in DATABASE-type outcomes.
       let routing: Awaited<ReturnType<typeof runRoutingEngine>> | undefined;
 
-      if (instanceRef?.template.executionType !== 'DATABASE') {
+      if (!outcomeHandledByDatabase) {
         // Step 8: Run routing engine
         routing = await runRoutingEngine(tx, {
           witId,
@@ -460,9 +490,10 @@ class TaskCompletionOrchestrator {
         },
       });
 
-      // Step 11: Check workflow completion — skipped for DATABASE-type templates,
-      // whose completion already happened inside the outcome procedure (spec §4.3b).
-      if (instanceRef?.template.executionType !== 'DATABASE') {
+      // Step 11: Check workflow completion — skipped when this outcome ran via a
+      // DATABASE procedure, whose completion already happened inside it (spec
+      // §4.3b). Same outcomeHandledByDatabase flag as Steps 8/9's guard above.
+      if (!outcomeHandledByDatabase) {
         const remainingCount = await tx.witWorkflowInstanceTask.count({
           where: {
             winId: task.winId,
@@ -473,9 +504,9 @@ class TaskCompletionOrchestrator {
         if (remainingCount === 0) {
           const instanceFailed =
             newState === 'FAILED' &&
-            // Non-null assertion: this block only runs when executionType !==
-            // 'DATABASE', the exact same condition under which `routing` was
-            // assigned above — it is never read while still undefined.
+            // Non-null assertion: this block only runs when !outcomeHandledByDatabase,
+            // the exact same condition under which `routing` was assigned above —
+            // it is never read while still undefined.
             !routing!.routeFound &&
             task.retryCount >= task.maxRetryCount;
 
