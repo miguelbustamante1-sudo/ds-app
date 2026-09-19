@@ -246,7 +246,36 @@ class TaskCompletionOrchestrator {
         },
       });
 
-      if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
+      if (matchedOutcome?.executionType === 'DATABASE' && matchedOutcome.outcomeProcName) {
+        // DATABASE-type outcome: call its configured procedure instead of the TS
+        // registry. The procedure also owns routing (spec §4.3) and instance
+        // completion (spec §4.3b) for this outcome — nothing downstream in Steps
+        // 8/9/11 needs to run for this path (see Task 3 below).
+        const activation = await invokeDatabaseOutcomeProcedure(tx, {
+          procName: matchedOutcome.outcomeProcName,
+          winId: task.winId,
+          witId,
+          outcomeCode,
+          businessReferenceId: instanceRef?.businessReferenceId ?? null,
+          performedBy: completedBy,
+          performedByUserId: completedByUserId,
+          // No domain has adopted DATABASE execution type yet (out of scope for
+          // this plan set — see ORCHESTRATOR.md's Objective); a future domain
+          // integration may extend this call site to pass richer params.
+          params: {},
+        });
+
+        // Spec §4.7: feed the same activatedAssignments array Step 9 already
+        // populates for CODE-type routing, so the existing post-commit notify
+        // loop (below, outside the transaction) dispatches this with no new
+        // dispatch code — just a new source for the array.
+        if (activation?.activated_wit_id && activation.activated_user_id) {
+          activatedAssignments.push({
+            witId: activation.activated_wit_id,
+            userId: activation.activated_user_id,
+          });
+        }
+      } else if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
         const handler = getOutcomeHandler(instanceRef.businessReferenceType);
         if (handler) {
           postCommit.hook = await handler({
