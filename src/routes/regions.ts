@@ -48,10 +48,10 @@ router.get('/:id/countries', requirePermission('Regions', 'read'), async (req: R
 // POST /regions
 router.post('/', requirePermission('Regions', 'create'), async (req: Request, res: Response) => {
   try {
-    const { reg_name } = req.body as { reg_name?: string };
-    if (!reg_name || typeof reg_name !== 'string') return res.status(400).json({ error: 'reg_name is required' });
+    const { regionName } = req.body as { regionName?: string };
+    if (!regionName || typeof regionName !== 'string') return res.status(400).json({ error: 'regionName is required' });
 
-    const created = await createRegion(reg_name);
+    const created = await createRegion(regionName);
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create region' });
@@ -64,10 +64,10 @@ router.put('/:id', requirePermission('Regions', 'create'), async (req: Request, 
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { reg_name } = req.body as { reg_name?: string };
-    if (!reg_name || typeof reg_name !== 'string') return res.status(400).json({ error: 'reg_name is required' });
+    const { regionName } = req.body as { regionName?: string };
+    if (!regionName || typeof regionName !== 'string') return res.status(400).json({ error: 'regionName is required' });
 
-    const updated = await updateRegion(id, reg_name);
+    const updated = await updateRegion(id, regionName);
     if (!updated) return res.status(404).json({ error: 'Region not found' });
 
     res.json(updated);

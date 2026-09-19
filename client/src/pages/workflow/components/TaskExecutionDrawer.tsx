@@ -20,7 +20,7 @@ import {
 import { apiGet, apiPost } from '@/lib/api';
 import { formatUTCDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import type { WitInstanceTask, WiiInstanceInput } from '../types';
+import type { WitInstanceTask, WiiInstanceInput, ChangedFieldDiff } from '../types';
 
 interface TaskExecutionDrawerProps {
   witId: string | null;
@@ -51,6 +51,21 @@ function stateBadge(state: string) {
   if (state === 'COMPLETED') return <Badge variant="success" appearance="light">Completed</Badge>;
   if (state === 'FAILED') return <Badge variant="destructive" appearance="light">Failed</Badge>;
   return <Badge variant="outline">{state}</Badge>;
+}
+
+// Generic camelCase -> "Title Case" formatter for a changed field's name —
+// this drawer has no per-domain label map, it just makes whatever key a
+// procedure wrote (e.g. "teamMemberFullLegalName") readable.
+function formatFieldLabel(field: string): string {
+  return field
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+function formatFieldValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 function buildDefaultValues(inputs: WiiInstanceInput[]): Record<string, string | number | boolean> {
@@ -353,6 +368,37 @@ export function TaskExecutionDrawer({
             {task.description && (
               <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
                 {task.description}
+              </div>
+            )}
+
+            {/* Changed fields — only rendered when the instantiate/outcome
+                procedure that created this instance wrote a 'changedFields'
+                context key (e.g. Team Member Change Auth). Unrecognized for
+                any instance that didn't, which is the common case — nothing
+                renders. */}
+            {Array.isArray(task.context?.changedFields) && (task.context.changedFields as ChangedFieldDiff[]).length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Changes Requested</h3>
+                <div className="rounded-md border overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left font-medium px-3 py-2">Field</th>
+                        <th className="text-left font-medium px-3 py-2">From</th>
+                        <th className="text-left font-medium px-3 py-2">To</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(task.context.changedFields as ChangedFieldDiff[]).map((diff) => (
+                        <tr key={diff.field} className="border-t">
+                          <td className="px-3 py-2 text-muted-foreground">{formatFieldLabel(diff.field)}</td>
+                          <td className="px-3 py-2">{formatFieldValue(diff.oldValue)}</td>
+                          <td className="px-3 py-2 font-medium">{formatFieldValue(diff.newValue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

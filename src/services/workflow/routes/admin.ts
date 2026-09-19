@@ -33,10 +33,11 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     const { winId } = req.params as { winId: string };
     try {
-      const { targetWitId, reason, inputs } = req.body as {
+      const { targetWitId, reason, inputs, assigneeUserId } = req.body as {
         targetWitId?: string;
         reason?: string;
         inputs?: Array<{ wiiId: string; value: unknown }>;
+        assigneeUserId?: number;
       };
 
       if (!reason) {
@@ -53,6 +54,7 @@ router.post(
         targetWitId,
         reason,
         inputs,
+        assigneeUserId,
         performedBy: userEmail(req),
         performedByUserId: userId(req),
       });

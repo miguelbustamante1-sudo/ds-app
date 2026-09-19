@@ -22,6 +22,7 @@ import { processCountdownNotifications } from './services/timeoff/countdownNotif
 import { syncAllConnections } from './services/monday-integration/components/SyncAllConnections';
 import { backfillTimeOffDays } from './services/timeoff/backfill/backfillTimeOffDays';
 import { processSlaBreaches } from './services/workflow/components/SlaBreachScanner';
+import { processPendingWorkflowNotifications } from './services/workflow/components/PendingNotificationScanner';
 import { registerOutcomeHandler } from './services/workflow/components/WorkflowOutcomeRegistry';
 import { handleExceptionAuthorizationOutcome } from './services/timeoff/components/HandleExceptionAuthorizationOutcome';
 import { registerBusinessReferenceLink } from './services/workflow/components/BusinessReferenceLinkRegistry';
@@ -123,6 +124,12 @@ setInterval(processCountdownNotifications, 24 * 60 * 60 * 1000);
 // Runs once on startup and then every 15 minutes.
 processSlaBreaches();
 setInterval(processSlaBreaches, 15 * 60 * 1000);
+
+// Pending workflow notification scanner: dispatches ON_ASSIGNMENT notifications
+// for DATABASE-type tasks activated with no TypeScript in the call chain (spec
+// §4.7, §3.5(b)). Runs once on startup and then every 15 minutes.
+processPendingWorkflowNotifications();
+setInterval(processPendingWorkflowNotifications, 15 * 60 * 1000);
 
 // Monday.com connection sync: pulls items from every active connected board in as
 // standalone tasks. No immediate run on startup — an immediate sync on every deploy/restart

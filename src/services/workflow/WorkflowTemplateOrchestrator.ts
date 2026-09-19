@@ -7,6 +7,7 @@ import { validateTemplateCode } from './components/ValidateTemplateCode';
 import { validateRoutingExpressions } from './components/ValidateRoutingExpressions';
 import { validateTaskRoutes } from './components/ValidateTaskRoutes';
 import { validateTaskDependencies } from './components/ValidateTaskDependencies';
+import { validateExecutionType } from './components/ValidateExecutionType';
 import {
   WorkflowNotFoundError,
   WorkflowNotDraftError,
@@ -28,6 +29,8 @@ interface CreateTemplateInput {
   // typed loosely here to reflect that, rather than lying that it's already a Date.
   effectiveFrom?: Date | string | null;
   effectiveTo?: Date | string | null;
+  executionType?: 'CODE' | 'DATABASE';
+  instantiateProcName?: string | null;
 }
 
 interface UpdateTemplateInput {
@@ -37,6 +40,8 @@ interface UpdateTemplateInput {
   wecId?: string;
   effectiveFrom?: Date | string | null;
   effectiveTo?: Date | string | null;
+  executionType?: 'CODE' | 'DATABASE';
+  instantiateProcName?: string | null;
 }
 
 /**
@@ -132,6 +137,8 @@ interface AddOutcomeInput {
   description?: string;
   isTerminal?: boolean;
   triggersOutcomeAction?: boolean;
+  executionType?: 'CODE' | 'DATABASE';
+  outcomeProcName?: string | null;
 }
 
 interface AddRouteInput {
@@ -241,6 +248,8 @@ export class WorkflowTemplateOrchestrator {
         ...(data.wecId !== undefined && { wecId: data.wecId }),
         ...(data.effectiveFrom !== undefined && { effectiveFrom: toDateOrNull(data.effectiveFrom) }),
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
+        ...(data.executionType !== undefined && { executionType: data.executionType }),
+        ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
       },
     });
 
@@ -298,6 +307,8 @@ export class WorkflowTemplateOrchestrator {
         ...(data.wecId !== undefined && { wecId: data.wecId }),
         ...(data.effectiveFrom !== undefined && { effectiveFrom: toDateOrNull(data.effectiveFrom) }),
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
+        ...(data.executionType !== undefined && { executionType: data.executionType }),
+        ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
       },
     });
 
@@ -325,6 +336,7 @@ export class WorkflowTemplateOrchestrator {
     if (startingTask === null) throw new WorkflowMissingStartTaskError();
 
     await validateRoutingExpressions(wflId);
+    await validateExecutionType(wflId);
 
     const now = new Date();
 
@@ -684,6 +696,8 @@ export class WorkflowTemplateOrchestrator {
         ...(data.triggersOutcomeAction !== undefined && {
           triggersOutcomeAction: data.triggersOutcomeAction,
         }),
+        ...(data.executionType !== undefined && { executionType: data.executionType }),
+        ...(data.outcomeProcName !== undefined && { outcomeProcName: data.outcomeProcName }),
       },
     });
 

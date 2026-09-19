@@ -3,6 +3,7 @@ import {
   TaskNotActiveError,
   TaskNotClaimableError,
   TaskAlreadyClaimedError,
+  TaskExecutionForbiddenError,
 } from '../errors';
 
 export async function claimTask(
@@ -64,11 +65,16 @@ export async function unclaimTask(
     throw new TaskNotActiveError();
   }
 
-  // Confirm the requester is the one who claimed it.
-  // Admin override is enforced at the route level — not checked here.
+  if (task.assignmentType !== 'ROLE') {
+    throw new TaskNotClaimableError('Task is not role-assigned; releasing is not applicable');
+  }
+
+  // Confirm the requester is the one who claimed it — this used to be a
+  // documented no-op, which meant any authenticated user with Workflow:create
+  // could release a task claimed by someone else via a direct API call, even
+  // though the frontend only ever shows Release to whoever claimed it.
   if (task.resolvedUserId !== unclaimedByUserId) {
-    // Allow: if resolvedUserId is null, there is nothing to unclaim — still accept gracefully
-    // but in practice the route should validate admin access before calling this
+    throw new TaskExecutionForbiddenError('Task was not claimed by this user');
   }
 
   const now = new Date();

@@ -45,6 +45,8 @@ router.post(
           wecId?: string;
           effectiveFrom?: Date;
           effectiveTo?: Date;
+          executionType?: 'CODE' | 'DATABASE';
+          instantiateProcName?: string | null;
         },
         userId(req),
         userEmail(req),
@@ -101,6 +103,8 @@ router.patch(
           wecId?: string;
           effectiveFrom?: Date;
           effectiveTo?: Date;
+          executionType?: 'CODE' | 'DATABASE';
+          instantiateProcName?: string | null;
         },
         userId(req),
         userEmail(req),
@@ -364,6 +368,8 @@ router.post(
           description?: string;
           isTerminal?: boolean;
           triggersOutcomeAction?: boolean;
+          executionType?: 'CODE' | 'DATABASE';
+          outcomeProcName?: string | null;
         },
         userId(req),
         userEmail(req),

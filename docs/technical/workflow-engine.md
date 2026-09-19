@@ -38,7 +38,10 @@ A key/value data bag scoped to a running instance (`ds.wic_workflow_instance_con
 The link between a workflow instance and the real-world record it exists for. Stored as a loose pair of strings on the instance: `businessReferenceType` (e.g. `'TimeOff'`, `'Hiring'`) and `businessReferenceId` (e.g. the row's primary key, as a string). Not a DB foreign key — deliberately generic so one engine can back any domain. A domain can additionally register a resolver that turns this pair into a human-readable summary and a link to the record's own detail page — see [§10](#10-entity-links-task-inbox--detail).
 
 **Assignment Type**
-How a task decides who is responsible for it: `USER` (a specific person, by `wtk_assigned_user_id`), `ROLE` (any member of a role, first to claim it), `DYNAMIC` (resolved at runtime — see next entry), or `DYNAMIC_TD_HIERARCHY` (an org-position lookup — see next entry).
+How a task decides who is responsible for it: `USER` (a specific person, by `wtk_assigned_user_id`), `ROLE` (any member of a role, first to claim it), `DYNAMIC` (resolved at runtime — see next entry), `DYNAMIC_TD_HIERARCHY` (an org-position lookup — see next entry), or `CONTEXT` (no resolution algorithm at all — the assignee is supplied directly by the caller, e.g. Admin Jump's `assigneeUserId`; mandatory on every task of a `DATABASE`-execution-type template, forbidden on `CODE`-type templates — see **Execution Type** below and [§11a](#11a-domain-side-effects--database-execution-type)).
+
+**Execution Type**
+Configured per template (`wfl_execution_type`) and per outcome (`wto_execution_type`): `CODE` (the default — instantiation and outcome side effects run as TypeScript, per [§11](#11-domain-side-effects-outcome-handlers)) or `DATABASE` (that side effect runs as a PostgreSQL stored procedure instead, configured via `wfl_instantiate_proc_name`/`wto_outcome_proc_name` — no code deploy needed to add or change one). Decided **per outcome**, not per template — a `CODE`-type template may mix in individual `DATABASE`-type outcomes. See [§11a](#11a-domain-side-effects--database-execution-type).
 
 **Dynamic Assignment Type**
 The resolution strategy used when `assignmentType = 'DYNAMIC'`. Two values exist today: `MANAGER` and `FIRST_SUPERVISOR` — both currently resolve identically, via `resolveTaskResponsible` walking up from the instance's `ownerUserId` to that person's own direct supervisor, using the shared `resolveFirstSupervisorUserId` helper (backed by `getFirstSupervisorForWorkflow`, the depth-1 upward counterpart to the downward-walking `getReports`).
@@ -81,10 +84,12 @@ All 18 tables live in the `ds` PostgreSQL schema, split into a **template layer*
 ds.wec_workflow_entity_configs        — declares an entity type a template can bind to (e.g. "TimeOff")
 ds.wef_workflow_entity_fields         — which of that entity's fields seed instance context on start
 
-ds.wfl_workflow_templates             — the template: code, name, versionNo, status (DRAFT|PUBLISHED|ARCHIVED)
+ds.wfl_workflow_templates             — the template: code, name, versionNo, status (DRAFT|PUBLISHED|ARCHIVED),
+                                         executionType (CODE|DATABASE), instantiateProcName
   └─ ds.wtk_workflow_template_tasks       — each task: assignment, SLA, escalation, retry rules
        ├─ ds.wti_workflow_template_task_inputs      — input fields the task collects on completion
-       ├─ ds.wto_workflow_template_task_outcomes    — possible outcomes (isTerminal, triggersOutcomeAction flags)
+       ├─ ds.wto_workflow_template_task_outcomes    — possible outcomes (isTerminal, triggersOutcomeAction,
+       │                                              executionType, outcomeProcName)
        └─ ds.wtn_workflow_template_notifications    — notification rules attached to the task
   ├─ ds.wtr_workflow_template_routes       — outcome-gated edges: task A + outcome → task B
   └─ ds.wtd_workflow_template_dependencies — predecessor/successor edges (FINISH_TO_START | PARALLEL_JOIN)
@@ -144,7 +149,7 @@ Per [Governance/02_BACKEND_ARCHITECTURE.md](../../Governance/02_BACKEND_ARCHITEC
 **Orchestrators:**
 - `WorkflowTemplateOrchestrator.ts` — template CRUD, plus adding/removing tasks, inputs, outcomes, routes, dependencies, and notifications; publish/archive lifecycle.
 - `WorkflowInstantiationOrchestrator.ts` — the single entry point that turns a published template into a running instance (see [§13](#13-instantiation-flow)).
-- `TaskCompletionOrchestrator.ts` — completes a task: validates inputs, persists input values, determines the resulting state from the outcome, runs routing, evaluates joins for downstream tasks, activates and resolves responsibility for any task that becomes eligible this way (the same resolution step instantiation performs for starting tasks — see [§5](#5-task-assignment-model)), and checks whether the instance as a whole is now complete.
+- `TaskCompletionOrchestrator.ts` — completes a task: validates inputs, persists input values, determines the resulting state from the outcome, runs routing, evaluates joins for downstream tasks, activates and resolves responsibility for any task that becomes eligible this way (the same resolution step instantiation performs for starting tasks — see [§5](#5-task-assignment-model)), and checks whether the instance as a whole is now complete. For a `DATABASE`-execution-type outcome, calls its configured stored procedure instead of the [§11](#11-domain-side-effects-outcome-handlers) registry, and skips the routing/activation/completion steps the procedure already performed itself — see [§11a](#11a-domain-side-effects--database-execution-type).
 
 **Components** (`src/services/workflow/components/`):
 
@@ -168,7 +173,9 @@ Per [Governance/02_BACKEND_ARCHITECTURE.md](../../Governance/02_BACKEND_ARCHITEC
 | `BusinessReferenceLinkRegistry.ts` | Domain-registered resolvers (keyed by `businessReferenceType`) that turn a `businessReferenceId` into a display `{ url, summary }` pair — see [§10](#10-entity-links-task-inbox--detail) |
 | `WorkflowOutcomeRegistry.ts` | Domain-registered handlers (keyed by `businessReferenceType`) invoked when a completed task's chosen outcome has `triggersOutcomeAction = true` — see [§11](#11-domain-side-effects-outcome-handlers) |
 | `GetWorkflowAuditLog.ts` | Backing query for the per-instance audit log view |
-| `ValidateRoutingExpressions.ts`, `ValidateTaskDependencies.ts`, `ValidateTaskRoutes.ts`, `ValidateTemplateCode.ts`, `BuildTemplateSnapshot.ts` | Template-authoring/publish-time validation |
+| `ValidateRoutingExpressions.ts`, `ValidateTaskDependencies.ts`, `ValidateTaskRoutes.ts`, `ValidateTemplateCode.ts`, `BuildTemplateSnapshot.ts`, `ValidateExecutionType.ts` | Template-authoring/publish-time validation — `ValidateExecutionType.ts` enforces the `DATABASE`-execution-type rules, see [§11a](#11a-domain-side-effects--database-execution-type) |
+| `InvokeDatabaseOutcomeProcedure.ts` | Guarded call into a `DATABASE`-type outcome's configured stored procedure — see [§11a](#11a-domain-side-effects--database-execution-type) |
+| `PendingNotificationScanner.ts` | Scheduled sweep dispatching `ON_ASSIGNMENT` notifications for tasks activated with no TypeScript in the call chain — see [§9](#9-notifications) and [§11a](#11a-domain-side-effects--database-execution-type) |
 
 ---
 
@@ -182,6 +189,7 @@ Per [Governance/02_BACKEND_ARCHITECTURE.md](../../Governance/02_BACKEND_ARCHITEC
 | `ROLE` | `resolvedUserId` stays `null`; any member of `assignedRoleId` can claim it via `POST .../claim`. |
 | `DYNAMIC` | Resolved at activation time by `resolveTaskResponsible`, using `dynamicAssignmentType`: `MANAGER` or `FIRST_SUPERVISOR` — both currently resolve identically, walking from the instance's `ownerUserId` up to that person's own direct supervisor via `resolveFirstSupervisorUserId`. If no supervisor is found, the task activates with `resolvedUserId = null` and a `NO_RESPONSIBLE_FOUND` entry is written to the workflow audit log — the task is not blocked, just unassigned until claimed or reassigned. |
 | `DYNAMIC_TD_HIERARCHY` | Resolved at activation time by `resolveTaskResponsible`, using `dynamicAssignmentType`: `TEAM_LEADER`, `OM`, or `AGM`. Looks up the org position *above the business record's own subject* (via the domain's `BusinessReferenceSubjectRegistry` resolver, then `ds.hbt_hierarchy_by_teammember`/`getOrgPositionForWorkflow`) — not above the instance's `ownerUserId`, since the requester and the record's subject can differ. If the subject or position can't be resolved, the task activates with `resolvedUserId = null` and a `NO_RESPONSIBLE_FOUND` entry is written, same as `DYNAMIC`. |
+| `CONTEXT` | No resolution algorithm — `resolveTaskResponsible` is never called for it. The assignee must be supplied directly by the caller. Mandatory on every task of a `DATABASE`-execution-type template (enforced at publish time by `ValidateExecutionType.ts`), forbidden on `CODE`-type templates. The only way to set it from TypeScript today is Admin Jump's `assigneeUserId` ([§14](#14-admin-overrides)); a `DATABASE`-type template's own instantiate/outcome procedure sets `wit_resolved_user_id` directly via SQL. See [§11a](#11a-domain-side-effects--database-execution-type). |
 
 Escalation uses the identical three-way shape (`escalationUserId` / `escalationRoleId` / `escalationDynamicType`); the `DYNAMIC` case in `EscalateTask.ts` resolves through the same `resolveFirstSupervisorUserId` helper as task assignment, rather than a separate implementation.
 
@@ -325,6 +333,29 @@ The DB migration adding `wto_triggers_outcome_action` (`documents/db-handoffs/20
 
 ---
 
+## 11a. Domain Side Effects — `DATABASE` Execution Type
+
+A second, parallel mechanism to this section's TypeScript handler registry: a task outcome can be configured to run its side effect as a PostgreSQL stored procedure instead, with no code deploy required to add or change one. Decided **per outcome** (`WtoWorkflowTemplateTaskOutcome.executionType`), not per template — a `CODE`-type template may freely mix in individual `DATABASE`-type outcomes; see the **Execution Type** glossary entry.
+
+**Enforced at publish time** by `ValidateExecutionType.ts`, called alongside `validateRoutingExpressions` in `WorkflowTemplateOrchestrator.publishTemplate()`. Five rules:
+1. A `DATABASE`-type template/outcome must have its proc-name column set (`wfl_instantiate_proc_name`/`wto_outcome_proc_name`).
+2. A `DATABASE`-type **template** cannot contain a `CODE`-type outcome (an asymmetric rule — the reverse, a `CODE`-type template containing a `DATABASE`-type outcome, is allowed).
+3. Every configured proc name must resolve to a real, already-deployed function (checked against `pg_proc`).
+4. Every task on a `DATABASE`-type template must have `assignmentType: 'CONTEXT'`; a `CODE`-type template's tasks must not.
+5. A `DATABASE`-type template cannot have any `WtdWorkflowTemplateDependency` rows — joins aren't supported on this path.
+
+**Runs instead of the registry lookup, in the same transaction.** `TaskCompletionOrchestrator.ts` Step 6b checks `matchedOutcome.executionType` (not the template's own type) before checking `triggersOutcomeAction`/the registry. If it's `DATABASE`, it calls `invokeDatabaseOutcomeProcedure(tx, ...)` instead: a guarded `$queryRaw` call that re-checks `pg_proc` immediately before invoking (publish-time validation isn't enough on its own — a procedure could be dropped after publish), then calls the procedure with `(winId, witId, outcomeCode, businessReferenceId, performedBy, performedByUserId, params::jsonb)` and reads back `activated_wit_id`/`activated_user_id`.
+
+**The procedure owns routing and completion for this outcome, not the TypeScript engine.** `TaskCompletionOrchestrator.ts` skips Steps 8 (routing engine), 9 (activate next task), and 11 (check instance completion) for this specific outcome — gated on the same per-outcome flag Step 6b set, not the template's own `executionType`, so a `CODE`-type template with a mixed-in `DATABASE`-type outcome doesn't double-run these steps on top of what the procedure already did. Step 10 (writing the `TASK_COMPLETED`/`TASK_FAILED` WAL entry for the just-completed task) still runs unconditionally either way. The procedure performs the equivalent work itself, using four generic primitives written once and shared by every `DATABASE`-type template — `sp_resolve_first_supervisor`, `sp_engine_create_instance`, `sp_engine_insert_task`, `sp_engine_complete_instance_if_done` — all writing to `wal_workflow_audit_log` directly (not through `auditOrchestrator`, which was never routed through that table anyway).
+
+**Audit logging is not exempt on this path.** [Governance/05_AUDIT_LOGGING_RULES.md](../../Governance/05_AUDIT_LOGGING_RULES.md)'s Database-Native Workflow Instantiation Exemption applies only to a template's own *instantiate* procedure, where no TypeScript runs at all — this outcome path always has TypeScript present. `invokeDatabaseOutcomeProcedure`'s return row can optionally carry `entity_name`/`entity_id`/`old_values`/`new_values`/`comment`; when present, `TaskCompletionOrchestrator.ts` logs them via `auditOrchestrator.log(...)` post-commit, exactly like this section's registry handler path. No domain procedure returns these fields yet, so this mechanism is currently inert.
+
+**Instantiation is a separate gap not covered by [§13](#13-instantiation-flow).** `WorkflowInstantiationOrchestrator.instantiate(...)` has no `DATABASE`-type branch — a `DATABASE`-type template's instances are never created through it. A domain that adopts this execution type is expected to trigger instantiation directly from its own database (a trigger or stored procedure calling `sp_engine_create_instance`/`sp_engine_insert_task`), with no TypeScript anywhere on that call path. `PendingNotificationScanner.ts` exists specifically because of this: a task activated this way has no code present to call `notifyWorkflowEvent` synchronously at activation, so a scheduled sweep (same call-once-then-`setInterval` shape as `SlaBreachScanner.ts`, [§8](#8-sla-due-dates--escalation)) picks up any `ON_ASSIGNMENT` notification row nothing has dispatched yet, filtering on `assignmentType: 'CONTEXT'` and an unstamped `lastTriggeredAt`.
+
+**Two real adopters, one per flavor.** `updateTeamMember.ts` applies a team member edit immediately, then starts a `DATABASE`-type workflow asking a reviewer to authorize it — `APPROVED` is a no-op (the change already happened), `REJECTED` reverts it using the exact `aud_audits` snapshot captured when the edit was made. This is the TS-triggers-DB-executes flavor. **Country Setup Review** is the other flavor — fully DB-native: a Postgres `AFTER INSERT` trigger on `ds.cou_countries` starts the workflow directly, with no TypeScript anywhere on that call path at all, and its `REJECTED` outcome deletes the row rather than reverting it (there's no prior state to revert to — the row is new). See [`workflow-database-native-integration-guide.md`](./workflow-database-native-integration-guide.md) for both, including the admin UI fields this needed (§11a below no longer describes a DB-only-configurable path — `WorkflowTemplateOrchestrator` and the admin UI both accept `executionType`/proc names now). Time Off's exception-authorization flow (the [domain integration guide](./workflow-domain-integration-guide.md)) remains entirely `CODE`-type — the patterns coexist by design.
+
+---
+
 ## 12. Instance Context
 
 `WicWorkflowInstanceContext` is a flat key/value bag scoped to an instance (optionally further scoped to a specific task via `witId`). It's populated two ways at instantiation:
@@ -354,6 +385,8 @@ The **only** way to call `instantiate(...)` today is `POST /api/workflow/instanc
 
 The Time Off domain is the one exception already wired up: `startExceptionAuthorization` (`src/services/timeoff/components/StartExceptionAuthorization.ts`) calls `instantiate(...)` directly when a time-off request fails only the days-before-notice policy, per [Governance/09_HOLIDAY_SWAPS.md](../../Governance/09_HOLIDAY_SWAPS.md)-adjacent exception-authorization rules — see [§5](#5-task-assignment-model) for the `ownerUserId` nuance this integration exposed.
 
+**A `DATABASE`-execution-type template is instantiated entirely outside this orchestrator** — see [§11a](#11a-domain-side-effects--database-execution-type). `instantiate(...)` has no branch for it; that execution type's instances are created directly by a domain's own DB trigger calling the generic `sp_engine_create_instance`/`sp_engine_insert_task` primitives, with no TypeScript on that call path at all.
+
 ---
 
 ## 14. Admin Overrides
@@ -362,7 +395,7 @@ All three require the `WorkflowAdmin` permission (`create` action) and a mandato
 
 | Action | Endpoint | Effect |
 |---|---|---|
-| **Jump** | `POST /api/workflow/instances/:winId/jump` | Voids the instance's current active task(s) (`state → OVERRIDDEN`) and directly activates a chosen `targetWitId` — resolving its responsible party the same way as any other activation ([§5](#5-task-assignment-model)) — optionally pre-seeding its inputs. Used to manually skip ahead or recover from a stuck step. |
+| **Jump** | `POST /api/workflow/instances/:winId/jump` | Voids the instance's current active task(s) (`state → OVERRIDDEN`) and directly activates a chosen `targetWitId` — resolving its responsible party the same way as any other activation ([§5](#5-task-assignment-model)), except when the target's `assignmentType` is `CONTEXT`, which has no resolution algorithm and instead requires the caller to supply `assigneeUserId` in the request body (`AdminJumpAssigneeRequiredError` otherwise) — optionally pre-seeding its inputs. Used to manually skip ahead or recover from a stuck step. |
 | **Force Complete** | `POST /api/workflow/instances/:winId/force-complete` | Marks every remaining `ACTIVE`/`PENDING` task `OVERRIDDEN` and the instance `COMPLETED`. |
 | **Destroy** | `POST /api/workflow/instances/:winId/destroy` | Marks every remaining `ACTIVE`/`PENDING` task `VOIDED` and the instance `DESTROYED`. Used to cancel an instance that should never have started. |
 
@@ -418,6 +451,8 @@ All routes are mounted under `/api/workflow`, wrapped in the standard `{ data: T
 | `POST /instances/:winId/destroy` | Admin Destroy override |
 | `GET /instances/:winId/audit-log` | Workflow-specific audit trail (optionally filtered by `witId`) |
 
+> **Note:** `POST .../jump`'s body accepts an optional `assigneeUserId` (number) — required when the target task's `assignmentType` is `CONTEXT` (no other assignment type accepts it; see [§5](#5-task-assignment-model)).
+
 ---
 
 ## 16. Worked Example — New Hire Onboarding Template
@@ -454,3 +489,4 @@ If a "Hiring" detail page exists by the time this is wired up, adding a `registe
 2. **No trigger-to-template binding** ([§13](#13-instantiation-flow)) — starting an instance from a domain event requires hand-adding a call to `workflowInstantiationOrchestrator.instantiate(...)` inside that domain's own route/orchestrator. There is no generic "event X starts template Y" registry. (Time Off is the one domain that has done this integration today.)
 3. **Admin task-inbox override deferred** — `GET /inbox` and the task-complete endpoint hardcode `isAdmin: false` pending a dedicated permission split, so a `WorkflowAdmin` cannot yet act on another user's task through the normal task-completion endpoint (the three dedicated admin-override endpoints in [§14](#14-admin-overrides) are unaffected).
 4. **Entity-link resolvers are per-domain, per-task N+1 reads** ([§10](#10-entity-links-task-inbox--detail)) — acceptable at current inbox sizes; would need batching (e.g. a bulk-resolve variant of the resolver signature) if inbox sizes grow substantially.
+5. **`DATABASE` execution type has two real adopters, one per flavor** ([§11a](#11a-domain-side-effects--database-execution-type)) — Team Member Change Authorization (TS-triggers-DB-executes) and Country Setup Review (fully DB-native, via a real Postgres trigger — the first in this codebase), both walked through end-to-end in [`workflow-database-native-integration-guide.md`](./workflow-database-native-integration-guide.md). That adoption also populates `invokeDatabaseOutcomeProcedure`'s optional audit-snapshot fields for the first time (previously inert), and the admin UI now has fields for `executionType`/proc names on both templates and outcomes (previously DB-only config) — see `TemplateFormPage.tsx`, `TaskOutcomePanel.tsx`, and `TaskFormDrawer.tsx`'s `CONTEXT` option.

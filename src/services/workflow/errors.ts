@@ -125,3 +125,52 @@ export class AdminJumpTargetError extends AppError {
     this.name = 'AdminJumpTargetError';
   }
 }
+
+export class WorkflowExecutionTypeProcNameRequiredError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowExecutionTypeProcNameRequiredError';
+  }
+}
+
+export class WorkflowExecutionTypeMixingError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowExecutionTypeMixingError';
+  }
+}
+
+export class WorkflowExecutionTypeProcNotFoundError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowExecutionTypeProcNotFoundError';
+  }
+}
+
+export class WorkflowExecutionTypeAssignmentTypeError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowExecutionTypeAssignmentTypeError';
+  }
+}
+
+export class WorkflowExecutionTypeJoinsNotAllowedError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowExecutionTypeJoinsNotAllowedError';
+  }
+}
+
+export class DatabaseProcedureNotFoundError extends AppError {
+  constructor(procName: string) {
+    super(`Stored procedure '${procName}' does not exist or is not callable`, 500);
+    this.name = 'DatabaseProcedureNotFoundError';
+  }
+}
+
+export class AdminJumpAssigneeRequiredError extends AppError {
+  constructor(message = 'assigneeUserId is required when jumping to a CONTEXT-assigned task') {
+    super(message, 400);
+    this.name = 'AdminJumpAssigneeRequiredError';
+  }
+}

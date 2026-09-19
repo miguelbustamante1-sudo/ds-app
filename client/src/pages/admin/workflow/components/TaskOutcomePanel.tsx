@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { ComboBox } from '@/components/ui/combobox';
+import type { ComboBoxOption } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataGrid, DataGridContainer } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -35,7 +37,14 @@ interface OutcomeFormData {
   description: string;
   isTerminal: boolean;
   triggersOutcomeAction: boolean;
+  executionType: string;
+  outcomeProcName: string;
 }
+
+const EXECUTION_TYPE_OPTIONS: ComboBoxOption[] = [
+  { value: 'CODE', label: 'Code (TypeScript handler)' },
+  { value: 'DATABASE', label: 'Database (stored procedure)' },
+];
 
 interface TaskOutcomePanelProps {
   wflId: string;
@@ -62,8 +71,18 @@ export function TaskOutcomePanel({ wflId, task, onRefresh, isDraft, canEdit }: T
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<OutcomeFormData>({
-    defaultValues: { code: '', label: '', description: '', isTerminal: false, triggersOutcomeAction: false },
+    defaultValues: {
+      code: '',
+      label: '',
+      description: '',
+      isTerminal: false,
+      triggersOutcomeAction: false,
+      executionType: 'CODE',
+      outcomeProcName: '',
+    },
   });
+
+  const watchedExecutionType = watch('executionType');
 
   useEffect(() => {
     if (drawerOpen) {
@@ -73,6 +92,8 @@ export function TaskOutcomePanel({ wflId, task, onRefresh, isDraft, canEdit }: T
         description: viewingOutcome?.description ?? '',
         isTerminal: viewingOutcome?.isTerminal ?? false,
         triggersOutcomeAction: viewingOutcome?.triggersOutcomeAction ?? false,
+        executionType: viewingOutcome?.executionType ?? 'CODE',
+        outcomeProcName: viewingOutcome?.outcomeProcName ?? '',
       });
     }
   }, [drawerOpen, viewingOutcome, reset]);
@@ -105,6 +126,8 @@ export function TaskOutcomePanel({ wflId, task, onRefresh, isDraft, canEdit }: T
       description: data.description.trim() || null,
       isTerminal: data.isTerminal,
       triggersOutcomeAction: data.triggersOutcomeAction,
+      executionType: data.executionType,
+      outcomeProcName: data.executionType === 'DATABASE' ? (data.outcomeProcName.trim() || null) : null,
     };
 
     try {
@@ -148,6 +171,12 @@ export function TaskOutcomePanel({ wflId, task, onRefresh, isDraft, canEdit }: T
         cell: ({ row }) => (row.original.triggersOutcomeAction ? 'Yes' : 'No'),
         size: 110,
         meta: { headerTitle: 'Triggers Action', skeleton: <Skeleton className="h-4 w-8" /> },
+      },
+      {
+        accessorKey: 'executionType',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Type" />,
+        size: 90,
+        meta: { headerTitle: 'Type', skeleton: <Skeleton className="h-4 w-14" /> },
       },
       {
         id: 'actions',
@@ -245,6 +274,37 @@ export function TaskOutcomePanel({ wflId, task, onRefresh, isDraft, canEdit }: T
               <Label htmlFor="out-desc">Description</Label>
               <Input id="out-desc" disabled={isViewing} {...register('description')} />
             </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Execution Type <span className="text-destructive">*</span>
+              </Label>
+              <ComboBox
+                options={EXECUTION_TYPE_OPTIONS}
+                value={watchedExecutionType}
+                onValueChange={(v) => setValue('executionType', v)}
+                placeholder="Select execution type..."
+                disabled={isViewing}
+              />
+            </div>
+
+            {watchedExecutionType === 'DATABASE' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="out-proc-name">
+                  Outcome Procedure Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="out-proc-name"
+                  disabled={isViewing}
+                  {...register('outcomeProcName')}
+                  placeholder="e.g. sp_handle_team_member_change_outcome"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Called instead of the TypeScript outcome-handler registry when this outcome is
+                  chosen. Must already exist in the database (checked at publish time).
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-3 pt-2">
               <Switch

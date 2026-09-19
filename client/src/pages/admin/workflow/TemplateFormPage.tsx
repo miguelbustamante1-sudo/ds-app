@@ -16,6 +16,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ComboBox } from '@/components/ui/combobox';
+import type { ComboBoxOption } from '@/components/ui/combobox';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +33,14 @@ interface TemplateFormData {
   versionNo: string;
   effectiveFrom: string;
   effectiveTo: string;
+  executionType: string;
+  instantiateProcName: string;
 }
+
+const EXECUTION_TYPE_OPTIONS: ComboBoxOption[] = [
+  { value: 'CODE', label: 'Code (TypeScript)' },
+  { value: 'DATABASE', label: 'Database (stored procedure)' },
+];
 
 export function TemplateFormPage() {
   const navigate = useNavigate();
@@ -48,6 +57,8 @@ export function TemplateFormPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<TemplateFormData>({
     defaultValues: {
@@ -57,8 +68,12 @@ export function TemplateFormPage() {
       versionNo: '1',
       effectiveFrom: '',
       effectiveTo: '',
+      executionType: 'CODE',
+      instantiateProcName: '',
     },
   });
+
+  const watchedExecutionType = watch('executionType');
 
   const loadTemplate = async () => {
     if (!wflId) return;
@@ -77,6 +92,8 @@ export function TemplateFormPage() {
         effectiveTo: data.effectiveTo
           ? String(data.effectiveTo).split('T')[0]
           : '',
+        executionType: data.executionType,
+        instantiateProcName: data.instantiateProcName ?? '',
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load template';
@@ -100,16 +117,22 @@ export function TemplateFormPage() {
       versionNo: parseInt(data.versionNo, 10) || 1,
       effectiveFrom: data.effectiveFrom || null,
       effectiveTo: data.effectiveTo || null,
+      executionType: data.executionType,
+      instantiateProcName: data.executionType === 'DATABASE' ? (data.instantiateProcName.trim() || null) : null,
     };
 
     try {
       if (isEditing) {
-        const updated = await apiPatch<WflWorkflowTemplate, typeof payload>(
+        // PATCH returns the bare updated row (no tasks/routes/dependencies —
+        // those live in separate tables this endpoint doesn't touch or
+        // include). Refetching the full snapshot avoids wiping the Tasks/
+        // Routes/Dependencies tabs' state with an incomplete object.
+        await apiPatch<WflWorkflowTemplate, typeof payload>(
           `/api/workflow/templates/${wflId}`,
           payload,
         );
-        setTemplate(updated);
         toast({ title: 'Success', description: 'Template saved.' });
+        await loadTemplate();
       } else {
         const created = await apiPost<WflWorkflowTemplate, typeof payload>(
           '/api/workflow/templates',
@@ -284,6 +307,42 @@ export function TemplateFormPage() {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Execution Type <span className="text-destructive">*</span>
+                    </Label>
+                    <ComboBox
+                      options={EXECUTION_TYPE_OPTIONS}
+                      value={watchedExecutionType}
+                      onValueChange={(v) => setValue('executionType', v)}
+                      placeholder="Select execution type..."
+                      disabled={isPublished}
+                    />
+                  </div>
+
+                  {watchedExecutionType === 'DATABASE' && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tpl-instantiate-proc">
+                        Instantiate Procedure Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="tpl-instantiate-proc"
+                        {...register('instantiateProcName')}
+                        placeholder="e.g. sp_start_team_member_change_auth"
+                        readOnly={isPublished}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {watchedExecutionType === 'DATABASE' && (
+                  <p className="text-xs text-muted-foreground">
+                    Every task on a DATABASE execution type template must use CONTEXT assignment
+                    and none may have dependencies — enforced at publish time.
+                  </p>
+                )}
 
                 {/* wecId: TODO — entity config endpoint not yet available */}
               </form>

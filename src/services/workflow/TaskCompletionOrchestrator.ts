@@ -7,6 +7,7 @@ import { runRoutingEngine } from './components/RoutingEngine';
 import { evaluateJoinCondition } from './components/JoinConditionEvaluator';
 import { resolveTaskResponsible } from './components/ResolveTaskResponsible';
 import { getOutcomeHandler } from './components/WorkflowOutcomeRegistry';
+import { invokeDatabaseOutcomeProcedure } from './components/InvokeDatabaseOutcomeProcedure';
 import { notifyWorkflowEvent } from './components/NotificationDispatcher';
 import {
   TaskNotActiveError,
@@ -237,10 +238,72 @@ class TaskCompletionOrchestrator {
       // the task completion rolls back too.
       const instanceRef = await tx.winWorkflowInstance.findUnique({
         where: { winId: task.winId },
-        select: { businessReferenceType: true, businessReferenceId: true, ownerUserId: true },
+        select: {
+          businessReferenceType: true,
+          businessReferenceId: true,
+          ownerUserId: true,
+        },
       });
 
-      if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
+      // Decides per-outcome, not per-template (spec §2.2 — a CODE-type template
+      // may mix in individual DATABASE-type outcomes). Steps 8/9/11 below must
+      // read this exact same flag, not the template's own executionType, or a
+      // mixed template double-runs routing/completion on top of what the
+      // procedure already did in its own transaction.
+      let outcomeHandledByDatabase = false;
+
+      if (matchedOutcome?.executionType === 'DATABASE' && matchedOutcome.outcomeProcName) {
+        outcomeHandledByDatabase = true;
+
+        // DATABASE-type outcome: call its configured procedure instead of the TS
+        // registry. The procedure also owns routing (spec §4.3) and instance
+        // completion (spec §4.3b) for this outcome — nothing downstream in Steps
+        // 8/9/11 needs to run for this path.
+        const activation = await invokeDatabaseOutcomeProcedure(tx, {
+          procName: matchedOutcome.outcomeProcName,
+          winId: task.winId,
+          witId,
+          outcomeCode,
+          businessReferenceId: instanceRef?.businessReferenceId ?? null,
+          performedBy: completedBy,
+          performedByUserId: completedByUserId,
+          // No domain has adopted DATABASE execution type yet (out of scope for
+          // this plan set — see ORCHESTRATOR.md's Objective); a future domain
+          // integration may extend this call site to pass richer params.
+          params: {},
+        });
+
+        // Spec §4.7: feed the same activatedAssignments array Step 9 already
+        // populates for CODE-type routing, so the existing post-commit notify
+        // loop (below, outside the transaction) dispatches this with no new
+        // dispatch code — just a new source for the array.
+        if (activation?.activated_wit_id && activation.activated_user_id) {
+          activatedAssignments.push({
+            witId: activation.activated_wit_id,
+            userId: activation.activated_user_id,
+          });
+        }
+
+        // Rule 3.4 / Governance/05's "Database-Native Workflow Instantiation
+        // Exemption": this outcome path always has TypeScript present, so it is
+        // NOT exempt — the domain mutation the procedure performed must still go
+        // through auditOrchestrator.log post-commit, same shape as the CODE-type
+        // handler branch below. No domain procedure returns these fields yet
+        // (out of scope for this plan set), so this is inert today and activates
+        // the moment a future domain's procedure starts returning them.
+        if (activation?.entity_name && activation.entity_id) {
+          postCommit.hook = async () => {
+            await auditOrchestrator.log({
+              entityName: activation.entity_name as string,
+              entityId: activation.entity_id as string,
+              createdBy: completedBy,
+              oldValues: activation.old_values ?? null,
+              newValues: activation.new_values ?? null,
+              comment: activation.comment ?? `DATABASE-type outcome '${outcomeCode}' procedure executed`,
+            });
+          };
+        }
+      } else if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
         const handler = getOutcomeHandler(instanceRef.businessReferenceType);
         if (handler) {
           postCommit.hook = await handler({
@@ -300,17 +363,26 @@ class TaskCompletionOrchestrator {
         }
       }
 
-      // Step 8: Run routing engine
-      const routing = await runRoutingEngine(tx, {
-        witId,
-        winId: task.winId,
-        wtkId: task.wtkId,
-        outcomeCode,
-      });
+      // Steps 8 and 9 are skipped when this outcome ran via a DATABASE procedure
+      // — it already created and activated whatever comes next (spec §4.3)
+      // inside this same transaction. Declared outside the guard so Step 11
+      // (also guarded, further below) can read routing.routeFound. Guarded on
+      // outcomeHandledByDatabase (per-outcome), not the template's own
+      // executionType — a CODE-type template may mix in DATABASE-type outcomes.
+      let routing: Awaited<ReturnType<typeof runRoutingEngine>> | undefined;
 
-      // Step 9: Activate next tasks
-      for (const nextWitId of routing.nextWitIds) {
-        const join = await evaluateJoinCondition(tx, nextWitId, task.winId);
+      if (!outcomeHandledByDatabase) {
+        // Step 8: Run routing engine
+        routing = await runRoutingEngine(tx, {
+          witId,
+          winId: task.winId,
+          wtkId: task.wtkId,
+          outcomeCode,
+        });
+
+        // Step 9: Activate next tasks
+        for (const nextWitId of routing.nextWitIds) {
+          const join = await evaluateJoinCondition(tx, nextWitId, task.winId);
 
         if (join.shouldActivate) {
           const nextTask = await tx.witWorkflowInstanceTask.findUnique({
@@ -402,6 +474,7 @@ class TaskCompletionOrchestrator {
             },
           });
         }
+        }
       }
 
       // Step 10: Write WAL for completed task
@@ -417,54 +490,61 @@ class TaskCompletionOrchestrator {
         },
       });
 
-      // Step 11: Check workflow completion
-      const remainingCount = await tx.witWorkflowInstanceTask.count({
-        where: {
-          winId: task.winId,
-          state: { in: ['ACTIVE', 'PENDING'] },
-        },
-      });
+      // Step 11: Check workflow completion — skipped when this outcome ran via a
+      // DATABASE procedure, whose completion already happened inside it (spec
+      // §4.3b). Same outcomeHandledByDatabase flag as Steps 8/9's guard above.
+      if (!outcomeHandledByDatabase) {
+        const remainingCount = await tx.witWorkflowInstanceTask.count({
+          where: {
+            winId: task.winId,
+            state: { in: ['ACTIVE', 'PENDING'] },
+          },
+        });
 
-      if (remainingCount === 0) {
-        const instanceFailed =
-          newState === 'FAILED' &&
-          !routing.routeFound &&
-          task.retryCount >= task.maxRetryCount;
+        if (remainingCount === 0) {
+          const instanceFailed =
+            newState === 'FAILED' &&
+            // Non-null assertion: this block only runs when !outcomeHandledByDatabase,
+            // the exact same condition under which `routing` was assigned above —
+            // it is never read while still undefined.
+            !routing!.routeFound &&
+            task.retryCount >= task.maxRetryCount;
 
-        if (instanceFailed) {
-          await tx.winWorkflowInstance.update({
-            where: { winId: task.winId },
-            data: {
-              status: 'FAILED',
-              completedAt: now,
-              completedBy: completedByUserId,
-            },
-          });
+          if (instanceFailed) {
+            await tx.winWorkflowInstance.update({
+              where: { winId: task.winId },
+              data: {
+                status: 'FAILED',
+                completedAt: now,
+                completedBy: completedByUserId,
+              },
+            });
 
-          await tx.walWorkflowAuditLog.create({
-            data: {
-              winId: task.winId,
-              eventType: 'INSTANCE_FAILED',
-              performedBy: completedBy,
-            },
-          });
-        } else {
-          await tx.winWorkflowInstance.update({
-            where: { winId: task.winId },
-            data: {
-              status: 'COMPLETED',
-              completedAt: now,
-              completedBy: completedByUserId,
-            },
-          });
+            await tx.walWorkflowAuditLog.create({
+              data: {
+                winId: task.winId,
+                eventType: 'INSTANCE_FAILED',
+                performedBy: completedBy,
+              },
+            });
+          } else {
+            await tx.winWorkflowInstance.update({
+              where: { winId: task.winId },
+              data: {
+                status: 'COMPLETED',
+                completedAt: now,
+                completedBy: completedByUserId,
+              },
+            });
 
-          await tx.walWorkflowAuditLog.create({
-            data: {
-              winId: task.winId,
-              eventType: 'INSTANCE_COMPLETED',
-              performedBy: completedBy,
-            },
-          });
+            await tx.walWorkflowAuditLog.create({
+              data: {
+                winId: task.winId,
+                eventType: 'INSTANCE_COMPLETED',
+                performedBy: completedBy,
+              },
+            });
+          }
         }
       }
 

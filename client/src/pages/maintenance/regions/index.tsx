@@ -19,6 +19,7 @@ import {
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
 import { Button } from '@/components/ui/button';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
@@ -182,6 +183,7 @@ export function RegionsPage() {
           <ToolbarDescription>Manage regions catalog</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/maintenance-hub" />
           {canCreate('Regions') && (
             <Button onClick={handleCreate}>
               <Plus size={16} className="me-1" />

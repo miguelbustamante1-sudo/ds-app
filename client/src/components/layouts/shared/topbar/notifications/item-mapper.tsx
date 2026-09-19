@@ -25,6 +25,7 @@ import Item19 from './item-19';
 import Item20 from './item-20';
 import ItemHolidaySwap from './item-holiday-swap';
 import ItemBenchMove from './item-bench-move';
+import ItemWorkflowTask from './item-workflow-task';
 
 const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'item-1': Item1,
@@ -49,6 +50,7 @@ const ITEM_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'item-20': Item20,
   'holiday-swap': ItemHolidaySwap,
   'bench-move': ItemBenchMove,
+  'workflow-task': ItemWorkflowTask,
 };
 
 function FallbackItem({ itemType }: { itemType: string }) {
@@ -81,7 +83,10 @@ export function NotificationItem({ notification, onMarkAsRead, onAccept, onDecli
 
     const link = typedPayload.link;
     if (typeof link === 'string' && link.length > 0) {
-      navigate(`${link}?recipientId=${id}`);
+      // link may already carry its own query string (e.g. "/my-tasks?tab=workflow") —
+      // appending with a bare "?" would produce an invalid double query string.
+      const separator = link.includes('?') ? '&' : '?';
+      navigate(`${link}${separator}recipientId=${id}`);
       onNavigate?.();
     }
   };

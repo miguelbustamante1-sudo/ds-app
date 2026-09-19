@@ -51,6 +51,7 @@ const ASSIGNMENT_TYPE_OPTIONS: ComboBoxOption[] = [
   { value: 'ROLE', label: 'Role' },
   { value: 'DYNAMIC', label: 'Dynamic' },
   { value: 'DYNAMIC_TD_HIERARCHY', label: 'Dynamic (Org Hierarchy)' },
+  { value: 'CONTEXT', label: 'Context (caller-supplied)' },
 ];
 
 const PRIORITY_OPTIONS: ComboBoxOption[] = [
@@ -292,6 +293,14 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
                 placeholder="Select..."
               />
             </div>
+          )}
+
+          {watchedAssignmentType === 'CONTEXT' && (
+            <p className="text-xs text-muted-foreground">
+              No resolution algorithm — the assignee is supplied directly by whatever starts the
+              instance or completes the prior task. Required on every task of a DATABASE
+              execution type template; not valid on a CODE execution type template.
+            </p>
           )}
 
           {watchedAssignmentType === 'DYNAMIC_TD_HIERARCHY' && (

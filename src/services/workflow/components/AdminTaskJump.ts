@@ -3,13 +3,16 @@ import { prisma } from '../../../db/prisma';
 import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { calculateDueDate } from './CalculateDueDate';
 import { resolveTaskResponsible } from './ResolveTaskResponsible';
-import { WorkflowNotActiveError, AdminJumpTargetError } from '../errors';
+import { WorkflowNotActiveError, AdminJumpTargetError, AdminJumpAssigneeRequiredError } from '../errors';
 
 interface AdminTaskJumpInput {
   winId: string;
   targetWitId: string;
   reason: string;
   inputs: Array<{ wiiId: string; value: unknown }> | undefined;
+  /** Required when the target task's assignmentType is CONTEXT (spec §4.6) — CONTEXT
+   * has no resolution algorithm, only a caller-supplied value. */
+  assigneeUserId: number | undefined;
   performedBy: string;       // req.user.email
   performedByUserId: string; // req.user.dsUserId.toString()
 }
@@ -20,7 +23,7 @@ interface AdminTaskJumpResult {
 }
 
 export async function adminTaskJump(input: AdminTaskJumpInput): Promise<AdminTaskJumpResult> {
-  const { winId, targetWitId, reason, inputs, performedBy, performedByUserId } = input;
+  const { winId, targetWitId, reason, inputs, assigneeUserId, performedBy, performedByUserId } = input;
 
   const result = await prisma.$transaction(async (tx) => {
     // 1. Load instance and confirm it is ACTIVE
@@ -117,24 +120,40 @@ export async function adminTaskJump(input: AdminTaskJumpInput): Promise<AdminTas
       },
     });
 
-    // 6. Resolve responsible user for the target task
-    const responsible = await resolveTaskResponsible(tx, {
-      witId: targetWitId,
-      assignmentType: targetTask.assignmentType,
-      assignedUserId: targetTask.assignedUserId ?? null,
-      assignedRoleId: targetTask.assignedRoleId ?? null,
-      dynamicAssignmentType: targetTask.dynamicAssignmentType ?? null,
-      ownerUserId: instance.ownerUserId ?? null,
-      businessReferenceType: instance.businessReferenceType ?? null,
-      businessReferenceId: instance.businessReferenceId ?? null,
-      performedBy,
-    });
+    // 6. Resolve responsible user for the target task. CONTEXT has no
+    // resolution algorithm for resolveTaskResponsible to run (spec §2.4) — the
+    // caller must supply the assignee directly. Without this, an unmodified
+    // Jump lands with resolvedUserId = null and zero assignee rows, which the
+    // real completion-authorization check (TaskCompletionOrchestrator.ts:110-126)
+    // treats as completable by any authenticated user (spec §4.6).
+    if (targetTask.assignmentType === 'CONTEXT') {
+      if (!assigneeUserId) {
+        throw new AdminJumpAssigneeRequiredError();
+      }
 
-    if (responsible.resolvedUserId) {
       await tx.witWorkflowInstanceTask.update({
         where: { witId: targetWitId },
-        data: { resolvedUserId: responsible.resolvedUserId },
+        data: { resolvedUserId: assigneeUserId },
       });
+    } else {
+      const responsible = await resolveTaskResponsible(tx, {
+        witId: targetWitId,
+        assignmentType: targetTask.assignmentType,
+        assignedUserId: targetTask.assignedUserId ?? null,
+        assignedRoleId: targetTask.assignedRoleId ?? null,
+        dynamicAssignmentType: targetTask.dynamicAssignmentType ?? null,
+        ownerUserId: instance.ownerUserId ?? null,
+        businessReferenceType: instance.businessReferenceType ?? null,
+        businessReferenceId: instance.businessReferenceId ?? null,
+        performedBy,
+      });
+
+      if (responsible.resolvedUserId) {
+        await tx.witWorkflowInstanceTask.update({
+          where: { witId: targetWitId },
+          data: { resolvedUserId: responsible.resolvedUserId },
+        });
+      }
     }
 
     // 7. Write WAL for target task activation
