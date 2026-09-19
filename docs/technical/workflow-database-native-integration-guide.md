@@ -4,7 +4,7 @@
 
 **Prerequisite reading:** [`workflow-engine.md`](./workflow-engine.md) — especially [§11a](./workflow-engine.md#11a-domain-side-effects--database-execution-type) — and [`workflow-domain-integration-guide.md`](./workflow-domain-integration-guide.md), which covers the `CODE`-execution-type path this guide is an alternative to. Read that one first if you haven't; this guide assumes you already know `businessReferenceType`, template vs. instance, and `triggersOutcomeAction` from it.
 
-This guide walks through the one `DATABASE`-execution-type integration that ships today: Team Member Change Authorization. Editing a team member (`updateTeamMember.ts`) applies the change immediately, then starts a workflow task asking a reviewer to authorize it. `APPROVED` does nothing further — the change already happened. `REJECTED` reverts it. Every file and procedure named below is real; read them alongside this guide.
+This guide walks through the two `DATABASE`-execution-type integrations that ship today. §1–9 use **Team Member Change Authorization**: editing a team member (`updateTeamMember.ts`) applies the change immediately, then starts a workflow task asking a reviewer to authorize it. `APPROVED` does nothing further — the change already happened. `REJECTED` reverts it. [§10](#10-worked-example--fully-db-native-country-setup-review) then covers the other flavor via **Country Setup Review**, triggered entirely inside Postgres with no TypeScript anywhere on its call path. Every file and procedure named below is real; read them alongside this guide.
 
 ---
 
@@ -12,10 +12,10 @@ This guide walks through the one `DATABASE`-execution-type integration that ship
 
 The engine design (`documents/superpowers/specs/2026-09-18-workflow-database-native-execution-type-design.md`) anticipates two shapes:
 
-1. **Fully DB-native** — a database trigger or another stored procedure starts the workflow, with no TypeScript anywhere on that call path. Nobody has built this yet.
-2. **TS-triggers, DB-executes** — TypeScript still performs the domain mutation (because that's where the mutation already lives) and still calls `auditOrchestrator.log(...)` for it, but instantiation, the outcome's side effect, routing, and completion are all handled by stored procedures instead of a TS outcome handler.
+1. **Fully DB-native** — a database trigger or another stored procedure starts the workflow, with no TypeScript anywhere on that call path. Covered in [§10](#10-worked-example--fully-db-native-country-setup-review) via Country Setup Review.
+2. **TS-triggers, DB-executes** — TypeScript still performs the domain mutation (because that's where the mutation already lives) and still calls `auditOrchestrator.log(...)` for it, but instantiation, the outcome's side effect, routing, and completion are all handled by stored procedures instead of a TS outcome handler. Covered in §1–9 via Team Member Change Authorization.
 
-Team Member Change Authorization is shape 2, and it's almost certainly what you want too if you're retrofitting an existing TS mutation. This guide covers that shape. If you genuinely need shape 1 (nothing in the call path can depend on TypeScript being reachable), most of this still applies — you'd just move the instantiate call out of TypeScript and into a database trigger.
+Team Member Change Authorization (shape 2) is almost certainly what you want if you're retrofitting an existing TS mutation — §1–9 cover it in depth. If you genuinely need shape 1 (nothing in the call path can depend on TypeScript being reachable — the trigger source might not even be your own app, e.g. a bulk import or another system's sync job), read §1–9 anyway for the shared mechanics, then §10 for what's actually different: no caller to catch an exception, no `req.user`, and a materially different failure-handling requirement.
 
 ---
 
@@ -317,6 +317,154 @@ If your `link` points at `/my-tasks`, append `?tab=workflow` — `TaskInboxPage.
 
 ---
 
+## 10. Worked Example — Fully DB-Native: Country Setup Review
+
+Everything in §1–9 uses Team Member Change Authorization — shape 2 from [§0](#0-which-flavor-of-database-execution-type-is-this). This section covers shape 1: no TypeScript anywhere on the call path at all. The example is real and tested: **Country Setup Review**, which fires when a row lands in `ds.cou_countries` — by any means, not just the app's own `POST /api/countries` route — and asks a reviewer to confirm the new country's setup (time-off categories, holiday calendar, etc.) is complete, or reject it outright.
+
+### 10.1 The trigger
+
+A regular Postgres `AFTER INSERT` trigger calls the instantiate procedure directly — there was no other raw `CREATE TRIGGER` anywhere in this codebase before this:
+
+```sql
+CREATE OR REPLACE FUNCTION ds.trg_cou_ins_setup_workflow()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM ds.sp_start_country_setup_workflow(NEW.cou_id, NEW.cou_name);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_cou_ins_setup_workflow
+AFTER INSERT ON ds.cou_countries
+FOR EACH ROW
+EXECUTE FUNCTION ds.trg_cou_ins_setup_workflow();
+```
+
+Naming follows the existing convention (schema and column prefixes already use it): `trg_` + table prefix + timing + description.
+
+### 10.2 The rule that doesn't exist in the TS-triggered flavor: the procedure must never throw
+
+A trigger's exception rolls back the statement that fired it. There's no TypeScript `try/catch` sitting between the trigger and the `INSERT` this time — if `sp_start_country_setup_workflow` raised for any reason (no published template yet, a typo'd proc name, anything), every future country creation would fail outright, not just "fail to also start a workflow." Compare this to §6's TS wrapper, which catches exactly the same category of failure in TypeScript — here, the procedure has to be its own safety net, because nothing else is watching.
+
+The fix is a single `EXCEPTION WHEN OTHERS` wrapping the whole procedure body:
+
+```sql
+CREATE OR REPLACE FUNCTION ds.sp_start_country_setup_workflow(
+  p_country_id   integer,
+  p_country_name text
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_wfl_id           uuid;
+  v_win_id           uuid;
+  v_assignee_user_id integer := 59;  -- same reasoning as §1.4 — belongs here
+BEGIN
+  SELECT wfl_id INTO v_wfl_id
+  FROM ds.wfl_workflow_templates
+  WHERE wfl_code = 'COUNTRY_SETUP_REVIEW' AND wfl_status = 'PUBLISHED';
+
+  IF v_wfl_id IS NULL THEN
+    RETURN;  -- no published template yet — do not block the country insert
+  END IF;
+
+  v_win_id := ds.sp_engine_create_instance(
+    p_wfl_id                  := v_wfl_id,
+    p_business_reference_type := 'Country',
+    p_business_reference_id   := p_country_id::text,
+    p_owner_user_id           := NULL,  -- no acting user exists on this call path
+    p_started_by              := 'system:trg_cou_ins_setup_workflow',
+    p_created_by              := 'system',
+    p_context                 := jsonb_build_array(jsonb_build_object('key', 'countryName', 'value', p_country_name))
+  );
+
+  PERFORM ds.sp_engine_insert_task(
+    p_win_id           := v_win_id,
+    p_wtk_code         := 'REVIEW_COUNTRY_SETUP',
+    p_assignee_user_id := v_assignee_user_id,
+    p_performed_by     := 'system:trg_cou_ins_setup_workflow',
+    p_created_by       := 'system'
+  );
+
+  PERFORM com.sp_notify_user(
+    p_user_id       := v_assignee_user_id,
+    p_item_type     := 'workflow-task',
+    p_payload       := jsonb_build_object(
+      'description', format('New country "%s" needs setup review.', p_country_name),
+      'taskName', 'Review Country Setup',
+      'link', '/my-tasks?tab=workflow',
+      'isActionable', true
+    ),
+    p_category_name := 'Inbox',
+    p_created_by    := 'system'
+  );
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'sp_start_country_setup_workflow failed for country_id=%: %', p_country_id, SQLERRM;
+END;
+$$;
+```
+
+**Verified in dev, deliberately, not assumed:** temporarily breaking the config (unpublishing the template, or pointing the instantiate proc name at something nonexistent) and creating another country still succeeded — the `EXCEPTION WHEN OTHERS` guard actually does its job. Test this for any fully-native procedure you write. A guard that compiles is not the same as a guard that works; the only way to know is to break the thing it's guarding against on purpose.
+
+Note what else is different from the TS-triggered flavor's instantiate procedure (§3): no `req.user`, no acting email, no real `ownerUserId` — because there's no request. `p_started_by`/`p_created_by` are a fixed `'system'` marker instead.
+
+### 10.3 No prior state to revert to — REJECTED deletes instead
+
+Team Member Change Authorization's `REJECTED` reverts specific fields to a captured prior snapshot (§4), because that row already existed before the workflow started. Country Setup Review's row is brand new — there's nothing to revert to, so `REJECTED` deletes it outright, inside the same `sp_handle_country_setup_outcome` procedure that handles `ACKNOWLEDGED` (no-op) by branching on `p_outcome_code`, same shape as §5:
+
+```sql
+IF p_outcome_code = 'REJECTED' THEN
+  SELECT to_jsonb(t) INTO v_before_row FROM ds.cou_countries t WHERE cou_id = v_country_id;
+
+  IF v_before_row IS NOT NULL THEN
+    -- Not wrapped in EXCEPTION WHEN OTHERS here, unlike §10.2 — this
+    -- procedure runs from a normal request/response cycle (TypeScript is
+    -- present, via TaskCompletionOrchestrator), so a real error is the
+    -- right outcome if the country has already picked up dependents (a
+    -- team member, a category-country row) and the DELETE fails on its
+    -- own FK constraints.
+    DELETE FROM ds.cou_countries WHERE cou_id = v_country_id;
+
+    v_entity_name := 'cou_countries';
+    v_entity_id   := v_country_id::text;
+    v_comment     := 'Country setup rejected — record deleted via workflow';
+  END IF;
+END IF;
+```
+
+`new_values` is `NULL` for this outcome — matches Governance/05's DELETE rule (`oldValues` is the full row before deletion, `newValues` is null).
+
+### 10.4 Template authoring — identical mechanics, one real difference
+
+Authoring goes through the exact same admin UI fields as Team Member Change Authorization (§2):
+
+| | Field | Value |
+|---|---|---|
+| Template | Code | `COUNTRY_SETUP_REVIEW` |
+| | Execution Type | `DATABASE` |
+| | Instantiate Procedure Name | `sp_start_country_setup_workflow` |
+| Task | Code | `REVIEW_COUNTRY_SETUP` |
+| | Assignment Type | `CONTEXT` |
+| Outcome 1 | Code | `ACKNOWLEDGED` |
+| | Execution Type | `DATABASE` |
+| | Outcome Procedure Name | `sp_handle_country_setup_outcome` |
+| Outcome 2 | Code | `REJECTED` |
+| | Execution Type | `DATABASE` |
+| | Outcome Procedure Name | `sp_handle_country_setup_outcome` |
+
+The one real difference: `wfl_instantiate_proc_name` is set here purely so `ValidateExecutionType` can confirm the procedure exists in `pg_proc` at publish time, and so a human reading the template later can see what starts it. Nothing in TypeScript ever reads this column for a fully-native template — unlike §6, where `InstantiateTeamMemberChangeAuthWorkflow.ts` reads it directly before calling it. The template row is documentation here, not live configuration a caller consults.
+
+### 10.5 Verified in dev
+
+- Creating a country through `/maintenance/countries` — a route with zero knowledge this workflow exists, and no code changes to it — produced a workflow instance, a real notification, and a working task.
+- Completing the task with `REJECTED` deleted the country and produced a matching `aud_audits` delete entry.
+- Breaking the template config and creating another country still succeeded (§10.2) — confirming the `EXCEPTION WHEN OTHERS` guard does what it's there for, not just that it compiles.
+
+---
+
 ## Checklist summary
 
 - [ ] Picked a unique `businessReferenceType` and confirmed which domain owns the new files
@@ -329,3 +477,4 @@ If your `link` points at `/my-tasks`, append `?tab=workflow` — `TaskInboxPage.
 - [ ] (Optional) Wrote a `changedFields`-style context key for the task drawer
 - [ ] Notification wired through `com.sp_notify_user`, not the template builder's notification config
 - [ ] Manually verified every outcome path end-to-end, including the audit trail
+- [ ] **If fully DB-native (§10, no TypeScript caller at all):** the instantiate procedure's entire body is wrapped in `EXCEPTION WHEN OTHERS` (or equivalent), and you deliberately broke the config once to confirm the triggering statement still succeeds — don't assume the guard works just because it compiles
