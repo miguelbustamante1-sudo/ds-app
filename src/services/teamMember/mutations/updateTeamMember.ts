@@ -3,6 +3,7 @@ import type { UpdateTeamMemberDTO } from '../../../../shared/dto';
 import { getTeamMemberById, updateTeamMember as dbUpdate } from '../../../db/teamMembers';
 import { getTierBandById } from '../../../db/tierBands';
 import { auditOrchestrator } from '../../audit';
+import { instantiateTeamMemberChangeAuthWorkflow } from '../components/InstantiateTeamMemberChangeAuthWorkflow';
 import { TeamMemberNotFoundError, InvalidTierBandError } from './errors';
 
 export async function updateTeamMember(
@@ -67,7 +68,7 @@ export async function updateTeamMember(
   const updated = await dbUpdate(id, data);
   if (!updated) throw new TeamMemberNotFoundError('Team member not found');
 
-  await auditOrchestrator.log({
+  const auditRecord = await auditOrchestrator.log({
     entityName: 'tbl_team_members',
     entityId:   String(id),
     createdBy:  email,
@@ -75,6 +76,15 @@ export async function updateTeamMember(
     newValues:  updated,
     comment:    `Team member ${updated.teamMemberNames} ${updated.teamMemberSurnames} updated`,
   });
+
+  if (userId !== null) {
+    await instantiateTeamMemberChangeAuthWorkflow({
+      teamMemberId:   id,
+      ownerUserId:    userId,
+      startedByEmail: email,
+      sourceAuditId:  auditRecord.id,
+    });
+  }
 
   return updated;
 }
