@@ -5,7 +5,7 @@ import { info } from '../logger';
 export interface TeamMemberWithDetails extends TeamMember {
   shiftId:     number | null;
   country:     { countryName: string; countryIso: string | null } | null;
-  primaryRole: { roleName: string } | null;
+  primaryRole: { posName: string } | null;
   tierBand:    { tierBandDescription: string } | null;
   shift:       { description: string } | null;
 }
@@ -47,6 +47,23 @@ export async function getTeamMemberById(id: number): Promise<TeamMember | null> 
   return await prisma.teamMember.findUnique({
     where: { teamMemberId: id },
   });
+}
+
+// Joined display fields for a single team member (role/country/tier band/shift names) —
+// kept separate from getTeamMemberById, which several callers (updateTeamMember's audit
+// snapshot, deleteTeamMember, otherIncomes, authorizerAssignments) rely on staying the
+// bare scalar row.
+export async function getTeamMemberByIdWithDetails(id: number): Promise<TeamMemberWithDetails | null> {
+  const row = await prisma.teamMember.findUnique({
+    where: { teamMemberId: id },
+    include: {
+      country:     { select: { countryName: true, countryIso: true } },
+      primaryRole: { select: { posName: true } },
+      tierBand:    { select: { tierBandDescription: true } },
+      shift:       { select: { description: true } },
+    },
+  });
+  return row as TeamMemberWithDetails | null;
 }
 
 export async function getTeamMemberByWorkdayId(workdayId: string): Promise<TeamMember | null> {

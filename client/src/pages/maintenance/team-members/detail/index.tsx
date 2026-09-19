@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Building2, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Building2, CalendarDays, CalendarArrowDown } from 'lucide-react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -30,7 +30,7 @@ import { getShifts, type ShiftDTO } from '@/services/shift';
 import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
 import type { TeamMemberDTO, CountryDTO, PositionDTO, TierBandDTO } from '@shared/dto';
 import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
-import { HolidaySwapsSection } from '@/pages/my-team/profile/components/HolidaySwapsSection';
+import type { HolidaySwapDTO } from '@shared/dto/HolidaySwap';
 import { ProjectsSection } from '@/pages/my-profile/components/ProjectsSection';
 import { PersonalInfoSection } from './sections/PersonalInfoSection';
 import { WorkInfoSection } from './sections/WorkInfoSection';
@@ -60,14 +60,17 @@ export function MaintenanceTeamMemberDetailPage() {
   const [timeOffs, setTimeOffs] = useState<TimeOffWithDetailsDTO[]>([]);
   const [loadingTimeOffs, setLoadingTimeOffs] = useState(false);
 
+  const [holidaySwaps, setHolidaySwaps] = useState<HolidaySwapDTO[]>([]);
+  const [loadingHolidaySwaps, setLoadingHolidaySwaps] = useState(false);
+
   const [countries, setCountries] = useState<CountryDTO[]>([]);
   const [roles, setRoles] = useState<PositionDTO[]>([]);
   const [tierBands, setTierBands] = useState<TierBandDTO[]>([]);
   const [shifts, setShifts] = useState<ShiftDTO[]>([]);
-  const [approvedStatusId, setApprovedStatusId] = useState<number | null>(null);
-  const [rejectedStatusId, setRejectedStatusId] = useState<number | null>(null);
   const [showAllTimeOffs, setShowAllTimeOffs] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
+  const [showAllSwaps, setShowAllSwaps] = useState(false);
+  const [showCancelledSwaps, setShowCancelledSwaps] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'timeOffStartDate', desc: false }]);
 
   function loadTeamMember() {
@@ -82,22 +85,23 @@ export function MaintenanceTeamMemberDetailPage() {
       .finally(() => setLoadingTimeOffs(false));
   }
 
+  function loadAdminHolidaySwaps() {
+    setLoadingHolidaySwaps(true);
+    apiGet<HolidaySwapDTO[]>(`/api/team-members/${teamMemberId}/admin-holiday-swaps`)
+      .then(setHolidaySwaps)
+      .catch(() => toast({ title: 'Error', description: 'Failed to load holiday swaps', variant: 'destructive' }))
+      .finally(() => setLoadingHolidaySwaps(false));
+  }
+
   useEffect(() => {
     loadProfile(teamMemberId);
     loadTeamMember();
     loadAdminTimeOffs();
+    loadAdminHolidaySwaps();
     apiGet<CountryDTO[]>('/api/countries').then(setCountries).catch(() => {});
     apiGet<PositionDTO[]>('/api/positions').then(setRoles).catch(() => {});
     apiGet<TierBandDTO[]>('/api/tier-bands').then(setTierBands).catch(() => {});
     getShifts().then(setShifts).catch(() => {});
-    apiGet<Array<{ statusId: number; statusName: string }>>('/api/time-off-statuses')
-      .then((statuses) => {
-        const approved = statuses.find((s) => s.statusName.toLowerCase() === 'acknowledged');
-        const rejected = statuses.find((s) => s.statusName.toLowerCase() === 'rejected');
-        setApprovedStatusId(approved?.statusId ?? null);
-        setRejectedStatusId(rejected?.statusId ?? null);
-      })
-      .catch(() => {});
   }, [teamMemberId]);
 
   const reload = () => {
@@ -168,6 +172,60 @@ export function MaintenanceTeamMemberDetailPage() {
     columns: timeOffColumns,
     state: { sorting },
     onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  const filteredHolidaySwaps = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return holidaySwaps.filter((s) => {
+      const status = s.statusName.toLowerCase();
+      const isCancelledOrRejected = status === 'cancelled' || status === 'rejected';
+      if (isCancelledOrRejected && !showCancelledSwaps) return false;
+      if (!showAllSwaps) {
+        const replacement = parseUTCDateAsLocal(String(s.replacementDate));
+        replacement.setHours(0, 0, 0, 0);
+        if (replacement < today) return false;
+      }
+      return true;
+    });
+  }, [holidaySwaps, showAllSwaps, showCancelledSwaps]);
+
+  const holidaySwapColumns = useMemo<ColumnDef<HolidaySwapDTO>[]>(
+    () => [
+      {
+        accessorKey: 'holidayName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Holiday" />,
+        meta: { headerTitle: 'Holiday', skeleton: <Skeleton className="h-4 w-24" /> },
+      },
+      {
+        accessorKey: 'originalDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Holiday Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.originalDate),
+        meta: { headerTitle: 'Holiday Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'replacementDate',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Replacement Date" />,
+        cell: ({ row }) => formatUTCDate(row.original.replacementDate),
+        meta: { headerTitle: 'Replacement Date', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
+        accessorKey: 'statusName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => (
+          <Badge variant={getStatusVariant(row.original.statusName)}>{row.original.statusName}</Badge>
+        ),
+        meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+    ],
+    [],
+  );
+
+  const holidaySwapTable = useReactTable({
+    data: filteredHolidaySwaps,
+    columns: holidaySwapColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -332,12 +390,54 @@ export function MaintenanceTeamMemberDetailPage() {
           </CardContent>
         </Card>
 
-        <HolidaySwapsSection
-          teamMemberId={teamMemberId}
-          countryId={profile.countryId}
-          approvedStatusId={approvedStatusId}
-          rejectedStatusId={rejectedStatusId}
-        />
+        {/* Holiday Swaps — read-only, matches the Time Off section below. This
+            is the maintenance area: viewing/editing any team member's record,
+            not acting as their supervisor, so there is no request/approve/
+            reject action here (see /my-team for that flow) and no hierarchy
+            check on the read (admin-holiday-swaps). */}
+        <Card className="md:col-span-2 lg:col-span-4">
+          <CardContent className="space-y-4">
+            <CardTitle className="flex items-center gap-2">
+              <CalendarArrowDown className="h-4 w-4" />
+              Holiday Swaps
+            </CardTitle>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-all-swaps-maint"
+                  checked={showAllSwaps}
+                  onCheckedChange={(checked) => setShowAllSwaps(checked === true)}
+                />
+                <Label htmlFor="show-all-swaps-maint" className="text-sm font-medium leading-none">
+                  Show past
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="show-cancelled-swaps-maint"
+                  checked={showCancelledSwaps}
+                  onCheckedChange={(checked) => setShowCancelledSwaps(checked === true)}
+                />
+                <Label htmlFor="show-cancelled-swaps-maint" className="text-sm font-medium leading-none">
+                  Show cancelled
+                </Label>
+              </div>
+            </div>
+            {loadingHolidaySwaps ? (
+              <div className="space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <DataGridContainer>
+                <DataGrid table={holidaySwapTable} recordCount={filteredHolidaySwaps.length}>
+                  <DataGridTable />
+                </DataGrid>
+              </DataGridContainer>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Time Off — read-only */}
         <Card className="md:col-span-2 lg:col-span-4">

@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import type { TeamMemberDTO, CreateTeamMemberDTO, UpdateTeamMemberDTO } from '../../shared/dto';
-import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMembersByCountry, getTeamMembersBySupervisor } from '../db/teamMembers';
+import { getAllTeamMembersWithDetails, getTeamMemberById, getTeamMemberByIdWithDetails, getTeamMembersByCountry, getTeamMembersBySupervisor } from '../db/teamMembers';
 import { getMyTeamMemberProfile } from '../db/users';
 import { getAvailableResources } from '../services/teamMember/queries/getAvailableResources';
 import {
@@ -15,6 +15,7 @@ import {
 import { getSupervisorsWithUserId } from '../services/teamMember/queries/getSupervisorsWithUserId';
 import { getReportsForTeamOverview } from '../services/teamMember/queries/getReportsForTeamOverview';
 import { getProfileForMaintenance } from '../services/teamMember/queries/getProfileForMaintenance';
+import { getSwapsForMaintenance } from '../services/teamMember/queries/getSwapsForMaintenance';
 import { getTimeOffsByTeamMember } from '../db/timeOffs';
 import { AppError } from '../errors/AppError';
 import { error } from '../logger';
@@ -48,7 +49,7 @@ router.get('/', requirePermission('TeamMembers', 'read'), async (_req: Request, 
       // Include relation fields
       countryName:         item.country?.countryName ?? null,
       countryIso:          item.country?.countryIso ?? null,
-      roleName:            item.primaryRole?.roleName ?? null,
+      roleName:            item.primaryRole?.posName ?? null,
       tierBandDescription: item.tierBand?.tierBandDescription ?? null,
       shiftId:             item.shiftId ?? null,
       shiftDescription:    item.shift?.description ?? null,
@@ -319,6 +320,23 @@ router.get('/:id/admin-profile', requirePermission('TeamMembers', 'read'), async
   }
 });
 
+// GET /team-members/:id/admin-holiday-swaps — all holiday swaps for maintenance (no hierarchy check)
+router.get('/:id/admin-holiday-swaps', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id ?? '', 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid team member ID' });
+    const swaps = await getSwapsForMaintenance(id);
+    return res.json({ data: swaps });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
 // GET /team-members/:id/admin-time-offs — all time-offs for maintenance (no hierarchy check)
 router.get('/:id/admin-time-offs', requirePermission('TeamMembers', 'read'), async (req: Request, res: Response) => {
   try {
@@ -342,10 +360,18 @@ router.get('/:id', requirePermission('TeamMembers', 'read'), async (req: Request
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const item = await getTeamMemberById(id);
+    const item = await getTeamMemberByIdWithDetails(id);
     if (!item) return res.status(404).json({ error: 'Team member not found' });
 
-    const dto: TeamMemberDTO = item as TeamMemberDTO;
+    const { country, primaryRole, tierBand, shift, ...scalarFields } = item;
+    const dto: TeamMemberDTO = {
+      ...scalarFields,
+      countryName:         country?.countryName ?? null,
+      countryIso:          country?.countryIso ?? null,
+      roleName:            primaryRole?.posName ?? null,
+      tierBandDescription: tierBand?.tierBandDescription ?? null,
+      shiftDescription:    shift?.description ?? null,
+    };
     res.json(dto);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch team member' });
