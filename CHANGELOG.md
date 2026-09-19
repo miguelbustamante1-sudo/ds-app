@@ -12,6 +12,33 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.4.1] - 2026-09-19
+
+### Fixed
+
+**Workflow**
+- Destroying a workflow instance now cancels the time-off request it was authorizing, instead of leaving it stuck in its prior status with no record of the workflow being torn down
+
+## [2.4.0] - 2026-09-19
+
+### Added
+
+**Workflow**
+- `DATABASE` execution type: a workflow task can now call a configured stored procedure directly instead of routing through a human task, with publish-time validation and admin authoring support
+- Admin Jump onto a `CONTEXT`-assigned task now requires an explicit assignee
+- `PendingNotificationScanner` picks up DB-triggered task activations on a schedule
+- Team Member Change Authorization workflow example, usable as a reference template
+
+### Changed
+
+**Workflow**
+- Notifications, task detail tab routing, and context passthrough on task detail now reflect real data instead of placeholders
+
+### Fixed
+
+**Workflow / Regions / Maintenance**
+- Various corrections to template forking, per-outcome step skipping, execution-type field handling, region name lookups, team member detail data, and holiday swap access
+
 ## [2.3.0] - 2026-09-17
 
 ### Added
