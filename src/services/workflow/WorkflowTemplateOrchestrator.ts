@@ -7,6 +7,7 @@ import { validateTemplateCode } from './components/ValidateTemplateCode';
 import { validateRoutingExpressions } from './components/ValidateRoutingExpressions';
 import { validateTaskRoutes } from './components/ValidateTaskRoutes';
 import { validateTaskDependencies } from './components/ValidateTaskDependencies';
+import { validateExecutionType } from './components/ValidateExecutionType';
 import {
   WorkflowNotFoundError,
   WorkflowNotDraftError,
@@ -325,6 +326,7 @@ export class WorkflowTemplateOrchestrator {
     if (startingTask === null) throw new WorkflowMissingStartTaskError();
 
     await validateRoutingExpressions(wflId);
+    await validateExecutionType(wflId);
 
     const now = new Date();
 
