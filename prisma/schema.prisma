@@ -1103,21 +1103,30 @@ model WefWorkflowEntityField {
   @@schema("ds")
 }
 
+enum WorkflowExecutionType {
+  CODE
+  DATABASE
+
+  @@schema("ds")
+}
+
 model WflWorkflowTemplate {
-  wflId         String    @id @default(uuid()) @map("wfl_id") @db.Uuid
-  wecId         String?   @map("wec_id") @db.Uuid
-  code          String    @map("wfl_code") @db.VarChar(30)
-  name          String    @map("wfl_name") @db.VarChar(200)
-  description   String?   @map("wfl_description")
-  versionNo     Int       @map("wfl_version_no") @db.Integer
-  status        String    @map("wfl_status") @db.VarChar(30)
-  isActive      Boolean   @default(true) @map("wfl_is_active")
-  effectiveFrom DateTime? @map("wfl_effective_from") @db.Timestamptz(6)
-  effectiveTo   DateTime? @map("wfl_effective_to") @db.Timestamptz(6)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdBy     String?   @map("created_by") @db.VarChar(100)
-  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(6)
-  updatedBy     String?   @map("updated_by") @db.VarChar(100)
+  wflId               String                @id @default(uuid()) @map("wfl_id") @db.Uuid
+  wecId               String?               @map("wec_id") @db.Uuid
+  code                String                @map("wfl_code") @db.VarChar(30)
+  name                String                @map("wfl_name") @db.VarChar(200)
+  description         String?               @map("wfl_description")
+  versionNo           Int                   @map("wfl_version_no") @db.Integer
+  status              String                @map("wfl_status") @db.VarChar(30)
+  isActive            Boolean               @default(true) @map("wfl_is_active")
+  effectiveFrom       DateTime?             @map("wfl_effective_from") @db.Timestamptz(6)
+  effectiveTo         DateTime?             @map("wfl_effective_to") @db.Timestamptz(6)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy           String?               @map("created_by") @db.VarChar(100)
+  updatedAt           DateTime?             @map("updated_at") @db.Timestamptz(6)
+  updatedBy           String?               @map("updated_by") @db.VarChar(100)
+  executionType       WorkflowExecutionType @default(CODE) @map("wfl_execution_type")
+  instantiateProcName String?               @map("wfl_instantiate_proc_name")
 
   entityConfig WecWorkflowEntityConfig? @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wfl_workflow_templates_wec_fk")
   tasks        WtkWorkflowTemplateTask[]
@@ -1198,15 +1207,17 @@ model WtiWorkflowTemplateTaskInput {
 }
 
 model WtoWorkflowTemplateTaskOutcome {
-  wtoId                 String   @id @default(uuid()) @map("wto_id") @db.Uuid
-  wtkId                 String   @map("wtk_id") @db.Uuid
-  code                  String   @map("wto_code") @db.VarChar(50)
-  label                 String   @map("wto_label") @db.VarChar(200)
-  description           String?  @map("wto_description")
-  isTerminal            Boolean  @default(false) @map("wto_is_terminal")
-  triggersOutcomeAction Boolean  @default(false) @map("wto_triggers_outcome_action")
-  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdBy             String?  @map("created_by") @db.VarChar(100)
+  wtoId                 String                @id @default(uuid()) @map("wto_id") @db.Uuid
+  wtkId                 String                @map("wtk_id") @db.Uuid
+  code                  String                @map("wto_code") @db.VarChar(50)
+  label                 String                @map("wto_label") @db.VarChar(200)
+  description           String?               @map("wto_description")
+  isTerminal            Boolean               @default(false) @map("wto_is_terminal")
+  triggersOutcomeAction Boolean               @default(false) @map("wto_triggers_outcome_action")
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy             String?               @map("created_by") @db.VarChar(100)
+  executionType         WorkflowExecutionType @default(CODE) @map("wto_execution_type")
+  outcomeProcName       String?               @map("wto_outcome_proc_name")
 
   task   WtkWorkflowTemplateTask    @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wto_workflow_template_task_outcomes_wtk_fk")
   routes WtrWorkflowTemplateRoute[]
