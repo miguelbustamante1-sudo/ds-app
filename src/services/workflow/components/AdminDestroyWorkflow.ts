@@ -2,6 +2,7 @@ import { WinWorkflowInstance } from '@prisma/client';
 import { prisma } from '../../../db/prisma';
 import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { WorkflowNotActiveError } from '../errors';
+import { getDestroyHandler } from './WorkflowDestroyRegistry';
 
 interface AdminDestroyInput {
   winId: string;
@@ -12,6 +13,8 @@ interface AdminDestroyInput {
 
 export async function adminDestroyWorkflow(input: AdminDestroyInput): Promise<WinWorkflowInstance> {
   const { winId, reason, performedBy, performedByUserId } = input;
+
+  const postCommit: { hook?: (() => Promise<void>) | undefined } = {};
 
   const updatedInstance = await prisma.$transaction(async (tx) => {
     // 1. Load instance and confirm it is ACTIVE
@@ -74,8 +77,29 @@ export async function adminDestroyWorkflow(input: AdminDestroyInput): Promise<Wi
       },
     });
 
+    // 6. Let the linked business record react to the destruction (e.g. cancel
+    // the time-off request an authorization workflow was backing), if a
+    // handler is registered for its businessReferenceType.
+    if (instance.businessReferenceType && instance.businessReferenceId) {
+      const handler = getDestroyHandler(instance.businessReferenceType);
+      if (handler) {
+        postCommit.hook = await handler({
+          tx,
+          winId,
+          businessReferenceId: instance.businessReferenceId,
+          reason,
+          performedBy,
+          performedByUserId,
+        });
+      }
+    }
+
     return destroyed;
   });
+
+  if (postCommit.hook) {
+    await postCommit.hook();
+  }
 
   // App-level audit record (outside transaction)
   await auditOrchestrator.log({
