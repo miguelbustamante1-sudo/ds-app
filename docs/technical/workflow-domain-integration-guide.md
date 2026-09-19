@@ -7,6 +7,8 @@ This guide answers a narrower question than the reference doc: **"I have a task 
 
 Rather than a hypothetical, we walk through the **one integration that already exists and ships today**: Time Off's exception-authorization flow. A time-off request that fails only the days-before-notice policy is saved as `InAuth` instead of being blocked outright, routed through a workflow task, and flipped to `Tentative` or `Rejected` depending on how that task is completed. Every file referenced below is real — read them alongside this guide.
 
+This guide covers `CODE` execution type — the outcome side effect runs as a TypeScript handler you write and deploy. If you'd rather that side effect run as a stored procedure with no code deploy needed to add or change it, see [`workflow-database-native-integration-guide.md`](./workflow-database-native-integration-guide.md) instead, walked through via Team Member Change Authorization.
+
 ---
 
 ## 0. Decide these three things first
