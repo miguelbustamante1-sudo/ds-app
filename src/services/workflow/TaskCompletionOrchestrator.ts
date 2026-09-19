@@ -7,6 +7,7 @@ import { runRoutingEngine } from './components/RoutingEngine';
 import { evaluateJoinCondition } from './components/JoinConditionEvaluator';
 import { resolveTaskResponsible } from './components/ResolveTaskResponsible';
 import { getOutcomeHandler } from './components/WorkflowOutcomeRegistry';
+import { invokeDatabaseOutcomeProcedure } from './components/InvokeDatabaseOutcomeProcedure';
 import { notifyWorkflowEvent } from './components/NotificationDispatcher';
 import {
   TaskNotActiveError,
@@ -237,7 +238,12 @@ class TaskCompletionOrchestrator {
       // the task completion rolls back too.
       const instanceRef = await tx.winWorkflowInstance.findUnique({
         where: { winId: task.winId },
-        select: { businessReferenceType: true, businessReferenceId: true, ownerUserId: true },
+        select: {
+          businessReferenceType: true,
+          businessReferenceId: true,
+          ownerUserId: true,
+          template: { select: { executionType: true } },
+        },
       });
 
       if (instanceRef?.businessReferenceType && matchedOutcome?.triggersOutcomeAction) {
