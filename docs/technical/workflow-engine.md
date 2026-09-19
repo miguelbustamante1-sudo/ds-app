@@ -38,10 +38,13 @@ A key/value data bag scoped to a running instance (`ds.wic_workflow_instance_con
 The link between a workflow instance and the real-world record it exists for. Stored as a loose pair of strings on the instance: `businessReferenceType` (e.g. `'TimeOff'`, `'Hiring'`) and `businessReferenceId` (e.g. the row's primary key, as a string). Not a DB foreign key — deliberately generic so one engine can back any domain. A domain can additionally register a resolver that turns this pair into a human-readable summary and a link to the record's own detail page — see [§10](#10-entity-links-task-inbox--detail).
 
 **Assignment Type**
-How a task decides who is responsible for it: `USER` (a specific person, by `wtk_assigned_user_id`), `ROLE` (any member of a role, first to claim it), or `DYNAMIC` (resolved at runtime — see next entry).
+How a task decides who is responsible for it: `USER` (a specific person, by `wtk_assigned_user_id`), `ROLE` (any member of a role, first to claim it), `DYNAMIC` (resolved at runtime — see next entry), or `DYNAMIC_TD_HIERARCHY` (an org-position lookup — see next entry).
 
 **Dynamic Assignment Type**
 The resolution strategy used when `assignmentType = 'DYNAMIC'`. Two values exist today: `MANAGER` and `FIRST_SUPERVISOR` — both currently resolve identically, via `resolveTaskResponsible` walking up from the instance's `ownerUserId` to that person's own direct supervisor, using the shared `resolveFirstSupervisorUserId` helper (backed by `getFirstSupervisorForWorkflow`, the depth-1 upward counterpart to the downward-walking `getReports`).
+
+**`DYNAMIC_TD_HIERARCHY` (Assignment Type)**
+A separate assignment type from `DYNAMIC` above, not one of its dynamic-assignment-type values. Resolves an org position (`TEAM_LEADER`, `OM`, or `AGM`, via `dynamicAssignmentType`) sitting above the *business record's own subject* — via `ds.hbt_hierarchy_by_teammember` and `getOrgPositionForWorkflow` — rather than above the instance's `ownerUserId`. The subject is looked up through a per-domain resolver registered in `BusinessReferenceSubjectRegistry`, since the person an instance is *about* (e.g. the employee a time-off request belongs to) isn't always the same person who started it (e.g. a supervisor filing on their behalf) — see the "Owner is the acting requester" note in [§5](#5-task-assignment-model).
 
 **Resolved User**
 The actual `usr_id` an instance task is assigned to once assignment logic has run (`wit_resolved_user_id`). `null` for `ROLE`-assigned tasks until someone claims them.
@@ -178,6 +181,7 @@ Per [Governance/02_BACKEND_ARCHITECTURE.md](../../Governance/02_BACKEND_ARCHITEC
 | `USER` | `resolvedUserId = assignedUserId` directly. |
 | `ROLE` | `resolvedUserId` stays `null`; any member of `assignedRoleId` can claim it via `POST .../claim`. |
 | `DYNAMIC` | Resolved at activation time by `resolveTaskResponsible`, using `dynamicAssignmentType`: `MANAGER` or `FIRST_SUPERVISOR` — both currently resolve identically, walking from the instance's `ownerUserId` up to that person's own direct supervisor via `resolveFirstSupervisorUserId`. If no supervisor is found, the task activates with `resolvedUserId = null` and a `NO_RESPONSIBLE_FOUND` entry is written to the workflow audit log — the task is not blocked, just unassigned until claimed or reassigned. |
+| `DYNAMIC_TD_HIERARCHY` | Resolved at activation time by `resolveTaskResponsible`, using `dynamicAssignmentType`: `TEAM_LEADER`, `OM`, or `AGM`. Looks up the org position *above the business record's own subject* (via the domain's `BusinessReferenceSubjectRegistry` resolver, then `ds.hbt_hierarchy_by_teammember`/`getOrgPositionForWorkflow`) — not above the instance's `ownerUserId`, since the requester and the record's subject can differ. If the subject or position can't be resolved, the task activates with `resolvedUserId = null` and a `NO_RESPONSIBLE_FOUND` entry is written, same as `DYNAMIC`. |
 
 Escalation uses the identical three-way shape (`escalationUserId` / `escalationRoleId` / `escalationDynamicType`); the `DYNAMIC` case in `EscalateTask.ts` resolves through the same `resolveFirstSupervisorUserId` helper as task assignment, rather than a separate implementation.
 
