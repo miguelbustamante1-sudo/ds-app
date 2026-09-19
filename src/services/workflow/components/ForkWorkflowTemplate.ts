@@ -43,6 +43,8 @@ export async function forkWorkflowTemplate(wflId: string, userId: string, userEm
         versionNo: newVersionNo,
         status: 'DRAFT',
         wecId: source.wecId,
+        executionType: source.executionType,
+        instantiateProcName: source.instantiateProcName,
         createdBy: userId,
       },
     });
@@ -111,6 +113,8 @@ export async function forkWorkflowTemplate(wflId: string, userId: string, userEm
             description: outcome.description,
             isTerminal: outcome.isTerminal,
             triggersOutcomeAction: outcome.triggersOutcomeAction,
+            executionType: outcome.executionType,
+            outcomeProcName: outcome.outcomeProcName,
             createdBy: userId,
           },
         });
