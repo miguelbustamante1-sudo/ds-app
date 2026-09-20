@@ -1,7 +1,8 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import * as db from '../db/timeOffCategoriesXCountry';
-import { requirePermission } from '../middleware/auth';
+import { requirePermission, type AuthenticatedRequest } from '../middleware/auth';
+import { auditOrchestrator } from '../services/audit';
 
 const router = express.Router();
 
@@ -16,25 +17,25 @@ function flattenItem(item: any) {
   };
 }
 
-router.get('/', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
+router.get('/', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   const items = await db.getAll();
   res.json(items.map(flattenItem));
 });
 
-router.get('/:id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
+router.get('/:id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   const id = Number(req.params.id);
   const item = await db.getById(id);
   if (!item) return res.status(404).json({ error: 'Not found' });
   res.json(flattenItem(item));
 });
 
-router.get('/country/:cou_id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: Request, res: Response) => {
+router.get('/country/:cou_id', requirePermission('TimeOffCategoriesByCountry', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   const cou_id = Number(req.params.cou_id);
   const items = await db.getByCountry(cou_id);
   res.json(items.map(flattenItem));
 });
 
-router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
+router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   const {
     categoryId,
     countryId,
@@ -43,6 +44,7 @@ router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), asyn
     categoryCountryIsFixedDuration,
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
+    categoryCountryCountHolidays,
     categoryCountryDaysBefore,
     categoryCountryMaxDays,
   } = req.body;
@@ -54,13 +56,24 @@ router.post('/', requirePermission('TimeOffCategoriesByCountry', 'create'), asyn
     categoryCountryIsFixedDuration ?? false,
     categoryCountryFixedDays ?? null,
     categoryCountryIsCalendar ?? false,
+    categoryCountryCountHolidays ?? false,
     categoryCountryDaysBefore ?? 0,
     categoryCountryMaxDays ?? 0
   );
+
+  await auditOrchestrator.log({
+    entityName: 'ttc_type_of_to_by_country',
+    entityId: String(item.categoryCountryId),
+    createdBy: req.user?.email ?? 'unknown',
+    oldValues: null,
+    newValues: item as unknown as Record<string, unknown>,
+    comment: `Category-country entry created (category ${item.categoryId}, country ${item.countryId})`,
+  });
+
   res.status(201).json(flattenItem(item));
 });
 
-router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: Request, res: Response) => {
+router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   const id = Number(req.params.id);
   const {
     categoryId,
@@ -70,9 +83,13 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
     categoryCountryIsFixedDuration,
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
+    categoryCountryCountHolidays,
     categoryCountryDaysBefore,
     categoryCountryMaxDays,
   } = req.body;
+
+  const before = await db.getById(id);
+
   const item = await db.update(
     id,
     Number(categoryId),
@@ -82,14 +99,25 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
     categoryCountryIsFixedDuration,
     categoryCountryFixedDays,
     categoryCountryIsCalendar,
+    categoryCountryCountHolidays,
     categoryCountryDaysBefore,
     categoryCountryMaxDays
   );
   if (!item) return res.status(404).json({ error: 'Not found' });
+
+  await auditOrchestrator.log({
+    entityName: 'ttc_type_of_to_by_country',
+    entityId: String(id),
+    createdBy: req.user?.email ?? 'unknown',
+    oldValues: before ? (before as unknown as Record<string, unknown>) : null,
+    newValues: item as unknown as Record<string, unknown>,
+    comment: `Category-country entry ${id} updated`,
+  });
+
   res.json(flattenItem(item));
 });
 
-router.delete('/:id', requirePermission('TimeOffCategoriesByCountry', 'delete'), async (req: Request, res: Response) => {
+router.delete('/:id', requirePermission('TimeOffCategoriesByCountry', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   const id = Number(req.params.id);
   await db.remove(id);
   res.status(204).send();
