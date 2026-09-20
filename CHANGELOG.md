@@ -12,6 +12,14 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.4.2] - 2026-09-20
+
+### Fixed
+
+**Workflow**
+- Publishing a template with more than one starting task is now rejected — previously both would activate at once instead of running sequentially per the template's routes
+- A task reached by two converging predecessor tasks (a join) no longer gets activated twice; the second predecessor to complete used to re-insert the same ROLE fan-out candidates and fail with a unique constraint error
+
 ## [2.4.1] - 2026-09-19
 
 ### Fixed
