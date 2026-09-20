@@ -35,6 +35,13 @@ export class WorkflowMissingStartTaskError extends AppError {
   }
 }
 
+export class WorkflowMultipleStartTasksError extends AppError {
+  constructor(message = 'Template must have exactly one starting task') {
+    super(message, 400);
+    this.name = 'WorkflowMultipleStartTasksError';
+  }
+}
+
 export class WorkflowRoutingExpressionError extends AppError {
   constructor(message: string) {
     super(message, 400);

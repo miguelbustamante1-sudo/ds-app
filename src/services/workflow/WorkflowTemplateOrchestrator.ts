@@ -12,6 +12,7 @@ import {
   WorkflowNotFoundError,
   WorkflowNotDraftError,
   WorkflowMissingStartTaskError,
+  WorkflowMultipleStartTasksError,
 } from './errors';
 import { AppError } from '../../errors/AppError';
 
@@ -329,11 +330,12 @@ export class WorkflowTemplateOrchestrator {
     if (existing === null) throw new WorkflowNotFoundError();
     if (existing.status !== 'DRAFT') throw new WorkflowNotDraftError();
 
-    const startingTask = await prisma.wtkWorkflowTemplateTask.findFirst({
+    const startingTasks = await prisma.wtkWorkflowTemplateTask.findMany({
       where: { wflId, isStartingTask: true, isActive: true },
       select: { wtkId: true },
     });
-    if (startingTask === null) throw new WorkflowMissingStartTaskError();
+    if (startingTasks.length === 0) throw new WorkflowMissingStartTaskError();
+    if (startingTasks.length > 1) throw new WorkflowMultipleStartTasksError();
 
     await validateRoutingExpressions(wflId);
     await validateExecutionType(wflId);

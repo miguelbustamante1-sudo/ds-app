@@ -11,6 +11,20 @@ export async function evaluateJoinCondition(
   candidateWitId: string,
   winId: string,
 ): Promise<JoinEvaluationResult> {
+  // A task can only ever be activated once, from PENDING. Two different
+  // predecessors can both route to the same downstream task (a converge
+  // point) — without this guard, each predecessor's completion would
+  // independently re-run responsible-resolution and re-insert ROLE fan-out
+  // candidates for the same task, violating uq_wta_task_user on the second
+  // pass.
+  const candidateTask = await tx.witWorkflowInstanceTask.findUnique({
+    where: { witId: candidateWitId },
+    select: { state: true },
+  });
+  if (!candidateTask || candidateTask.state !== 'PENDING') {
+    return { shouldActivate: false };
+  }
+
   const dependencies = await tx.widWorkflowInstanceTaskDependency.findMany({
     where: { witSuccessorId: candidateWitId },
   });
