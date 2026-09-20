@@ -15,8 +15,17 @@ Holiday swaps have no change-history UI at all. Every swap mutation is logged to
 ## Non-goals
 
 - No new dedicated changelog table for holiday swaps (see "Why audit, not changelog" below).
-- No history UI on employee-facing swap views (`my-profile`, `my-team` profile sections) — supervisor and BSA-exception detail views only.
+- No history UI on employee-facing swap views (`my-profile`, `my-team` profile sections) — supervisor and BSA-exception flows only.
 - No changes to the generic audit log system's write path, or to how time-off's changelog is written.
+
+## Scope discovery: the BSA exception flow has no detail page
+
+Research during planning found that the TM/supervisor and BSA-exception flows are more different than the original spec assumed:
+
+- **TM/supervisor**: a single shared page, `client/src/pages/holiday-swaps/detail/index.tsx`, reached by navigating to `/holiday-swaps/:swapId`. Backed by `GET /api/holiday-swaps/:id` (`src/routes/holidaySwap.routes.ts`), gated by `requirePermission('HolidaySwaps', 'read')`.
+- **BSA exception**: no detail page exists at all. `client/src/pages/holiday-swaps/exception/index.tsx` lists a team member's swaps inline (`ExceptionSwapList`) with edit/cancel/review handled by inline dialogs and inline edit-mode (`ExceptionSwapForm`, `CancelSwapDialog`, `ReviewOverrideDialog`) — there is no navigation to a per-swap page. Backend reads/writes live in a **separate router**, `src/routes/holidaySwapException.routes.ts`, gated by a **separate permission module**, `requirePermission('HolidaySwapException', ...)`, and there is no single-swap-detail GET route today (only `GET /exception/:teamMemberId` listing all of a team member's swaps).
+
+Given this, "add a history panel to the BSA exception detail view" isn't possible as originally scoped — that view doesn't exist. The approved resolution is to **build a full exception detail page**, mirroring the TM/supervisor one, and **migrate the existing inline edit/cancel/review actions from the list into it** (list keeps navigation into the page; the page hosts the actions and the new history section). This is a larger, additive change to the holiday-swap exception UI, not just a display fix — called out explicitly per the workaround-protocol spirit of surfacing scope changes rather than absorbing them silently.
 
 ## Why audit, not changelog, for holiday swaps
 
@@ -85,17 +94,23 @@ Integration points (replace the current plain-comment rendering with `ChangeLogD
 
 `active` and `teamMemberId` are excluded from the diff line list — `active` drives the action badge instead, and team member is already the page's context.
 
-**Backend additions:**
+**Backend additions common to both flows:**
 - `src/services/audit/repository.ts`: add `getByEntity(entityName: string, entityId: string): Promise<Audit[]>` — `prisma.audit.findMany({ where: { entityName, entityId }, orderBy: { createdAt: 'desc' } })`, using the existing `idx_aud_entity_search` index. No schema change.
 - `src/services/audit/AuditOrchestrator.ts`: add `getHistory(entityName: string, entityId: string)` wrapping the repository call.
-- New route: `GET /api/holiday-swaps/:id/history`, added alongside the existing holiday-swap detail routes. Calls `auditOrchestrator.getHistory('hsw_holiday_swap', String(id))`. Returns `{ data: AuditHistoryEntryDTO[] }` per governance 12 (new-route envelope convention).
-- `AuditHistoryEntryDTO { id: string, createdAt: string, createdBy: string, comment: string | null, oldValues: Record<string, unknown> | null, newValues: Record<string, unknown> | null }` — `createdBy` resolved to the username the same way `getTimeOffChangeLog` resolves `createdByUser.userName` today. Old/new values pass through as raw JSON; diffing happens client-side via `ChangeLogDiff` and the field map above, consistent with how time-off already works.
-- Permissions: the route reuses the same access check as the existing swap-detail route it's nested under (whoever can view the swap detail can view its history). No new `PermissionAction` needed — this is a `read`.
-- Errors: swap not found → `AppError('Holiday swap not found', 404)`; unauthorized → reuse the existing `AppError` from the detail route.
+- `AuditHistoryEntryDTO { id: string, createdAt: string, createdBy: string, comment: string | null, oldValues: Record<string, unknown> | null, newValues: Record<string, unknown> | null }` — `createdBy` resolved to a display name the same way `getTimeOffChangeLog` resolves `createdByUser.userName` today (here, `createdBy` on `Audit` is already a string identifier, e.g. email — resolve to a friendly name only if an existing lookup helper makes that trivial; otherwise display as-is). Old/new values pass through as raw JSON; diffing happens client-side via `ChangeLogDiff` and the field map above, consistent with how time-off already works.
+- Errors: swap not found → `AppError('Holiday swap not found', 404)`; unauthorized → `AppError('Access denied', 403)`. New code written for this feature uses real `AppError` subclasses (per governance 13) even though the existing sibling routes in `holidaySwap.routes.ts` use an older plain-`Error`-with-`.statusCode` pattern — that existing pattern is a known violation and is not being auto-migrated.
 
-**Frontend integration:** a new "History" section using `ChangeLogDiff`, added only to:
-- the supervisor holiday-swap detail view
-- the BSA exception (`BsaHolidaySwapOrchestrator`-backed) exception detail view
+**TM/supervisor flow:**
+- New route `GET /api/holiday-swaps/:id/history` in `src/routes/holidaySwap.routes.ts`, alongside the existing `GET /:id` route. Gated by `requirePermission('HolidaySwaps', 'read')`, with the same identity-based scoping as `getSwapDetail` (caller is the swap's own team member, or a supervisor whose `getReports(...)` includes the swap's team member). Calls `auditOrchestrator.getHistory('hsw_holiday_swap', String(id))`. Returns `{ data: AuditHistoryEntryDTO[] }` per governance 12.
+- Frontend: a new "History" section using `ChangeLogDiff`, added to `client/src/pages/holiday-swaps/detail/index.tsx` (the existing shared TM/supervisor detail page), inserted as a new full-width card after the existing details/status grid.
+
+**BSA exception flow (new page — see "Scope discovery" above):**
+- New backend route `GET /api/holiday-swaps/exception/:id` in `src/routes/holidaySwapException.routes.ts` — a single-swap-detail read, gated by `requirePermission('HolidaySwapException', 'read')`, returning the swap's full detail (mirroring `HolidaySwapDetailDTO` but without the employee/supervisor role computation, since the caller is BSA acting on behalf of someone else).
+- New backend route `GET /api/holiday-swaps/exception/:id/history` in the same file, same permission gate, calling `auditOrchestrator.getHistory('hsw_holiday_swap', String(id))` — same underlying data source as the TM/supervisor history route, just gated by the exception-flow permission module.
+- New frontend page `client/src/pages/holiday-swaps/exception/detail/index.tsx`, mirroring the structure of `client/src/pages/holiday-swaps/detail/index.tsx` (details card, status card, actions card with edit/cancel/review, new History card using `ChangeLogDiff`).
+- New hook `client/src/pages/holiday-swaps/exception/hooks/useExceptionHolidaySwapDetail.ts`, mirroring `useHolidaySwapDetail.ts`, calling the two new exception routes above and threading `onBehalfOfUserId` through to the existing mutation endpoints (`update`/`cancel`/`review`) exactly as `useExceptionSwapOperations.ts` does today.
+- `client/src/pages/holiday-swaps/exception/index.tsx` / `ExceptionSwapList.tsx` updated so each swap row navigates to the new detail page instead of opening `ExceptionSwapForm`/`CancelSwapDialog`/`ReviewOverrideDialog` inline; those components (or their logic) move into the new detail page. The list itself keeps its existing list/summary rendering.
+- New route registered in the app's router config (the file the earlier research referred to as `app-routing-setup.tsx` — confirm exact filename during planning) for the new detail page path (e.g. `/holiday-swaps/exception/:teamMemberId/:swapId`, threading both ids since the exception flow is scoped per team member).
 
 Explicitly **not** added to `my-profile`/`my-team` profile holiday-swap sections.
 
@@ -110,11 +125,14 @@ Explicitly **not** added to `my-profile`/`my-team` profile holiday-swap sections
 
 - Unit tests for `ChangeLogDiff`'s diff-computation and badge-derivation logic (Created/Updated/Cancelled/Approved/Rejected, given various old/new shapes).
 - Unit tests for `AuditOrchestrator.getHistory` / repository `getByEntity` (correct filtering by entityName+entityId, correct ordering).
-- Route-level tests for `GET /api/holiday-swaps/:id/history` (happy path, not-found, unauthorized).
+- Route-level tests for `GET /api/holiday-swaps/:id/history` and `GET /api/holiday-swaps/exception/:id`, `GET /api/holiday-swaps/exception/:id/history` (happy path, not-found, unauthorized). No route-level test convention exists yet in this repo (no `supertest`, no route-level mocking anywhere) — the plan will test the underlying orchestrator/query functions directly (the pattern already used by `calculateDays.test.ts`) rather than introducing new route-testing infrastructure as a side effect of this feature.
 - No backend test changes needed for time-off (no backend logic changed there).
-- Manual verification: exercise real time-off update/cancel and holiday-swap create/update/cancel/approve/reject flows (including BSA-exception flows) in the running app, confirming correct diff rendering for each action type.
+- Manual verification: exercise real time-off update/cancel and holiday-swap create/update/cancel/approve/reject flows (including the new BSA-exception detail page's own edit/cancel/review actions, migrated from the list) in the running app, confirming correct diff rendering for each action type and confirming the migrated actions still work identically to their current inline-dialog behavior.
 
 ## Open items handed to implementation planning
 
 - Exact resolution strategy for `status`/`category`/`holiday` display names in the shared component (reuse existing lookup helpers rather than duplicating logic — to be confirmed against current code during planning).
 - Confirm whether `tto_days` is a real column on `tbl_tms_time_off` or a computed value, before including it in the time-off field map.
+- Exact filename/pattern of the app's router config file for registering the new exception detail page route.
+- Exact URL/param shape for the new exception detail page (team member id + swap id vs. swap id alone) — needs to support returning to the correct filtered list view.
+- Whether `Audit.createdBy` (a raw string, e.g. email) needs a display-name lookup for the history panel, or is acceptable to show as-is — confirm against how other parts of the app already display `createdBy`-style identifiers.
