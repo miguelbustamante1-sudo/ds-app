@@ -109,7 +109,8 @@ function SupervisorMemberFormInner({
   const selectedCategory = categories.find((c) => c.categoryId.toString() === categoryId);
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
-  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countWeekends = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countHolidays = selectedCategory?.categoryCountryCountHolidays ?? false;
   const maxDays = selectedCategory?.categoryCountryMaxDays ?? 0;
 
   const teamMemberEndDate = teamMember.teamMemberEndDate
@@ -160,24 +161,26 @@ function SupervisorMemberFormInner({
     if (!isEditing && categoryId) setIsSplitMode(false);
   }, [categoryId, isEditing]);
 
-  useTimeOffFormDates({
-    categoryId,
-    startDate,
-    endDate,
-    isFixedDuration,
-    fixedDays,
-    isCalendar,
-    setValue,
-    clearErrors,
-  });
-
   const {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
     gtNetVacationDays,
     holidayDatesForCalendar,
     fullDayHolidayDatesForBlocking,
-  } = useHolidayAwareness({ countryIso: teamMember.countryIso, startDate, endDate, isCalendar });
+  } = useHolidayAwareness({ countryIso: teamMember.countryIso, startDate, endDate, isCalendar: countWeekends });
+
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    countWeekends,
+    countHolidays,
+    holidayDates: fullDayHolidayDatesForBlocking,
+    setValue,
+    clearErrors,
+  });
 
   const { activeSwaps } = useHolidayContext();
 
@@ -240,7 +243,13 @@ function SupervisorMemberFormInner({
   const hasOverlap = overlappingTimeOffs.length > 0;
 
   const requestedDays = startDate && endDate ? calculateCalendarDays(startDate, endDate) : 0;
-  const hintDays = startDate && endDate && isDateRangeValid ? calculateRequestedDays(startDate, endDate, isCalendar) : 0;
+  const hintDays = startDate && endDate && isDateRangeValid
+    ? calculateRequestedDays(startDate, endDate, {
+        countWeekends,
+        countHolidays,
+        holidayDates: fullDayHolidayDatesForBlocking,
+      })
+    : 0;
   // The authoritative day count once holidays (including half-days) are excluded.
   const effectiveDays = gtNetVacationDays ?? hintDays;
 
