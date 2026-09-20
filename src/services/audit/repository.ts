@@ -1,5 +1,5 @@
 import { prisma } from '../../db/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, type Audit } from '@prisma/client';
 
 export interface CreateAuditInput {
   entityName: string;
@@ -20,5 +20,12 @@ export async function createAudit(input: CreateAuditInput) {
       newValues: input.newValues != null ? (input.newValues as Prisma.InputJsonValue) : Prisma.JsonNull,
       comment: input.comment ?? null,
     },
+  });
+}
+
+export async function getByEntity(entityName: string, entityId: string): Promise<Audit[]> {
+  return prisma.audit.findMany({
+    where: { entityName, entityId },
+    orderBy: { createdAt: 'desc' },
   });
 }
