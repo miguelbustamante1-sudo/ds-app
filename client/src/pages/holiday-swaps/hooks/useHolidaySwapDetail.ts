@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { apiGet, apiPatch, ApiError } from '@/lib/api';
 import type { HolidaySwapDetailDTO, CancelHolidaySwapDTO, ReviewHolidaySwapDTO } from '@shared/dto/HolidaySwap';
+import type { AuditHistoryEntryDTO } from '@shared/dto/AuditHistory';
 
 export interface UseHolidaySwapDetailOptions {
   onSuccess?: (message: string) => void;
@@ -11,6 +12,7 @@ export function useHolidaySwapDetail(options?: UseHolidaySwapDetailOptions) {
   const [detail, setDetail] = useState<HolidaySwapDetailDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<number | null>(null);
+  const [history, setHistory] = useState<AuditHistoryEntryDTO[]>([]);
 
   const loadDetail = useCallback(async (swapId: number): Promise<void> => {
     try {
@@ -30,6 +32,15 @@ export function useHolidaySwapDetail(options?: UseHolidaySwapDetailOptions) {
       setLoading(false);
     }
   }, [options]);
+
+  const loadHistory = useCallback(async (swapId: number): Promise<void> => {
+    try {
+      const data = await apiGet<AuditHistoryEntryDTO[]>(`/api/holiday-swaps/${swapId}/history`);
+      setHistory(data);
+    } catch {
+      setHistory([]);
+    }
+  }, []);
 
   const cancelSwap = useCallback(async (swapId: number, comment?: string): Promise<void> => {
     try {
@@ -62,5 +73,5 @@ export function useHolidaySwapDetail(options?: UseHolidaySwapDetailOptions) {
     }
   }, [options]);
 
-  return { detail, loading, error, loadDetail, cancelSwap, reviewSwap };
+  return { detail, loading, error, loadDetail, loadHistory, history, cancelSwap, reviewSwap };
 }

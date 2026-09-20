@@ -33,6 +33,16 @@ import { formatUTCDate } from '@/lib/utils';
 import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTimeOffDetail } from '@/hooks/useTimeOffDetail';
+import { ChangeLogDiff } from '@/components/changelog/ChangeLogDiff';
+import { deriveActionBadge } from '@/lib/changelog/deriveActionBadge';
+import { useCategoryNameMap, useStatusNameMap } from '@/hooks/useTimeOffLookups';
+import {
+  buildTimeOffFieldMap,
+  TIME_OFF_ACTIVE_KEY,
+  TIME_OFF_STATUS_KEY,
+  TIME_OFF_APPROVED_STATUS_IDS,
+  TIME_OFF_REJECTED_STATUS_IDS,
+} from '@/pages/timeoff/changelog/timeOffFieldMap';
 
 export function TimeOffDetailPage() {
   const { timeOffId: timeOffIdParam } = useParams<{ timeOffId: string }>();
@@ -75,6 +85,10 @@ export function TimeOffDetailPage() {
       loadDetail(timeOffId);
     }
   }, [timeOffId]);
+
+  const categoryNameMap = useCategoryNameMap();
+  const statusNameMap = useStatusNameMap();
+  const timeOffFieldMap = buildTimeOffFieldMap(categoryNameMap, statusNameMap);
 
   const handleBack = () => {
     const from = searchParams.get('from');
@@ -289,6 +303,8 @@ export function TimeOffDetailPage() {
           changeLogCreatedBy: null,
           changeLogCreatedDate: null,
           createdByUserName: null,
+          changeLogOldValues: null,
+          changeLogNewValues: null,
         }]
       : []),
     ...detail.changeLogs,
@@ -443,24 +459,22 @@ export function TimeOffDetailPage() {
                     key={String(log.changeLogId)}
                     className="flex gap-3 border-l-2 border-muted pl-4 py-1"
                   >
-                    <div className="flex-1">
-                      <p className="text-sm">{log.changeLogComment}</p>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        {log.createdByUserName && (
-                          <span>{log.createdByUserName}</span>
-                        )}
-                        {log.changeLogCreatedDate && (
-                          <>
-                            {log.createdByUserName && (
-                              <span className="rounded-full size-1 bg-muted-foreground/50" />
-                            )}
-                            <span>
-                              {formatUTCDate(log.changeLogCreatedDate, 'dd-MMM-yyyy HH:mm')}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <ChangeLogDiff
+                      action={deriveActionBadge({
+                        oldValues: log.changeLogOldValues,
+                        newValues: log.changeLogNewValues,
+                        activeKey: TIME_OFF_ACTIVE_KEY,
+                        statusKey: TIME_OFF_STATUS_KEY,
+                        approvedStatusIds: TIME_OFF_APPROVED_STATUS_IDS,
+                        rejectedStatusIds: TIME_OFF_REJECTED_STATUS_IDS,
+                      })}
+                      oldValues={log.changeLogOldValues}
+                      newValues={log.changeLogNewValues}
+                      fieldMap={timeOffFieldMap}
+                      comment={log.changeLogComment}
+                      createdByUserName={log.createdByUserName ?? null}
+                      createdDate={log.changeLogCreatedDate}
+                    />
                   </div>
                 ))}
               </div>

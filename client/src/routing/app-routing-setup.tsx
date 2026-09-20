@@ -80,6 +80,7 @@ import { DataImportNewPage } from '@/pages/data-import/new';
 import { TimeOffExceptionPage } from '@/pages/timeoff/exception';
 import { TimeOffExceptionDetailPage } from '@/pages/timeoff/exception/detail';
 import { HolidaySwapExceptionPage } from '@/pages/holiday-swaps/exception';
+import { HolidaySwapExceptionDetailPage } from '@/pages/holiday-swaps/exception/detail';
 import { ApprovalManagementPage } from '@/pages/approval-management';
 import { CompensatoryTimeIntakePage } from '@/pages/compensatory-time/intake';
 import { CompensatoryTimeUsagePage } from '@/pages/compensatory-time/usage';
@@ -186,6 +187,7 @@ export function AppRoutingSetup() {
         <Route path="/holiday-swaps/:swapId" element={<HolidaySwapDetailPage />} />
         <Route path="/supervisor-holiday-swaps" element={<SupervisorHolidaySwapsPage />} />
         <Route path="/holiday-swap-exception" element={<HolidaySwapExceptionPage />} />
+        <Route path="/holiday-swap-exception-detail/:swapId" element={<HolidaySwapExceptionDetailPage />} />
         <Route path="/bench-move" element={<BenchMovePage />} />
         <Route path="/bench-move/:benchId" element={<BenchMoveDetailPage />} />
         <Route path="/end-bench" element={<EndBenchPage />} />

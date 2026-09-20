@@ -133,6 +133,8 @@ router.get('/detail/:timeOffId', requirePermission('TimeOffs', 'read'), resolveA
         changeLogCreatedBy: log.changeLogCreatedBy,
         changeLogCreatedDate: log.changeLogCreatedDate,
         createdByUserName: log.createdByUserName ?? null,
+        changeLogOldValues: log.changeLogOldValues,
+        changeLogNewValues: log.changeLogNewValues,
       })),
     };
 

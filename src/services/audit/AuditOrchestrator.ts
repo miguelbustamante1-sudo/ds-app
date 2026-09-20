@@ -1,5 +1,6 @@
-import { createAudit } from './repository';
+import { createAudit, getByEntity } from './repository';
 import type { CreateAuditInput } from './repository';
+import type { Audit } from '@prisma/client';
 
 export class AuditOrchestrator {
   /**
@@ -14,6 +15,11 @@ export class AuditOrchestrator {
    */
   async log(input: CreateAuditInput) {
     return createAudit(input);
+  }
+
+  /** Full change history for one entity, newest first. */
+  async getHistory(entityName: string, entityId: string): Promise<Audit[]> {
+    return getByEntity(entityName, entityId);
   }
 }
 

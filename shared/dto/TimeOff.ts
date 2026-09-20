@@ -130,6 +130,8 @@ export interface TimeOffDetailDTO {
     changeLogCreatedBy: number | null;
     changeLogCreatedDate: Date | null;
     createdByUserName: string | null;
+    changeLogOldValues: Record<string, unknown> | null;
+    changeLogNewValues: Record<string, unknown> | null;
   }[];
 }
 
@@ -153,6 +155,8 @@ export interface ExceptionTimeOffDetailDTO {
     changeLogCreatedBy: number | null;
     changeLogCreatedDate: Date | null;
     createdByUserName: string | null;
+    changeLogOldValues: Record<string, unknown> | null;
+    changeLogNewValues: Record<string, unknown> | null;
   }[];
 }
 

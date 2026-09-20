@@ -92,6 +92,8 @@ router.get('/:timeOffId/detail', requirePermission('TimeOffException', 'read'), 
         changeLogCreatedBy: log.changeLogCreatedBy,
         changeLogCreatedDate: log.changeLogCreatedDate,
         createdByUserName: log.createdByUserName ?? null,
+        changeLogOldValues: log.changeLogOldValues,
+        changeLogNewValues: log.changeLogNewValues,
       })),
     };
 

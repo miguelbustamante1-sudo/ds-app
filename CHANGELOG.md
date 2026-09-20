@@ -12,6 +12,22 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.6.0] - 2026-09-20
+
+### Added
+
+**Time Off**
+- Changelog cards on all three time-off detail pages now show a field-level diff (old → new) for each change, plus an action badge (Created/Updated/Cancelled/Approved/Rejected), collapsed by default
+
+**Holiday Swaps**
+- The team member/supervisor swap detail page now has a "History" section showing the full audit trail of changes to that swap, with the same field-level diff and action badge treatment as time off
+- New BSA "acting as" exception detail page (`/holiday-swap-exception-detail/:swapId`), mirroring the team member/supervisor detail page — includes swap details, status, change history, and Approve/Reject/Edit/Cancel actions (including override confirmation when reviewing a swap that isn't Tentative)
+
+### Changed
+
+**Holiday Swaps**
+- The BSA exception swap list's per-row Approve/Reject/Edit/Cancel buttons are replaced by a single "View" action that opens the new exception detail page; review and edit actions for existing swaps now happen there instead of inline on the list
+
 ## [2.5.0] - 2026-09-19
 
 ### Added

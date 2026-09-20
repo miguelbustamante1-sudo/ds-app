@@ -8,6 +8,12 @@ import type {
   UpdateHolidaySwapDTO,
 } from '@shared/dto/HolidaySwap';
 import type { CreateExceptionHolidaySwapDTO } from '@shared/dto/HolidaySwap';
+import { AppError } from '../errors/AppError';
+import { auditOrchestrator } from '../services/audit/AuditOrchestrator';
+import { InvalidHolidaySwapIdError } from '../services/holidaySwap/errors';
+import type { AuditHistoryEntryDTO } from '@shared/dto/AuditHistory';
+
+const HSW_ENTITY_NAME = 'hsw_holiday_swap';
 
 const router = Router();
 
@@ -40,6 +46,59 @@ router.get(
       const swaps = await bsaHolidaySwapOrchestrator.getTeamMemberSwapsException(targetTeamMemberId);
       res.json(swaps);
     } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
+/** GET /api/holiday-swaps/exception/swap/:id — single swap detail for BSA acting-as flow */
+router.get(
+  '/exception/swap/:id',
+  requirePermission('HolidaySwapException', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const swapId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(swapId)) throw new InvalidHolidaySwapIdError();
+
+      const swap = await bsaHolidaySwapOrchestrator.getSwapDetailException(swapId);
+      res.json({ data: swap });
+    } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      res.status(500).json({ error: message });
+    }
+  }
+);
+
+/** GET /api/holiday-swaps/exception/swap/:id/history — audit history for BSA acting-as flow */
+router.get(
+  '/exception/swap/:id/history',
+  requirePermission('HolidaySwapException', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const swapId = parseInt(req.params.id ?? '', 10);
+      if (isNaN(swapId)) throw new InvalidHolidaySwapIdError();
+
+      const history = await auditOrchestrator.getHistory(HSW_ENTITY_NAME, String(swapId));
+      const data: AuditHistoryEntryDTO[] = history.map((row) => ({
+        id: row.id,
+        createdAt: row.createdAt.toISOString(),
+        createdBy: row.createdBy,
+        comment: row.comment,
+        oldValues: row.oldValues as Record<string, unknown> | null,
+        newValues: row.newValues as Record<string, unknown> | null,
+      }));
+
+      res.json({ data });
+    } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       res.status(500).json({ error: message });
     }

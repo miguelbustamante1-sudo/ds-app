@@ -20,11 +20,10 @@ import {
 } from '@/components/ui/command';
 import { ComboBox, type ComboBoxOption } from '@/components/ui/combobox';
 import type { CountryDTO } from '@shared/dto/Country';
-import type { TimeOffCategoryDTO } from '@shared/dto/TimeOffCategory';
-import type { TimeOffStatusDTO } from '@shared/dto/TimeOffStatus';
 import type { TeamMemberReportDTO } from '@shared/dto/TeamMemberReport';
 import type { UserDTO } from '@shared/dto/User';
 import { apiGet } from '@/lib/api';
+import { useTimeOffCategoryList, useTimeOffStatusList } from '@/hooks/useTimeOffLookups';
 
 // ─── Multi-select ComboBox ────────────────────────────────────────────────────
 
@@ -114,20 +113,12 @@ function useCountryOptions(): ComboBoxOption[] {
 }
 
 function useCategoryOptions(): ComboBoxOption[] {
-  const { data = [] } = useQuery<TimeOffCategoryDTO[]>({
-    queryKey: ['time-off-categories'],
-    queryFn: () => apiGet<TimeOffCategoryDTO[]>('/api/time-off-category'),
-    staleTime: 300_000,
-  });
+  const { data = [] } = useTimeOffCategoryList();
   return data.map((c) => ({ value: String(c.categoryId), label: c.categoryName }));
 }
 
 function useStatusOptions(): ComboBoxOption[] {
-  const { data = [] } = useQuery<TimeOffStatusDTO[]>({
-    queryKey: ['time-off-statuses'],
-    queryFn: () => apiGet<TimeOffStatusDTO[]>('/api/time-off-statuses'),
-    staleTime: 300_000,
-  });
+  const { data = [] } = useTimeOffStatusList();
   return data.map((s) => ({ value: String(s.statusId), label: s.statusName }));
 }
 
