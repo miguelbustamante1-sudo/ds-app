@@ -26,6 +26,7 @@ export interface TimeOffDTO {
  */
 export interface TimeOffWithDetailsDTO {
   timeOffId: number;
+  teamMemberId: number | null;
   timeOffStartDate: Date;
   timeOffEndDate: Date;
   timeOffDays: number;
