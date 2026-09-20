@@ -25,6 +25,17 @@ import { formatUTCDate } from '@/lib/utils';
 import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
 import { useHolidaySwapDetail } from '../hooks/useHolidaySwapDetail';
+import { ChangeLogDiff } from '@/components/changelog/ChangeLogDiff';
+import { deriveActionBadge } from '@/lib/changelog/deriveActionBadge';
+import { useHolidayNameMap } from '@/hooks/useHolidayLookups';
+import { useStatusNameMap } from '@/hooks/useTimeOffLookups';
+import {
+  buildHolidaySwapFieldMap,
+  HOLIDAY_SWAP_ACTIVE_KEY,
+  HOLIDAY_SWAP_STATUS_KEY,
+  HOLIDAY_SWAP_APPROVED_STATUS_IDS,
+  HOLIDAY_SWAP_REJECTED_STATUS_IDS,
+} from '@/pages/holiday-swaps/changelog/holidaySwapFieldMap';
 
 // Status IDs are seed/DB data shared with tbl_to_statuses
 const STATUS_ID_ACKNOWLEDGED = 2; // approve action
@@ -36,7 +47,7 @@ export function HolidaySwapDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { detail, loading, error, loadDetail, cancelSwap, reviewSwap } = useHolidaySwapDetail({
+  const { detail, loading, error, loadDetail, loadHistory, history, cancelSwap, reviewSwap } = useHolidaySwapDetail({
     onSuccess: (message) => toast({ title: 'Success', description: message }),
     onError: (message) => toast({ title: 'Error', description: message, variant: 'destructive' }),
   });
@@ -52,8 +63,13 @@ export function HolidaySwapDetailPage() {
   useEffect(() => {
     if (swapId && !isNaN(swapId)) {
       loadDetail(swapId);
+      loadHistory(swapId);
     }
   }, [swapId]);
+
+  const holidayNameMap = useHolidayNameMap();
+  const statusNameMap = useStatusNameMap();
+  const holidaySwapFieldMap = buildHolidaySwapFieldMap(holidayNameMap, statusNameMap);
 
   const handleBack = () => {
     const from = searchParams.get('from');
@@ -312,6 +328,37 @@ export function HolidaySwapDetailPage() {
           </Card>
         )}
       </div>
+
+      {/* History */}
+      {history.length > 0 && (
+        <Card className="mt-6">
+          <CardContent>
+            <CardTitle className="mb-4">History</CardTitle>
+            <div className="space-y-4">
+              {history.map((entry) => (
+                <div key={entry.id} className="flex gap-3 border-l-2 border-muted pl-4 py-1">
+                  <ChangeLogDiff
+                    action={deriveActionBadge({
+                      oldValues: entry.oldValues,
+                      newValues: entry.newValues,
+                      activeKey: HOLIDAY_SWAP_ACTIVE_KEY,
+                      statusKey: HOLIDAY_SWAP_STATUS_KEY,
+                      approvedStatusIds: HOLIDAY_SWAP_APPROVED_STATUS_IDS,
+                      rejectedStatusIds: HOLIDAY_SWAP_REJECTED_STATUS_IDS,
+                    })}
+                    oldValues={entry.oldValues}
+                    newValues={entry.newValues}
+                    fieldMap={holidaySwapFieldMap}
+                    comment={entry.comment ?? ''}
+                    createdByUserName={entry.createdBy}
+                    createdDate={entry.createdAt}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={() => handleDialogClose(setCancelDialogOpen)}>
