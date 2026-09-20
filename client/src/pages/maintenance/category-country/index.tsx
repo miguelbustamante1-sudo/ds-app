@@ -253,6 +253,7 @@ export function CategoryCountryPage() {
   const handleFormSuccess = () => {
     setFormOpen(false);
     setEditingItem(undefined);
+    entities.loadItems();
   };
 
   if (!canRead('TimeOffCategoriesByCountry')) {
