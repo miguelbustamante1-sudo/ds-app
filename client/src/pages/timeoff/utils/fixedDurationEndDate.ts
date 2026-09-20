@@ -13,19 +13,26 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
+/**
+ * A day is chargeable (not excluded) whenever EITHER applicable flag says it
+ * should be — countWeekends for a weekend day, countHolidays for a holiday
+ * day. Being "on" wins regardless of the other flag; a day is only excluded
+ * when no applicable flag justifies including it.
+ */
 function isNonChargeable(date: Date, options: FixedDurationOptions): boolean {
   const { countWeekends, countHolidays, holidayDates } = options;
 
   const dayOfWeek = date.getDay();
-  if (!countWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) {
-    return true;
+  const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+  const isHolidayDay = holidayDates.some((h) => isSameDay(h, date));
+
+  const weekendJustifiesFull = isWeekendDay && countWeekends;
+  const holidayJustifiesFull = isHolidayDay && countHolidays;
+  if (weekendJustifiesFull || holidayJustifiesFull) {
+    return false;
   }
 
-  if (!countHolidays && holidayDates.some((h) => isSameDay(h, date))) {
-    return true;
-  }
-
-  return false;
+  return (isWeekendDay && !countWeekends) || (isHolidayDay && !countHolidays);
 }
 
 /**

@@ -1,9 +1,10 @@
 /**
  * Unified day-counting engine.
- * Each day in [startDate, endDate] is independently gated by two flags:
- *  - countWeekends: if false, Sat/Sun are excluded outright (no holiday check needed).
- *  - countHolidays: if false, a day matching a holiday entry is excluded (or reduced
- *    by 0.5 for a half-day holiday), unless it was already excluded as a weekend.
+ * A day is included fully whenever EITHER applicable flag says it should be
+ * (countWeekends for a weekend day, countHolidays for a holiday day) — being
+ * "on" wins regardless of the other flag. Only when no applicable flag
+ * justifies inclusion does the day get excluded (or, for a holiday-only
+ * exclusion, reduced by 0.5 for a half-day holiday).
  */
 import type { CalculateDaysOptions } from '../types';
 
@@ -31,19 +32,22 @@ export function calculateDays(
   while (current <= end) {
     const dayOfWeek = current.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const key = `${current.getUTCFullYear()}-${current.getUTCMonth()}-${current.getUTCDate()}`;
+    const isHoliday = holidayMap.has(key);
+    const isHalfDay = holidayMap.get(key) ?? false;
 
-    if (!countWeekends && isWeekend) {
-      current.setDate(current.getDate() + 1);
-      continue;
-    }
+    const weekendJustifiesFull = isWeekend && countWeekends;
+    const holidayJustifiesFull = isHoliday && countHolidays;
 
-    let dayValue = 1;
-
-    if (!countHolidays) {
-      const key = `${current.getUTCFullYear()}-${current.getUTCMonth()}-${current.getUTCDate()}`;
-      if (holidayMap.has(key)) {
-        dayValue -= holidayMap.get(key) ? 0.5 : 1;
-      }
+    let dayValue: number;
+    if (weekendJustifiesFull || holidayJustifiesFull) {
+      dayValue = 1;
+    } else if (isWeekend && !countWeekends) {
+      dayValue = 0;
+    } else if (isHoliday && !countHolidays) {
+      dayValue = isHalfDay ? 0.5 : 0;
+    } else {
+      dayValue = 1;
     }
 
     total += dayValue;
