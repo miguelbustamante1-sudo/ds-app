@@ -19,3 +19,9 @@ export interface HolidayCalcEntry {
   date: Date;
   isHalfDay: boolean;
 }
+
+export interface CalculateDaysOptions {
+  countWeekends: boolean;
+  countHolidays: boolean;
+  holidays: HolidayCalcEntry[];
+}
