@@ -199,6 +199,9 @@ export function SupervisorTimeOffPage() {
                 ? `${selectedTeamMember.teamMemberNames} ${selectedTeamMember.teamMemberSurnames}`
                 : 'None'}
             </p>
+            {selectedTeamMember?.countryName && (
+              <p className="text-xs text-muted-foreground truncate">{selectedTeamMember.countryName}</p>
+            )}
           </CardContent>
         </Card>
       </div>
