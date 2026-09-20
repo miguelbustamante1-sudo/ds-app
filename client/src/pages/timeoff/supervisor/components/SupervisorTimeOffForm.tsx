@@ -111,7 +111,8 @@ function SupervisorTimeOffFormInner({
   );
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
-  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countWeekends = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countHolidays = selectedCategory?.categoryCountryCountHolidays ?? false;
   const maxDays = selectedCategory?.categoryCountryMaxDays ?? 0;
 
   // Get team member's end date for attrition validation
@@ -195,17 +196,6 @@ function SupervisorTimeOffFormInner({
     }
   }, [categoryId, setValue]);
 
-  useTimeOffFormDates({
-    categoryId,
-    startDate,
-    endDate,
-    isFixedDuration,
-    fixedDays,
-    isCalendar,
-    setValue,
-    clearErrors,
-  });
-
   const {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
@@ -216,7 +206,20 @@ function SupervisorTimeOffFormInner({
     countryIso: teamMember?.countryIso,
     startDate,
     endDate,
-    isCalendar,
+    isCalendar: countWeekends,
+  });
+
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    countWeekends,
+    countHolidays,
+    holidayDates: fullDayHolidayDatesForBlocking,
+    setValue,
+    clearErrors,
   });
 
   const { activeSwaps } = useHolidayContext();
@@ -278,7 +281,11 @@ function SupervisorTimeOffFormInner({
   );
 
   const hintDays = startDate && endDate && isDateRangeValid
-    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    ? calculateRequestedDays(startDate, endDate, {
+        countWeekends,
+        countHolidays,
+        holidayDates: fullDayHolidayDatesForBlocking,
+      })
     : 0;
 
   // The authoritative day count once holidays (including half-days) are excluded.
