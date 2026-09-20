@@ -504,7 +504,7 @@ function SupervisorTimeOffFormInner({
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                          {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -551,7 +551,7 @@ function SupervisorTimeOffFormInner({
                           disabled={isFixedDuration || isSV15DayMode}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                          {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -686,7 +686,7 @@ function SupervisorTimeOffFormInner({
               <ul className="list-disc list-inside text-sm">
                 {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                     {holiday.holidayIsHalfDay && ' (half day)'}
                   </li>
                 ))}
@@ -703,7 +703,7 @@ function SupervisorTimeOffFormInner({
               <ul className="list-disc list-inside text-sm mb-2">
                 {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                   </li>
                 ))}
               </ul>
@@ -735,8 +735,8 @@ function SupervisorTimeOffFormInner({
               <ul className="list-disc list-inside text-sm mb-3">
                 {overlappingTimeOffs.map((to) => (
                   <li key={to.timeOffId}>
-                    {to.categoryName}: {formatUTCDate(to.timeOffStartDate, 'MMM dd')} -{' '}
-                    {formatUTCDate(to.timeOffEndDate, 'MMM dd, yyyy')}
+                    {to.categoryName}: {formatUTCDate(to.timeOffStartDate, 'dd-MMM-yyyy')} -{' '}
+                    {formatUTCDate(to.timeOffEndDate, 'dd-MMM-yyyy')}
                   </li>
                 ))}
               </ul>
@@ -752,7 +752,7 @@ function SupervisorTimeOffFormInner({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Time off cannot extend beyond {teamMember?.teamMemberNames} {teamMember?.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'PPP')}).
+              Time off cannot extend beyond {teamMember?.teamMemberNames} {teamMember?.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'dd-MMM-yyyy')}).
             </AlertDescription>
           </Alert>
         )}

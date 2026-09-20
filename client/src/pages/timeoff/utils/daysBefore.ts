@@ -45,7 +45,7 @@ export function validateDaysBefore(
   }
 
   const earliestValidDate = addDays(today, categoryCountryDaysBefore);
-  const formattedDate = format(earliestValidDate, 'MMMM d, yyyy');
+  const formattedDate = format(earliestValidDate, 'dd-MMM-yyyy');
 
   return {
     valid: false,

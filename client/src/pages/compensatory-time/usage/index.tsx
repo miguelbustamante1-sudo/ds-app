@@ -606,7 +606,7 @@ export function CompensatoryTimeUsagePage() {
                             className={cn('h-8 w-24 justify-start font-normal', !row.startDate && 'text-muted-foreground')}
                           >
                             <CalendarIcon size={14} className="me-1 shrink-0" />
-                            {row.startDate ? format(row.startDate, 'MM/dd') : 'MM/DD'}
+                            {row.startDate ? format(row.startDate, 'dd-MMM-yyyy') : 'DD-MMM-YYYY'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -638,7 +638,7 @@ export function CompensatoryTimeUsagePage() {
                             className={cn('h-8 w-24 justify-start font-normal', !row.endDate && 'text-muted-foreground')}
                           >
                             <CalendarIcon size={14} className="me-1 shrink-0" />
-                            {row.endDate ? format(row.endDate, 'MM/dd') : 'MM/DD'}
+                            {row.endDate ? format(row.endDate, 'dd-MMM-yyyy') : 'DD-MMM-YYYY'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">

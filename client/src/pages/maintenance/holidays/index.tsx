@@ -87,7 +87,7 @@ export function HolidaysPage() {
         accessorKey: 'holidayDate',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Date" />,
         cell: ({ row }) =>
-          row.original.holidayDate ? formatUTCDate(row.original.holidayDate, 'MMM d, yyyy') : '-',
+          row.original.holidayDate ? formatUTCDate(row.original.holidayDate) : '-',
         size: 140,
         meta: { headerTitle: 'Date', skeleton: <Skeleton className="h-4 w-24" /> },
       },

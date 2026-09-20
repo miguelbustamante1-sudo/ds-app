@@ -450,7 +450,7 @@ function EditSupervisorTimeOffPageInner({
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                              {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -505,7 +505,7 @@ function EditSupervisorTimeOffPageInner({
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                              {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -562,7 +562,7 @@ function EditSupervisorTimeOffPageInner({
                       <ul className="list-disc list-inside text-sm">
                         {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                           <li key={holiday.holidayId}>
-                            {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                            {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                             {holiday.holidayIsHalfDay && ' (half day)'}
                           </li>
                         ))}
@@ -582,8 +582,8 @@ function EditSupervisorTimeOffPageInner({
                       <ul className="list-disc list-inside text-sm mb-3">
                         {overlappingTimeOffs.map((t) => (
                           <li key={t.timeOffId}>
-                            {t.categoryName}: {formatUTCDate(t.timeOffStartDate, 'MMM dd')} –{' '}
-                            {formatUTCDate(t.timeOffEndDate, 'MMM dd, yyyy')}
+                            {t.categoryName}: {formatUTCDate(t.timeOffStartDate, 'dd-MMM-yyyy')} –{' '}
+                            {formatUTCDate(t.timeOffEndDate, 'dd-MMM-yyyy')}
                           </li>
                         ))}
                       </ul>
@@ -596,7 +596,7 @@ function EditSupervisorTimeOffPageInner({
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
                       Time off cannot extend beyond {memberName}&apos;s end date (
-                      {format(teamMemberEndDate, 'PPP')}).
+                      {format(teamMemberEndDate, 'dd-MMM-yyyy')}).
                     </AlertDescription>
                   </Alert>
                 )}

@@ -424,7 +424,7 @@ function SupervisorMemberFormInner({
                       <PopoverTrigger asChild>
                         <Button variant="outline" className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')}>
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                          {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -467,7 +467,7 @@ function SupervisorMemberFormInner({
                           disabled={isFixedDuration || isSV15DayMode}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                          {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -548,7 +548,7 @@ function SupervisorMemberFormInner({
                   <p className="font-medium mb-2">Your request includes public holidays counted as vacation days:</p>
                   <ul className="list-disc list-inside text-sm">
                     {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
-                      <li key={holiday.holidayId}>{holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}{holiday.holidayIsHalfDay && ' (half day)'}</li>
+                      <li key={holiday.holidayId}>{holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}{holiday.holidayIsHalfDay && ' (half day)'}</li>
                     ))}
                   </ul>
                 </AlertDescription>
@@ -561,7 +561,7 @@ function SupervisorMemberFormInner({
                   <p className="font-medium mb-2">Public holidays not counted as vacation days:</p>
                   <ul className="list-disc list-inside text-sm mb-2">
                     {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
-                      <li key={holiday.holidayId}>{holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}</li>
+                      <li key={holiday.holidayId}>{holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}</li>
                     ))}
                   </ul>
                   <p className="text-sm font-medium">Net vacation days: <strong>{gtNetVacationDays} day{gtNetVacationDays !== 1 ? 's' : ''}</strong></p>
@@ -582,7 +582,7 @@ function SupervisorMemberFormInner({
                   <p className="font-medium mb-2">This request overlaps with {overlappingTimeOffs.length} existing time off{overlappingTimeOffs.length > 1 ? 's' : ''}:</p>
                   <ul className="list-disc list-inside text-sm mb-3">
                     {overlappingTimeOffs.map((to) => (
-                      <li key={to.timeOffId}>{to.categoryName}: {formatUTCDate(to.timeOffStartDate as unknown as string, 'MMM dd')} – {formatUTCDate(to.timeOffEndDate as unknown as string, 'MMM dd, yyyy')}</li>
+                      <li key={to.timeOffId}>{to.categoryName}: {formatUTCDate(to.timeOffStartDate as unknown as string, 'dd-MMM-yyyy')} – {formatUTCDate(to.timeOffEndDate as unknown as string, 'dd-MMM-yyyy')}</li>
                     ))}
                   </ul>
                 </AlertDescription>
@@ -592,7 +592,7 @@ function SupervisorMemberFormInner({
             {exceedsAttritionDate && teamMemberEndDate && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Time off cannot extend beyond {teamMember.teamMemberNames} {teamMember.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'PPP')}).</AlertDescription>
+                <AlertDescription>Time off cannot extend beyond {teamMember.teamMemberNames} {teamMember.teamMemberSurnames}'s end date ({format(teamMemberEndDate, 'dd-MMM-yyyy')}).</AlertDescription>
               </Alert>
             )}
 

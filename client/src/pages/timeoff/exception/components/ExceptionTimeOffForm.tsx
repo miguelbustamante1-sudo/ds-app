@@ -310,7 +310,7 @@ function ExceptionTimeOffFormInner({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                      {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -358,7 +358,7 @@ function ExceptionTimeOffFormInner({
                       disabled={isFixedDuration}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                      {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">

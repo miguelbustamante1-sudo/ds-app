@@ -644,7 +644,7 @@ export function CompensatoryTimeIntakePage() {
                             )}
                           >
                             <CalendarIcon size={14} className="me-1 shrink-0" />
-                            {row.startDate ? format(row.startDate, 'MM/dd') : 'MM/DD'}
+                            {row.startDate ? format(row.startDate, 'dd-MMM-yyyy') : 'DD-MMM-YYYY'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
@@ -680,7 +680,7 @@ export function CompensatoryTimeIntakePage() {
                             )}
                           >
                             <CalendarIcon size={14} className="me-1 shrink-0" />
-                            {row.endDate ? format(row.endDate, 'MM/dd') : 'MM/DD'}
+                            {row.endDate ? format(row.endDate, 'dd-MMM-yyyy') : 'DD-MMM-YYYY'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">

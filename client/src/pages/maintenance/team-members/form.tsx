@@ -307,7 +307,7 @@ export function TeamMemberFormDialog({
           <AlertDialogTitle>Confirm end date</AlertDialogTitle>
           <AlertDialogDescription>
             You are setting the end date for <strong>{memberName}</strong> to{' '}
-            <strong>{pendingSubmitData?.teamMemberEndDate}</strong>.
+            <strong>{pendingSubmitData?.teamMemberEndDate ? formatUTCDate(pendingSubmitData.teamMemberEndDate) : ''}</strong>.
             <br /><br />
             Once this date is reached, the system will automatically cancel:
             <br />
