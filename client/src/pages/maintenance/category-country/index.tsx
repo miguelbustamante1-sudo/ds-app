@@ -151,7 +151,7 @@ export function CategoryCountryPage() {
       },
       {
         accessorKey: 'categoryCountryIsCalendar',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Calendar Days" />,
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Count Weekends" />,
         cell: ({ row }) => (
           <span
             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -164,7 +164,24 @@ export function CategoryCountryPage() {
           </span>
         ),
         size: 130,
-        meta: { headerTitle: 'Calendar Days', skeleton: <Skeleton className="h-4 w-12" /> },
+        meta: { headerTitle: 'Count Weekends', skeleton: <Skeleton className="h-4 w-12" /> },
+      },
+      {
+        accessorKey: 'categoryCountryCountHolidays',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Count Holidays" />,
+        cell: ({ row }) => (
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+              row.original.categoryCountryCountHolidays
+                ? 'bg-uds-system-blue-100 text-uds-system-blue-700'
+                : 'bg-uds-system-grey-100 text-uds-system-grey-600'
+            }`}
+          >
+            {row.original.categoryCountryCountHolidays ? 'Yes' : 'No'}
+          </span>
+        ),
+        size: 130,
+        meta: { headerTitle: 'Count Holidays', skeleton: <Skeleton className="h-4 w-12" /> },
       },
       {
         accessorKey: 'categoryCountryDaysBefore',
