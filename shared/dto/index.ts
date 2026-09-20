@@ -129,3 +129,6 @@ export * from './FlagIntake';
 
 // Performance Management DTOs
 export * from './PerformanceCase';
+
+// Audit History DTOs
+export * from './AuditHistory';
