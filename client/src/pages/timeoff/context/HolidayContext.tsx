@@ -42,17 +42,14 @@ interface HolidayProviderProps {
   children: ReactNode;
 }
 
-export function HolidayProvider({ countryId, countryIso, children }: HolidayProviderProps) {
+export function HolidayProvider({ countryId, children }: HolidayProviderProps) {
   const [holidays, setHolidays] = useState<HolidayDTO[]>([]);
   const [activeSwaps, setActiveSwaps] = useState<ActiveSwapSummaryDTO[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const normalizedIso = countryIso?.toUpperCase();
-  const isSupported = normalizedIso === 'SV' || normalizedIso === 'GT';
-
-  // Fetch holiday list once per supported country.
+  // Fetch holiday list for any country that has one.
   useEffect(() => {
-    if (!isSupported || !countryId) {
+    if (!countryId) {
       setHolidays([]);
       return;
     }
@@ -74,7 +71,7 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
     return () => {
       cancelled = true;
     };
-  }, [countryId, isSupported]);
+  }, [countryId]);
 
   // Fetch the logged-in user's active (acknowledged) holiday swaps once on mount.
   useEffect(() => {
@@ -101,9 +98,9 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
 
   // Date[] for react-day-picker highlighting across the calendar year window.
   const holidayDatesForCalendar = useMemo<Date[]>(() => {
-    if (!isSupported || effectiveHolidays.length === 0) return [];
+    if (effectiveHolidays.length === 0) return [];
     return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
-  }, [isSupported, effectiveHolidays]);
+  }, [effectiveHolidays]);
 
   // Convenience function so consumers do not import isDateInHolidayList directly.
   const isHoliday = useMemo(
