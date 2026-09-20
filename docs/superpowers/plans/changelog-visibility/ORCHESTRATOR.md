@@ -12,7 +12,7 @@ Full design context: `docs/superpowers/specs/2026-09-20-changelog-visibility-des
 |---|---|---|
 | [PLAN-01](./PLAN-01-timeoff-diff-ui.md) | Shared diff-computation utilities + `ChangeLogDiff` component + wire into all 3 time-off detail pages. Frontend only. | `[x] DONE — 2026-09-20` |
 | [PLAN-02](./PLAN-02-swap-history-tm-supervisor.md) | Audit read path (`AuditOrchestrator.getHistory`), `GET /api/holiday-swaps/:id/history`, wire `ChangeLogDiff` into the existing shared TM/supervisor swap detail page. | `[x] DONE — 2026-09-20` |
-| [PLAN-03](./PLAN-03-exception-backend.md) | New backend routes for the BSA exception flow: single-swap detail + history, both gated by the `HolidaySwapException` permission. | `[ ] PENDING` |
+| [PLAN-03](./PLAN-03-exception-backend.md) | New backend routes for the BSA exception flow: single-swap detail + history, both gated by the `HolidaySwapException` permission. | `[x] DONE — 2026-09-20` |
 | [PLAN-04](./PLAN-04-exception-frontend.md) | New BSA exception detail page (mirrors the TM/supervisor page), migrates the exception list's inline edit/cancel/review dialogs into it, adds the History section, updates routing. | `[ ] PENDING` |
 
 ## Execution Order
