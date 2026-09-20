@@ -63,7 +63,11 @@ interface SupervisorMemberFormProps {
 
 export function SupervisorMemberForm(props: SupervisorMemberFormProps) {
   return (
-    <HolidayProvider countryId={props.teamMember.countryId} countryIso={props.teamMember.countryIso}>
+    <HolidayProvider
+      countryId={props.teamMember.countryId}
+      countryIso={props.teamMember.countryIso}
+      teamMemberId={props.teamMember.teamMemberId}
+    >
       <SupervisorMemberFormInner {...props} />
     </HolidayProvider>
   );

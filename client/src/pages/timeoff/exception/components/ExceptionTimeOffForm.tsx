@@ -47,7 +47,11 @@ interface ExceptionTimeOffFormProps {
 
 export function ExceptionTimeOffForm(props: ExceptionTimeOffFormProps) {
   return (
-    <HolidayProvider countryId={props.teamMember?.countryId} countryIso={props.teamMember?.countryIso}>
+    <HolidayProvider
+      countryId={props.teamMember?.countryId}
+      countryIso={props.teamMember?.countryIso}
+      teamMemberId={props.teamMember?.teamMemberId}
+    >
       <ExceptionTimeOffFormInner {...props} />
     </HolidayProvider>
   );

@@ -69,7 +69,11 @@ export function EditSupervisorTimeOffPage() {
   }, [teamMemberId]);
 
   return (
-    <HolidayProvider countryId={teamMember?.countryId ?? null} countryIso={teamMember?.countryIso ?? null}>
+    <HolidayProvider
+      countryId={teamMember?.countryId ?? null}
+      countryIso={teamMember?.countryIso ?? null}
+      teamMemberId={teamMember?.teamMemberId ?? null}
+    >
       <EditSupervisorTimeOffPageInner
         timeOffId={timeOffId}
         teamMemberId={teamMemberId}

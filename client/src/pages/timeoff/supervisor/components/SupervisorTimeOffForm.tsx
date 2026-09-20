@@ -62,7 +62,11 @@ interface SupervisorTimeOffFormProps {
 
 export function SupervisorTimeOffForm(props: SupervisorTimeOffFormProps) {
   return (
-    <HolidayProvider countryId={props.teamMember?.countryId} countryIso={props.teamMember?.countryIso}>
+    <HolidayProvider
+      countryId={props.teamMember?.countryId}
+      countryIso={props.teamMember?.countryIso}
+      teamMemberId={props.teamMember?.teamMemberId}
+    >
       <SupervisorTimeOffFormInner {...props} />
     </HolidayProvider>
   );

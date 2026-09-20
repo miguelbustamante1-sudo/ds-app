@@ -167,6 +167,35 @@ router.get(
   }
 );
 
+/** GET /api/holiday-swaps/team/:teamMemberId/active-swaps — supervisor views TM's active swaps */
+router.get(
+  '/team/:teamMemberId/active-swaps',
+  requirePermission('HolidaySwaps', 'read'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const supervisorTeamMemberId = req.user?.teamMemberId;
+      if (!supervisorTeamMemberId) {
+        res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
+        return;
+      }
+      const targetTeamMemberId = parseInt(req.params.teamMemberId ?? '', 10);
+      if (isNaN(targetTeamMemberId)) {
+        res.status(400).json({ error: 'Invalid team member ID.' });
+        return;
+      }
+      const swaps = await holidaySwapOrchestrator.getActiveTeamMemberSwaps(
+        supervisorTeamMemberId,
+        targetTeamMemberId
+      );
+      res.json(swaps);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal server error';
+      const status = message.includes('Access denied') ? 403 : 500;
+      res.status(status).json({ error: message });
+    }
+  }
+);
+
 /** PATCH /api/holiday-swaps/team/:id — supervisor updates a TM's swap */
 router.patch(
   '/team/:id',
