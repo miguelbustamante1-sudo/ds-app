@@ -119,7 +119,20 @@ router.put('/:id', requirePermission('TimeOffCategoriesByCountry', 'create'), as
 
 router.delete('/:id', requirePermission('TimeOffCategoriesByCountry', 'delete'), async (req: AuthenticatedRequest, res: Response) => {
   const id = Number(req.params.id);
+
+  const before = await db.getById(id);
+
   await db.remove(id);
+
+  await auditOrchestrator.log({
+    entityName: 'ttc_type_of_to_by_country',
+    entityId: String(id),
+    createdBy: req.user?.email ?? 'unknown',
+    oldValues: before ? (before as unknown as Record<string, unknown>) : null,
+    newValues: null,
+    comment: `Category-country entry ${id} deleted`,
+  });
+
   res.status(204).send();
 });
 
