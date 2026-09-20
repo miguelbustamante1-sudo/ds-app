@@ -1,5 +1,5 @@
 // client/src/pages/holiday-swaps/exception/detail/index.tsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import {
   Toolbar,
@@ -27,6 +27,11 @@ import {
   HOLIDAY_SWAP_REJECTED_STATUS_IDS,
 } from '@/pages/holiday-swaps/changelog/holidaySwapFieldMap';
 import { useExceptionHolidaySwapDetail } from '../hooks/useExceptionHolidaySwapDetail';
+import { CancelSwapDialog } from '../../supervisor/components/CancelSwapDialog';
+import { useExceptionSwapOperations } from '../hooks/useExceptionSwapOperations';
+
+const STATUS_ID_ACKNOWLEDGED = 2;
+const STATUS_ID_REJECTED = 5;
 
 export function HolidaySwapExceptionDetailPage() {
   const { swapId: swapIdParam } = useParams<{ swapId: string }>();
@@ -52,6 +57,34 @@ export function HolidaySwapExceptionDetailPage() {
   const holidayNameMap = useHolidayNameMap();
   const statusNameMap = useStatusNameMap();
   const holidaySwapFieldMap = buildHolidaySwapFieldMap(holidayNameMap, statusNameMap);
+
+  const operationsHook = useExceptionSwapOperations({
+    onSuccess: (message) => toast({ title: 'Success', description: message }),
+    onError: (message) => toast({ title: 'Error', description: message, variant: 'destructive' }),
+  });
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  const refresh = () => {
+    if (swapId) load(swapId);
+  };
+
+  const handleApprove = async () => {
+    if (!actingAsUserId || !detail) return;
+    await operationsHook.reviewSwap(detail.holidaySwapId, { statusId: STATUS_ID_ACKNOWLEDGED }, actingAsUserId);
+    refresh();
+  };
+
+  const handleReject = async () => {
+    if (!actingAsUserId || !detail) return;
+    await operationsHook.reviewSwap(detail.holidaySwapId, { statusId: STATUS_ID_REJECTED }, actingAsUserId);
+    refresh();
+  };
+
+  const handleConfirmCancel = async (swapIdArg: number, comment: string) => {
+    if (!actingAsUserId) return;
+    await operationsHook.cancelSwap(swapIdArg, actingAsUserId, { comment });
+    refresh();
+  };
 
   const handleBack = () => navigate('/holiday-swap-exception');
 
@@ -138,7 +171,32 @@ export function HolidaySwapExceptionDetailPage() {
         </Card>
       </div>
 
-      {/* Actions card added in Task 2, Edit added in Task 3 */}
+      {actingAsUserId && (
+        <Card className="mt-6">
+          <CardContent>
+            <CardTitle className="mb-4">Actions</CardTitle>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={handleApprove} disabled={operationsHook.loading}>
+                Approve
+              </Button>
+              <Button variant="destructive" onClick={handleReject} disabled={operationsHook.loading}>
+                Reject
+              </Button>
+              <Button variant="outline" onClick={() => setCancelDialogOpen(true)} disabled={operationsHook.loading}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <CancelSwapDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        swap={detail}
+        loading={operationsHook.loading}
+        onConfirm={handleConfirmCancel}
+      />
 
       {history.length > 0 && (
         <Card className="mt-6">
