@@ -1,10 +1,10 @@
 /**
  * LoadHolidaysForCalc
  * Encapsulates loading country holidays + TM's active swaps and returning the
- * effective weekday-only holiday dates within [startDate, endDate].
+ * effective holiday dates (all days, not just weekdays) within [startDate, endDate].
  *
- * Used exclusively by calculateTimeOffDaysForTeamMember to ensure the
- * workdays strategy deducts holidays (including swap substitutions).
+ * Used by calculateTimeOffDaysForTeamMember; calculateDays decides per-day whether
+ * weekend-exclusion or holiday-exclusion applies.
  */
 
 import { getHolidaysByCountry } from '../../../../db/holidays';
@@ -86,9 +86,5 @@ export async function loadHolidaysForCalc(
     }
   }
 
-  // Filter to weekdays only (Mon–Fri in UTC)
-  return effectiveEntries.filter(({ date }) => {
-    const dow = date.getUTCDay();
-    return dow >= 1 && dow <= 5;
-  });
+  return effectiveEntries;
 }

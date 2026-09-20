@@ -1,11 +1,15 @@
 import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Input } from '@/components/ui/input';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ComboBox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { cn, parseUTCDateAsLocal } from '@/lib/utils';
 import { savePhaseFields, saveCompletedPhaseFields, advancePhase } from '@/api/performanceCases';
 import { PHASE_FIELD_SPECS } from './phaseFieldKeys';
 import type { PhaseFieldSpec } from './phaseFieldKeys';
@@ -95,7 +99,33 @@ export function PhaseFieldsForm({ perfCase, phase, phaseRow, onSaved, onAdvanced
                 );
               }
               if (spec.type === 'date') {
-                return <Input type="date" className="w-[200px]" disabled={!isEditable} {...field} />;
+                const selectedDate = field.value ? parseUTCDateAsLocal(field.value) : undefined;
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!isEditable}
+                        className={cn(
+                          'w-[200px] justify-start text-left font-normal',
+                          !field.value && 'text-muted-foreground',
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, 'dd-MMM-yyyy') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        defaultMonth={selectedDate ?? new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                );
               }
               return <Textarea rows={8} disabled={!isEditable} {...field} />;
             }}

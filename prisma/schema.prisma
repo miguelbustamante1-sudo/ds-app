@@ -309,6 +309,7 @@ model CategoryCountry {
   categoryCountryIsFixedDuration Boolean         @default(false) @map("ttc_is_fixed_duration")
   categoryCountryFixedDays       Decimal?        @map("ttc_fixed_days") @db.Decimal
   categoryCountryIsCalendar      Boolean         @default(false) @map("ttc_is_calendar")
+  categoryCountryCountHolidays   Boolean         @default(false) @map("ttc_count_holidays")
   categoryCountryDaysBefore      Int             @default(0) @map("ttc_days_before")
   categoryCountryMaxDays         Int             @default(0) @map("ttc_max_days")
   category                       TimeOffCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, map: "fk_ttc_time_off_types")

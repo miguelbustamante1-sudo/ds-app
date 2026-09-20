@@ -63,6 +63,7 @@ When calculating how many working days a time-off request covers:
 | `PATCH` | `/api/holiday-swaps/my/:id/cancel` | TM | Cancel own swap |
 | `GET` | `/api/holiday-swaps/my/active-swaps` | TM | Active swaps (used by time-off context) |
 | `GET` | `/api/holiday-swaps/team/:teamMemberId` | Supervisor | View TM's swaps |
+| `GET` | `/api/holiday-swaps/team/:teamMemberId/active-swaps` | Supervisor | Active swaps for TM (used by supervisor-facing time-off forms) |
 | `POST` | `/api/holiday-swaps/team/:teamMemberId` | Supervisor | Create swap on behalf of TM |
 | `PATCH` | `/api/holiday-swaps/team/:id` | Supervisor | Edit an existing swap |
 | `PATCH` | `/api/holiday-swaps/team/:id/cancel` | Supervisor | Cancel a TM's swap |

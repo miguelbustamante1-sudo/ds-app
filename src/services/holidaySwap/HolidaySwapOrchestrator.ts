@@ -7,6 +7,7 @@ import type {
   ReviewHolidaySwapDTO,
   CancelHolidaySwapDTO,
   UpdateHolidaySwapDTO,
+  ActiveSwapSummaryDTO,
 } from '@shared/dto/HolidaySwap';
 import { loadStatusIds } from './components/LoadStatusIds';
 import { validateSwapEligibility } from './components/ValidateSwapEligibility';
@@ -255,6 +256,33 @@ export class HolidaySwapOrchestrator {
     targetTeamMemberId: number
   ): Promise<HolidaySwapDTO[]> {
     return getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId);
+  }
+
+  /**
+   * Supervisor views TM's active (Acknowledged + not yet passed) swaps
+   * (GET /api/holiday-swaps/team/:teamMemberId/active-swaps).
+   * Mirrors getActiveSwapsForTM's semantics, but access-checked for a supervisor
+   * viewing a team member other than themself, via the same reporting-hierarchy
+   * wrapper getTeamMemberSwaps already uses.
+   */
+  async getActiveTeamMemberSwaps(
+    supervisorTeamMemberId: number,
+    targetTeamMemberId: number
+  ): Promise<ActiveSwapSummaryDTO[]> {
+    const swaps = await getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId);
+    return swaps
+      .filter((s) => s.statusName === 'Acknowledged' && s.active)
+      .map((s) => ({
+        holidaySwapId: s.holidaySwapId,
+        holidayId: s.holidayId,
+        holidayName: s.holidayName,
+        originalDate:
+          typeof s.originalDate === 'string' ? s.originalDate : s.originalDate.toISOString(),
+        replacementDate:
+          typeof s.replacementDate === 'string'
+            ? s.replacementDate
+            : s.replacementDate.toISOString(),
+      }));
   }
 
   /** Supervisor approves or rejects (PATCH /api/holiday-swaps/:id/review) */

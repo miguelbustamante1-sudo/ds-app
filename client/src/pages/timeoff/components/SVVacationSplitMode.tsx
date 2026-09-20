@@ -134,7 +134,7 @@ export function SVVacationSplitMode({
           <Label className="text-xs text-muted-foreground">Start Date (locked)</Label>
           <div className="flex h-9 w-full rounded-md border border-input bg-muted px-3 py-1 text-sm items-center text-muted-foreground">
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {format(anchorStartDate, 'PPP')}
+            {format(anchorStartDate, 'dd-MMM-yyyy')}
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export function SVVacationSplitMode({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {periodAEndDate ? format(periodAEndDate, 'PPP') : 'Pick end date'}
+                {periodAEndDate ? format(periodAEndDate, 'dd-MMM-yyyy') : 'Pick end date'}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -188,7 +188,7 @@ export function SVVacationSplitMode({
               <ul className="list-disc list-inside text-sm">
                 {periodAHolidays.svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                     {holiday.holidayIsHalfDay && ' (half day)'}
                   </li>
                 ))}
@@ -227,7 +227,7 @@ export function SVVacationSplitMode({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {periodBStartDate ? format(periodBStartDate, 'PPP') : 'Pick start date'}
+                {periodBStartDate ? format(periodBStartDate, 'dd-MMM-yyyy') : 'Pick start date'}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -253,7 +253,7 @@ export function SVVacationSplitMode({
           </Popover>
           {isPeriodAValid && (
             <p className="text-xs text-muted-foreground">
-              Must start after {periodAEndDate ? format(periodAEndDate, 'MMM d, yyyy') : '—'}. A gap between periods is allowed.
+              Must start after {periodAEndDate ? format(periodAEndDate, 'dd-MMM-yyyy') : '—'}. A gap between periods is allowed.
             </p>
           )}
         </div>
@@ -268,7 +268,7 @@ export function SVVacationSplitMode({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {periodBEndDate ? format(periodBEndDate, 'PPP') : 'Will be set automatically'}
+            {periodBEndDate ? format(periodBEndDate, 'dd-MMM-yyyy') : 'Will be set automatically'}
           </div>
           {isPeriodAValid && (
             <p className="text-xs text-muted-foreground">
@@ -288,7 +288,7 @@ export function SVVacationSplitMode({
               <ul className="list-disc list-inside text-sm">
                 {periodBHolidays.svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                     {holiday.holidayIsHalfDay && ' (half day)'}
                   </li>
                 ))}

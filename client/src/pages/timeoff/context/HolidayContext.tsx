@@ -39,20 +39,25 @@ const HolidayContext = createContext<HolidayContextValue | null>(null);
 interface HolidayProviderProps {
   countryId: number | null | undefined;
   countryIso: string | null | undefined;
+  /**
+   * The team member whose active holiday swaps should be resolved. Omit for
+   * self-service forms (fetches the logged-in caller's own swaps); pass the
+   * subject team member's id for supervisor/exception forms acting on their
+   * behalf — otherwise the swaps fetched would be the caller's (e.g. the
+   * supervisor's), not the team member the form is actually for.
+   */
+  teamMemberId?: number | null;
   children: ReactNode;
 }
 
-export function HolidayProvider({ countryId, countryIso, children }: HolidayProviderProps) {
+export function HolidayProvider({ countryId, teamMemberId, children }: HolidayProviderProps) {
   const [holidays, setHolidays] = useState<HolidayDTO[]>([]);
   const [activeSwaps, setActiveSwaps] = useState<ActiveSwapSummaryDTO[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const normalizedIso = countryIso?.toUpperCase();
-  const isSupported = normalizedIso === 'SV' || normalizedIso === 'GT';
-
-  // Fetch holiday list once per supported country.
+  // Fetch holiday list for any country that has one.
   useEffect(() => {
-    if (!isSupported || !countryId) {
+    if (!countryId) {
       setHolidays([]);
       return;
     }
@@ -74,13 +79,18 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
     return () => {
       cancelled = true;
     };
-  }, [countryId, isSupported]);
+  }, [countryId]);
 
-  // Fetch the logged-in user's active (acknowledged) holiday swaps once on mount.
+  // Fetch active (acknowledged) holiday swaps for teamMemberId, or the
+  // logged-in caller's own swaps when no teamMemberId is given.
   useEffect(() => {
     let cancelled = false;
 
-    apiGet<ActiveSwapSummaryDTO[]>('/api/holiday-swaps/my/active-swaps')
+    const url = teamMemberId
+      ? `/api/holiday-swaps/team/${teamMemberId}/active-swaps`
+      : '/api/holiday-swaps/my/active-swaps';
+
+    apiGet<ActiveSwapSummaryDTO[]>(url)
       .then((data) => {
         if (!cancelled) setActiveSwaps(data);
       })
@@ -91,7 +101,7 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [teamMemberId]);
 
   // Apply swaps — removes original holiday dates and inserts replacement dates.
   const effectiveHolidays = useMemo<HolidayDTO[]>(
@@ -101,9 +111,9 @@ export function HolidayProvider({ countryId, countryIso, children }: HolidayProv
 
   // Date[] for react-day-picker highlighting across the calendar year window.
   const holidayDatesForCalendar = useMemo<Date[]>(() => {
-    if (!isSupported || effectiveHolidays.length === 0) return [];
+    if (effectiveHolidays.length === 0) return [];
     return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
-  }, [isSupported, effectiveHolidays]);
+  }, [effectiveHolidays]);
 
   // Convenience function so consumers do not import isDateInHolidayList directly.
   const isHoliday = useMemo(

@@ -1,14 +1,18 @@
 /**
  * useHolidayAwareness
  * Pure derivation hook — reads effectiveHolidays from the nearest HolidayProvider
- * and derives SV/GT-specific notice values reactively as dates change.
+ * and derives holiday-aware values reactively as dates change.
  *
  * MUST be called within a HolidayProvider tree.
  *
  * Behaviour:
- *  - SV: returns all active holidays in the selected range.
- *  - GT + workday-based category: returns weekday-only holidays and the net vacation day count.
- *  - Other countries: all outputs are empty/null.
+ *  - holidayDatesForCalendar / fullDayHolidayDatesForBlocking: available for ANY
+ *    country with holiday data (used to drive the countHolidays-aware fixed-duration
+ *    projection and start-date blocking).
+ *  - SV: svHolidaysInRange returns all active holidays in the selected range.
+ *  - GT + workday-based category: gtWeekdayHolidaysInRange / gtNetVacationDays return
+ *    weekday-only holidays and the net vacation day count. These remain GT-specific
+ *    notice helpers, unrelated to the countHolidays setting.
  */
 
 import { useMemo } from 'react';
@@ -47,7 +51,7 @@ export interface UseHolidayAwarenessResult {
   gtWeekdayHolidaysInRange: HolidayWithEffectiveDate[];
   /** Computed net workday-based days for GT; null when conditions are not met. */
   gtNetVacationDays: number | null;
-  /** Date[] for react-day-picker holiday highlighting (SV and GT only). */
+  /** Date[] for react-day-picker holiday highlighting (any country with holiday data). */
   holidayDatesForCalendar: Date[];
   /** Date[] of ONLY full-day holidays — use this to disable/block a start-date selection. Half-day holidays are excluded so they remain selectable. */
   fullDayHolidayDatesForBlocking: Date[];
@@ -76,7 +80,6 @@ export function useHolidayAwareness(
   const { effectiveHolidays, loading } = useHolidayContext();
 
   const normalizedIso = countryIso?.toUpperCase();
-  const isSupported = normalizedIso === 'SV' || normalizedIso === 'GT';
 
   // SV: all active holidays in range (re-derived when dates change, no fetch).
   const svHolidaysInRange = useMemo<HolidayWithEffectiveDate[]>(() => {
@@ -115,16 +118,16 @@ export function useHolidayAwareness(
     return calculateNetVacationDays(startDate, endDate, gtWeekdayHolidaysInRange);
   }, [normalizedIso, isCalendar, startDate, endDate, gtWeekdayHolidaysInRange]);
 
-  // Calendar highlight dates for both SV and GT.
+  // Calendar highlight dates for any country with holiday data loaded.
   const holidayDatesForCalendar = useMemo<Date[]>(() => {
-    if (!isSupported || effectiveHolidays.length === 0) return [];
+    if (effectiveHolidays.length === 0) return [];
     return buildCalendarHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
-  }, [isSupported, effectiveHolidays]);
+  }, [effectiveHolidays]);
 
   const fullDayHolidayDatesForBlocking = useMemo<Date[]>(() => {
-    if (!isSupported || effectiveHolidays.length === 0) return [];
+    if (effectiveHolidays.length === 0) return [];
     return buildFullDayHolidayDates(effectiveHolidays, CALENDAR_YEAR_WINDOW);
-  }, [isSupported, effectiveHolidays]);
+  }, [effectiveHolidays]);
 
   return {
     svHolidaysInRange,

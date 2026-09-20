@@ -61,7 +61,7 @@ export function ExceptionHolidayAlert({
             <ul className="list-disc list-inside text-sm">
               {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                 <li key={holiday.holidayId}>
-                  {holiday.holidayName} — {format(effectiveDate, 'dd MMM yyyy')}
+                  {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                   {holiday.holidayIsHalfDay && ' (half day)'}
                 </li>
               ))}
@@ -77,7 +77,7 @@ export function ExceptionHolidayAlert({
             <ul className="list-disc list-inside text-sm mb-2">
               {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
                 <li key={holiday.holidayId}>
-                  {holiday.holidayName} — {format(effectiveDate, 'dd MMM yyyy')}
+                  {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                 </li>
               ))}
             </ul>
@@ -94,8 +94,8 @@ export function ExceptionHolidayAlert({
               {swapsInRange.map((swap) => (
                 <li key={swap.holidaySwapId}>
                   {swap.holidayName}: moved from{' '}
-                  {format(parseUTCDateAsLocal(swap.originalDate), 'dd MMM yyyy')} →{' '}
-                  {format(parseUTCDateAsLocal(swap.replacementDate), 'dd MMM yyyy')}
+                  {format(parseUTCDateAsLocal(swap.originalDate), 'dd-MMM-yyyy')} →{' '}
+                  {format(parseUTCDateAsLocal(swap.replacementDate), 'dd-MMM-yyyy')}
                 </li>
               ))}
             </ul>

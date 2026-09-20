@@ -141,7 +141,8 @@ export function EditTimeOffPageInner({
   const selectedCategory = categories.find((cat) => cat.categoryId.toString() === categoryId);
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
-  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countWeekends = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countHolidays = selectedCategory?.categoryCountryCountHolidays ?? false;
 
   const isSVVacation = isElSalvadorVacation(userCountryIso, selectedCategory?.categoryName);
   const isHalfOfSplit =
@@ -156,7 +157,7 @@ export function EditTimeOffPageInner({
     countryIso: userCountryIso,
     startDate,
     endDate,
-    isCalendar,
+    isCalendar: countWeekends,
   });
 
   // Initialize country/end-date from the profile loaded by the outer shell
@@ -207,12 +208,16 @@ export function EditTimeOffPageInner({
   // Auto-calculate end date for fixed-duration categories
   useEffect(() => {
     if (isFixedDuration && fixedDays && startDate) {
-      const calculated = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
+      const calculated = calculateFixedDurationEndDate(startDate, fixedDays, {
+        countWeekends,
+        countHolidays,
+        holidayDates: fullDayHolidayDatesForBlocking,
+      });
       if (!endDate || endDate.getTime() !== calculated.getTime()) {
         setValue('endDate', calculated);
       }
     }
-  }, [isFixedDuration, fixedDays, isCalendar, startDate, endDate, setValue]);
+  }, [isFixedDuration, fixedDays, countWeekends, countHolidays, fullDayHolidayDatesForBlocking, startDate, endDate, setValue]);
 
   // Auto-set end date for SV 15-day mode
   useEffect(() => {
@@ -251,7 +256,11 @@ export function EditTimeOffPageInner({
 
   const hintDays =
     startDate && endDate && isDateRangeValid
-      ? calculateRequestedDays(startDate, endDate, isCalendar)
+      ? calculateRequestedDays(startDate, endDate, {
+          countWeekends,
+          countHolidays,
+          holidayDates: fullDayHolidayDatesForBlocking,
+        })
       : 0;
   // The authoritative day count once holidays (including half-days) are excluded.
   const effectiveDays = gtNetVacationDays ?? hintDays;
@@ -472,7 +481,7 @@ export function EditTimeOffPageInner({
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                              {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -525,7 +534,7 @@ export function EditTimeOffPageInner({
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                              {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -582,7 +591,7 @@ export function EditTimeOffPageInner({
                       <ul className="list-disc list-inside text-sm">
                         {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                           <li key={holiday.holidayId}>
-                            {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                            {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                             {holiday.holidayIsHalfDay && ' (half day)'}
                           </li>
                         ))}
@@ -602,8 +611,8 @@ export function EditTimeOffPageInner({
                       <ul className="list-disc list-inside text-sm mb-3">
                         {overlappingTimeOffs.map((t) => (
                           <li key={t.timeOffId}>
-                            {t.categoryName}: {formatUTCDate(t.timeOffStartDate, 'MMM dd')} –{' '}
-                            {formatUTCDate(t.timeOffEndDate, 'MMM dd, yyyy')}
+                            {t.categoryName}: {formatUTCDate(t.timeOffStartDate, 'dd-MMM-yyyy')} –{' '}
+                            {formatUTCDate(t.timeOffEndDate, 'dd-MMM-yyyy')}
                           </li>
                         ))}
                       </ul>
@@ -615,7 +624,7 @@ export function EditTimeOffPageInner({
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      Time off cannot extend beyond your end date ({format(userEndDate, 'PPP')}).
+                      Time off cannot extend beyond your end date ({format(userEndDate, 'dd-MMM-yyyy')}).
                     </AlertDescription>
                   </Alert>
                 )}

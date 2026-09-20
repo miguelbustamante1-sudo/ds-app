@@ -30,6 +30,7 @@ interface CategoryCountryFormData {
   categoryCountryIsFixedDuration: boolean;
   categoryCountryFixedDays: string;
   categoryCountryIsCalendar: boolean;
+  categoryCountryCountHolidays: boolean;
   categoryCountryDaysBefore: string;
 }
 
@@ -69,6 +70,7 @@ export function CategoryCountryFormDialog({
       categoryCountryIsFixedDuration: false,
       categoryCountryFixedDays: '',
       categoryCountryIsCalendar: false,
+      categoryCountryCountHolidays: false,
       categoryCountryDaysBefore: '0',
     },
   });
@@ -118,6 +120,7 @@ export function CategoryCountryFormDialog({
           categoryCountryIsFixedDuration: item.categoryCountryIsFixedDuration,
           categoryCountryFixedDays: item.categoryCountryFixedDays?.toString() ?? '',
           categoryCountryIsCalendar: item.categoryCountryIsCalendar,
+          categoryCountryCountHolidays: item.categoryCountryCountHolidays,
           categoryCountryDaysBefore: item.categoryCountryDaysBefore.toString(),
         });
       } else {
@@ -129,6 +132,7 @@ export function CategoryCountryFormDialog({
           categoryCountryIsFixedDuration: false,
           categoryCountryFixedDays: '',
           categoryCountryIsCalendar: false,
+          categoryCountryCountHolidays: false,
           categoryCountryDaysBefore: '0',
         });
       }
@@ -148,6 +152,7 @@ export function CategoryCountryFormDialog({
             ? Number(data.categoryCountryFixedDays)
             : null,
           categoryCountryIsCalendar: data.categoryCountryIsCalendar,
+          categoryCountryCountHolidays: data.categoryCountryCountHolidays,
           categoryCountryDaysBefore: Number(data.categoryCountryDaysBefore),
         };
         await apiPut<CategoryCountryDTO, UpdateCategoryCountryDTO>(
@@ -166,6 +171,7 @@ export function CategoryCountryFormDialog({
             ? Number(data.categoryCountryFixedDays)
             : null,
           categoryCountryIsCalendar: data.categoryCountryIsCalendar,
+          categoryCountryCountHolidays: data.categoryCountryCountHolidays,
           categoryCountryDaysBefore: Number(data.categoryCountryDaysBefore),
         };
         await apiPost<CategoryCountryDTO, CreateCategoryCountryDTO>(
@@ -319,7 +325,17 @@ export function CategoryCountryFormDialog({
                 className="h-4 w-4 rounded border-uds-system-grey-300"
                 {...register('categoryCountryIsCalendar')}
               />
-              <Label htmlFor="categoryCountryIsCalendar">Calendar Days</Label>
+              <Label htmlFor="categoryCountryIsCalendar">Count Weekends</Label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                id="categoryCountryCountHolidays"
+                type="checkbox"
+                className="h-4 w-4 rounded border-uds-system-grey-300"
+                {...register('categoryCountryCountHolidays')}
+              />
+              <Label htmlFor="categoryCountryCountHolidays">Count Holidays</Label>
             </div>
 
             <div className="space-y-2">

@@ -50,6 +50,7 @@ export async function create(
   categoryCountryIsFixedDuration: boolean = false,
   categoryCountryFixedDays: number | null = null,
   categoryCountryIsCalendar: boolean = false,
+  categoryCountryCountHolidays: boolean = false,
   categoryCountryDaysBefore: number = 0,
   categoryCountryMaxDays: number = 0
 ) {
@@ -62,6 +63,7 @@ export async function create(
       categoryCountryIsFixedDuration,
       categoryCountryFixedDays,
       categoryCountryIsCalendar,
+      categoryCountryCountHolidays,
       categoryCountryDaysBefore,
       categoryCountryMaxDays,
     },
@@ -78,6 +80,7 @@ export async function update(
   categoryCountryIsFixedDuration?: boolean,
   categoryCountryFixedDays?: number | null,
   categoryCountryIsCalendar?: boolean,
+  categoryCountryCountHolidays?: boolean,
   categoryCountryDaysBefore?: number,
   categoryCountryMaxDays?: number
 ) {
@@ -91,6 +94,7 @@ export async function update(
       ...(categoryCountryIsFixedDuration !== undefined && { categoryCountryIsFixedDuration }),
       ...(categoryCountryFixedDays !== undefined && { categoryCountryFixedDays }),
       ...(categoryCountryIsCalendar !== undefined && { categoryCountryIsCalendar }),
+      ...(categoryCountryCountHolidays !== undefined && { categoryCountryCountHolidays }),
       ...(categoryCountryDaysBefore !== undefined && { categoryCountryDaysBefore }),
       ...(categoryCountryMaxDays !== undefined && { categoryCountryMaxDays }),
     },

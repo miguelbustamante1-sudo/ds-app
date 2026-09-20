@@ -116,6 +116,7 @@ export async function getCategoriesByCountry(countryIso: string): Promise<Catego
         categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
         categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
         categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
+        categoryCountryCountHolidays: cc.categoryCountryCountHolidays,
         categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
         categoryCountryMaxDays: cc.categoryCountryMaxDays,
       }))
@@ -186,6 +187,7 @@ export async function getCategoriesByTeamMemberId(
       categoryCountryIsFixedDuration: cc.categoryCountryIsFixedDuration,
       categoryCountryFixedDays: cc.categoryCountryFixedDays ? Number(cc.categoryCountryFixedDays) : null,
       categoryCountryIsCalendar: cc.categoryCountryIsCalendar,
+      categoryCountryCountHolidays: cc.categoryCountryCountHolidays,
       categoryCountryDaysBefore: cc.categoryCountryDaysBefore,
       categoryCountryMaxDays: cc.categoryCountryMaxDays,
     }));

@@ -287,7 +287,7 @@ export function TimeOffDetailPanel({ timeOffId, onActionComplete }: TimeOffDetai
                           {log.createdByUserName && (
                             <span className="rounded-full size-1 bg-muted-foreground/50" />
                           )}
-                          <span>{formatUTCDate(log.changeLogCreatedDate, 'MMM dd, yyyy HH:mm')}</span>
+                          <span>{formatUTCDate(log.changeLogCreatedDate, 'dd-MMM-yyyy HH:mm')}</span>
                         </>
                       )}
                     </div>

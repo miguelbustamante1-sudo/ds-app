@@ -14,7 +14,7 @@ The team member picks a future country holiday and a replacement date, submits t
 **Files:** `client/src/pages/holiday-swaps/supervisor/`
 **API:** `POST /api/holiday-swaps/team/:teamMemberId`
 
-The supervisor selects a team member from the dropdown, fills the inline form, and submits on their behalf. The same form is also used for **editing** an existing swap — clicking Edit on a row pre-populates the form; the submit button becomes "Save Changes" and calls `PATCH /api/holiday-swaps/team/:swapId`.
+The supervisor selects a team member from the dropdown, then either bulk-creates swaps for several team members against a shared holiday via "New Swap(s)", or creates a single swap for just the selected team member via the "New Swap" button next to their name — both open `SupervisorSwapDialog`. The same dialog is also used for **editing** an existing swap — clicking Edit on a row pre-populates it; the submit button becomes "Save Changes" and calls `PATCH /api/holiday-swaps/team/:swapId`.
 
 ### 3. Supervisor — Team Member Profile
 **Page:** `/my-team/:id` (Holiday Swaps section)

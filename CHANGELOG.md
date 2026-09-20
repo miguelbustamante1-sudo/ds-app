@@ -12,6 +12,38 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.5.0] - 2026-09-19
+
+### Added
+
+**Time Off**
+- Time-off categories now count weekends and holidays independently ("Count Weekends" / new "Count Holidays" flags on the category-country maintenance page) instead of a single combined calendar-days switch; a unified day-calculation engine drives fixed-duration end-date projection and requested-days counting across all six time-off request/edit forms
+- Holiday-aware day counting now works for any country, not just El Salvador and Guatemala
+
+**Holiday Swaps**
+- Create a single holiday swap for a selected team member directly from the maintenance UI
+
+**Team Members**
+- Supervisor pages show the selected team member's country
+- Hire date surfaced on the team member report
+
+### Changed
+
+**Dates**
+- All date displays standardized to `dd-MMM-yyyy` app-wide
+
+### Fixed
+
+**Time Off**
+- Corrected weekend/holiday flag precedence in day counting
+- Category-country maintenance list now refreshes automatically after creating or editing a record, instead of showing stale data until a manual reload
+- Active holiday-swap lookup now scoped to the subject team member
+- Audit logging added to category-country create/update/delete routes (previously missing)
+- `TimeOffWithDetailsDTO` now includes `teamMemberId`
+
+**Maintenance**
+- Category-country page: added missing "Back to Hub" navigation
+
 ## [2.4.2] - 2026-09-20
 
 ### Fixed

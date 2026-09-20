@@ -49,5 +49,5 @@
     "resolveJsonModule": true,
   },
   "include": ["src", "shared"],
-  "exclude": ["client", "dist", "node_modules"]
+  "exclude": ["client", "dist", "node_modules", "**/*.test.ts"]
 }

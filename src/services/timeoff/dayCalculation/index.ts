@@ -1,39 +1,16 @@
 /**
  * Time Off Day Calculation Service
- * Calculates timeOffDays based on the categoryCountryIsCalendar flag:
- * - isCalendar = true: Calendar days (all days including weekends)
- * - isCalendar = false: Workdays only (Mon-Fri)
+ * Calculates timeOffDays using the unified calculateDays engine, driven by two
+ * independent per-category-per-country flags:
+ * - categoryCountryIsCalendar ("count weekends"): counts Sat/Sun as chargeable.
+ * - categoryCountryCountHolidays: counts holidays as chargeable.
  */
 
 import { prisma } from '../../../db/prisma';
-import { getCalculationStrategy, getCalculationType, calculateWorkdays } from './strategies';
-import { calculateCalendarDays } from './strategies/calendar';
+import { calculateDays } from './strategies/calculateDays';
 import { loadHolidaysForCalc } from './components/LoadHolidaysForCalc';
-import type { DayCalculationInput, DayCalculationResult } from './types';
+import type { DayCalculationResult } from './types';
 
-/**
- * Calculate time off days based on isCalendar flag
- */
-export function calculateTimeOffDays(
-  input: DayCalculationInput
-): DayCalculationResult {
-  const { startDate, endDate, isCalendar } = input;
-
-  const strategy = getCalculationStrategy(isCalendar);
-  const totalDays = strategy(startDate, endDate);
-
-  return {
-    totalDays,
-    calculationType: getCalculationType(isCalendar),
-  };
-}
-
-/**
- * Calculate time off days for a specific team member.
- * Loads the isCalendar flag from the CategoryCountry record.
- * For workday-based categories (isCalendar = false), deducts weekday holidays
- * (including active holiday-swap substitutions) from the count.
- */
 export async function calculateTimeOffDaysForTeamMember(
   teamMemberId: number,
   categoryId: number,
@@ -46,36 +23,37 @@ export async function calculateTimeOffDaysForTeamMember(
     select: { countryId: true },
   });
 
-  // Look up CategoryCountry for isCalendar flag
   const categoryCountry = teamMember?.countryId
     ? await prisma.categoryCountry.findFirst({
         where: {
           categoryId,
           countryId: teamMember.countryId,
         },
-        select: { categoryCountryIsCalendar: true },
+        select: {
+          categoryCountryIsCalendar: true,
+          categoryCountryCountHolidays: true,
+        },
       })
     : null;
 
-  const isCalendar = categoryCountry?.categoryCountryIsCalendar ?? false;
+  const countWeekends = categoryCountry?.categoryCountryIsCalendar ?? false;
+  const countHolidays = categoryCountry?.categoryCountryCountHolidays ?? false;
 
-  if (isCalendar) {
-    return {
-      totalDays: calculateCalendarDays(startDate, endDate),
-      calculationType: 'calendar',
-    };
-  }
-
-  // Workday path: deduct effective weekday holidays (respects active swaps)
-  const weekdayHolidays = teamMember?.countryId
+  const holidays = teamMember?.countryId
     ? await loadHolidaysForCalc(teamMemberId, teamMember.countryId, startDate, endDate)
     : [];
 
+  const totalDays = calculateDays(startDate, endDate, {
+    countWeekends,
+    countHolidays,
+    holidays,
+  });
+
   return {
-    totalDays: calculateWorkdays(startDate, endDate, weekdayHolidays),
-    calculationType: 'workdays',
+    totalDays,
+    calculationType: countWeekends ? 'calendar' : 'workdays',
   };
 }
 
 // Re-export types
-export type { DayCalculationInput, DayCalculationResult } from './types';
+export type { DayCalculationResult } from './types';

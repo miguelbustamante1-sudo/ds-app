@@ -125,7 +125,7 @@ export function DatesSection({ teamMember, onSaved }: Props) {
             <AlertDialogTitle>Confirm end date</AlertDialogTitle>
             <AlertDialogDescription>
               You are setting the end date for <strong>{memberName}</strong> to{' '}
-              <strong>{pendingData?.teamMemberEndDate}</strong>.
+              <strong>{pendingData?.teamMemberEndDate ? formatUTCDate(pendingData.teamMemberEndDate) : ''}</strong>.
               <br /><br />
               Once this date is reached, the system will automatically cancel:
               <br />

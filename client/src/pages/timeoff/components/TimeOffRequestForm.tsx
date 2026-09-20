@@ -100,7 +100,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   );
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
-  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countWeekends = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countHolidays = selectedCategory?.categoryCountryCountHolidays ?? false;
   const maxDays = selectedCategory?.categoryCountryMaxDays ?? 0;
 
   // Load categories (filtered by user's country), statuses, and user profile on mount
@@ -145,17 +146,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     loadData();
   }, [toast]);
 
-  useTimeOffFormDates({
-    categoryId,
-    startDate,
-    endDate,
-    isFixedDuration,
-    fixedDays,
-    isCalendar,
-    setValue,
-    clearErrors,
-  });
-
   const {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
@@ -166,7 +156,20 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     countryIso: userCountryIso,
     startDate,
     endDate,
-    isCalendar,
+    isCalendar: countWeekends,
+  });
+
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    countWeekends,
+    countHolidays,
+    holidayDates: fullDayHolidayDatesForBlocking,
+    setValue,
+    clearErrors,
   });
 
   // Validation: Date range
@@ -220,9 +223,13 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     setIsSplitMode(false);
   }, [categoryId]);
 
-  // Days hint: respects isCalendar flag (calendar days vs workdays only)
+  // Days hint: respects countWeekends/countHolidays flags
   const hintDays = startDate && endDate && isDateRangeValid
-    ? calculateRequestedDays(startDate, endDate, isCalendar)
+    ? calculateRequestedDays(startDate, endDate, {
+        countWeekends,
+        countHolidays,
+        holidayDates: fullDayHolidayDatesForBlocking,
+      })
     : 0;
 
   // The authoritative day count once holidays (including half-days) are excluded.
@@ -421,7 +428,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                    {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -488,7 +495,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
                     disabled={isFixedDuration || isSV15DayMode}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(field.value, 'PPP') : 'Pick a date'}
+                    {field.value ? format(field.value, 'dd-MMM-yyyy') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -557,7 +564,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               <ul className="list-disc list-inside text-sm">
                 {svHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                     {holiday.holidayIsHalfDay && ' (half day)'}
                   </li>
                 ))}
@@ -574,7 +581,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               <ul className="list-disc list-inside text-sm mb-2">
                 {gtWeekdayHolidaysInRange.map(({ holiday, effectiveDate }) => (
                   <li key={holiday.holidayId}>
-                    {holiday.holidayName} — {format(effectiveDate, 'MMM d, yyyy')}
+                    {holiday.holidayName} — {format(effectiveDate, 'dd-MMM-yyyy')}
                   </li>
                 ))}
               </ul>
@@ -605,7 +612,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
               <ul className="list-disc list-inside text-sm mb-3">
                 {overlappingTimeOffs.map((to) => (
                   <li key={to.timeOffId}>
-                    {to.categoryName}: {formatUTCDate(to.timeOffStartDate, 'MMM dd')} - {formatUTCDate(to.timeOffEndDate, 'MMM dd, yyyy')}
+                    {to.categoryName}: {formatUTCDate(to.timeOffStartDate, 'dd-MMM-yyyy')} - {formatUTCDate(to.timeOffEndDate, 'dd-MMM-yyyy')}
                   </li>
                 ))}
               </ul>
@@ -621,7 +628,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Time off cannot extend beyond your end date ({format(userEndDate, 'PPP')}).
+              Time off cannot extend beyond your end date ({format(userEndDate, 'dd-MMM-yyyy')}).
             </AlertDescription>
           </Alert>
         )}

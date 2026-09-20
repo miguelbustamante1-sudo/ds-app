@@ -26,6 +26,7 @@ export function SupervisorHolidaySwapsPage() {
 
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMemberReportDTO | null>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingSwap, setEditingSwap] = useState<HolidaySwapDTO | null>(null);
   const [cancelTarget, setCancelTarget] = useState<HolidaySwapDTO | null>(null);
@@ -97,6 +98,15 @@ export function SupervisorHolidaySwapsPage() {
     [editingSwap, operationsHook, refresh],
   );
 
+  const handleCreateSave = useCallback(
+    async (holidayId: number, replacementDate: string) => {
+      if (!selectedTeamMember) return;
+      await operationsHook.createSwap(selectedTeamMember.teamMemberId, { holidayId, replacementDate });
+      refresh();
+    },
+    [selectedTeamMember, operationsHook, refresh],
+  );
+
   const handleEditClick = useCallback((swap: HolidaySwapDTO) => {
     setEditingSwap(swap);
     setEditDialogOpen(true);
@@ -154,12 +164,18 @@ export function SupervisorHolidaySwapsPage() {
           />
         </div>
         {selectedTeamMember && (
-          <span className="text-lg font-semibold">
-            {selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames}
-            <span className="text-muted-foreground text-sm font-normal ml-2">
-              {selectedTeamMember.workdayId}
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-semibold">
+              {selectedTeamMember.teamMemberNames} {selectedTeamMember.teamMemberSurnames}
+              <span className="text-muted-foreground text-sm font-normal ml-2">
+                {selectedTeamMember.workdayId}
+              </span>
             </span>
-          </span>
+            <Button onClick={() => setCreateDialogOpen(true)} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-1" />
+              New Swap
+            </Button>
+          </div>
         )}
       </div>
 
@@ -200,6 +216,17 @@ export function SupervisorHolidaySwapsPage() {
           editingSwap={editingSwap}
           loading={operationsHook.loading}
           onSave={handleEditSave}
+        />
+      )}
+
+      {selectedTeamMember && (
+        <SupervisorSwapDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          teamMember={selectedTeamMember}
+          editingSwap={null}
+          loading={operationsHook.loading}
+          onSave={handleCreateSave}
         />
       )}
 
