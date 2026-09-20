@@ -19,6 +19,7 @@ interface RawTeamMemberReport {
   team_member_seniority: string;
   team_member_end_date: Date | null;
   team_member_start_date: Date;
+  hire_date: Date | null;
   primary_role_name: string | null;
   country_id: number | null;
   country_name: string | null;
@@ -121,6 +122,7 @@ export async function getReports(
       tm.tms_seniority                                                  AS team_member_seniority,
       tm.tms_enddat                                                     AS team_member_end_date,
       tm.tms_stadat                                                     AS team_member_start_date,
+      wi.win_hire_date                                                  AS hire_date,
       r.pos_name                                                        AS primary_role_name,
       c.cou_id                                                          AS country_id,
       c.cou_name                                                        AS country_name,
@@ -152,6 +154,7 @@ export async function getReports(
       )                                                                 AS current_projects
     FROM ranked_hierarchy rh
     INNER JOIN ds.tbl_team_members tm ON tm.tms_id = rh.team_member_id
+    LEFT JOIN es.win_workday_info wi ON wi.win_wdid = tm.wdid
     LEFT JOIN ds.pos_positions r ON r.pos_id = tm.tms_primary_role
     LEFT JOIN ds.cou_countries c ON c.cou_id = tm.cou_id
     LEFT JOIN ds.tmp_team_member_project tmp
@@ -172,6 +175,7 @@ export async function getReports(
       tm.tms_seniority,
       tm.tms_enddat,
       tm.tms_stadat,
+      wi.win_hire_date,
       r.pos_name,
       c.cou_id,
       c.cou_name,
@@ -208,6 +212,7 @@ export async function getReports(
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
       teamMemberStartDate: row.team_member_start_date,
+      hireDate: row.hire_date,
       primaryRoleName: row.primary_role_name,
       countryId: row.country_id != null ? Number(row.country_id) : null,
       countryName: row.country_name,

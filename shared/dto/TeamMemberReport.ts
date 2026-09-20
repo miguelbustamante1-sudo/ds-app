@@ -35,6 +35,7 @@ export interface TeamMemberReportDTO {
   teamMemberEndDate: Date | null;
   teamMemberCompanyEndDate?: Date | null;
   teamMemberStartDate: Date | null;
+  hireDate: Date | null;
   primaryRoleName: string | null;
   countryId: number | null;
   countryName: string | null;

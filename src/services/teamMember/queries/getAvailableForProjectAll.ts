@@ -120,6 +120,7 @@ export async function getAvailableForProjectAll(
       teamMemberSeniority: row.team_member_seniority,
       teamMemberEndDate: row.team_member_end_date,
       teamMemberStartDate: null,
+      hireDate: null,
       primaryRoleName: row.primary_role_name,
       countryId: row.country_id != null ? Number(row.country_id) : null,
       countryName: row.country_name,
