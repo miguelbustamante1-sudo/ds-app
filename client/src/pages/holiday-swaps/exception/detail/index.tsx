@@ -57,7 +57,7 @@ export function HolidaySwapExceptionDetailPage() {
     if (swapId && !isNaN(swapId)) {
       load(swapId);
     }
-  }, [swapId, load]);
+  }, [swapId]);
 
   const holidayNameMap = useHolidayNameMap();
   const statusNameMap = useStatusNameMap();
