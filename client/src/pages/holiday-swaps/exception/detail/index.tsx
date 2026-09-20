@@ -1,6 +1,11 @@
 // client/src/pages/holiday-swaps/exception/detail/index.tsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { apiGet } from '@/lib/api';
+import type { TeamMemberDTO } from '@shared/dto/TeamMember';
+import { ExceptionSwapForm } from '../components/ExceptionSwapForm';
+import { ReviewOverrideDialog } from '../components/ReviewOverrideDialog';
+import type { ReviewOverrideTarget } from '../components/ReviewOverrideDialog';
 import {
   Toolbar,
   ToolbarDescription,
@@ -63,20 +68,56 @@ export function HolidaySwapExceptionDetailPage() {
     onError: (message) => toast({ title: 'Error', description: message, variant: 'destructive' }),
   });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [countryId, setCountryId] = useState<number | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [overrideTarget, setOverrideTarget] = useState<ReviewOverrideTarget | null>(null);
+  const [tentativeStatusId, setTentativeStatusId] = useState<number | null>(null);
 
   const refresh = () => {
     if (swapId) load(swapId);
   };
 
+  useEffect(() => {
+    if (!detail) return;
+    apiGet<TeamMemberDTO[]>('/api/team-members').then((members) => {
+      const match = members.find((m) => m.teamMemberId === detail.teamMemberId);
+      setCountryId(match?.countryId ?? null);
+    });
+  }, [detail?.teamMemberId]);
+
+  useEffect(() => {
+    apiGet<Array<{ statusId: number; statusName: string }>>('/api/time-off-statuses')
+      .then((statuses) => {
+        const tentative = statuses.find((s) => s.statusName.toLowerCase() === 'tentative');
+        setTentativeStatusId(tentative?.statusId ?? null);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleApprove = async () => {
     if (!actingAsUserId || !detail) return;
+    if (detail.statusId !== tentativeStatusId) {
+      setOverrideTarget({ swap: detail, action: 'approve' });
+      return;
+    }
     await operationsHook.reviewSwap(detail.holidaySwapId, { statusId: STATUS_ID_ACKNOWLEDGED }, actingAsUserId);
     refresh();
   };
 
   const handleReject = async () => {
     if (!actingAsUserId || !detail) return;
+    if (detail.statusId !== tentativeStatusId) {
+      setOverrideTarget({ swap: detail, action: 'reject' });
+      return;
+    }
     await operationsHook.reviewSwap(detail.holidaySwapId, { statusId: STATUS_ID_REJECTED }, actingAsUserId);
+    refresh();
+  };
+
+  const handleConfirmOverride = async (swapIdArg: number, action: 'approve' | 'reject', comment: string) => {
+    if (!actingAsUserId) return;
+    const statusId = action === 'approve' ? STATUS_ID_ACKNOWLEDGED : STATUS_ID_REJECTED;
+    await operationsHook.reviewSwap(swapIdArg, { statusId, comment }, actingAsUserId);
     refresh();
   };
 
@@ -185,7 +226,31 @@ export function HolidaySwapExceptionDetailPage() {
               <Button variant="outline" onClick={() => setCancelDialogOpen(true)} disabled={operationsHook.loading}>
                 Cancel
               </Button>
+              <Button variant="outline" onClick={() => setEditing((v) => !v)} disabled={operationsHook.loading}>
+                {editing ? 'Cancel Edit' : 'Edit'}
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {editing && detail && (
+        <Card className="mt-6">
+          <CardContent>
+            <CardTitle className="mb-4">Edit Swap</CardTitle>
+            <ExceptionSwapForm
+              countryId={countryId}
+              editingSwap={detail}
+              loading={operationsHook.loading}
+              disabled={!actingAsUserId}
+              onSubmit={async (holidayId, replacementDate) => {
+                if (!actingAsUserId) return;
+                await operationsHook.updateSwap(detail.holidaySwapId, { holidayId, replacementDate }, actingAsUserId);
+                setEditing(false);
+                refresh();
+              }}
+              onCancelEdit={() => setEditing(false)}
+            />
           </CardContent>
         </Card>
       )}
@@ -196,6 +261,14 @@ export function HolidaySwapExceptionDetailPage() {
         swap={detail}
         loading={operationsHook.loading}
         onConfirm={handleConfirmCancel}
+      />
+
+      <ReviewOverrideDialog
+        open={overrideTarget !== null}
+        onOpenChange={(v) => !v && setOverrideTarget(null)}
+        target={overrideTarget}
+        loading={operationsHook.loading}
+        onConfirm={handleConfirmOverride}
       />
 
       {history.length > 0 && (
