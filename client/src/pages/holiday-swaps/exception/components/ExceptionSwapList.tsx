@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   getCoreRowModel,
@@ -44,30 +45,16 @@ function getStatusVariant(
 interface ExceptionSwapListProps {
   swaps: HolidaySwapDTO[];
   loading: boolean;
-  operationLoading: boolean;
-  tentativeStatusId: number | null;
-  acknowledgedStatusId: number | null;
-  rejectedStatusId: number | null;
-  onEditClick: (swap: HolidaySwapDTO) => void;
-  onCancelClick: (swap: HolidaySwapDTO) => void;
-  onApprove: (swap: HolidaySwapDTO) => void;
-  onReject: (swap: HolidaySwapDTO) => void;
-  onApproveOverride: (swap: HolidaySwapDTO) => void;
-  onRejectOverride: (swap: HolidaySwapDTO) => void;
+  actingAsUserId: number | null;
 }
 
 export function ExceptionSwapList({
   swaps,
   loading,
-  operationLoading,
-  tentativeStatusId,
-  onEditClick,
-  onCancelClick,
-  onApprove,
-  onReject,
-  onApproveOverride,
-  onRejectOverride,
+  actingAsUserId,
 }: ExceptionSwapListProps) {
+  const navigate = useNavigate();
+
   const columns = useMemo<ColumnDef<HolidaySwapDTO>[]>(
     () => [
       {
@@ -108,59 +95,27 @@ export function ExceptionSwapList({
         enableSorting: false,
         cell: ({ row }) => {
           const swap = row.original;
-          // BSA: approve/reject/edit/cancel remain available for any status — an
-          // override on a row that's not Tentative goes through a confirmation
-          // dialog instead of firing immediately (see onApproveOverride/onRejectOverride).
-          const isOverride = tentativeStatusId !== null && swap.statusId !== tentativeStatusId;
           return (
-            <div className="flex gap-2 justify-end">
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={operationLoading}
-                onClick={() => (isOverride ? onApproveOverride(swap) : onApprove(swap))}
-              >
-                Approve
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                disabled={operationLoading}
-                onClick={() => (isOverride ? onRejectOverride(swap) : onReject(swap))}
-              >
-                Reject
-              </Button>
+            <div className="flex justify-end">
               <Button
                 size="sm"
                 variant="outline"
-                disabled={operationLoading}
-                onClick={() => onEditClick(swap)}
+                onClick={() =>
+                  navigate(
+                    `/holiday-swap-exception-detail/${swap.holidaySwapId}${
+                      actingAsUserId ? `?actingAsUserId=${actingAsUserId}` : ''
+                    }`
+                  )
+                }
               >
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={operationLoading}
-                onClick={() => onCancelClick(swap)}
-              >
-                Cancel
+                View
               </Button>
             </div>
           );
         },
       },
     ],
-    [
-      operationLoading,
-      onEditClick,
-      onCancelClick,
-      onApprove,
-      onReject,
-      onApproveOverride,
-      onRejectOverride,
-      tentativeStatusId,
-    ]
+    [navigate, actingAsUserId]
   );
 
   const table = useReactTable({

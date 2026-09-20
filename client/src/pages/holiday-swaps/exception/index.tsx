@@ -12,13 +12,10 @@ import type { ComboBoxOption } from '@/components/ui/combobox';
 import { parseUTCDateAsLocal } from '@/lib/utils';
 import { ExceptionSwapForm } from './components/ExceptionSwapForm';
 import { ExceptionSwapList } from './components/ExceptionSwapList';
-import { ReviewOverrideDialog } from './components/ReviewOverrideDialog';
-import type { ReviewOverrideTarget } from './components/ReviewOverrideDialog';
-import { CancelSwapDialog } from '../supervisor/components/CancelSwapDialog';
 import { useExceptionTeamMemberSwaps } from './hooks/useExceptionTeamMemberSwaps';
 import { useExceptionSwapOperations } from './hooks/useExceptionSwapOperations';
 import type { TeamMemberDTO } from '@shared/dto/TeamMember';
-import type { HolidaySwapDTO, ActingAsUserDTO } from '@shared/dto/HolidaySwap';
+import type { ActingAsUserDTO } from '@shared/dto/HolidaySwap';
 
 export function HolidaySwapExceptionPage() {
   const { toast } = useToast();
@@ -31,33 +28,12 @@ export function HolidaySwapExceptionPage() {
   const [loadingActingAs, setLoadingActingAs] = useState(false);
   const [actingAsUserId, setActingAsUserId] = useState<number | null>(null);
 
-  const [editingSwap, setEditingSwap] = useState<HolidaySwapDTO | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<HolidaySwapDTO | null>(null);
-  const [overrideTarget, setOverrideTarget] = useState<ReviewOverrideTarget | null>(null);
-  const [tentativeStatusId, setTentativeStatusId] = useState<number | null>(null);
-  const [acknowledgedStatusId, setAcknowledgedStatusId] = useState<number | null>(null);
-  const [rejectedStatusId, setRejectedStatusId] = useState<number | null>(null);
-
   const swapsHook = useExceptionTeamMemberSwaps();
 
   const operationsHook = useExceptionSwapOperations({
     onSuccess: (message) => toast({ title: 'Success', description: message }),
     onError: (error) => toast({ title: 'Error', description: error, variant: 'destructive' }),
   });
-
-  // Load status IDs once
-  useEffect(() => {
-    apiGet<Array<{ statusId: number; statusName: string }>>('/api/time-off-statuses')
-      .then((statuses) => {
-        const tentative = statuses.find((s) => s.statusName.toLowerCase() === 'tentative');
-        const acknowledged = statuses.find((s) => s.statusName.toLowerCase() === 'acknowledged');
-        const rejected = statuses.find((s) => s.statusName.toLowerCase() === 'rejected');
-        setTentativeStatusId(tentative?.statusId ?? null);
-        setAcknowledgedStatusId(acknowledged?.statusId ?? null);
-        setRejectedStatusId(rejected?.statusId ?? null);
-      })
-      .catch(() => {});
-  }, []);
 
   // Load all active team members on mount
   useEffect(() => {
@@ -100,7 +76,6 @@ export function HolidaySwapExceptionPage() {
   }, []);
 
   useEffect(() => {
-    setEditingSwap(null);
     if (selectedTeamMember) {
       swapsHook.loadSwaps(selectedTeamMember.teamMemberId);
     } else {
@@ -129,88 +104,14 @@ export function HolidaySwapExceptionPage() {
   const handleSubmit = useCallback(
     async (holidayId: number, replacementDate: string) => {
       if (!selectedTeamMember || !actingAsUserId) return;
-      if (editingSwap) {
-        await operationsHook.updateSwap(
-          editingSwap.holidaySwapId,
-          { holidayId, replacementDate },
-          actingAsUserId
-        );
-        setEditingSwap(null);
-      } else {
-        await operationsHook.createSwap(
-          selectedTeamMember.teamMemberId,
-          { holidayId, replacementDate },
-          actingAsUserId
-        );
-      }
+      await operationsHook.createSwap(
+        selectedTeamMember.teamMemberId,
+        { holidayId, replacementDate },
+        actingAsUserId
+      );
       refresh();
     },
-    [selectedTeamMember, editingSwap, actingAsUserId, operationsHook, refresh]
-  );
-
-  const handleEditClick = useCallback((swap: HolidaySwapDTO) => {
-    setEditingSwap(swap);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const handleConfirmCancel = useCallback(
-    async (swapId: number, comment: string) => {
-      if (!actingAsUserId) return;
-      await operationsHook.cancelSwap(swapId, actingAsUserId, { comment });
-      refresh();
-    },
-    [actingAsUserId, operationsHook, refresh]
-  );
-
-  const handleApprove = useCallback(
-    async (swap: HolidaySwapDTO) => {
-      if (!acknowledgedStatusId || !actingAsUserId) return;
-      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: acknowledgedStatusId }, actingAsUserId);
-      refresh();
-    },
-    [acknowledgedStatusId, actingAsUserId, operationsHook, refresh]
-  );
-
-  const handleReject = useCallback(
-    async (swap: HolidaySwapDTO) => {
-      if (!rejectedStatusId || !actingAsUserId) return;
-      await operationsHook.reviewSwap(swap.holidaySwapId, { statusId: rejectedStatusId }, actingAsUserId);
-      refresh();
-    },
-    [rejectedStatusId, actingAsUserId, operationsHook, refresh]
-  );
-
-  const handleApproveOverride = useCallback((swap: HolidaySwapDTO) => {
-    setOverrideTarget({ swap, action: 'approve' });
-  }, []);
-
-  const handleRejectOverride = useCallback((swap: HolidaySwapDTO) => {
-    setOverrideTarget({ swap, action: 'reject' });
-  }, []);
-
-  const handleConfirmOverride = useCallback(
-    async (swapId: number, action: 'approve' | 'reject', comment: string) => {
-      if (!actingAsUserId) {
-        toast({
-          title: 'Error',
-          description: 'Select an acting-as user before reviewing a swap',
-          variant: 'destructive',
-        });
-        throw new Error('Missing actingAsUserId');
-      }
-      const statusId = action === 'approve' ? acknowledgedStatusId : rejectedStatusId;
-      if (!statusId) {
-        toast({
-          title: 'Error',
-          description: 'Could not resolve the target status. Please refresh and try again.',
-          variant: 'destructive',
-        });
-        throw new Error('Missing target statusId');
-      }
-      await operationsHook.reviewSwap(swapId, { statusId, comment }, actingAsUserId);
-      refresh();
-    },
-    [actingAsUserId, acknowledgedStatusId, rejectedStatusId, operationsHook, refresh, toast]
+    [selectedTeamMember, actingAsUserId, operationsHook, refresh]
   );
 
   const teamMemberOptions: ComboBoxOption[] = teamMembers.map((m) => ({
@@ -272,25 +173,16 @@ export function HolidaySwapExceptionPage() {
           <div className="flex flex-col gap-6">
             <ExceptionSwapForm
               countryId={selectedTeamMember.countryId ?? null}
-              editingSwap={editingSwap}
+              editingSwap={null}
               loading={operationsHook.loading}
               disabled={!canOperate}
               onSubmit={handleSubmit}
-              onCancelEdit={() => setEditingSwap(null)}
+              onCancelEdit={() => {}}
             />
             <ExceptionSwapList
               swaps={swapsHook.swaps}
               loading={swapsHook.loading}
-              operationLoading={operationsHook.loading || !canOperate}
-              tentativeStatusId={tentativeStatusId}
-              acknowledgedStatusId={acknowledgedStatusId}
-              rejectedStatusId={rejectedStatusId}
-              onEditClick={handleEditClick}
-              onCancelClick={setCancelTarget}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onApproveOverride={handleApproveOverride}
-              onRejectOverride={handleRejectOverride}
+              actingAsUserId={actingAsUserId}
             />
           </div>
         ) : (
@@ -299,22 +191,6 @@ export function HolidaySwapExceptionPage() {
           </div>
         )}
       </div>
-
-      <CancelSwapDialog
-        open={cancelTarget !== null}
-        onOpenChange={(v) => !v && setCancelTarget(null)}
-        swap={cancelTarget}
-        loading={operationsHook.loading}
-        onConfirm={handleConfirmCancel}
-      />
-
-      <ReviewOverrideDialog
-        open={overrideTarget !== null}
-        onOpenChange={(v) => !v && setOverrideTarget(null)}
-        target={overrideTarget}
-        loading={operationsHook.loading}
-        onConfirm={handleConfirmOverride}
-      />
     </div>
   );
 }
