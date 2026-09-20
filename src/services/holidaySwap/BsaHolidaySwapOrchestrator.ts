@@ -13,6 +13,8 @@ import { loadStatusIds } from './components/LoadStatusIds';
 import { validateSwapEligibilityException } from './components/ValidateSwapEligibilityException';
 import { validateReplacementDayException } from './components/ValidateReplacementDayException';
 import { getSwapsForBsa } from '../teamMember/queries/getSwapsForBsa';
+import { getSwapForBsa } from '../teamMember/queries/getSwapForBsa';
+import { HolidaySwapNotFoundError } from './errors';
 
 const ENTITY_NAME = 'hsw_holiday_swap';
 
@@ -139,6 +141,13 @@ export class BsaHolidaySwapOrchestrator {
   /** BSA lists all swaps for a team member (no supervisor check) */
   async getTeamMemberSwapsException(targetTeamMemberId: number): Promise<HolidaySwapDTO[]> {
     return getSwapsForBsa(targetTeamMemberId);
+  }
+
+  /** BSA views a single swap's detail (no supervisor/ownership check) */
+  async getSwapDetailException(swapId: number): Promise<HolidaySwapDTO> {
+    const swap = await getSwapForBsa(swapId);
+    if (!swap) throw new HolidaySwapNotFoundError();
+    return swap;
   }
 
   /** BSA updates a swap — no status block, no supervisor relationship check */
