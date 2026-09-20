@@ -42,6 +42,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useEntityList } from '@/hooks/use-entity-list';
 import { CategoryCountryFormDialog } from './form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BackToHubButton } from '@/components/BackToHubButton';
 
 export function CategoryCountryPage() {
   const [formOpen, setFormOpen] = useState(false);
@@ -270,6 +271,7 @@ export function CategoryCountryPage() {
           <ToolbarDescription>Manage time-off types settings per country</ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
+          <BackToHubButton hubPath="/maintenance-hub" />
           {canCreate('TimeOffCategoriesByCountry') && (
             <Button onClick={handleCreate}>
               <Plus size={16} className="me-1" />
