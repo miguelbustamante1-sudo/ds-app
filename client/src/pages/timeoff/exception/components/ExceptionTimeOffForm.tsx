@@ -95,7 +95,8 @@ function ExceptionTimeOffFormInner({
   );
   const isFixedDuration = selectedCategory?.categoryCountryIsFixedDuration ?? false;
   const fixedDays = selectedCategory?.categoryCountryFixedDays ?? null;
-  const isCalendar = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countWeekends = selectedCategory?.categoryCountryIsCalendar ?? false;
+  const countHolidays = selectedCategory?.categoryCountryCountHolidays ?? false;
 
   const teamMemberEndDate = teamMember?.teamMemberEndDate
     ? parseUTCDateAsLocal(teamMember.teamMemberEndDate)
@@ -141,17 +142,6 @@ function ExceptionTimeOffFormInner({
     if (categoryId) setValue('comment', '');
   }, [categoryId, setValue]);
 
-  useTimeOffFormDates({
-    categoryId,
-    startDate,
-    endDate,
-    isFixedDuration,
-    fixedDays,
-    isCalendar,
-    setValue,
-    clearErrors,
-  });
-
   const {
     svHolidaysInRange,
     gtWeekdayHolidaysInRange,
@@ -162,7 +152,20 @@ function ExceptionTimeOffFormInner({
     countryIso: teamMember?.countryIso,
     startDate,
     endDate,
-    isCalendar,
+    isCalendar: countWeekends,
+  });
+
+  useTimeOffFormDates({
+    categoryId,
+    startDate,
+    endDate,
+    isFixedDuration,
+    fixedDays,
+    countWeekends,
+    countHolidays,
+    holidayDates: fullDayHolidayDatesForBlocking,
+    setValue,
+    clearErrors,
   });
 
   const { activeSwaps } = useHolidayContext();
@@ -183,7 +186,11 @@ function ExceptionTimeOffFormInner({
 
   const hintDays =
     startDate && endDate && isDateRangeValid
-      ? calculateRequestedDays(startDate, endDate, isCalendar)
+      ? calculateRequestedDays(startDate, endDate, {
+          countWeekends,
+          countHolidays,
+          holidayDates: fullDayHolidayDatesForBlocking,
+        })
       : 0;
 
   const canSave =
