@@ -9,7 +9,7 @@
 import { prisma } from '../../../db/prisma';
 import { calculateDays } from './strategies/calculateDays';
 import { loadHolidaysForCalc } from './components/LoadHolidaysForCalc';
-import type { DayCalculationInput, DayCalculationResult } from './types';
+import type { DayCalculationResult } from './types';
 
 export async function calculateTimeOffDaysForTeamMember(
   teamMemberId: number,
@@ -56,4 +56,4 @@ export async function calculateTimeOffDaysForTeamMember(
 }
 
 // Re-export types
-export type { DayCalculationInput, DayCalculationResult } from './types';
+export type { DayCalculationResult } from './types';
