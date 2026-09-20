@@ -8,7 +8,9 @@ interface UseTimeOffFormDatesParams<TFields extends FieldValues> {
   endDate: Date | undefined;
   isFixedDuration: boolean;
   fixedDays: number | null;
-  isCalendar: boolean;
+  countWeekends: boolean;
+  countHolidays: boolean;
+  holidayDates: Date[];
   setValue: UseFormSetValue<TFields>;
   clearErrors: UseFormClearErrors<TFields>;
 }
@@ -30,7 +32,9 @@ export function useTimeOffFormDates<TFields extends FieldValues>({
   endDate,
   isFixedDuration,
   fixedDays,
-  isCalendar,
+  countWeekends,
+  countHolidays,
+  holidayDates,
   setValue,
   clearErrors,
 }: UseTimeOffFormDatesParams<TFields>): void {
@@ -38,6 +42,7 @@ export function useTimeOffFormDates<TFields extends FieldValues>({
 
   useEffect(() => {
     const prevCategoryId = prevCategoryIdRef.current;
+    const options = { countWeekends, countHolidays, holidayDates };
 
     if (categoryId !== prevCategoryId) {
       prevCategoryIdRef.current = categoryId;
@@ -52,7 +57,7 @@ export function useTimeOffFormDates<TFields extends FieldValues>({
       // If the new category is fixed-duration and we have a startDate, calculate
       // the endDate immediately in the same cycle.
       if (isFixedDuration && fixedDays && startDate) {
-        const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
+        const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, options);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setValue('endDate' as any, calculatedEndDate as any);
       }
@@ -61,11 +66,11 @@ export function useTimeOffFormDates<TFields extends FieldValues>({
     }
 
     if (isFixedDuration && fixedDays && startDate) {
-      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, isCalendar);
+      const calculatedEndDate = calculateFixedDurationEndDate(startDate, fixedDays, options);
       if (!endDate || endDate.getTime() !== calculatedEndDate.getTime()) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setValue('endDate' as any, calculatedEndDate as any);
       }
     }
-  }, [categoryId, startDate, endDate, isFixedDuration, fixedDays, isCalendar, setValue, clearErrors]);
+  }, [categoryId, startDate, endDate, isFixedDuration, fixedDays, countWeekends, countHolidays, holidayDates, setValue, clearErrors]);
 }
