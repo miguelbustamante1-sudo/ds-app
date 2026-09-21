@@ -2,7 +2,7 @@ import express from 'express';
 import type { Response } from 'express';
 import { getTimeOffById, getTimeOffsByTeamMember, createTimeOff, updateTimeOff } from '../../db/timeOffs';
 import { getTimeOffChangeLog } from '../../services/timeoff/changelog';
-import type { ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
+import type { ExceptionTimeOffDetailDTO, EligibleSplitLegDTO } from '@shared/dto/TimeOff';
 import { requirePermission } from '../../middleware/auth';
 import { validateExceptionTimeOff } from '../../services/timeoff/validation/exceptionValidation';
 import { DEFAULTS } from '../../services/timeoff/validation';
@@ -16,6 +16,10 @@ import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
+import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { validateSplitLegOrdering, syncSplitParentStartDate } from '../../services/timeoff/split/SyncSplitParentStartDate';
+import { relateSplitParentChild } from '../../services/timeoff/split/RelateSplitParentChild';
+import { AppError } from '../../errors/AppError';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
 const router = express.Router();
@@ -34,6 +38,49 @@ router.get('/acting-as-users', requirePermission('TimeOffException', 'read'), re
   } catch (err) {
     console.error('[Exception] Error fetching acting-as users:', err);
     res.status(500).json({ error: 'Failed to fetch acting-as users' });
+  }
+});
+
+// GET /exception/eligible-split-legs — candidates for the admin relate-as-split action.
+// role=parent returns unlinked 15-day records; role=leg (default) returns unlinked 7/8-day records.
+// Always scoped to a single team member — a parent and its legs must belong to the same person.
+router.get('/eligible-split-legs', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const role = req.query.role === 'parent' ? 'parent' : 'leg';
+    const teamMemberId = parseIdParam(typeof req.query.teamMemberId === 'string' ? req.query.teamMemberId : undefined);
+    if (teamMemberId === null) {
+      return res.status(400).json({ error: 'teamMemberId query parameter is required' });
+    }
+    const EXCLUDED_STATUS_IDS = [4, 5, 6]; // Cancelled, Rejected, Split
+
+    const records = await prisma.timeOff.findMany({
+      where: {
+        teamMemberId,
+        timeOffDays: role === 'parent' ? 15 : { in: [7, 8] },
+        timeOffOriginalId: null,
+        statusId: { notIn: EXCLUDED_STATUS_IDS },
+      },
+      include: {
+        teamMember: { select: { teamMemberNames: true, teamMemberSurnames: true } },
+      },
+      orderBy: { timeOffStartDate: 'asc' },
+      take: 100,
+    });
+
+    const results: EligibleSplitLegDTO[] = records.map((r) => ({
+      timeOffId: r.timeOffId,
+      teamMemberName: r.teamMember
+        ? `${r.teamMember.teamMemberNames} ${r.teamMember.teamMemberSurnames}`.trim()
+        : 'Unknown',
+      timeOffStartDate: r.timeOffStartDate,
+      timeOffEndDate: r.timeOffEndDate,
+      timeOffDays: Number(r.timeOffDays),
+    }));
+
+    res.json(results);
+  } catch (err) {
+    console.error('[Exception] Error fetching eligible split legs:', err);
+    res.status(500).json({ error: 'Failed to fetch eligible split legs' });
   }
 });
 
@@ -80,10 +127,12 @@ router.get('/:timeOffId/detail', requirePermission('TimeOffException', 'read'), 
       timeOffStartDate: timeOff.timeOffStartDate,
       timeOffEndDate: timeOff.timeOffEndDate,
       timeOffDays: Number(timeOff.timeOffDays),
+      timeOffOriginalId: timeOff.timeOffOriginalId,
       categoryId: timeOff.categoryId,
       categoryName: category?.categoryName ?? 'Unknown',
       statusId: timeOff.statusId,
       statusName: status?.statusName ?? 'Unknown',
+      teamMemberId: timeOff.teamMemberId,
       teamMemberName,
       creationComment: creationLog?.changeLogComment ?? null,
       changeLogs: regularLogs.map((log) => ({
@@ -294,6 +343,19 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       return res.status(400).json({ error: 'Validation failed', details: validationResult.errors });
     }
 
+    try {
+      await validateSplitLegOrdering({
+        editedTimeOffId: timeOffId,
+        newStartDate: new Date(timeOffStartDate),
+        newEndDate: new Date(timeOffEndDate),
+      });
+    } catch (err) {
+      if (err instanceof AppError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      throw err;
+    }
+
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       timeOff.teamMemberId,
       categoryId,
@@ -335,6 +397,13 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       comment: `Exception time-off entry updated by BSA for team member ${timeOff.teamMemberId}`,
     });
 
+    await syncSplitParentStartDate({
+      editedTimeOffId: timeOffId,
+      newStartDate: new Date(timeOffStartDate),
+      editedByUserId: actingAsUserId,
+      editedByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+    });
+
     res.json(updated);
   } catch (err) {
     console.error('[Exception] Error updating exception time-off:', err);
@@ -367,6 +436,24 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
 
     if (timeOff.statusId === cancelledStatus.statusId) {
       return res.status(400).json({ error: 'Time-off is already cancelled' });
+    }
+
+    if (timeOff.timeOffOriginalId !== null) {
+      try {
+        await cancelSplitLeg({
+          timeOffId,
+          cancelledStatusId: cancelledStatus.statusId,
+          comment: comment.trim(),
+          cancelledByUserId: actingAsUserId,
+          cancelledByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+        });
+      } catch (err) {
+        if (err instanceof AppError) {
+          return res.status(err.statusCode).json({ error: err.message });
+        }
+        throw err;
+      }
+      return res.status(204).send();
     }
 
     const oldRaw = await fetchRawTimeOffRow(timeOffId);
@@ -405,6 +492,44 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
   } catch (err) {
     console.error('[Exception] Error cancelling time-off:', err);
     res.status(500).json({ error: 'Failed to cancel time-off' });
+  }
+});
+
+// POST /exception/:parentId/relate-split — admin action: relate two existing,
+// previously-unlinked records as the two legs of an existing 15-day parent.
+router.post('/:parentId/relate-split', requirePermission('TimeOffException', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const parentId = parseIdParam(req.params.parentId);
+    if (parentId === null) {
+      return res.status(400).json({ error: 'Invalid parent time-off id' });
+    }
+
+    const { legAId, legBId } = req.body as { legAId?: number; legBId?: number };
+    if (!legAId || typeof legAId !== 'number') {
+      return res.status(400).json({ error: 'legAId is required' });
+    }
+    if (!legBId || typeof legBId !== 'number') {
+      return res.status(400).json({ error: 'legBId is required' });
+    }
+
+    const { resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const relatedByEmail = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+
+    const result = await relateSplitParentChild({
+      parentId,
+      legAId,
+      legBId,
+      relatedByUserId: userId,
+      relatedByEmail,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    console.error('[Exception] Error relating split parent/child:', err);
+    res.status(500).json({ error: 'Failed to relate split parent/child' });
   }
 });
 

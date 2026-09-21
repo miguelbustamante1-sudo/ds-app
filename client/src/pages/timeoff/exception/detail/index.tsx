@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Toolbar,
@@ -10,7 +10,7 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Link2, User } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
 import { getStatusBadgeProps } from '@/lib/badge-utils';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ import { useExceptionTimeOffDetail } from '@/hooks/useExceptionTimeOff';
 import { ChangeLogDiff } from '@/components/changelog/ChangeLogDiff';
 import { deriveActionBadge } from '@/lib/changelog/deriveActionBadge';
 import { useCategoryNameMap, useStatusNameMap } from '@/hooks/useTimeOffLookups';
+import { RelateSplitDialog } from '../components/RelateSplitDialog';
 import {
   buildTimeOffFieldMap,
   TIME_OFF_ACTIVE_KEY,
@@ -25,6 +26,8 @@ import {
   TIME_OFF_APPROVED_STATUS_IDS,
   TIME_OFF_REJECTED_STATUS_IDS,
 } from '@/pages/timeoff/changelog/timeOffFieldMap';
+
+const SPLIT_STATUS_ID = 6;
 
 export function TimeOffExceptionDetailPage() {
   const { timeOffId: timeOffIdParam } = useParams<{ timeOffId: string }>();
@@ -34,6 +37,7 @@ export function TimeOffExceptionDetailPage() {
   const { detail, loading, error, loadDetail } = useExceptionTimeOffDetail({
     onError: (message) => toast({ title: 'Error', description: message, variant: 'destructive' }),
   });
+  const [relateDialogOpen, setRelateDialogOpen] = useState(false);
 
   const timeOffId = timeOffIdParam ? parseInt(timeOffIdParam, 10) : null;
 
@@ -172,10 +176,18 @@ export function TimeOffExceptionDetailPage() {
 
         <Card>
           <CardContent>
-            <CardTitle className="flex items-center gap-2 mb-4">
-              <User className="h-4 w-4" />
-              Status
-            </CardTitle>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Status
+              </CardTitle>
+              {detail.timeOffDays === 15 && detail.statusId !== SPLIT_STATUS_ID && detail.timeOffOriginalId === null && detail.teamMemberId !== null && (
+                <Button size="sm" variant="outline" onClick={() => setRelateDialogOpen(true)}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Relate to Split
+                </Button>
+              )}
+            </div>
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Team Member</dt>
@@ -226,6 +238,16 @@ export function TimeOffExceptionDetailPage() {
           </Card>
         )}
       </div>
+
+      {detail.teamMemberId !== null && (
+        <RelateSplitDialog
+          open={relateDialogOpen}
+          onOpenChange={setRelateDialogOpen}
+          parentId={detail.timeOffId}
+          teamMemberId={detail.teamMemberId}
+          onSuccess={() => timeOffId && loadDetail(timeOffId)}
+        />
+      )}
     </div>
   );
 }

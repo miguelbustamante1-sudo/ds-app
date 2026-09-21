@@ -55,6 +55,8 @@ interface SupervisorTimeOffFormProps {
   teamMember: SupervisedTeamMemberDTO | null;
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
+  /** Called after a split vacation is successfully saved — the split flow posts directly, bypassing `onSubmit`. */
+  onSplitSuccess: () => void;
   loading: boolean;
   categoryMode?: CategoryMode;
   workdayBalance?: { vacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
@@ -76,6 +78,7 @@ function SupervisorTimeOffFormInner({
   teamMember,
   existingTimeOffs,
   onSubmit,
+  onSplitSuccess,
   loading,
   categoryMode,
   workdayBalance,
@@ -351,13 +354,14 @@ function SupervisorTimeOffFormInner({
       toast({ title: 'Success', description: 'Split vacation requests created successfully' });
       reset();
       setIsSplitMode(false);
+      onSplitSuccess();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Failed to create split vacation requests';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
-  }, [teamMember, categoryId, comment, reset, toast]);
+  }, [teamMember, categoryId, comment, reset, toast, onSplitSuccess]);
 
   // Days-before notice period validation — advisory only, routes to exception authorization on submit
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;
@@ -435,6 +439,30 @@ function SupervisorTimeOffFormInner({
     );
   }
 
+  const commentField = (
+    <div className="space-y-2">
+      <Label htmlFor="comment">
+        Comment <span className="text-destructive">*</span>
+      </Label>
+      <Controller
+        name="comment"
+        control={control}
+        rules={{ required: 'Comment is required' }}
+        render={({ field }) => (
+          <Textarea
+            {...field}
+            id="comment"
+            placeholder="Add a note..."
+            rows={2}
+          />
+        )}
+      />
+      {errors.comment && (
+        <p className="text-sm text-destructive">{errors.comment.message}</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-card rounded-lg border p-6">
       <div className="flex items-center justify-between mb-4">
@@ -483,6 +511,7 @@ function SupervisorTimeOffFormInner({
             submitting={submitting}
             onBack={() => setIsSplitMode(false)}
             onSaveSplit={handleSaveSplit}
+            commentSlot={commentField}
           />
         ) : (
           <>
@@ -596,28 +625,8 @@ function SupervisorTimeOffFormInner({
           </>
         )}
 
-        {/* Second Row - Comment */}
-        <div className="space-y-2">
-          <Label htmlFor="comment">
-            Comment <span className="text-destructive">*</span>
-          </Label>
-          <Controller
-            name="comment"
-            control={control}
-            rules={{ required: 'Comment is required' }}
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                id="comment"
-                placeholder="Add a note..."
-                rows={2}
-              />
-            )}
-          />
-          {errors.comment && (
-            <p className="text-sm text-destructive">{errors.comment.message}</p>
-          )}
-        </div>
+        {/* Second Row - Comment — rendered inside SVVacationSplitMode when in split mode */}
+        {!isSplitMode && commentField}
 
         {/* Validation messages and alerts — hidden in split mode */}
         {!isSplitMode && (

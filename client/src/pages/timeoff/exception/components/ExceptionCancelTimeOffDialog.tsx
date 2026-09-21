@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
 import { formatUTCDate } from '@/lib/utils';
+import { isSplitSiblingPassed } from '../../utils/splitSiblingStatus';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +19,7 @@ interface ExceptionCancelTimeOffDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   timeOff: TimeOffWithDetailsDTO | null;
+  sibling?: Pick<TimeOffWithDetailsDTO, 'timeOffId' | 'timeOffEndDate' | 'statusName'> | null;
   onConfirm: (timeOffId: number, comment: string) => Promise<void>;
   loading: boolean;
 }
@@ -25,6 +28,7 @@ export function ExceptionCancelTimeOffDialog({
   open,
   onOpenChange,
   timeOff,
+  sibling,
   onConfirm,
   loading,
 }: ExceptionCancelTimeOffDialogProps) {
@@ -54,6 +58,8 @@ export function ExceptionCancelTimeOffDialog({
   };
 
   if (!timeOff) return null;
+
+  const siblingPassed = sibling ? isSplitSiblingPassed(sibling) : false;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -85,6 +91,23 @@ export function ExceptionCancelTimeOffDialog({
             </div>
           </div>
 
+          {sibling && siblingPassed && (
+            <div className="flex items-start gap-2 rounded-md border border-uds-system-red-200 bg-uds-system-red-50 p-3 text-uds-system-red-700">
+              <AlertTriangle className="mt-0.5 shrink-0" size={15} />
+              <p className="text-xs">
+                Cannot cancel this leg — the other leg of this split has already passed. Edit this leg to reschedule it instead.
+              </p>
+            </div>
+          )}
+          {sibling && !siblingPassed && (
+            <div className="flex items-start gap-2 rounded-md border border-uds-system-amber-400 bg-uds-system-amber-100 p-3 text-uds-system-amber-700">
+              <AlertTriangle className="mt-0.5 shrink-0" size={15} />
+              <p className="text-xs">
+                This will also cancel the other leg of this split and the parent record.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="cancel-comment">
               Cancellation Reason <span className="text-destructive">*</span>
@@ -111,7 +134,7 @@ export function ExceptionCancelTimeOffDialog({
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={loading || !comment.trim()}
+            disabled={loading || !comment.trim() || siblingPassed}
           >
             {loading ? 'Cancelling...' : 'Cancel Request'}
           </Button>

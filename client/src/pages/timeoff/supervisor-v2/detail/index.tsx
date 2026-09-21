@@ -71,6 +71,11 @@ export function SupervisorMemberDetailPage() {
     balanceHook.loadBalance(teamMemberId);
   }, [operationsHook, timeOffsHook, balanceHook, teamMemberId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSplitSuccess = useCallback(() => {
+    timeOffsHook.loadTimeOffs(teamMemberId);
+    balanceHook.loadBalance(teamMemberId);
+  }, [timeOffsHook, balanceHook, teamMemberId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleUpdate = useCallback(async (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => {
     await operationsHook.updateTimeOff(timeOffId, data);
     setEditingTimeOff(null);
@@ -134,6 +139,7 @@ export function SupervisorMemberDetailPage() {
             onCancelEdit={handleCancelEdit}
             onCreate={handleCreate}
             onUpdate={handleUpdate}
+            onSplitSuccess={handleSplitSuccess}
             loading={operationsHook.loading}
             workdayBalance={balanceHook.balance}
           />

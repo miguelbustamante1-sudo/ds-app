@@ -143,10 +143,12 @@ export interface ExceptionTimeOffDetailDTO {
   timeOffStartDate: Date;
   timeOffEndDate: Date;
   timeOffDays: number;
+  timeOffOriginalId: number | null;
   categoryId: number | null;
   categoryName: string;
   statusId: number | null;
   statusName: string;
+  teamMemberId: number | null;
   teamMemberName: string;
   creationComment: string | null;
   changeLogs: {
@@ -158,6 +160,19 @@ export interface ExceptionTimeOffDetailDTO {
     changeLogOldValues: Record<string, unknown> | null;
     changeLogNewValues: Record<string, unknown> | null;
   }[];
+}
+
+/**
+ * A candidate record for the admin "relate as split parent/child" action —
+ * either an unlinked 15-day record (parent candidate) or an unlinked 7/8-day
+ * record (leg candidate).
+ */
+export interface EligibleSplitLegDTO {
+  timeOffId: number;
+  teamMemberName: string;
+  timeOffStartDate: Date;
+  timeOffEndDate: Date;
+  timeOffDays: number;
 }
 
 /**
