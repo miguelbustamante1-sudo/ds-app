@@ -16,6 +16,8 @@ import { prisma } from '../../db/prisma';
 import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDateDDMMYYYY';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
+import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { AppError } from '../../errors/AppError';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
 const router = express.Router();
@@ -367,6 +369,24 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
 
     if (timeOff.statusId === cancelledStatus.statusId) {
       return res.status(400).json({ error: 'Time-off is already cancelled' });
+    }
+
+    if (timeOff.timeOffOriginalId !== null) {
+      try {
+        await cancelSplitLeg({
+          timeOffId,
+          cancelledStatusId: cancelledStatus.statusId,
+          comment: comment.trim(),
+          cancelledByUserId: actingAsUserId,
+          cancelledByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+        });
+      } catch (err) {
+        if (err instanceof AppError) {
+          return res.status(err.statusCode).json({ error: err.message });
+        }
+        throw err;
+      }
+      return res.status(204).send();
     }
 
     const oldRaw = await fetchRawTimeOffRow(timeOffId);
