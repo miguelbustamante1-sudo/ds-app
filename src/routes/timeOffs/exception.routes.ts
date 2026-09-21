@@ -17,6 +17,7 @@ import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDate
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { validateSplitLegOrdering, syncSplitParentStartDate } from '../../services/timeoff/split/SyncSplitParentStartDate';
 import { AppError } from '../../errors/AppError';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
@@ -296,6 +297,19 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       return res.status(400).json({ error: 'Validation failed', details: validationResult.errors });
     }
 
+    try {
+      await validateSplitLegOrdering({
+        editedTimeOffId: timeOffId,
+        newStartDate: new Date(timeOffStartDate),
+        newEndDate: new Date(timeOffEndDate),
+      });
+    } catch (err) {
+      if (err instanceof AppError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      throw err;
+    }
+
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       timeOff.teamMemberId,
       categoryId,
@@ -335,6 +349,13 @@ router.patch('/:timeOffId', requirePermission('TimeOffException', 'create'), res
       oldValues: { timeOffStartDate: timeOff.timeOffStartDate, timeOffEndDate: timeOff.timeOffEndDate, categoryId: timeOff.categoryId },
       newValues: { timeOffStartDate, timeOffEndDate, categoryId },
       comment: `Exception time-off entry updated by BSA for team member ${timeOff.teamMemberId}`,
+    });
+
+    await syncSplitParentStartDate({
+      editedTimeOffId: timeOffId,
+      newStartDate: new Date(timeOffStartDate),
+      editedByUserId: actingAsUserId,
+      editedByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
     });
 
     res.json(updated);
