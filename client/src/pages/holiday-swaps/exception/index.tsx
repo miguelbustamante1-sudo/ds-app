@@ -183,6 +183,7 @@ export function HolidaySwapExceptionPage() {
               swaps={swapsHook.swaps}
               loading={swapsHook.loading}
               actingAsUserId={actingAsUserId}
+              disabled={!canOperate}
             />
           </div>
         ) : (

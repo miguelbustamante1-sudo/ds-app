@@ -12,6 +12,13 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.7.1] - 2026-09-21
+
+### Fixed
+
+**Holiday Swaps**
+- The BSA exception page's "View" button is now disabled until both a team member and an "acting as" person are selected, preventing navigation to the swap detail page without that context
+
 ## [2.7.0] - 2026-09-21
 
 ### Added
