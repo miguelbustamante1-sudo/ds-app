@@ -291,6 +291,13 @@ export function SupervisorTimeOffPage() {
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         timeOff={timeOffToCancel}
+        sibling={
+          timeOffToCancel?.timeOffOriginalId
+            ? timeOffsHook.timeOffs.find(
+                (t) => t.timeOffOriginalId === timeOffToCancel.timeOffOriginalId && t.timeOffId !== timeOffToCancel.timeOffId
+              ) ?? null
+            : null
+        }
         onConfirm={handleConfirmCancel}
         loading={operationsHook.loading}
       />
