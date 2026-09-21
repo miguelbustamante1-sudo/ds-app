@@ -21,6 +21,8 @@ import { notifyOnTimeOffModification } from '../../services/timeoff/components/N
 import { notifyOnTimeOffCancellation } from '../../services/timeoff/components/NotifyOnTimeOffCancellation';
 import { verifySupervisorRelationship, getTeamMemberTimeOffBreakdown } from '../../services/timeoff/supervisor';
 import { validateCancellationDaysBefore } from '../../services/timeoff/components/ValidateCancellationDaysBefore';
+import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { AppError } from '../../errors/AppError';
 import { prisma } from '../../db/prisma';
 import type { TimeOffDetailDTO } from '../../../shared/dto/TimeOff';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
@@ -277,6 +279,25 @@ router.patch('/detail/:timeOffId/cancel', requirePermission('TimeOffs', 'read'),
       return res.status(500).json({ error: 'Cancelled status not found in system' });
     }
 
+    if (timeOff.timeOffOriginalId !== null) {
+      const requestedByEmail = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+      try {
+        await cancelSplitLeg({
+          timeOffId,
+          cancelledStatusId: cancelledStatus.statusId,
+          comment: comment.trim(),
+          cancelledByUserId: userId,
+          cancelledByEmail: requestedByEmail,
+        });
+      } catch (err) {
+        if (err instanceof AppError) {
+          return res.status(err.statusCode).json({ error: err.message });
+        }
+        throw err;
+      }
+      return res.status(204).send();
+    }
+
     const employeeTeamMemberId = timeOff.teamMemberId!;
 
     const [categoryRecord, employeeRecord] = await Promise.all([
@@ -313,6 +334,15 @@ router.patch('/detail/:timeOffId/cancel', requirePermission('TimeOffs', 'read'),
       oldValues: oldRaw,
       newValues: newRaw,
       createdByUserId: userId,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+      oldValues: oldRaw,
+      newValues: newRaw,
+      comment: comment.trim(),
     });
 
     try {
@@ -509,6 +539,25 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       return res.status(403).json({ error: 'Only supervisors can cancel a rejected time-off' });
     }
 
+    if (timeOff.timeOffOriginalId !== null) {
+      const requestedByEmail = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+      try {
+        await cancelSplitLeg({
+          timeOffId,
+          cancelledStatusId: cancelledStatus.statusId,
+          comment: comment.trim(),
+          cancelledByUserId: userId,
+          cancelledByEmail: requestedByEmail,
+        });
+      } catch (err) {
+        if (err instanceof AppError) {
+          return res.status(err.statusCode).json({ error: err.message });
+        }
+        throw err;
+      }
+      return res.status(204).send();
+    }
+
     const [categoryRecord] = await Promise.all([
       timeOff.categoryId
         ? prisma.timeOffCategory.findUnique({ where: { categoryId: timeOff.categoryId }, select: { categoryName: true } })
@@ -537,6 +586,15 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffs', 'create'), reso
       oldValues: oldRaw,
       newValues: newRaw,
       createdByUserId: userId,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+      oldValues: oldRaw,
+      newValues: newRaw,
+      comment: comment.trim(),
     });
 
     try {
