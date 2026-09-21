@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { format, addDays, startOfDay } from 'date-fns';
 import { CalendarIcon, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,8 @@ interface SVVacationSplitModeProps {
   onSaveSplit: (periodA: SplitPeriod, periodB: SplitPeriod) => void;
   /** 'stacked' (default) — periods shown vertically; 'columns' — periods side by side */
   layout?: 'stacked' | 'columns';
+  /** The parent form's shared Comment field, rendered above the Save Split button. */
+  commentSlot?: ReactNode;
 }
 
 export function SVVacationSplitMode({
@@ -38,6 +40,7 @@ export function SVVacationSplitMode({
   onBack,
   onSaveSplit,
   layout = 'stacked',
+  commentSlot,
 }: SVVacationSplitModeProps) {
   const [periodAEndDate, setPeriodAEndDate] = useState<Date | undefined>(undefined);
   const [periodADays, setPeriodADays] = useState<number>(0);
@@ -330,6 +333,8 @@ export function SVVacationSplitMode({
           {period2Card}
         </>
       )}
+
+      {commentSlot}
 
       {/* Save Split button */}
       <Button type="button" className="w-full" disabled={!canSaveSplit} onClick={handleSaveSplit}>

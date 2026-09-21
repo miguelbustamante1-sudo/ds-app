@@ -361,6 +361,30 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     }
   }, [reset, onSuccess, toast]);
 
+  const commentField = (
+    <div className="space-y-2">
+      <Label htmlFor="comment">
+        Comment <span className="text-destructive">*</span>
+      </Label>
+      <Controller
+        name="comment"
+        control={control}
+        rules={{ required: 'Comment is required' }}
+        render={({ field }) => (
+          <Textarea
+            {...field}
+            id="comment"
+            placeholder="Add a note about this request..."
+            rows={2}
+          />
+        )}
+      />
+      {errors.comment && (
+        <p className="text-sm text-destructive">{errors.comment.message}</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-card rounded-lg border p-6">
       <h3 className="text-lg font-semibold mb-4">New Time Off Request</h3>
@@ -405,6 +429,7 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             submitting={submitting}
             onBack={() => setIsSplitMode(false)}
             onSaveSplit={handleSaveSplit}
+            commentSlot={commentField}
           />
         ) : (
           <>
@@ -661,28 +686,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
           </>
         )}
 
-        {/* Comment */}
-        <div className="space-y-2">
-          <Label htmlFor="comment">
-            Comment <span className="text-destructive">*</span>
-          </Label>
-          <Controller
-            name="comment"
-            control={control}
-            rules={{ required: 'Comment is required' }}
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                id="comment"
-                placeholder="Add a note about this request..."
-                rows={2}
-              />
-            )}
-          />
-          {errors.comment && (
-            <p className="text-sm text-destructive">{errors.comment.message}</p>
-          )}
-        </div>
+        {/* Comment — rendered inside SVVacationSplitMode when in split mode */}
+        {!isSplitMode && commentField}
 
         {/* Action buttons — hidden when split mode is active (Save Split lives inside SVVacationSplitMode) */}
         {!isSplitMode && (
