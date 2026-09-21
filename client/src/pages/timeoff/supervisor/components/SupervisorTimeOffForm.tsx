@@ -55,6 +55,8 @@ interface SupervisorTimeOffFormProps {
   teamMember: SupervisedTeamMemberDTO | null;
   existingTimeOffs: TimeOffWithDetailsDTO[];
   onSubmit: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
+  /** Called after a split vacation is successfully saved — the split flow posts directly, bypassing `onSubmit`. */
+  onSplitSuccess: () => void;
   loading: boolean;
   categoryMode?: CategoryMode;
   workdayBalance?: { vacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
@@ -76,6 +78,7 @@ function SupervisorTimeOffFormInner({
   teamMember,
   existingTimeOffs,
   onSubmit,
+  onSplitSuccess,
   loading,
   categoryMode,
   workdayBalance,
@@ -351,13 +354,14 @@ function SupervisorTimeOffFormInner({
       toast({ title: 'Success', description: 'Split vacation requests created successfully' });
       reset();
       setIsSplitMode(false);
+      onSplitSuccess();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Failed to create split vacation requests';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
-  }, [teamMember, categoryId, comment, reset, toast]);
+  }, [teamMember, categoryId, comment, reset, toast, onSplitSuccess]);
 
   // Days-before notice period validation — advisory only, routes to exception authorization on submit
   const daysBefore = selectedCategory?.categoryCountryDaysBefore ?? 0;

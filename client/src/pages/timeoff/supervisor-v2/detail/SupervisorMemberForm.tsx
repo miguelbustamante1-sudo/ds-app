@@ -57,6 +57,8 @@ interface SupervisorMemberFormProps {
   onCancelEdit: () => void;
   onCreate: (data: CreateSupervisorTimeOffDTO) => Promise<void>;
   onUpdate: (timeOffId: number, data: UpdateSupervisorTimeOffDTO) => Promise<void>;
+  /** Called after a split vacation is successfully saved — the split flow posts directly, bypassing `onCreate`. */
+  onSplitSuccess: () => void;
   loading: boolean;
   workdayBalance: { vacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
 }
@@ -80,6 +82,7 @@ function SupervisorMemberFormInner({
   onCancelEdit,
   onCreate,
   onUpdate,
+  onSplitSuccess,
   loading,
   workdayBalance,
 }: SupervisorMemberFormProps) {
@@ -323,13 +326,14 @@ function SupervisorMemberFormInner({
       toast({ title: 'Success', description: 'Split vacation requests created successfully' });
       reset();
       setIsSplitMode(false);
+      onSplitSuccess();
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Failed to create split requests';
       toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setSubmittingSplit(false);
     }
-  }, [teamMember.teamMemberId, categoryId, comment, reset, toast]);
+  }, [teamMember.teamMemberId, categoryId, comment, reset, toast, onSplitSuccess]);
 
   const handleFormSubmit = useCallback(async (data: FormData) => {
     if (!data.startDate || !data.endDate) return;

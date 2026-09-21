@@ -132,6 +132,13 @@ export function SupervisorTimeOffPage() {
     [operationsHook, selectedTeamMember, timeOffsHook, balanceHook]
   );
 
+  const handleSplitSuccess = useCallback(() => {
+    if (selectedTeamMember) {
+      timeOffsHook.loadTimeOffs(selectedTeamMember.teamMemberId);
+      balanceHook.loadBalance(selectedTeamMember.teamMemberId);
+    }
+  }, [selectedTeamMember, timeOffsHook, balanceHook]);
+
   return (
     <div className="container">
       <Toolbar>
@@ -251,6 +258,7 @@ export function SupervisorTimeOffPage() {
               teamMember={selectedTeamMember}
               existingTimeOffs={timeOffsHook.timeOffs}
               onSubmit={handleCreateTimeOff}
+              onSplitSuccess={handleSplitSuccess}
               loading={operationsHook.loading}
               categoryMode="all"
               workdayBalance={balanceHook.balance}
