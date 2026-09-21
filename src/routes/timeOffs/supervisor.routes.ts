@@ -29,6 +29,7 @@ import { formatDateDDMMYYYY } from '../../services/timeoff/components/FormatDate
 import { getWorkdayBalance } from '../../services/timeoff/components/GetWorkdayBalance';
 import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { validateSplitLegOrdering, syncSplitParentStartDate } from '../../services/timeoff/split/SyncSplitParentStartDate';
 import { AppError } from '../../errors/AppError';
 import { acknowledgeTimeOffBySupervisor } from '../../services/timeoff/components/AcknowledgeTimeOffBySupervisor';
 import { rejectTimeOffBySupervisor } from '../../services/timeoff/components/RejectTimeOffBySupervisor';
@@ -998,6 +999,19 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       });
     }
 
+    try {
+      await validateSplitLegOrdering({
+        editedTimeOffId: timeOffId,
+        newStartDate: new Date(timeOffStartDate),
+        newEndDate: new Date(timeOffEndDate),
+      });
+    } catch (err) {
+      if (err instanceof AppError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      throw err;
+    }
+
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       timeOff.teamMemberId,
       categoryId,
@@ -1034,6 +1048,22 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       oldValues: oldRaw,
       newValues: newRaw,
       createdByUserId: userId,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+      oldValues: oldRaw,
+      newValues: newRaw,
+      comment: comment || 'Time-off updated by supervisor',
+    });
+
+    await syncSplitParentStartDate({
+      editedTimeOffId: timeOffId,
+      newStartDate: new Date(timeOffStartDate),
+      editedByUserId: userId,
+      editedByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
     });
 
     res.json(updated);
