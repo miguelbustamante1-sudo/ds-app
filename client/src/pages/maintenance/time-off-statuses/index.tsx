@@ -84,6 +84,13 @@ export function TimeOffStatusesPage() {
         meta: { headerTitle: 'Status Name', skeleton: <Skeleton className="h-4 w-48" /> },
       },
       {
+        accessorKey: 'statusShortName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Short Name" />,
+        cell: ({ row }) => row.original.statusShortName ?? '-',
+        size: 150,
+        meta: { headerTitle: 'Short Name', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
@@ -190,7 +197,7 @@ export function TimeOffStatusesPage() {
       <DataGridContainer className="mt-4">
         <DataGrid
           table={table}
-          recordCount={table.getFilteredRowModel().rows.length}
+          recordCount={statuses.items.length}
           isLoading={statuses.loading}
           emptyMessage="No statuses found. Create your first status to get started."
           tableLayout={{

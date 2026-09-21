@@ -99,12 +99,12 @@ router.get('/:id', requirePermission('TimeOffCategories', 'read'), async (req: A
 // POST /categories
 router.post('/', requirePermission('TimeOffCategories', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { categoryName } = req.body as { categoryName?: string };
+    const { categoryName, categoryShortName } = req.body as { categoryName?: string; categoryShortName?: string };
     if (!categoryName || typeof categoryName !== 'string') {
       return res.status(400).json({ error: 'categoryName is required' });
     }
 
-    const created = await createCategory(categoryName);
+    const created = await createCategory(categoryName, categoryShortName?.trim() || undefined);
 
     await auditOrchestrator.log({
       entityName: 'tot_time_off_types',
@@ -127,13 +127,13 @@ router.put('/:id', requirePermission('TimeOffCategories', 'create'), async (req:
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
-    const { categoryName } = req.body as { categoryName?: string };
+    const { categoryName, categoryShortName } = req.body as { categoryName?: string; categoryShortName?: string };
     if (!categoryName || typeof categoryName !== 'string') {
       return res.status(400).json({ error: 'categoryName is required' });
     }
 
     const before = await getCategoryById(id);
-    const updated = await updateCategory(id, categoryName);
+    const updated = await updateCategory(id, categoryName, categoryShortName?.trim() || undefined);
     if (!updated) return res.status(404).json({ error: 'Type of time-off not found' });
 
     await auditOrchestrator.log({

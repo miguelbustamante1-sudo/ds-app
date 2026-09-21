@@ -17,6 +17,7 @@ import { apiPost, apiPut } from '@/lib/api';
 
 interface TimeOffStatusFormData {
   statusName: string;
+  statusShortName: string;
 }
 
 interface TimeOffStatusFormDialogProps {
@@ -43,6 +44,7 @@ export function TimeOffStatusFormDialog({
   } = useForm<TimeOffStatusFormData>({
     defaultValues: {
       statusName: '',
+      statusShortName: '',
     },
   });
 
@@ -50,6 +52,7 @@ export function TimeOffStatusFormDialog({
     if (open) {
       reset({
         statusName: status?.statusName ?? '',
+        statusShortName: status?.statusShortName ?? '',
       });
     }
   }, [open, status, reset]);
@@ -59,6 +62,7 @@ export function TimeOffStatusFormDialog({
       if (isEditing) {
         const payload: UpdateTimeOffStatusDTO = {
           statusName: data.statusName.trim(),
+          statusShortName: data.statusShortName.trim() || undefined,
         };
         await apiPut<TimeOffStatusDTO, UpdateTimeOffStatusDTO>(
           `/api/time-off-statuses/${status.statusId}`,
@@ -68,6 +72,7 @@ export function TimeOffStatusFormDialog({
       } else {
         const payload: CreateTimeOffStatusDTO = {
           statusName: data.statusName.trim(),
+          statusShortName: data.statusShortName.trim() || undefined,
         };
         await apiPost<TimeOffStatusDTO, CreateTimeOffStatusDTO>('/api/time-off-statuses', payload);
         toast({ title: 'Success', description: 'Status created successfully' });
@@ -112,6 +117,24 @@ export function TimeOffStatusFormDialog({
               />
               {errors.statusName && (
                 <p className="text-sm text-destructive">{errors.statusName.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="statusShortName">Short Name</Label>
+              <Input
+                id="statusShortName"
+                placeholder="e.g., APR"
+                maxLength={20}
+                {...register('statusShortName', {
+                  maxLength: {
+                    value: 20,
+                    message: 'Short name must be 20 characters or fewer',
+                  },
+                })}
+              />
+              {errors.statusShortName && (
+                <p className="text-sm text-destructive">{errors.statusShortName.message}</p>
               )}
             </div>
           </div>

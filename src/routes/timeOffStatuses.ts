@@ -67,13 +67,13 @@ router.get('/:id', requirePermission('TimeOffStatuses', 'read'), async (req: Aut
 router.post('/', requirePermission('TimeOffStatuses', 'create'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const createdBy = req.user?.email ?? 'unknown';
-    const { statusName } = req.body as CreateTimeOffStatusDTO;
+    const { statusName, statusShortName } = req.body as CreateTimeOffStatusDTO;
 
     if (!statusName || typeof statusName !== 'string') {
       return res.status(400).json({ error: 'statusName is required' });
     }
 
-    const created = await createStatus(statusName.trim());
+    const created = await createStatus(statusName.trim(), statusShortName?.trim() || undefined);
 
     await auditOrchestrator.log({
       entityName: 'tbl_to_statuses',
@@ -98,7 +98,7 @@ router.put('/:id', requirePermission('TimeOffStatuses', 'create'), async (req: A
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const updatedBy = req.user?.email ?? 'unknown';
-    const { statusName } = req.body as UpdateTimeOffStatusDTO;
+    const { statusName, statusShortName } = req.body as UpdateTimeOffStatusDTO;
 
     if (!statusName || typeof statusName !== 'string') {
       return res.status(400).json({ error: 'statusName is required' });
@@ -107,7 +107,7 @@ router.put('/:id', requirePermission('TimeOffStatuses', 'create'), async (req: A
     const before = await getStatusById(id);
     if (!before) return res.status(404).json({ error: 'Status not found' });
 
-    const updated = await updateStatus(id, statusName.trim());
+    const updated = await updateStatus(id, statusName.trim(), statusShortName?.trim() || undefined);
 
     await auditOrchestrator.log({
       entityName: 'tbl_to_statuses',

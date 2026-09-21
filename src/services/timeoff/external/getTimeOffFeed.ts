@@ -24,13 +24,14 @@ export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<Ti
       teamMemberId: true,
       timeOffStartDate: true,
       timeOffEndDate: true,
-      status: { select: { statusName: true } },
-      category: { select: { categoryName: true } },
+      status: { select: { statusName: true, statusShortName: true } },
+      category: { select: { categoryName: true, categoryShortName: true } },
       teamMember: {
         select: {
           workdayId: true,
           teamMemberNames: true,
           teamMemberSurnames: true,
+          teamMemberKnownAs: true,
         },
       },
     },
@@ -51,10 +52,13 @@ export async function getTimeOffFeed(startDate: Date, endDate: Date): Promise<Ti
       workdayId: row.teamMember.workdayId,
       email: emailByTeamMemberId.get(row.teamMemberId) ?? null,
       name: `${row.teamMember.teamMemberNames} ${row.teamMember.teamMemberSurnames}`,
+      knownAs: row.teamMember.teamMemberKnownAs ?? null,
       startDate: row.timeOffStartDate,
       endDate: row.timeOffEndDate,
       status: row.status?.statusName ?? 'Unknown',
+      statusShortName: row.status?.statusShortName ?? null,
       type: row.category?.categoryName ?? 'Unknown',
+      typeShortName: row.category?.categoryShortName ?? null,
     });
   }
   return result;
