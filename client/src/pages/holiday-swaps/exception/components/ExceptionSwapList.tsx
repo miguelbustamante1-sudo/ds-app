@@ -46,12 +46,14 @@ interface ExceptionSwapListProps {
   swaps: HolidaySwapDTO[];
   loading: boolean;
   actingAsUserId: number | null;
+  disabled: boolean;
 }
 
 export function ExceptionSwapList({
   swaps,
   loading,
   actingAsUserId,
+  disabled,
 }: ExceptionSwapListProps) {
   const navigate = useNavigate();
 
@@ -100,6 +102,7 @@ export function ExceptionSwapList({
               <Button
                 size="sm"
                 variant="outline"
+                disabled={disabled}
                 onClick={() =>
                   navigate(
                     `/holiday-swap-exception-detail/${swap.holidaySwapId}${
@@ -115,7 +118,7 @@ export function ExceptionSwapList({
         },
       },
     ],
-    [navigate, actingAsUserId]
+    [navigate, actingAsUserId, disabled]
   );
 
   const table = useReactTable({
