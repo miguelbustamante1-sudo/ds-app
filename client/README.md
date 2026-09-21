@@ -54,7 +54,7 @@ npm run create-demo-user
 This will create a user with the following credentials:
 
 - Email: demo@kt.com
-- Password: demo123
+- Password: see the `create-demo-user` script
 
 ### Login Features
 
