@@ -2,7 +2,7 @@ import express from 'express';
 import type { Response } from 'express';
 import { getTimeOffById, getTimeOffsByTeamMember, createTimeOff, updateTimeOff } from '../../db/timeOffs';
 import { getTimeOffChangeLog } from '../../services/timeoff/changelog';
-import type { ExceptionTimeOffDetailDTO } from '@shared/dto/TimeOff';
+import type { ExceptionTimeOffDetailDTO, EligibleSplitLegDTO } from '@shared/dto/TimeOff';
 import { requirePermission } from '../../middleware/auth';
 import { validateExceptionTimeOff } from '../../services/timeoff/validation/exceptionValidation';
 import { DEFAULTS } from '../../services/timeoff/validation';
@@ -37,6 +37,49 @@ router.get('/acting-as-users', requirePermission('TimeOffException', 'read'), re
   } catch (err) {
     console.error('[Exception] Error fetching acting-as users:', err);
     res.status(500).json({ error: 'Failed to fetch acting-as users' });
+  }
+});
+
+// GET /exception/eligible-split-legs — candidates for the admin relate-as-split action.
+// role=parent returns unlinked 15-day records; role=leg (default) returns unlinked 7/8-day records.
+// Always scoped to a single team member — a parent and its legs must belong to the same person.
+router.get('/eligible-split-legs', requirePermission('TimeOffException', 'read'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const role = req.query.role === 'parent' ? 'parent' : 'leg';
+    const teamMemberId = parseIdParam(typeof req.query.teamMemberId === 'string' ? req.query.teamMemberId : undefined);
+    if (teamMemberId === null) {
+      return res.status(400).json({ error: 'teamMemberId query parameter is required' });
+    }
+    const EXCLUDED_STATUS_IDS = [4, 5, 6]; // Cancelled, Rejected, Split
+
+    const records = await prisma.timeOff.findMany({
+      where: {
+        teamMemberId,
+        timeOffDays: role === 'parent' ? 15 : { in: [7, 8] },
+        timeOffOriginalId: null,
+        statusId: { notIn: EXCLUDED_STATUS_IDS },
+      },
+      include: {
+        teamMember: { select: { teamMemberNames: true, teamMemberSurnames: true } },
+      },
+      orderBy: { timeOffStartDate: 'asc' },
+      take: 100,
+    });
+
+    const results: EligibleSplitLegDTO[] = records.map((r) => ({
+      timeOffId: r.timeOffId,
+      teamMemberName: r.teamMember
+        ? `${r.teamMember.teamMemberNames} ${r.teamMember.teamMemberSurnames}`.trim()
+        : 'Unknown',
+      timeOffStartDate: r.timeOffStartDate,
+      timeOffEndDate: r.timeOffEndDate,
+      timeOffDays: Number(r.timeOffDays),
+    }));
+
+    res.json(results);
+  } catch (err) {
+    console.error('[Exception] Error fetching eligible split legs:', err);
+    res.status(500).json({ error: 'Failed to fetch eligible split legs' });
   }
 });
 
@@ -83,10 +126,12 @@ router.get('/:timeOffId/detail', requirePermission('TimeOffException', 'read'), 
       timeOffStartDate: timeOff.timeOffStartDate,
       timeOffEndDate: timeOff.timeOffEndDate,
       timeOffDays: Number(timeOff.timeOffDays),
+      timeOffOriginalId: timeOff.timeOffOriginalId,
       categoryId: timeOff.categoryId,
       categoryName: category?.categoryName ?? 'Unknown',
       statusId: timeOff.statusId,
       statusName: status?.statusName ?? 'Unknown',
+      teamMemberId: timeOff.teamMemberId,
       teamMemberName,
       creationComment: creationLog?.changeLogComment ?? null,
       changeLogs: regularLogs.map((log) => ({
