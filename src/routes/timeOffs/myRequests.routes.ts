@@ -22,6 +22,7 @@ import { notifyOnTimeOffCancellation } from '../../services/timeoff/components/N
 import { verifySupervisorRelationship, getTeamMemberTimeOffBreakdown } from '../../services/timeoff/supervisor';
 import { validateCancellationDaysBefore } from '../../services/timeoff/components/ValidateCancellationDaysBefore';
 import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
+import { validateSplitLegOrdering, syncSplitParentStartDate } from '../../services/timeoff/split/SyncSplitParentStartDate';
 import { AppError } from '../../errors/AppError';
 import { prisma } from '../../db/prisma';
 import type { TimeOffDetailDTO } from '../../../shared/dto/TimeOff';
@@ -715,6 +716,19 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       });
     }
 
+    try {
+      await validateSplitLegOrdering({
+        editedTimeOffId: timeOffId,
+        newStartDate: new Date(timeOffStartDate),
+        newEndDate: new Date(timeOffEndDate),
+      });
+    } catch (err) {
+      if (err instanceof AppError) {
+        return res.status(err.statusCode).json({ error: err.message });
+      }
+      throw err;
+    }
+
     const { totalDays } = await calculateTimeOffDaysForTeamMember(
       teamMemberId,
       categoryId,
@@ -751,6 +765,22 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
       oldValues: oldRaw,
       newValues: newRaw,
       createdByUserId: userId,
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'tbl_tms_time_off',
+      entityId: String(timeOffId),
+      createdBy: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
+      oldValues: oldRaw,
+      newValues: newRaw,
+      comment: comment || 'Time-off updated',
+    });
+
+    await syncSplitParentStartDate({
+      editedTimeOffId: timeOffId,
+      newStartDate: new Date(timeOffStartDate),
+      editedByUserId: userId,
+      editedByEmail: (req as ResolvedAuthRequest).user?.email ?? 'unknown',
     });
 
     try {
