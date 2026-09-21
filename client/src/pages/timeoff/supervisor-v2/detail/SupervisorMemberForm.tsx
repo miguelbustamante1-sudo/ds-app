@@ -352,6 +352,21 @@ function SupervisorMemberFormInner({
     }
   }, [isEditing, editingTimeOff, onCreate, onUpdate, teamMember.teamMemberId, reset]);
 
+  const commentField = (
+    <div className="space-y-2">
+      <Label>Comment <span className="text-destructive">*</span></Label>
+      <Controller
+        name="comment"
+        control={control}
+        rules={{ required: 'Comment is required' }}
+        render={({ field }) => (
+          <Textarea {...field} placeholder="Add a note..." rows={2} />
+        )}
+      />
+      {errors.comment && <p className="text-sm text-destructive">{errors.comment.message}</p>}
+    </div>
+  );
+
   const formCard = (
     <div className={cn(
       'bg-card rounded-lg border p-6',
@@ -412,6 +427,7 @@ function SupervisorMemberFormInner({
             onBack={() => setIsSplitMode(false)}
             onSaveSplit={handleSaveSplit}
             layout="columns"
+            commentSlot={commentField}
           />
         ) : (
           <>
@@ -508,19 +524,8 @@ function SupervisorMemberFormInner({
           </>
         )}
 
-        {/* Comment */}
-        <div className="space-y-2">
-          <Label>Comment <span className="text-destructive">*</span></Label>
-          <Controller
-            name="comment"
-            control={control}
-            rules={{ required: 'Comment is required' }}
-            render={({ field }) => (
-              <Textarea {...field} placeholder="Add a note..." rows={2} />
-            )}
-          />
-          {errors.comment && <p className="text-sm text-destructive">{errors.comment.message}</p>}
-        </div>
+        {/* Comment — rendered inside SVVacationSplitMode when in split mode */}
+        {!isSplitMode && commentField}
 
         {/* Validation messages — hidden in split mode */}
         {!isSplitMode && (

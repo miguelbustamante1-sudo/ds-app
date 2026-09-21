@@ -435,6 +435,30 @@ function SupervisorTimeOffFormInner({
     );
   }
 
+  const commentField = (
+    <div className="space-y-2">
+      <Label htmlFor="comment">
+        Comment <span className="text-destructive">*</span>
+      </Label>
+      <Controller
+        name="comment"
+        control={control}
+        rules={{ required: 'Comment is required' }}
+        render={({ field }) => (
+          <Textarea
+            {...field}
+            id="comment"
+            placeholder="Add a note..."
+            rows={2}
+          />
+        )}
+      />
+      {errors.comment && (
+        <p className="text-sm text-destructive">{errors.comment.message}</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-card rounded-lg border p-6">
       <div className="flex items-center justify-between mb-4">
@@ -483,6 +507,7 @@ function SupervisorTimeOffFormInner({
             submitting={submitting}
             onBack={() => setIsSplitMode(false)}
             onSaveSplit={handleSaveSplit}
+            commentSlot={commentField}
           />
         ) : (
           <>
@@ -596,28 +621,8 @@ function SupervisorTimeOffFormInner({
           </>
         )}
 
-        {/* Second Row - Comment */}
-        <div className="space-y-2">
-          <Label htmlFor="comment">
-            Comment <span className="text-destructive">*</span>
-          </Label>
-          <Controller
-            name="comment"
-            control={control}
-            rules={{ required: 'Comment is required' }}
-            render={({ field }) => (
-              <Textarea
-                {...field}
-                id="comment"
-                placeholder="Add a note..."
-                rows={2}
-              />
-            )}
-          />
-          {errors.comment && (
-            <p className="text-sm text-destructive">{errors.comment.message}</p>
-          )}
-        </div>
+        {/* Second Row - Comment — rendered inside SVVacationSplitMode when in split mode */}
+        {!isSplitMode && commentField}
 
         {/* Validation messages and alerts — hidden in split mode */}
         {!isSplitMode && (
