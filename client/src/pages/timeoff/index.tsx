@@ -148,6 +148,13 @@ export function MyTimeOffPage() {
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         timeOff={selectedTimeOff}
+        sibling={
+          selectedTimeOff?.timeOffOriginalId
+            ? timeOffs.find(
+                (t) => t.timeOffOriginalId === selectedTimeOff.timeOffOriginalId && t.timeOffId !== selectedTimeOff.timeOffId
+              ) ?? null
+            : null
+        }
         onConfirm={handleConfirmCancel}
         loading={operationsHook.loading}
       />
