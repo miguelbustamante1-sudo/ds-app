@@ -12,6 +12,14 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.7.0] - 2026-09-21
+
+### Added
+
+**Time Off**
+- New "Short Name" field on Type of TimeOff and Time Off Statuses maintenance pages
+- Type of TimeOff and Time Off Statuses external feed/drift-check endpoints (`GET /api/time-offs/external/feed`, `POST /api/time-offs/external/drift-check`) now include the type/status short names alongside their full names
+
 ## [2.6.0] - 2026-09-20
 
 ### Added

@@ -8,6 +8,7 @@
 export interface TimeOffCategoryDTO {
   categoryId: number;
   categoryName: string;
+  categoryShortName: string | null;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface TimeOffCategoryDTO {
  */
 export interface CreateTimeOffCategoryDTO {
   categoryName: string;
+  categoryShortName?: string;
 }
 
 /**
@@ -22,6 +24,7 @@ export interface CreateTimeOffCategoryDTO {
  */
 export interface UpdateTimeOffCategoryDTO {
   categoryName?: string;
+  categoryShortName?: string;
 }
 
 /**

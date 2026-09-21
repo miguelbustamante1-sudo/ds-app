@@ -8,6 +8,7 @@
 export interface TimeOffStatusDTO {
   statusId: number;
   statusName: string;
+  statusShortName: string | null;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface TimeOffStatusDTO {
  */
 export interface CreateTimeOffStatusDTO {
   statusName: string;
+  statusShortName?: string;
 }
 
 /**
@@ -22,4 +24,5 @@ export interface CreateTimeOffStatusDTO {
  */
 export interface UpdateTimeOffStatusDTO {
   statusName?: string;
+  statusShortName?: string;
 }

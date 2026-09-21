@@ -40,19 +40,26 @@ export async function getCategoryById(id: number): Promise<TimeOffCategory | nul
 /**
  * Create a new category
  */
-export async function createCategory(categoryName: string): Promise<TimeOffCategory> {
+export async function createCategory(
+  categoryName: string,
+  categoryShortName?: string
+): Promise<TimeOffCategory> {
   return await prisma.timeOffCategory.create({
-    data: { categoryName },
+    data: { categoryName, ...(categoryShortName !== undefined && { categoryShortName }) },
   });
 }
 
 /**
  * Update a category
  */
-export async function updateCategory(id: number, categoryName: string): Promise<TimeOffCategory | null> {
+export async function updateCategory(
+  id: number,
+  categoryName: string,
+  categoryShortName?: string
+): Promise<TimeOffCategory | null> {
   return await prisma.timeOffCategory.update({
     where: { categoryId: id },
-    data: { categoryName },
+    data: { categoryName, ...(categoryShortName !== undefined && { categoryShortName }) },
   });
 }
 

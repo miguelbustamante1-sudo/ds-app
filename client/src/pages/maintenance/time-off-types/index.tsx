@@ -84,6 +84,13 @@ export function TimeOffTypesPage() {
         meta: { headerTitle: 'Name', skeleton: <Skeleton className="h-4 w-48" /> },
       },
       {
+        accessorKey: 'categoryShortName',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Short Name" />,
+        cell: ({ row }) => row.original.categoryShortName ?? '-',
+        size: 150,
+        meta: { headerTitle: 'Short Name', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
         id: 'actions',
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (

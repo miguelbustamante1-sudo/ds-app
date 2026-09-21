@@ -9,23 +9,23 @@ datasource db {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Country {
-  countryId             Int               @id @default(autoincrement()) @map("cou_id") @db.Integer
-  countryName           String            @map("cou_name") @db.VarChar(100)
-  regionId              Int?              @map("reg_id")
-  countryIso            String?           @map("cou_iso") @db.VarChar(2)
-  countryCurrencySymbol String?           @map("cou_currency_symbol") @db.VarChar(10)
-  nightStart            Int?              @map("cou_night_start") @db.Integer
-  nightEnd              Int?              @map("cou_night_end") @db.Integer
-  nightMultiplier       Decimal?          @map("cou_night_multiplier") @db.Decimal(5, 2)
-  region            Region?           @relation(fields: [regionId], references: [regionId], onDelete: Restrict, map: "fk_tbl_countries_reg")
-  teamMembers       TeamMember[]
-  categoryCountries CategoryCountry[]
-  holidays          Holiday[]
-  endorsements       Endorsement[]
-  bonusSubcategories BonusSubcategory[]
-  functionalAreas    FunctionalArea[]
-  phoneLines          CorporatePhoneLine[]
-  giftCardAssignments GiftCardAssignment[]
+  countryId             Int                  @id @default(autoincrement()) @map("cou_id") @db.Integer
+  countryName           String               @map("cou_name") @db.VarChar(100)
+  regionId              Int?                 @map("reg_id")
+  countryIso            String?              @map("cou_iso") @db.VarChar(2)
+  countryCurrencySymbol String?              @map("cou_currency_symbol") @db.VarChar(10)
+  nightStart            Int?                 @map("cou_night_start") @db.Integer
+  nightEnd              Int?                 @map("cou_night_end") @db.Integer
+  nightMultiplier       Decimal?             @map("cou_night_multiplier") @db.Decimal(5, 2)
+  region                Region?              @relation(fields: [regionId], references: [regionId], onDelete: Restrict, map: "fk_tbl_countries_reg")
+  teamMembers           TeamMember[]
+  categoryCountries     CategoryCountry[]
+  holidays              Holiday[]
+  endorsements          Endorsement[]
+  bonusSubcategories    BonusSubcategory[]
+  functionalAreas       FunctionalArea[]
+  phoneLines            CorporatePhoneLine[]
+  giftCardAssignments   GiftCardAssignment[]
 
   @@index([regionId], map: "idx_tbl_countries_reg_id")
   @@map("cou_countries")
@@ -90,11 +90,11 @@ model Region {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Position {
-  posId           Int           @id @default(autoincrement()) @map("pos_id") @db.Integer
-  posName         String        @map("pos_name") @db.VarChar(100)
-  posDescription  String?       @map("pos_description") @db.VarChar(2000)
-  teamMembers     TeamMember[]
-  endorsements    Endorsement[]
+  posId          Int           @id @default(autoincrement()) @map("pos_id") @db.Integer
+  posName        String        @map("pos_name") @db.VarChar(100)
+  posDescription String?       @map("pos_description") @db.VarChar(2000)
+  teamMembers    TeamMember[]
+  endorsements   Endorsement[]
 
   @@map("pos_positions")
   @@schema("ds")
@@ -102,60 +102,60 @@ model Position {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model TeamMember {
-  teamMemberId                      Int                    @id @default(autoincrement()) @map("tms_id") @db.Integer
-  teamMemberNames                   String                 @map("tms_names") @db.VarChar(100)
-  teamMemberSurnames                String                 @map("tms_surnames") @db.VarChar(100)
-  teamMemberKnownAs                 String?                @map("tms_known_as") @db.VarChar(100)
-  teamMemberStartDate               DateTime               @map("tms_stadat") @db.Date
-  teamMemberEndDate                 DateTime?              @map("tms_enddat") @db.Date
-  teamMemberCompanyEndDate          DateTime?              @map("tms_company_end_date") @db.Date
-  countryId                         Int?                   @map("cou_id")
-  workdayId                         String?                @unique @map("wdid") @db.VarChar(100)
-  teamMemberSeniority               String                 @map("tms_seniority") @db.VarChar(100)
-  teamMemberPrimaryRole             Int?                   @map("tms_primary_role")
-  tierBandId                        Int?                   @map("tib_id")
-  teamMemberCreatedBy               Int?                   @map("tms_created_by")
-  teamMemberCreatedDate             DateTime?              @map("tms_credat") @db.Date
-  teamMemberLastUpdatedBy           Int?                   @map("tms_last_updated_by")
-  teamMemberLastUpdatedDate         DateTime?              @map("tms_last_upddat") @db.Date
-  teamMemberFullLegalName           String?                @map("tms_full_legal_name") @db.VarChar(1000)
-  teamMemberXid                     String?                @map("tms_xid") @db.Text
-  shiftId                           Int?                   @map("sft_id")
-  performanceStrikeCount            Int                    @default(0) @map("tms_pmc_strike_count")
-  createdByUser                     User?                  @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
-  country                           Country?               @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
-  primaryRole                       Position?              @relation(fields: [teamMemberPrimaryRole], references: [posId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
-  tierBand                          TierBand?              @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
-  lastUpdatedByUser                 User?                  @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
-  shift                             Shift?                 @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "fk_tbl_team_members_sft")
+  teamMemberId                      Int                          @id @default(autoincrement()) @map("tms_id") @db.Integer
+  teamMemberNames                   String                       @map("tms_names") @db.VarChar(100)
+  teamMemberSurnames                String                       @map("tms_surnames") @db.VarChar(100)
+  teamMemberKnownAs                 String?                      @map("tms_known_as") @db.VarChar(100)
+  teamMemberStartDate               DateTime                     @map("tms_stadat") @db.Date
+  teamMemberEndDate                 DateTime?                    @map("tms_enddat") @db.Date
+  teamMemberCompanyEndDate          DateTime?                    @map("tms_company_end_date") @db.Date
+  countryId                         Int?                         @map("cou_id")
+  workdayId                         String?                      @unique @map("wdid") @db.VarChar(100)
+  teamMemberSeniority               String                       @map("tms_seniority") @db.VarChar(100)
+  teamMemberPrimaryRole             Int?                         @map("tms_primary_role")
+  tierBandId                        Int?                         @map("tib_id")
+  teamMemberCreatedBy               Int?                         @map("tms_created_by")
+  teamMemberCreatedDate             DateTime?                    @map("tms_credat") @db.Date
+  teamMemberLastUpdatedBy           Int?                         @map("tms_last_updated_by")
+  teamMemberLastUpdatedDate         DateTime?                    @map("tms_last_upddat") @db.Date
+  teamMemberFullLegalName           String?                      @map("tms_full_legal_name") @db.VarChar(1000)
+  teamMemberXid                     String?                      @map("tms_xid") @db.Text
+  shiftId                           Int?                         @map("sft_id")
+  performanceStrikeCount            Int                          @default(0) @map("tms_pmc_strike_count")
+  createdByUser                     User?                        @relation("tbl_team_members_tms_created_byTotbl_users", fields: [teamMemberCreatedBy], references: [userId], map: "fk_tbl_team_members_cby")
+  country                           Country?                     @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_tbl_team_members_cou")
+  primaryRole                       Position?                    @relation(fields: [teamMemberPrimaryRole], references: [posId], onDelete: Restrict, map: "fk_tbl_team_members_rol")
+  tierBand                          TierBand?                    @relation(fields: [tierBandId], references: [tierBandId], onDelete: Restrict, map: "fk_tbl_team_members_tib")
+  lastUpdatedByUser                 User?                        @relation("tbl_team_members_tms_last_updated_byTotbl_users", fields: [teamMemberLastUpdatedBy], references: [userId], map: "fk_tbl_team_members_uby")
+  shift                             Shift?                       @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "fk_tbl_team_members_sft")
   timeOffs                          TimeOff[]
   holidaySwaps                      HolidaySwap[]
   projectAssignments                ProjectAssignment[]
-  supervisorAssignmentsAsSupervisor SupervisorAssignment[] @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
-  supervisorAssignments             SupervisorAssignment[] @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
-  supervisorCoverageAsFrom          SupervisorCoverage[]   @relation("SupervisorCoverageFrom")
-  supervisorCoverageAsTo            SupervisorCoverage[]   @relation("SupervisorCoverageTo")
+  supervisorAssignmentsAsSupervisor SupervisorAssignment[]       @relation("tbl_tms_x_supervisor_sup_idTotbl_team_members")
+  supervisorAssignments             SupervisorAssignment[]       @relation("tbl_tms_x_supervisor_tms_idTotbl_team_members")
+  supervisorCoverageAsFrom          SupervisorCoverage[]         @relation("SupervisorCoverageFrom")
+  supervisorCoverageAsTo            SupervisorCoverage[]         @relation("SupervisorCoverageTo")
   managedProjects                   Project[]
-  benchAssignments                  Bench[]        @relation("BenchTeamMember")
-  supervisedBenchAssignments        Bench[]        @relation("BenchSupervisor")
+  benchAssignments                  Bench[]                      @relation("BenchTeamMember")
+  supervisedBenchAssignments        Bench[]                      @relation("BenchSupervisor")
   compensatoryTimes                 CompensatoryTime[]
   phoneAssignments                  CorporatePhoneAssignment[]
-  standaloneTasks                   StandaloneTask[] @relation("StandaloneTaskAssignee")
-  standaloneTaskHierarchyRefs       StandaloneTask[] @relation("StandaloneTaskHierarchyContext")
-  recurringTemplates                RecurringTaskTemplate[] @relation("RecurringTemplateAssignee")
+  standaloneTasks                   StandaloneTask[]             @relation("StandaloneTaskAssignee")
+  standaloneTaskHierarchyRefs       StandaloneTask[]             @relation("StandaloneTaskHierarchyContext")
+  recurringTemplates                RecurringTaskTemplate[]      @relation("RecurringTemplateAssignee")
   teamMemberBonuses                 TeamMemberBonus[]
-  tpNominationsAsNominee            TpNomination[]      @relation("TpNominee")
-  tpNominationsAsNominator          TpNomination[]      @relation("TpNominator")
-  tpVotes                           TpVote[]            @relation("TpVoter")
-  tpCommitteeWins                   TpCommitteeDecision[] @relation("TpWinner")
+  tpNominationsAsNominee            TpNomination[]               @relation("TpNominee")
+  tpNominationsAsNominator          TpNomination[]               @relation("TpNominator")
+  tpVotes                           TpVote[]                     @relation("TpVoter")
+  tpCommitteeWins                   TpCommitteeDecision[]        @relation("TpWinner")
   bonusImpacts                      BniBonus[]
   laptopAssignments                 LaptopAssignment[]
   reimbursements                    TmrTeamMemberReimbursement[]
   oncalls                           TmoTeamMemberOncall[]
-  authorizerAssignmentsAsTeamMember AuthorizerAssignment[] @relation("txa_authorizer_assignment_tms_idTotbl_team_members")
-  authorizerAssignmentsAsAuthorizer AuthorizerAssignment[] @relation("txa_authorizer_assignment_authorizer_idTotbl_team_members")
-  otherIncomes                      OtherIncome[]           @relation("oin_other_incomes_tms_idTotbl_team_members")
-  otherIncomesAsAuthorizer          OtherIncome[]           @relation("oin_other_incomes_authorizer_idTotbl_team_members")
+  authorizerAssignmentsAsTeamMember AuthorizerAssignment[]       @relation("txa_authorizer_assignment_tms_idTotbl_team_members")
+  authorizerAssignmentsAsAuthorizer AuthorizerAssignment[]       @relation("txa_authorizer_assignment_authorizer_idTotbl_team_members")
+  otherIncomes                      OtherIncome[]                @relation("oin_other_incomes_tms_idTotbl_team_members")
+  otherIncomesAsAuthorizer          OtherIncome[]                @relation("oin_other_incomes_authorizer_idTotbl_team_members")
 
   @@index([teamMemberCreatedBy], map: "idx_tbl_team_members_cby")
   @@index([countryId], map: "idx_tbl_team_members_cou_id")
@@ -227,18 +227,18 @@ model TimeOff {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model ProjectAssignment {
-  projectAssignmentId               Int         @id @default(autoincrement()) @map("tmp_id") @db.Integer
-  teamMemberId                      Int         @map("tms_id")
-  projectId                         Int         @map("pro_id")
-  projectAssignmentStartDate        DateTime    @map("tmp_start_date") @db.Date
-  projectAssignmentEndDate          DateTime?   @map("tmp_end_date") @db.Date
-  projectAssignmentBillRate         Decimal?    @default(0) @map("tmp_bill_rate") @db.Decimal(15, 2)
-  projectAssignmentBillRateCurrency String?     @map("tmp_bill_rate_currency") @db.VarChar(255)
-  projectAssignmentCreatedBy        Int?        @map("tmp_created_by")
-  projectAssignmentCreatedDate      DateTime?   @default(now()) @map("tmp_created_at") @db.Date
-  projectAssignmentLastUpdatedBy    Int?        @map("tmp_updated_by")
-  projectAssignmentLastUpdatedDate  DateTime?   @map("tmp_updated_at") @db.Date
-  projectAssignmentAllocation       Decimal     @default(0) @map("tmp_allocation") @db.Decimal(5, 2)
+  projectAssignmentId               Int             @id @default(autoincrement()) @map("tmp_id") @db.Integer
+  teamMemberId                      Int             @map("tms_id")
+  projectId                         Int             @map("pro_id")
+  projectAssignmentStartDate        DateTime        @map("tmp_start_date") @db.Date
+  projectAssignmentEndDate          DateTime?       @map("tmp_end_date") @db.Date
+  projectAssignmentBillRate         Decimal?        @default(0) @map("tmp_bill_rate") @db.Decimal(15, 2)
+  projectAssignmentBillRateCurrency String?         @map("tmp_bill_rate_currency") @db.VarChar(255)
+  projectAssignmentCreatedBy        Int?            @map("tmp_created_by")
+  projectAssignmentCreatedDate      DateTime?       @default(now()) @map("tmp_created_at") @db.Date
+  projectAssignmentLastUpdatedBy    Int?            @map("tmp_updated_by")
+  projectAssignmentLastUpdatedDate  DateTime?       @map("tmp_updated_at") @db.Date
+  projectAssignmentAllocation       Decimal         @default(0) @map("tmp_allocation") @db.Decimal(5, 2)
   projectAssignmentDeleted          Boolean?        @default(false) @map("tmp_deleted")
   projectAssignmentDeleteReason     String?         @map("tmp_delete_reason") @db.VarChar(255)
   functionalAreaId                  Int?            @map("far_id")
@@ -290,6 +290,7 @@ model SupervisorAssignment {
 model TimeOffCategory {
   categoryId        Int               @id @default(autoincrement()) @map("tot_id") @db.Integer
   categoryName      String            @map("tot_name") @db.VarChar(100)
+  categoryShortName String?           @map("tot_short_name") @db.VarChar(20)
   categoryGender    String            @default("Both") @map("tot_gender") @db.VarChar(100)
   timeOffs          TimeOff[]
   categoryCountries CategoryCountry[]
@@ -324,10 +325,11 @@ model CategoryCountry {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model TimeOffStatus {
-  statusId     Int           @id @default(autoincrement()) @map("sta_id") @db.Integer
-  statusName   String        @map("sta_name") @db.VarChar(100)
-  timeOffs     TimeOff[]
-  holidaySwaps HolidaySwap[]
+  statusId        Int           @id @default(autoincrement()) @map("sta_id") @db.Integer
+  statusName      String        @map("sta_name") @db.VarChar(100)
+  statusShortName String?       @map("sta_short_name") @db.VarChar(20)
+  timeOffs        TimeOff[]
+  holidaySwaps    HolidaySwap[]
 
   @@map("tbl_to_statuses")
   @@schema("ds")
@@ -335,19 +337,19 @@ model TimeOffStatus {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Holiday {
-  holidayId          Int       @id @default(autoincrement()) @map("hol_id") @db.Integer
-  countryId          Int       @map("cou_id")
-  holidayName        String    @map("hol_name") @db.VarChar(100)
-  holidayDate        DateTime  @map("hol_date") @db.Date
-  holidayIsRecurring Boolean?  @default(true) @map("hol_is_recurring")
-  holidayIsHalfDay   Boolean   @default(false) @map("hol_is_half_day")
-  holidayCreatedAt   DateTime? @default(now()) @map("hol_created_at") @db.Timestamptz(6)
-  holidayCreatedBy   String    @map("hol_created_by") @db.VarChar(50)
-  holidayUpdatedAt   DateTime? @default(now()) @map("hol_updated_at") @db.Timestamptz(6)
-  holidayUpdatedBy   String?   @map("hol_updated_by") @db.VarChar(50)
-  holidayDeletedAt   DateTime? @map("hol_deleted_at") @db.Timestamptz(6)
-  holidayIsActive    Boolean?  @default(true) @map("hol_is_active")
-  country            Country      @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_hol_country")
+  holidayId          Int           @id @default(autoincrement()) @map("hol_id") @db.Integer
+  countryId          Int           @map("cou_id")
+  holidayName        String        @map("hol_name") @db.VarChar(100)
+  holidayDate        DateTime      @map("hol_date") @db.Date
+  holidayIsRecurring Boolean?      @default(true) @map("hol_is_recurring")
+  holidayIsHalfDay   Boolean       @default(false) @map("hol_is_half_day")
+  holidayCreatedAt   DateTime?     @default(now()) @map("hol_created_at") @db.Timestamptz(6)
+  holidayCreatedBy   String        @map("hol_created_by") @db.VarChar(50)
+  holidayUpdatedAt   DateTime?     @default(now()) @map("hol_updated_at") @db.Timestamptz(6)
+  holidayUpdatedBy   String?       @map("hol_updated_by") @db.VarChar(50)
+  holidayDeletedAt   DateTime?     @map("hol_deleted_at") @db.Timestamptz(6)
+  holidayIsActive    Boolean?      @default(true) @map("hol_is_active")
+  country            Country       @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "fk_hol_country")
   holidaySwaps       HolidaySwap[]
 
   @@index([countryId], map: "idx_hol_cou_id")
@@ -357,23 +359,23 @@ model Holiday {
 }
 
 model Endorsement {
-  endorsementId      Int       @id @default(autoincrement()) @map("end_id") @db.Integer
-  candidateFirstName String    @map("end_candidate_first_name") @db.Text
-  candidateLastName  String    @map("end_candidate_last_name") @db.Text
-  candidatePosition  String?   @map("end_candidate_position") @db.Text
-  posId              Int       @map("pos_id")
-  projectId          Int       @map("pro_id")
-  clientManagerEmail String    @map("end_client_manager_email") @db.Text
-  tibId              Int?      @map("tib_id")
-  billingRate        Decimal?  @map("end_billing_rate") @db.Decimal(12, 2)
-  countryId          Int       @map("cou_id")
-  startDate          DateTime  @map("end_start_date") @db.Date
-  status             String    @default("Pending") @map("end_status") @db.Text
-  createdBy          String    @map("end_created_by") @db.Text
-  createdAt          DateTime? @default(now()) @map("end_created_at") @db.Timestamptz(6)
-  updatedBy          String?   @map("end_updated_by") @db.Text
-  updatedAt          DateTime? @map("end_updated_at") @db.Timestamptz(6)
-  comment            String?   @map("end_comment") @db.Text
+  endorsementId      Int                @id @default(autoincrement()) @map("end_id") @db.Integer
+  candidateFirstName String             @map("end_candidate_first_name") @db.Text
+  candidateLastName  String             @map("end_candidate_last_name") @db.Text
+  candidatePosition  String?            @map("end_candidate_position") @db.Text
+  posId              Int                @map("pos_id")
+  projectId          Int                @map("pro_id")
+  clientManagerEmail String             @map("end_client_manager_email") @db.Text
+  tibId              Int?               @map("tib_id")
+  billingRate        Decimal?           @map("end_billing_rate") @db.Decimal(12, 2)
+  countryId          Int                @map("cou_id")
+  startDate          DateTime           @map("end_start_date") @db.Date
+  status             String             @default("Pending") @map("end_status") @db.Text
+  createdBy          String             @map("end_created_by") @db.Text
+  createdAt          DateTime?          @default(now()) @map("end_created_at") @db.Timestamptz(6)
+  updatedBy          String?            @map("end_updated_by") @db.Text
+  updatedAt          DateTime?          @map("end_updated_at") @db.Timestamptz(6)
+  comment            String?            @map("end_comment") @db.Text
   project            Project            @relation(fields: [projectId], references: [projectId], onDelete: Restrict, map: "fk_end_project")
   country            Country            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_end_country")
   tierBand           TierBand?          @relation(fields: [tibId], references: [tierBandId], onDelete: Restrict, map: "fk_end_tier_band")
@@ -391,73 +393,73 @@ model Endorsement {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model User {
-  userId                       Int                    @id @default(autoincrement()) @map("usr_id") @db.Integer
-  userName                     String                 @map("usr_name") @db.VarChar(200)
-  userEmail                    String                 @unique(map: "idx_tbl_users_email") @map("usr_email") @db.VarChar(200)
-  userRole                     String                 @map("usr_role") @db.VarChar(50)
-  userStartDate                DateTime               @map("usr_stadat") @db.Date
-  userEndDate                  DateTime?              @map("usr_enddat") @db.Date
-  teamMemberId                 Int?                   @map("tms_id")
-  teamMembersCreated           TeamMember[]           @relation("tbl_team_members_tms_created_byTotbl_users")
-  teamMembersUpdated           TeamMember[]           @relation("tbl_team_members_tms_last_updated_byTotbl_users")
-  timeOffChangeLogs            TimeOffChangeLog[]
-  timeOffsCreated              TimeOff[]              @relation("tbl_tms_time_off_tto_created_byTotbl_users")
-  timeOffsUpdated              TimeOff[]              @relation("tbl_tms_time_off_tto_last_updated_nyTotbl_users")
-  projectAssignmentsCreated    ProjectAssignment[]    @relation("tmp_team_member_project_tmp_created_byTotbl_users")
-  projectAssignmentsUpdated    ProjectAssignment[]    @relation("tmp_team_member_project_tmp_updated_byTotbl_users")
-  supervisorAssignmentsCreated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
-  reimbursementsCreated        TmrTeamMemberReimbursement[] @relation("tmr_team_member_reimbursement_tmr_created_byTotbl_users")
-  reimbursementsUpdated        TmrTeamMemberReimbursement[] @relation("tmr_team_member_reimbursement_tmr_updated_byTotbl_users")
-  oncallsCreated               TmoTeamMemberOncall[] @relation("tmo_team_member_oncall_tmo_created_byTotbl_users")
-  oncallsUpdated               TmoTeamMemberOncall[] @relation("tmo_team_member_oncall_tmo_updated_byTotbl_users")
-  supervisorAssignmentsUpdated SupervisorAssignment[] @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
-  supervisorCoverageEnded      SupervisorCoverage[]   @relation("SupervisorCoverageEndedBy")
-  supervisorCoverageCreated    SupervisorCoverage[]   @relation("SupervisorCoverageCreatedBy")
-  supervisorCoverageUpdated    SupervisorCoverage[]   @relation("SupervisorCoverageUpdatedBy")
-  recipients                   Recipient[]
-  phoneCreatedLines            CorporatePhoneLine[]       @relation("CplCreatedBy")
-  phoneUpdatedLines            CorporatePhoneLine[]       @relation("CplUpdatedBy")
-  phoneCreatedAssignments      CorporatePhoneAssignment[] @relation("CpaCreatedBy")
-  phoneUpdatedAssignments      CorporatePhoneAssignment[] @relation("CpaUpdatedBy")
-  standaloneTasksCreated        StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_created_byTotbl_users")
-  standaloneTasksUpdated        StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users")
-  standaloneTasksResolved       StandaloneTask[]        @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users")
-  standaloneTaskCommentsCreated StandaloneTaskComment[] @relation("tco_standalone_task_comments_tco_created_byTotbl_users")
-  apiKeysCreated                ApiKey[]                @relation("apk_api_keys_apk_created_byTotbl_users")
-  mondayConnectionsCreated      MondayConnection[]      @relation("mcd_monday_conn_data_mcd_created_byTotbl_users")
-  mondayConnectionsUpdated      MondayConnection[]      @relation("mcd_monday_conn_data_mcd_updated_byTotbl_users")
+  userId                          Int                          @id @default(autoincrement()) @map("usr_id") @db.Integer
+  userName                        String                       @map("usr_name") @db.VarChar(200)
+  userEmail                       String                       @unique(map: "idx_tbl_users_email") @map("usr_email") @db.VarChar(200)
+  userRole                        String                       @map("usr_role") @db.VarChar(50)
+  userStartDate                   DateTime                     @map("usr_stadat") @db.Date
+  userEndDate                     DateTime?                    @map("usr_enddat") @db.Date
+  teamMemberId                    Int?                         @map("tms_id")
+  teamMembersCreated              TeamMember[]                 @relation("tbl_team_members_tms_created_byTotbl_users")
+  teamMembersUpdated              TeamMember[]                 @relation("tbl_team_members_tms_last_updated_byTotbl_users")
+  timeOffChangeLogs               TimeOffChangeLog[]
+  timeOffsCreated                 TimeOff[]                    @relation("tbl_tms_time_off_tto_created_byTotbl_users")
+  timeOffsUpdated                 TimeOff[]                    @relation("tbl_tms_time_off_tto_last_updated_nyTotbl_users")
+  projectAssignmentsCreated       ProjectAssignment[]          @relation("tmp_team_member_project_tmp_created_byTotbl_users")
+  projectAssignmentsUpdated       ProjectAssignment[]          @relation("tmp_team_member_project_tmp_updated_byTotbl_users")
+  supervisorAssignmentsCreated    SupervisorAssignment[]       @relation("tbl_tms_x_supervisor_txs_created_byTotbl_users")
+  reimbursementsCreated           TmrTeamMemberReimbursement[] @relation("tmr_team_member_reimbursement_tmr_created_byTotbl_users")
+  reimbursementsUpdated           TmrTeamMemberReimbursement[] @relation("tmr_team_member_reimbursement_tmr_updated_byTotbl_users")
+  oncallsCreated                  TmoTeamMemberOncall[]        @relation("tmo_team_member_oncall_tmo_created_byTotbl_users")
+  oncallsUpdated                  TmoTeamMemberOncall[]        @relation("tmo_team_member_oncall_tmo_updated_byTotbl_users")
+  supervisorAssignmentsUpdated    SupervisorAssignment[]       @relation("tbl_tms_x_supervisor_txs_last_updated_byTotbl_users")
+  supervisorCoverageEnded         SupervisorCoverage[]         @relation("SupervisorCoverageEndedBy")
+  supervisorCoverageCreated       SupervisorCoverage[]         @relation("SupervisorCoverageCreatedBy")
+  supervisorCoverageUpdated       SupervisorCoverage[]         @relation("SupervisorCoverageUpdatedBy")
+  recipients                      Recipient[]
+  phoneCreatedLines               CorporatePhoneLine[]         @relation("CplCreatedBy")
+  phoneUpdatedLines               CorporatePhoneLine[]         @relation("CplUpdatedBy")
+  phoneCreatedAssignments         CorporatePhoneAssignment[]   @relation("CpaCreatedBy")
+  phoneUpdatedAssignments         CorporatePhoneAssignment[]   @relation("CpaUpdatedBy")
+  standaloneTasksCreated          StandaloneTask[]             @relation("tsk_standalone_tasks_tsk_created_byTotbl_users")
+  standaloneTasksUpdated          StandaloneTask[]             @relation("tsk_standalone_tasks_tsk_updated_byTotbl_users")
+  standaloneTasksResolved         StandaloneTask[]             @relation("tsk_standalone_tasks_tsk_resolved_byTotbl_users")
+  standaloneTaskCommentsCreated   StandaloneTaskComment[]      @relation("tco_standalone_task_comments_tco_created_byTotbl_users")
+  apiKeysCreated                  ApiKey[]                     @relation("apk_api_keys_apk_created_byTotbl_users")
+  mondayConnectionsCreated        MondayConnection[]           @relation("mcd_monday_conn_data_mcd_created_byTotbl_users")
+  mondayConnectionsUpdated        MondayConnection[]           @relation("mcd_monday_conn_data_mcd_updated_byTotbl_users")
   permissionCatalogEntriesCreated ApiPermissionCatalog[]
-  recurringTemplatesCreated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users")
-  recurringTemplatesUpdated     RecurringTaskTemplate[] @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users")
-  teamMemberBonusesCreated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
-  teamMemberBonusesUpdated      TeamMemberBonus[]       @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
-  uploads                       Upload[]                @relation("UploadCreatedByUser")
-  giftCardPoolsCreated         GiftCardPool[]
-  giftCardReasonsCreated       GiftCardReason[]
-  giftCardTypesCreated         GiftCardType[]
-  giftCardValuesCreated        GiftCardValue[]
-  giftCardAssignmentsCreated   GiftCardAssignment[]
-  giftCardDocumentationsCreated GiftCardDocumentation[]
-  prlPayrolsCreated            PrlPayrol[]      @relation("prl_payrol_created_byTotbl_users")
-  prlPayrolsUpdated            PrlPayrol[]      @relation("prl_payrol_updated_byTotbl_users")
-  bniBonusesCreated            BniBonus[]       @relation("bni_bonus_impact_created_byTotbl_users")
-  bniBonusesUpdated            BniBonus[]       @relation("bni_bonus_impact_updated_byTotbl_users")
-  biuUploadsCreated            BiuBonusUpload[] @relation("biu_bonus_impact_upload_created_byTotbl_users")
-  laptopsCreated               Laptop[]           @relation("LapCreatedBy")
-  laptopsUpdated               Laptop[]           @relation("LapUpdatedBy")
-  laptopAssignmentsCreated     LaptopAssignment[] @relation("LpaCreatedBy")
-  laptopAssignmentsUpdated     LaptopAssignment[] @relation("LpaUpdatedBy")
-  fieldglassSowsCreated        FieldglassSow[]    @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users")
-  fieldglassSowsUpdated        FieldglassSow[]    @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users")
-  incomeTypesCreated           IncomeType[]           @relation("itp_income_types_created_byTotbl_users")
-  incomeTypesUpdated           IncomeType[]           @relation("itp_income_types_last_updated_byTotbl_users")
-  authorizerAssignmentsCreated AuthorizerAssignment[] @relation("txa_authorizer_assignment_created_byTotbl_users")
-  authorizerAssignmentsUpdated AuthorizerAssignment[] @relation("txa_authorizer_assignment_last_updated_byTotbl_users")
-  otherIncomesCreated          OtherIncome[]          @relation("oin_other_incomes_created_byTotbl_users")
-  otherIncomesUpdated          OtherIncome[]          @relation("oin_other_incomes_last_updated_byTotbl_users")
-  otherIncomesDecided          OtherIncome[]          @relation("oin_other_incomes_decided_byTotbl_users")
-  flagTypeActionsCreated       FlagTypeAction[]       @relation("fya_flag_type_actions_created_byTotbl_users")
-  flagTypeActionsUpdated       FlagTypeAction[]       @relation("fya_flag_type_actions_updated_byTotbl_users")
+  recurringTemplatesCreated       RecurringTaskTemplate[]      @relation("rtt_recurring_task_templates_rtt_created_byTotbl_users")
+  recurringTemplatesUpdated       RecurringTaskTemplate[]      @relation("rtt_recurring_task_templates_rtt_updated_byTotbl_users")
+  teamMemberBonusesCreated        TeamMemberBonus[]            @relation("tmb_team_member_bonus_tmb_created_byTotbl_users")
+  teamMemberBonusesUpdated        TeamMemberBonus[]            @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users")
+  uploads                         Upload[]                     @relation("UploadCreatedByUser")
+  giftCardPoolsCreated            GiftCardPool[]
+  giftCardReasonsCreated          GiftCardReason[]
+  giftCardTypesCreated            GiftCardType[]
+  giftCardValuesCreated           GiftCardValue[]
+  giftCardAssignmentsCreated      GiftCardAssignment[]
+  giftCardDocumentationsCreated   GiftCardDocumentation[]
+  prlPayrolsCreated               PrlPayrol[]                  @relation("prl_payrol_created_byTotbl_users")
+  prlPayrolsUpdated               PrlPayrol[]                  @relation("prl_payrol_updated_byTotbl_users")
+  bniBonusesCreated               BniBonus[]                   @relation("bni_bonus_impact_created_byTotbl_users")
+  bniBonusesUpdated               BniBonus[]                   @relation("bni_bonus_impact_updated_byTotbl_users")
+  biuUploadsCreated               BiuBonusUpload[]             @relation("biu_bonus_impact_upload_created_byTotbl_users")
+  laptopsCreated                  Laptop[]                     @relation("LapCreatedBy")
+  laptopsUpdated                  Laptop[]                     @relation("LapUpdatedBy")
+  laptopAssignmentsCreated        LaptopAssignment[]           @relation("LpaCreatedBy")
+  laptopAssignmentsUpdated        LaptopAssignment[]           @relation("LpaUpdatedBy")
+  fieldglassSowsCreated           FieldglassSow[]              @relation("fgs_fieldglass_sows_fgs_created_byTotbl_users")
+  fieldglassSowsUpdated           FieldglassSow[]              @relation("fgs_fieldglass_sows_fgs_last_updated_byTotbl_users")
+  incomeTypesCreated              IncomeType[]                 @relation("itp_income_types_created_byTotbl_users")
+  incomeTypesUpdated              IncomeType[]                 @relation("itp_income_types_last_updated_byTotbl_users")
+  authorizerAssignmentsCreated    AuthorizerAssignment[]       @relation("txa_authorizer_assignment_created_byTotbl_users")
+  authorizerAssignmentsUpdated    AuthorizerAssignment[]       @relation("txa_authorizer_assignment_last_updated_byTotbl_users")
+  otherIncomesCreated             OtherIncome[]                @relation("oin_other_incomes_created_byTotbl_users")
+  otherIncomesUpdated             OtherIncome[]                @relation("oin_other_incomes_last_updated_byTotbl_users")
+  otherIncomesDecided             OtherIncome[]                @relation("oin_other_incomes_decided_byTotbl_users")
+  flagTypeActionsCreated          FlagTypeAction[]             @relation("fya_flag_type_actions_created_byTotbl_users")
+  flagTypeActionsUpdated          FlagTypeAction[]             @relation("fya_flag_type_actions_updated_byTotbl_users")
 
   @@index([teamMemberId], map: "idx_tbl_users_tms_id")
   @@map("tbl_users")
@@ -562,19 +564,19 @@ model UserRole {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Hiring {
-  id            Int       @id @default(autoincrement()) @map("hir_id") @db.Integer
-  endorsementId Int       @map("end_id")
-  startDate     DateTime  @map("hir_start_date") @db.Date
-  billableDate  DateTime  @map("hir_billable_date") @db.Date
-  workdayId     String?    @map("hir_workday_id") @db.Text
-  createdBy     String    @map("hir_created_by") @db.Text
-  createdAt     DateTime? @default(now()) @map("hir_created_at") @db.Timestamptz(6)
-  updatedBy     String?   @map("hir_updated_by") @db.Text
-  updatedAt     DateTime? @map("hir_updated_at") @db.Timestamptz(6)
-  currencySymbol String?   @map("hir_currency_symbol") @db.VarChar(10)
-  comment       String?   @map("hir_comment") @db.Text
-  status        String    @default("Pending") @map("hir_status") @db.Text
-  endorsement   Endorsement @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_hir_endorsments")
+  id             Int         @id @default(autoincrement()) @map("hir_id") @db.Integer
+  endorsementId  Int         @map("end_id")
+  startDate      DateTime    @map("hir_start_date") @db.Date
+  billableDate   DateTime    @map("hir_billable_date") @db.Date
+  workdayId      String?     @map("hir_workday_id") @db.Text
+  createdBy      String      @map("hir_created_by") @db.Text
+  createdAt      DateTime?   @default(now()) @map("hir_created_at") @db.Timestamptz(6)
+  updatedBy      String?     @map("hir_updated_by") @db.Text
+  updatedAt      DateTime?   @map("hir_updated_at") @db.Timestamptz(6)
+  currencySymbol String?     @map("hir_currency_symbol") @db.VarChar(10)
+  comment        String?     @map("hir_comment") @db.Text
+  status         String      @default("Pending") @map("hir_status") @db.Text
+  endorsement    Endorsement @relation(fields: [endorsementId], references: [endorsementId], onDelete: Restrict, map: "fk_hir_endorsments")
 
   @@index([endorsementId], map: "idx_hir_end_id")
   @@map("hir_hiring")
@@ -697,22 +699,22 @@ model EndorsementBonus {
 }
 
 model TeamMemberBonus {
-  teamMemberBonusId Int           @id @default(autoincrement()) @map("tmb_id") @db.Integer
-  teamMemberId      Int           @map("tms_id") @db.Integer
-  bonusCategoryId   Int           @map("bca_id") @db.Integer
-  bonusAmount       Decimal       @map("tmb_amount") @db.Decimal(15, 2)
-  bonusPeriodicity  String        @map("tmb_periodicity") @db.VarChar(50)
-  bonusStartDate    DateTime?     @map("tmb_start_date") @db.Date
-  bonusEndDate      DateTime?     @map("tmb_end_date") @db.Date
-  bonusCreatedBy    Int           @map("tmb_created_by") @db.Integer
-  bonusCreatedAt    DateTime      @default(now()) @map("tmb_created_at") @db.Timestamptz(6)
-  bonusUpdatedBy    Int?          @map("tmb_updated_by") @db.Integer
-  bonusUpdatedAt    DateTime?     @map("tmb_updated_at") @db.Timestamptz(6)
+  teamMemberBonusId Int       @id @default(autoincrement()) @map("tmb_id") @db.Integer
+  teamMemberId      Int       @map("tms_id") @db.Integer
+  bonusCategoryId   Int       @map("bca_id") @db.Integer
+  bonusAmount       Decimal   @map("tmb_amount") @db.Decimal(15, 2)
+  bonusPeriodicity  String    @map("tmb_periodicity") @db.VarChar(50)
+  bonusStartDate    DateTime? @map("tmb_start_date") @db.Date
+  bonusEndDate      DateTime? @map("tmb_end_date") @db.Date
+  bonusCreatedBy    Int       @map("tmb_created_by") @db.Integer
+  bonusCreatedAt    DateTime  @default(now()) @map("tmb_created_at") @db.Timestamptz(6)
+  bonusUpdatedBy    Int?      @map("tmb_updated_by") @db.Integer
+  bonusUpdatedAt    DateTime? @map("tmb_updated_at") @db.Timestamptz(6)
 
-  teamMember        TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmb_tms")
-  bonusCategory     BonusCategory @relation(fields: [bonusCategoryId], references: [bonusCategoryId], onDelete: Restrict, map: "fk_tmb_bca")
-  createdByUser     User          @relation("tmb_team_member_bonus_tmb_created_byTotbl_users", fields: [bonusCreatedBy], references: [userId], map: "fk_tmb_cby")
-  updatedByUser     User?         @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users", fields: [bonusUpdatedBy], references: [userId], map: "fk_tmb_uby")
+  teamMember    TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmb_tms")
+  bonusCategory BonusCategory @relation(fields: [bonusCategoryId], references: [bonusCategoryId], onDelete: Restrict, map: "fk_tmb_bca")
+  createdByUser User          @relation("tmb_team_member_bonus_tmb_created_byTotbl_users", fields: [bonusCreatedBy], references: [userId], map: "fk_tmb_cby")
+  updatedByUser User?         @relation("tmb_team_member_bonus_tmb_updated_byTotbl_users", fields: [bonusUpdatedBy], references: [userId], map: "fk_tmb_uby")
 
   @@index([teamMemberId], map: "idx_tmb_tms_id")
   @@index([bonusCategoryId], map: "idx_tmb_bca_id")
@@ -722,21 +724,21 @@ model TeamMemberBonus {
 }
 
 model TmrTeamMemberReimbursement {
-  reimbursementId        Int        @id @default(autoincrement()) @map("tmr_id") @db.Integer
-  teamMemberId           Int        @map("tms_id") @db.Integer
-  reimbursementAmount    Decimal    @map("tmr_amount") @db.Decimal(15, 2)
-  reimbursementDate      DateTime   @map("tmr_date") @db.Date
-  payrolId               Int?       @map("prl_id") @db.Integer
-  reimbursementFrequency Int?       @map("tmr_frequency") @db.Integer
-  reimbursementCreatedBy Int        @map("tmr_created_by") @db.Integer
-  reimbursementCreatedAt DateTime   @default(now()) @map("tmr_created_at") @db.Timestamptz(6)
-  reimbursementUpdatedBy Int        @map("tmr_updated_by") @db.Integer
-  reimbursementUpdatedAt DateTime   @updatedAt @map("tmr_updated_at") @db.Timestamptz(6)
+  reimbursementId        Int      @id @default(autoincrement()) @map("tmr_id") @db.Integer
+  teamMemberId           Int      @map("tms_id") @db.Integer
+  reimbursementAmount    Decimal  @map("tmr_amount") @db.Decimal(15, 2)
+  reimbursementDate      DateTime @map("tmr_date") @db.Date
+  payrolId               Int?     @map("prl_id") @db.Integer
+  reimbursementFrequency Int?     @map("tmr_frequency") @db.Integer
+  reimbursementCreatedBy Int      @map("tmr_created_by") @db.Integer
+  reimbursementCreatedAt DateTime @default(now()) @map("tmr_created_at") @db.Timestamptz(6)
+  reimbursementUpdatedBy Int      @map("tmr_updated_by") @db.Integer
+  reimbursementUpdatedAt DateTime @updatedAt @map("tmr_updated_at") @db.Timestamptz(6)
 
-  teamMember             TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmr_tms")
-  payrol                 PrlPayrol? @relation(fields: [payrolId], references: [prlId], onDelete: SetNull, map: "fk_tmr_prl")
-  createdByUser          User       @relation("tmr_team_member_reimbursement_tmr_created_byTotbl_users", fields: [reimbursementCreatedBy], references: [userId], map: "fk_tmr_cby")
-  updatedByUser          User       @relation("tmr_team_member_reimbursement_tmr_updated_byTotbl_users", fields: [reimbursementUpdatedBy], references: [userId], map: "fk_tmr_uby")
+  teamMember    TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmr_tms")
+  payrol        PrlPayrol? @relation(fields: [payrolId], references: [prlId], onDelete: SetNull, map: "fk_tmr_prl")
+  createdByUser User       @relation("tmr_team_member_reimbursement_tmr_created_byTotbl_users", fields: [reimbursementCreatedBy], references: [userId], map: "fk_tmr_cby")
+  updatedByUser User       @relation("tmr_team_member_reimbursement_tmr_updated_byTotbl_users", fields: [reimbursementUpdatedBy], references: [userId], map: "fk_tmr_uby")
 
   @@index([teamMemberId], map: "idx_tmr_tms_id")
   @@index([payrolId], map: "idx_tmr_prl_id")
@@ -745,21 +747,21 @@ model TmrTeamMemberReimbursement {
 }
 
 model TmoTeamMemberOncall {
-  oncallId        Int        @id @default(autoincrement()) @map("tmo_id") @db.Integer
-  teamMemberId    Int        @map("tms_id") @db.Integer
-  oncallAmount    Decimal    @map("tmo_amount") @db.Decimal(15, 2)
-  oncallDate      DateTime   @map("tmo_date") @db.Date
-  payrolId        Int?       @map("prl_id") @db.Integer
-  oncallFrequency Int?       @map("tmo_frequency") @db.Integer
-  oncallCreatedBy Int        @map("tmo_created_by") @db.Integer
-  oncallCreatedAt DateTime   @default(now()) @map("tmo_created_at") @db.Timestamptz(6)
-  oncallUpdatedBy Int        @map("tmo_updated_by") @db.Integer
-  oncallUpdatedAt DateTime   @updatedAt @map("tmo_updated_at") @db.Timestamptz(6)
+  oncallId        Int      @id @default(autoincrement()) @map("tmo_id") @db.Integer
+  teamMemberId    Int      @map("tms_id") @db.Integer
+  oncallAmount    Decimal  @map("tmo_amount") @db.Decimal(15, 2)
+  oncallDate      DateTime @map("tmo_date") @db.Date
+  payrolId        Int?     @map("prl_id") @db.Integer
+  oncallFrequency Int?     @map("tmo_frequency") @db.Integer
+  oncallCreatedBy Int      @map("tmo_created_by") @db.Integer
+  oncallCreatedAt DateTime @default(now()) @map("tmo_created_at") @db.Timestamptz(6)
+  oncallUpdatedBy Int      @map("tmo_updated_by") @db.Integer
+  oncallUpdatedAt DateTime @updatedAt @map("tmo_updated_at") @db.Timestamptz(6)
 
-  teamMember      TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmo_tms")
-  payrol          PrlPayrol? @relation(fields: [payrolId], references: [prlId], onDelete: SetNull, map: "fk_tmo_prl")
-  createdByUser   User       @relation("tmo_team_member_oncall_tmo_created_byTotbl_users", fields: [oncallCreatedBy], references: [userId], map: "fk_tmo_cby")
-  updatedByUser   User       @relation("tmo_team_member_oncall_tmo_updated_byTotbl_users", fields: [oncallUpdatedBy], references: [userId], map: "fk_tmo_uby")
+  teamMember    TeamMember @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_tmo_tms")
+  payrol        PrlPayrol? @relation(fields: [payrolId], references: [prlId], onDelete: SetNull, map: "fk_tmo_prl")
+  createdByUser User       @relation("tmo_team_member_oncall_tmo_created_byTotbl_users", fields: [oncallCreatedBy], references: [userId], map: "fk_tmo_cby")
+  updatedByUser User       @relation("tmo_team_member_oncall_tmo_updated_byTotbl_users", fields: [oncallUpdatedBy], references: [userId], map: "fk_tmo_uby")
 
   @@index([teamMemberId], map: "idx_tmo_tms_id")
   @@index([payrolId], map: "idx_tmo_prl_id")
@@ -768,8 +770,8 @@ model TmoTeamMemberOncall {
 }
 
 model Client {
-  Id       Int            @id @default(autoincrement()) @map("cli_id") @db.Integer
-  Name     String         @map("cli_name") @db.Text
+  Id       Int             @id @default(autoincrement()) @map("cli_id") @db.Integer
+  Name     String          @map("cli_name") @db.Text
   contacts ClientContact[]
   projects Project[]
 
@@ -830,11 +832,11 @@ model ReportParameter {
 }
 
 model FunctionalArea {
-  Id        Int     @id @default(autoincrement()) @map("far_id") @db.Integer
-  Name      String  @map("far_name") @db.Text
-  countryId Int?    @map("cou_id")
+  Id        Int    @id @default(autoincrement()) @map("far_id") @db.Integer
+  Name      String @map("far_name") @db.Text
+  countryId Int?   @map("cou_id")
 
-  country            Country?           @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
+  country            Country?            @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_far_cou")
   projectAssignments ProjectAssignment[]
   benchAssignments   Bench[]
 
@@ -844,20 +846,20 @@ model FunctionalArea {
 }
 
 model HolidaySwap {
-  holidaySwapId       Int           @id @default(autoincrement()) @map("hsw_id") @db.Integer
-  teamMemberId        Int           @map("tms_id")
-  holidayId           Int           @map("hol_id")
-  statusId            Int           @map("sta_id")
-  originalDate        DateTime      @map("hsw_original_date") @db.Date
-  replacementDate     DateTime      @map("hsw_replacement_date") @db.Date
-  createdBy           String?       @map("hsw_created_by") @db.Text
-  createdAt           DateTime?     @default(now()) @map("hsw_created_at") @db.Timestamptz(6)
-  updatedBy           String?       @map("hsw_updated_by") @db.Text
-  updatedAt           DateTime?     @map("hsw_updated_at") @db.Timestamptz(6)
-  active              Boolean       @default(true) @map("hsw_active")
-  teamMember          TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_hsw_team_member")
-  holiday             Holiday       @relation(fields: [holidayId], references: [holidayId], onDelete: Restrict, map: "fk_hsw_holiday")
-  status              TimeOffStatus @relation(fields: [statusId], references: [statusId], onDelete: Restrict, map: "fk_hsw_status")
+  holidaySwapId   Int           @id @default(autoincrement()) @map("hsw_id") @db.Integer
+  teamMemberId    Int           @map("tms_id")
+  holidayId       Int           @map("hol_id")
+  statusId        Int           @map("sta_id")
+  originalDate    DateTime      @map("hsw_original_date") @db.Date
+  replacementDate DateTime      @map("hsw_replacement_date") @db.Date
+  createdBy       String?       @map("hsw_created_by") @db.Text
+  createdAt       DateTime?     @default(now()) @map("hsw_created_at") @db.Timestamptz(6)
+  updatedBy       String?       @map("hsw_updated_by") @db.Text
+  updatedAt       DateTime?     @map("hsw_updated_at") @db.Timestamptz(6)
+  active          Boolean       @default(true) @map("hsw_active")
+  teamMember      TeamMember    @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_hsw_team_member")
+  holiday         Holiday       @relation(fields: [holidayId], references: [holidayId], onDelete: Restrict, map: "fk_hsw_holiday")
+  status          TimeOffStatus @relation(fields: [statusId], references: [statusId], onDelete: Restrict, map: "fk_hsw_status")
 
   @@index([teamMemberId], map: "idx_hsw_tms_id")
   @@index([holidayId], map: "idx_hsw_hol_id")
@@ -903,17 +905,17 @@ model PersistenceTemplate {
 }
 
 model PersistenceTemplateColumn {
-  id             Int                  @id @default(autoincrement()) @map("ptc_id") @db.Integer
-  templateId     Int                  @map("pte_id")
-  index          Int                  @map("ptc_index")
-  name           String               @map("ptc_name") @db.VarChar(200)
-  type           String?              @map("ptc_type") @db.VarChar(100)
-  length         Int?                 @map("ptc_length")
-  allowNull      Boolean              @default(true) @map("ptc_allow_null")
-  comment        String?              @map("ptc_comment") @db.Text
-  csvColumnName  String?              @map("ptc_csv_column_name") @db.VarChar(200)
-  csvColumnIndex Int                  @default(-1) @map("ptc_csv_column_index")
-  template       PersistenceTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade, map: "fk_ptc_pte")
+  id             Int                 @id @default(autoincrement()) @map("ptc_id") @db.Integer
+  templateId     Int                 @map("pte_id")
+  index          Int                 @map("ptc_index")
+  name           String              @map("ptc_name") @db.VarChar(200)
+  type           String?             @map("ptc_type") @db.VarChar(100)
+  length         Int?                @map("ptc_length")
+  allowNull      Boolean             @default(true) @map("ptc_allow_null")
+  comment        String?             @map("ptc_comment") @db.Text
+  csvColumnName  String?             @map("ptc_csv_column_name") @db.VarChar(200)
+  csvColumnIndex Int                 @default(-1) @map("ptc_csv_column_index")
+  template       PersistenceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade, map: "fk_ptc_pte")
 
   @@index([templateId], map: "idx_ptc_pte_id")
   @@map("ptc_persistence_template_columns")
@@ -965,23 +967,23 @@ model PersistenceDataType {
 }
 
 model WorkdayInfo {
-  wdid                 String    @id @map("win_wdid") @db.VarChar
-  hireDate             DateTime? @map("win_hire_date") @db.Date
-  corporateEmail       String?   @map("win_corporate_email") @db.VarChar
-  personalEmail        String?   @map("win_personal_email") @db.VarChar
-  allEmails            Json      @map("win_all_emails")
-  cellphone            String?   @map("win_cellphone") @db.VarChar
-  homePhone            String?   @map("win_home_phone") @db.VarChar
-  birthDate            String?   @map("win_birth_date") @db.VarChar
-  parenthood           Boolean?  @map("win_parenthood")
-  workStyle            String?   @map("win_work_style") @db.VarChar
-  gender               String?   @map("win_gender") @db.VarChar
-  billingStatus        String?   @map("win_billing_status") @db.VarChar
-  costCenterHierarchy  String?   @map("win_cost_center_hierarchy") @db.VarChar
-  costCenterNames      String?   @map("win_cost_center_names") @db.VarChar
-  directManager        String?   @map("win_direct_manager") @db.VarChar
-  vacation             Decimal?  @map("win_vacation") @db.Decimal
-  personalDays         Decimal?  @map("win_personal_days") @db.Decimal
+  wdid                String    @id @map("win_wdid") @db.VarChar
+  hireDate            DateTime? @map("win_hire_date") @db.Date
+  corporateEmail      String?   @map("win_corporate_email") @db.VarChar
+  personalEmail       String?   @map("win_personal_email") @db.VarChar
+  allEmails           Json      @map("win_all_emails")
+  cellphone           String?   @map("win_cellphone") @db.VarChar
+  homePhone           String?   @map("win_home_phone") @db.VarChar
+  birthDate           String?   @map("win_birth_date") @db.VarChar
+  parenthood          Boolean?  @map("win_parenthood")
+  workStyle           String?   @map("win_work_style") @db.VarChar
+  gender              String?   @map("win_gender") @db.VarChar
+  billingStatus       String?   @map("win_billing_status") @db.VarChar
+  costCenterHierarchy String?   @map("win_cost_center_hierarchy") @db.VarChar
+  costCenterNames     String?   @map("win_cost_center_names") @db.VarChar
+  directManager       String?   @map("win_direct_manager") @db.VarChar
+  vacation            Decimal?  @map("win_vacation") @db.Decimal
+  personalDays        Decimal?  @map("win_personal_days") @db.Decimal
 
   @@map("win_workday_info")
   @@schema("es")
@@ -1129,7 +1131,7 @@ model WflWorkflowTemplate {
   executionType       WorkflowExecutionType @default(CODE) @map("wfl_execution_type")
   instantiateProcName String?               @map("wfl_instantiate_proc_name")
 
-  entityConfig WecWorkflowEntityConfig? @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wfl_workflow_templates_wec_fk")
+  entityConfig WecWorkflowEntityConfig?        @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wfl_workflow_templates_wec_fk")
   tasks        WtkWorkflowTemplateTask[]
   routes       WtrWorkflowTemplateRoute[]
   dependencies WtdWorkflowTemplateDependency[]
@@ -1168,7 +1170,7 @@ model WtkWorkflowTemplateTask {
   updatedAt                DateTime? @map("updated_at") @db.Timestamptz(6)
   updatedBy                String?   @map("updated_by") @db.VarChar(100)
 
-  template        WflWorkflowTemplate              @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtk_workflow_template_tasks_wfl_fk")
+  template        WflWorkflowTemplate               @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtk_workflow_template_tasks_wfl_fk")
   inputs          WtiWorkflowTemplateTaskInput[]
   outcomes        WtoWorkflowTemplateTaskOutcome[]
   notifications   WtnWorkflowTemplateNotification[]
@@ -1239,10 +1241,10 @@ model WtrWorkflowTemplateRoute {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy     String?  @map("created_by") @db.VarChar(100)
 
-  template WflWorkflowTemplate              @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtr_workflow_template_routes_wfl_fk")
-  fromTask WtkWorkflowTemplateTask           @relation("WtrFrom", fields: [wtkFromId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_from_fk")
-  outcome  WtoWorkflowTemplateTaskOutcome?   @relation(fields: [wtoId], references: [wtoId], onDelete: Restrict, map: "wtr_workflow_template_routes_wto_fk")
-  toTask   WtkWorkflowTemplateTask           @relation("WtrTo", fields: [wtkToId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_to_fk")
+  template WflWorkflowTemplate             @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "wtr_workflow_template_routes_wfl_fk")
+  fromTask WtkWorkflowTemplateTask         @relation("WtrFrom", fields: [wtkFromId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_from_fk")
+  outcome  WtoWorkflowTemplateTaskOutcome? @relation(fields: [wtoId], references: [wtoId], onDelete: Restrict, map: "wtr_workflow_template_routes_wto_fk")
+  toTask   WtkWorkflowTemplateTask         @relation("WtrTo", fields: [wtkToId], references: [wtkId], onDelete: Restrict, map: "wtr_workflow_template_routes_wtk_to_fk")
 
   @@index([wflId, wtkFromId], map: "idx_wtr_wfl_from")
   @@map("wtr_workflow_template_routes")
@@ -1317,7 +1319,7 @@ model WinWorkflowInstance {
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy              String?   @map("created_by") @db.VarChar(100)
 
-  template     WflWorkflowTemplate               @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "win_workflow_instances_wfl_fk")
+  template     WflWorkflowTemplate                 @relation(fields: [wflId], references: [wflId], onDelete: Restrict, map: "win_workflow_instances_wfl_fk")
   tasks        WitWorkflowInstanceTask[]
   context      WicWorkflowInstanceContext[]
   dependencies WidWorkflowInstanceTaskDependency[]
@@ -1371,8 +1373,8 @@ model WitWorkflowInstanceTask {
   updatedAt             DateTime? @map("updated_at") @db.Timestamptz(6)
   updatedBy             String?   @map("updated_by") @db.VarChar(100)
 
-  instance        WinWorkflowInstance               @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wit_workflow_instance_tasks_win_fk")
-  templateTask    WtkWorkflowTemplateTask?           @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wit_workflow_instance_tasks_wtk_fk")
+  instance        WinWorkflowInstance                 @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wit_workflow_instance_tasks_win_fk")
+  templateTask    WtkWorkflowTemplateTask?            @relation(fields: [wtkId], references: [wtkId], onDelete: Restrict, map: "wit_workflow_instance_tasks_wtk_fk")
   inputs          WiiWorkflowInstanceTaskInput[]
   inputValues     WivWorkflowInstanceTaskInputValue[]
   notifications   WntWorkflowInstanceNotification[]
@@ -1507,20 +1509,20 @@ model WntWorkflowInstanceNotification {
 }
 
 model WicWorkflowInstanceContext {
-  wicId        String    @id @default(uuid()) @map("wic_id") @db.Uuid
-  winId        String    @map("win_id") @db.Uuid
-  witId        String?   @map("wit_id") @db.Uuid
-  key          String    @map("wic_key") @db.VarChar(100)
-  valueText    String?   @map("wic_value_text")
-  valueNumber  Decimal?  @map("wic_value_number") @db.Decimal(18, 4)
-  valueBoolean Boolean?  @map("wic_value_boolean")
-  valueDate    DateTime? @map("wic_value_date") @db.Date
+  wicId         String    @id @default(uuid()) @map("wic_id") @db.Uuid
+  winId         String    @map("win_id") @db.Uuid
+  witId         String?   @map("wit_id") @db.Uuid
+  key           String    @map("wic_key") @db.VarChar(100)
+  valueText     String?   @map("wic_value_text")
+  valueNumber   Decimal?  @map("wic_value_number") @db.Decimal(18, 4)
+  valueBoolean  Boolean?  @map("wic_value_boolean")
+  valueDate     DateTime? @map("wic_value_date") @db.Date
   valueDatetime DateTime? @map("wic_value_datetime") @db.Timestamptz(6)
-  valueJson    Json?     @map("wic_value_json")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  createdBy    String?   @map("created_by") @db.VarChar(100)
-  updatedAt    DateTime? @map("updated_at") @db.Timestamptz(6)
-  updatedBy    String?   @map("updated_by") @db.VarChar(100)
+  valueJson     Json?     @map("wic_value_json")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?   @map("created_by") @db.VarChar(100)
+  updatedAt     DateTime? @map("updated_at") @db.Timestamptz(6)
+  updatedBy     String?   @map("updated_by") @db.VarChar(100)
 
   instance WinWorkflowInstance      @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wic_workflow_instance_context_win_fk")
   task     WitWorkflowInstanceTask? @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wic_workflow_instance_context_wit_fk")
@@ -1550,16 +1552,16 @@ model WreWorkflowTaskReassignment {
 }
 
 model WalWorkflowAuditLog {
-  walId          String    @id @default(uuid()) @map("wal_id") @db.Uuid
-  winId          String    @map("win_id") @db.Uuid
-  witId          String?   @map("wit_id") @db.Uuid
-  eventType      String    @map("wal_event_type") @db.VarChar(50)
-  eventTimestamp DateTime  @default(now()) @map("wal_event_timestamp") @db.Timestamptz(6)
-  performedBy    String?   @map("wal_performed_by") @db.VarChar(100)
-  reason         String?   @map("wal_reason")
-  oldState       String?   @map("wal_old_state") @db.VarChar(30)
-  newState       String?   @map("wal_new_state") @db.VarChar(30)
-  detailsJson    Json?     @map("wal_details_json")
+  walId          String   @id @default(uuid()) @map("wal_id") @db.Uuid
+  winId          String   @map("win_id") @db.Uuid
+  witId          String?  @map("wit_id") @db.Uuid
+  eventType      String   @map("wal_event_type") @db.VarChar(50)
+  eventTimestamp DateTime @default(now()) @map("wal_event_timestamp") @db.Timestamptz(6)
+  performedBy    String?  @map("wal_performed_by") @db.VarChar(100)
+  reason         String?  @map("wal_reason")
+  oldState       String?  @map("wal_old_state") @db.VarChar(30)
+  newState       String?  @map("wal_new_state") @db.VarChar(30)
+  detailsJson    Json?    @map("wal_details_json")
 
   instance WinWorkflowInstance      @relation(fields: [winId], references: [winId], onDelete: Restrict, map: "wal_workflow_audit_log_win_fk")
   task     WitWorkflowInstanceTask? @relation(fields: [witId], references: [witId], onDelete: Restrict, map: "wal_workflow_audit_log_wit_fk")
@@ -1570,87 +1572,87 @@ model WalWorkflowAuditLog {
 }
 
 model CorporatePhoneLine {
-  phoneLineId           Int       @id @default(autoincrement()) @map("cpl_id") @db.Integer
-  phoneNumber           String    @map("cpl_phone_number") @db.VarChar(20)
-  contractStartDate     DateTime? @map("cpl_contract_start_date") @db.Date
-  contractEndDate       DateTime? @map("cpl_contract_end_date") @db.Date
-  renewalParentId       Int?      @map("cpl_renewal_parent_id") @db.Integer
-  actualCostRate        Decimal?  @map("cpl_actual_cost_rate") @db.Decimal(10, 2)
-  deletedAt             DateTime? @map("cpl_deleted_at") @db.Timestamptz(6)
-  countryId             Int?      @map("cou_id") @db.Integer
-  createdAt             DateTime  @default(now()) @map("cpl_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("cpl_created_by") @db.Integer
-  updatedBy             Int?      @map("cpl_updated_by") @db.Integer
-  updatedAt             DateTime? @map("cpl_updated_at") @db.Timestamptz(6)
-  comments              String?   @map("cpl_comments")
-  deleted               Boolean?  @default(false) @map("cpl_deleted")
-  contractMonths        Int?      @map("cpl_contract_months") @db.Integer
+  phoneLineId       Int       @id @default(autoincrement()) @map("cpl_id") @db.Integer
+  phoneNumber       String    @map("cpl_phone_number") @db.VarChar(20)
+  contractStartDate DateTime? @map("cpl_contract_start_date") @db.Date
+  contractEndDate   DateTime? @map("cpl_contract_end_date") @db.Date
+  renewalParentId   Int?      @map("cpl_renewal_parent_id") @db.Integer
+  actualCostRate    Decimal?  @map("cpl_actual_cost_rate") @db.Decimal(10, 2)
+  deletedAt         DateTime? @map("cpl_deleted_at") @db.Timestamptz(6)
+  countryId         Int?      @map("cou_id") @db.Integer
+  createdAt         DateTime  @default(now()) @map("cpl_created_at") @db.Timestamptz(6)
+  createdBy         Int       @map("cpl_created_by") @db.Integer
+  updatedBy         Int?      @map("cpl_updated_by") @db.Integer
+  updatedAt         DateTime? @map("cpl_updated_at") @db.Timestamptz(6)
+  comments          String?   @map("cpl_comments")
+  deleted           Boolean?  @default(false) @map("cpl_deleted")
+  contractMonths    Int?      @map("cpl_contract_months") @db.Integer
 
-  renewalParent         CorporatePhoneLine?  @relation("PhoneLineRenewals", fields: [renewalParentId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpl_renewal_parent")
-  renewals              CorporatePhoneLine[] @relation("PhoneLineRenewals")
-  country               Country?             @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_cpl_cou")
-  createdByUser         User                 @relation("CplCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpl_created_by")
-  updatedByUser         User?                @relation("CplUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpl_updated_by")
-  phoneAssignments      CorporatePhoneAssignment[]
+  renewalParent    CorporatePhoneLine?        @relation("PhoneLineRenewals", fields: [renewalParentId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpl_renewal_parent")
+  renewals         CorporatePhoneLine[]       @relation("PhoneLineRenewals")
+  country          Country?                   @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_cpl_cou")
+  createdByUser    User                       @relation("CplCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpl_created_by")
+  updatedByUser    User?                      @relation("CplUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpl_updated_by")
+  phoneAssignments CorporatePhoneAssignment[]
 
-  @@index([countryId],       map: "idx_cpl_cou_id")
+  @@index([countryId], map: "idx_cpl_cou_id")
   @@index([renewalParentId], map: "idx_cpl_renewal_parent_id")
-  @@index([createdBy],       map: "idx_cpl_created_by")
-  @@index([updatedBy],       map: "idx_cpl_updated_by")
+  @@index([createdBy], map: "idx_cpl_created_by")
+  @@index([updatedBy], map: "idx_cpl_updated_by")
   @@map("cpl_corporate_phone_lines")
   @@schema("ds")
 }
 
 model CorporatePhoneAssignment {
-  phoneAssignmentId     Int       @id @default(autoincrement()) @map("cpa_id") @db.Integer
-  phoneLineId           Int       @map("cpl_id") @db.Integer
-  teamMemberId          Int       @map("tms_id") @db.Integer
-  billRate              Decimal   @default(0.00) @map("cpa_bill_rate") @db.Decimal(10, 2)
-  assignDateStart       DateTime  @map("cpa_assign_date_start") @db.Date
-  assignDateEnd         DateTime? @map("cpa_assign_date_end") @db.Date
-  billable              Boolean   @default(true) @map("cpa_billable")
-  isFree                Boolean   @default(false) @map("cpa_is_free")
-  cellphonePrice        Decimal   @default(0.00) @map("cpa_cellphone_price") @db.Decimal(10, 2)
-  remarks               String?   @map("cpa_remarks")
-  phoneType             String?   @map("cpa_phone_type") @db.VarChar(100)
-  createdAt             DateTime  @default(now()) @map("cpa_created_at") @db.Timestamptz(6)
-  createdBy             Int       @map("cpa_created_by") @db.Integer
-  updatedBy             Int?      @map("cpa_updated_by") @db.Integer
-  updatedAt             DateTime? @map("cpa_updated_at") @db.Timestamptz(6)
-  deletedAt             DateTime? @map("cpa_deleted_at") @db.Timestamptz(6)
-  deleted               Boolean?  @default(false) @map("cpa_deleted")
+  phoneAssignmentId Int       @id @default(autoincrement()) @map("cpa_id") @db.Integer
+  phoneLineId       Int       @map("cpl_id") @db.Integer
+  teamMemberId      Int       @map("tms_id") @db.Integer
+  billRate          Decimal   @default(0.00) @map("cpa_bill_rate") @db.Decimal(10, 2)
+  assignDateStart   DateTime  @map("cpa_assign_date_start") @db.Date
+  assignDateEnd     DateTime? @map("cpa_assign_date_end") @db.Date
+  billable          Boolean   @default(true) @map("cpa_billable")
+  isFree            Boolean   @default(false) @map("cpa_is_free")
+  cellphonePrice    Decimal   @default(0.00) @map("cpa_cellphone_price") @db.Decimal(10, 2)
+  remarks           String?   @map("cpa_remarks")
+  phoneType         String?   @map("cpa_phone_type") @db.VarChar(100)
+  createdAt         DateTime  @default(now()) @map("cpa_created_at") @db.Timestamptz(6)
+  createdBy         Int       @map("cpa_created_by") @db.Integer
+  updatedBy         Int?      @map("cpa_updated_by") @db.Integer
+  updatedAt         DateTime? @map("cpa_updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("cpa_deleted_at") @db.Timestamptz(6)
+  deleted           Boolean?  @default(false) @map("cpa_deleted")
 
-  phoneLine             CorporatePhoneLine @relation(fields: [phoneLineId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpa_cpl")
-  teamMember            TeamMember         @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_cpa_tms")
-  createdByUser         User               @relation("CpaCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpa_created_by")
-  updatedByUser         User?              @relation("CpaUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpa_updated_by")
+  phoneLine     CorporatePhoneLine @relation(fields: [phoneLineId], references: [phoneLineId], onDelete: Restrict, map: "fk_cpa_cpl")
+  teamMember    TeamMember         @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_cpa_tms")
+  createdByUser User               @relation("CpaCreatedBy", fields: [createdBy], references: [userId], map: "fk_cpa_created_by")
+  updatedByUser User?              @relation("CpaUpdatedBy", fields: [updatedBy], references: [userId], map: "fk_cpa_updated_by")
 
-  @@index([phoneLineId],  map: "idx_cpa_cpl_id")
+  @@index([phoneLineId], map: "idx_cpa_cpl_id")
   @@index([teamMemberId], map: "idx_cpa_tms_id")
-  @@index([createdBy],    map: "idx_cpa_created_by")
-  @@index([updatedBy],    map: "idx_cpa_updated_by")
+  @@index([createdBy], map: "idx_cpa_created_by")
+  @@index([updatedBy], map: "idx_cpa_updated_by")
   @@map("cpa_corporate_phone_assignments")
   @@schema("ds")
 }
 
 model StandaloneTask {
-  taskId            Int       @id @default(autoincrement()) @map("tsk_id") @db.Integer
-  taskTitle         String    @map("tsk_title") @db.Text
-  taskDescription   String?   @map("tsk_description") @db.Text
-  taskStatus        String    @default("PENDING") @map("tsk_status") @db.Text
-  taskPriority      String    @default("MEDIUM") @map("tsk_priority") @db.Text
-  taskDueDate       DateTime? @map("tsk_due_date") @db.Timestamptz(6)
-  teamMemberId      Int       @map("tsk_team_member_id") @db.Integer
-  taskReferenceType String?   @map("tsk_reference_type") @db.Text
-  taskReferenceId   String?   @map("tsk_reference_id") @db.Text
-  taskSource        String    @default("INTERNAL") @map("tsk_source") @db.Text
-  apiKeyId          Int?      @map("tsk_api_key_id") @db.Integer
-  createdBy         Int       @map("tsk_created_by") @db.Integer
-  createdDate       DateTime  @default(now()) @map("tsk_created_date") @db.Timestamptz(6)
-  updatedBy         Int?      @map("tsk_updated_by") @db.Integer
-  updatedDate       DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
-  resolvedBy        Int?      @map("tsk_resolved_by") @db.Integer
-  resolvedDate      DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
+  taskId              Int       @id @default(autoincrement()) @map("tsk_id") @db.Integer
+  taskTitle           String    @map("tsk_title") @db.Text
+  taskDescription     String?   @map("tsk_description") @db.Text
+  taskStatus          String    @default("PENDING") @map("tsk_status") @db.Text
+  taskPriority        String    @default("MEDIUM") @map("tsk_priority") @db.Text
+  taskDueDate         DateTime? @map("tsk_due_date") @db.Timestamptz(6)
+  teamMemberId        Int       @map("tsk_team_member_id") @db.Integer
+  taskReferenceType   String?   @map("tsk_reference_type") @db.Text
+  taskReferenceId     String?   @map("tsk_reference_id") @db.Text
+  taskSource          String    @default("INTERNAL") @map("tsk_source") @db.Text
+  apiKeyId            Int?      @map("tsk_api_key_id") @db.Integer
+  createdBy           Int       @map("tsk_created_by") @db.Integer
+  createdDate         DateTime  @default(now()) @map("tsk_created_date") @db.Timestamptz(6)
+  updatedBy           Int?      @map("tsk_updated_by") @db.Integer
+  updatedDate         DateTime? @map("tsk_updated_date") @db.Timestamptz(6)
+  resolvedBy          Int?      @map("tsk_resolved_by") @db.Integer
+  resolvedDate        DateTime? @map("tsk_resolved_date") @db.Timestamptz(6)
   resolutionComment   String?   @map("tsk_resolution_comment") @db.Text
   parsedDetail        Json?     @map("tsk_parsed_detail")
   recurringTemplateId Int?      @map("rtt_id") @db.Integer
@@ -1729,23 +1731,23 @@ model ApiKey {
 }
 
 model MondayConnection {
-  mcdId               Int       @id @default(autoincrement()) @map("mcd_id") @db.Integer
-  mcdName              String    @map("mcd_name") @db.VarChar(200)
-  mcdApiKeyEncrypted   String    @map("mcd_api_key_encrypted") @db.Text
-  mcdBoardId           String    @map("mcd_board_id") @db.VarChar(50)
-  mcdBoardName         String?   @map("mcd_board_name") @db.VarChar(200)
-  mcdFieldMapping      Json      @default("{}") @map("mcd_field_mapping")
-  mcdIsActive          Boolean   @default(true) @map("mcd_is_active")
-  mcdLastSyncedDate    DateTime? @map("mcd_last_synced_date") @db.Timestamptz(6)
-  mcdLastSyncStatus    String?   @map("mcd_last_sync_status") @db.VarChar(20)
-  mcdLastSyncSummary   Json?     @map("mcd_last_sync_summary")
-  mcdCreatedBy         Int       @map("mcd_created_by") @db.Integer
-  mcdCreatedDate       DateTime  @default(now()) @map("mcd_created_date") @db.Timestamptz(6)
-  mcdUpdatedBy         Int?      @map("mcd_updated_by") @db.Integer
-  mcdUpdatedDate       DateTime? @map("mcd_updated_date") @db.Timestamptz(6)
+  mcdId              Int       @id @default(autoincrement()) @map("mcd_id") @db.Integer
+  mcdName            String    @map("mcd_name") @db.VarChar(200)
+  mcdApiKeyEncrypted String    @map("mcd_api_key_encrypted") @db.Text
+  mcdBoardId         String    @map("mcd_board_id") @db.VarChar(50)
+  mcdBoardName       String?   @map("mcd_board_name") @db.VarChar(200)
+  mcdFieldMapping    Json      @default("{}") @map("mcd_field_mapping")
+  mcdIsActive        Boolean   @default(true) @map("mcd_is_active")
+  mcdLastSyncedDate  DateTime? @map("mcd_last_synced_date") @db.Timestamptz(6)
+  mcdLastSyncStatus  String?   @map("mcd_last_sync_status") @db.VarChar(20)
+  mcdLastSyncSummary Json?     @map("mcd_last_sync_summary")
+  mcdCreatedBy       Int       @map("mcd_created_by") @db.Integer
+  mcdCreatedDate     DateTime  @default(now()) @map("mcd_created_date") @db.Timestamptz(6)
+  mcdUpdatedBy       Int?      @map("mcd_updated_by") @db.Integer
+  mcdUpdatedDate     DateTime? @map("mcd_updated_date") @db.Timestamptz(6)
 
-  createdByUser        User      @relation("mcd_monday_conn_data_mcd_created_byTotbl_users", fields: [mcdCreatedBy], references: [userId], map: "fk_mcd_created_by")
-  updatedByUser        User?     @relation("mcd_monday_conn_data_mcd_updated_byTotbl_users", fields: [mcdUpdatedBy], references: [userId], map: "fk_mcd_updated_by")
+  createdByUser User  @relation("mcd_monday_conn_data_mcd_created_byTotbl_users", fields: [mcdCreatedBy], references: [userId], map: "fk_mcd_created_by")
+  updatedByUser User? @relation("mcd_monday_conn_data_mcd_updated_byTotbl_users", fields: [mcdUpdatedBy], references: [userId], map: "fk_mcd_updated_by")
 
   @@index([mcdCreatedBy], map: "idx_mcd_monday_conn_data_created_by")
   @@map("mcd_monday_conn_data")
@@ -1753,15 +1755,15 @@ model MondayConnection {
 }
 
 model ApiPermissionCatalog {
-  apcId         Int      @id @default(autoincrement()) @map("apc_id") @db.Integer
-  apcResource   String   @map("apc_resource")
-  apcAction     String   @map("apc_action")
-  apcLabel      String   @map("apc_label")
-  apcIsActive   Boolean  @default(true) @map("apc_is_active")
-  apcCreatedBy  Int      @map("apc_created_by") @db.Integer
-  apcCreatedAt  DateTime @default(now()) @map("apc_created_at") @db.Timestamptz(6)
+  apcId        Int      @id @default(autoincrement()) @map("apc_id") @db.Integer
+  apcResource  String   @map("apc_resource")
+  apcAction    String   @map("apc_action")
+  apcLabel     String   @map("apc_label")
+  apcIsActive  Boolean  @default(true) @map("apc_is_active")
+  apcCreatedBy Int      @map("apc_created_by") @db.Integer
+  apcCreatedAt DateTime @default(now()) @map("apc_created_at") @db.Timestamptz(6)
 
-  createdByUser User    @relation(fields: [apcCreatedBy], references: [userId], map: "fk_apc_cby")
+  createdByUser User @relation(fields: [apcCreatedBy], references: [userId], map: "fk_apc_cby")
 
   @@unique([apcResource, apcAction], map: "uq_apc_resource_action")
   @@map("apc_api_permission_catalog")
@@ -1781,9 +1783,9 @@ model Upload {
   uploadCreatedBy    Int      @map("upl_created_by")
   uploadCreatedDate  DateTime @default(now()) @map("upl_created_date")
 
-  createdByUser             User                    @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
+  createdByUser             User                      @relation("UploadCreatedByUser", fields: [uploadCreatedBy], references: [userId])
   bonusUploads              BiuBonusUpload[]
-  standaloneTaskTranscripts StandaloneTask[]        @relation("StandaloneTaskTranscript")
+  standaloneTaskTranscripts StandaloneTask[]          @relation("StandaloneTaskTranscript")
   giftCardDocumentations    GiftCardDocumentation[]
   performanceCaseDocuments  PerformanceCaseDocument[]
 
@@ -1839,9 +1841,9 @@ model TpNomination {
   nomUpdatedBy             Int?      @map("nom_updated_by")
   nomUpdatedDate           DateTime? @map("nom_updated_date")
 
-  cycle     TpCycle    @relation(fields: [cycId], references: [cycId])
-  nominee   TeamMember @relation("TpNominee", fields: [nomNomineeId], references: [teamMemberId])
-  nominator TeamMember @relation("TpNominator", fields: [nomNominatorId], references: [teamMemberId])
+  cycle     TpCycle              @relation(fields: [cycId], references: [cycId])
+  nominee   TeamMember           @relation("TpNominee", fields: [nomNomineeId], references: [teamMemberId])
+  nominator TeamMember           @relation("TpNominator", fields: [nomNominatorId], references: [teamMemberId])
   metrics   TpNominationMetric[]
   voteItems TpVoteItem[]
 
@@ -1872,8 +1874,8 @@ model TpVote {
   votCreatedBy   Int      @map("vot_created_by")
   votCreatedDate DateTime @default(now()) @map("vot_created_date")
 
-  cycle TpCycle    @relation(fields: [cycId], references: [cycId])
-  voter TeamMember @relation("TpVoter", fields: [votVoterId], references: [teamMemberId])
+  cycle TpCycle      @relation(fields: [cycId], references: [cycId])
+  voter TeamMember   @relation("TpVoter", fields: [votVoterId], references: [teamMemberId])
   items TpVoteItem[]
 
   @@unique([cycId, votVoterId])
@@ -1958,13 +1960,13 @@ model GiftCardReason {
 
 /// KNOWN DEBT (audit 2026-07-13): table name tbl_gct_card_types violates Governance/04 (generic tbl_ prefix + domain-encoded "gc" prefix). Do not fix in place — live via PR #105. Propose a rename migration only if this table is touched for an unrelated schema change.
 model GiftCardType {
-  cardTypeId        Int              @id @default(autoincrement()) @map("gct_id") @db.Integer
-  cardTypeName      String           @unique @map("gct_name") @db.VarChar(200)
-  cardTypeIsActive  Boolean          @default(true) @map("gct_is_active")
-  cardTypeCreatedBy Int              @map("gct_created_by") @db.Integer
-  cardTypeCreatedAt DateTime         @default(now()) @map("gct_created_at") @db.Timestamptz(6)
+  cardTypeId        Int      @id @default(autoincrement()) @map("gct_id") @db.Integer
+  cardTypeName      String   @unique @map("gct_name") @db.VarChar(200)
+  cardTypeIsActive  Boolean  @default(true) @map("gct_is_active")
+  cardTypeCreatedBy Int      @map("gct_created_by") @db.Integer
+  cardTypeCreatedAt DateTime @default(now()) @map("gct_created_at") @db.Timestamptz(6)
 
-  createdBy      User                   @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
+  createdBy      User                    @relation(fields: [cardTypeCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gct_usr")
   cardValues     GiftCardValue[]
   assignments    GiftCardAssignment[]
   documentations GiftCardDocumentation[]
@@ -1977,13 +1979,13 @@ model GiftCardType {
 
 /// KNOWN DEBT (audit 2026-07-13): table name tbl_gcv_card_values violates Governance/04 (generic tbl_ prefix + domain-encoded "gc" prefix). Do not fix in place — live via PR #105. Propose a rename migration only if this table is touched for an unrelated schema change.
 model GiftCardValue {
-  cardValueId        Int          @id @default(autoincrement()) @map("gcv_id") @db.Integer
-  cardTypeId         Int          @map("gct_id") @db.Integer
-  cardValueAmount    Decimal      @map("gcv_amount") @db.Decimal(15, 2)
-  cardValueCurrency  String       @default("USD") @map("gcv_currency") @db.VarChar(10)
-  cardValueIsActive  Boolean      @default(true) @map("gcv_is_active")
-  cardValueCreatedBy Int          @map("gcv_created_by") @db.Integer
-  cardValueCreatedAt DateTime     @default(now()) @map("gcv_created_at") @db.Timestamptz(6)
+  cardValueId        Int      @id @default(autoincrement()) @map("gcv_id") @db.Integer
+  cardTypeId         Int      @map("gct_id") @db.Integer
+  cardValueAmount    Decimal  @map("gcv_amount") @db.Decimal(15, 2)
+  cardValueCurrency  String   @default("USD") @map("gcv_currency") @db.VarChar(10)
+  cardValueIsActive  Boolean  @default(true) @map("gcv_is_active")
+  cardValueCreatedBy Int      @map("gcv_created_by") @db.Integer
+  cardValueCreatedAt DateTime @default(now()) @map("gcv_created_at") @db.Timestamptz(6)
 
   cardType    GiftCardType         @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcv_gct")
   createdBy   User                 @relation(fields: [cardValueCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gcv_usr")
@@ -2012,12 +2014,12 @@ model GiftCardAssignment {
   assignmentCreatedBy    Int      @map("gca_created_by") @db.Integer
   assignmentCreatedAt    DateTime @default(now()) @map("gca_created_at") @db.Timestamptz(6)
 
-  country        Country                @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_gca_cou")
-  pool           GiftCardPool           @relation(fields: [poolId], references: [poolId], onDelete: Restrict, map: "fk_gca_gcp")
-  reason         GiftCardReason         @relation(fields: [reasonId], references: [reasonId], onDelete: Restrict, map: "fk_gca_gcr")
-  cardType       GiftCardType           @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gca_gct")
-  cardValue      GiftCardValue          @relation(fields: [cardValueId], references: [cardValueId], onDelete: Restrict, map: "fk_gca_gcv")
-  createdBy      User                   @relation(fields: [assignmentCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gca_usr")
+  country        Country                 @relation(fields: [countryId], references: [countryId], onDelete: Restrict, map: "fk_gca_cou")
+  pool           GiftCardPool            @relation(fields: [poolId], references: [poolId], onDelete: Restrict, map: "fk_gca_gcp")
+  reason         GiftCardReason          @relation(fields: [reasonId], references: [reasonId], onDelete: Restrict, map: "fk_gca_gcr")
+  cardType       GiftCardType            @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gca_gct")
+  cardValue      GiftCardValue           @relation(fields: [cardValueId], references: [cardValueId], onDelete: Restrict, map: "fk_gca_gcv")
+  createdBy      User                    @relation(fields: [assignmentCreatedBy], references: [userId], onDelete: Restrict, map: "fk_gca_usr")
   documentations GiftCardDocumentation[]
 
   @@map("tbl_gca_card_assignments")
@@ -2043,9 +2045,9 @@ model PrlPayrol {
   prlUpdatedAt   DateTime  @updatedAt @map("prl_updated_at") @db.Timestamptz(6)
   prlDeletedAt   DateTime? @map("prl_deleted_at") @db.Timestamptz(6)
 
-  createdByUser User                         @relation("prl_payrol_created_byTotbl_users", fields: [prlCreatedBy], references: [userId])
-  updatedByUser User                         @relation("prl_payrol_updated_byTotbl_users", fields: [prlUpdatedBy], references: [userId])
-  bonusImpacts  BniBonus[]
+  createdByUser  User                         @relation("prl_payrol_created_byTotbl_users", fields: [prlCreatedBy], references: [userId])
+  updatedByUser  User                         @relation("prl_payrol_updated_byTotbl_users", fields: [prlUpdatedBy], references: [userId])
+  bonusImpacts   BniBonus[]
   reimbursements TmrTeamMemberReimbursement[]
   oncalls        TmoTeamMemberOncall[]
   otherIncomes   OtherIncome[]
@@ -2194,15 +2196,15 @@ model BiuBonusUpload {
 
 /// KNOWN DEBT (audit 2026-07-13): table name tbl_gcd_card_documentation violates Governance/04 (generic tbl_ prefix + domain-encoded "gc" prefix). Do not fix in place — live via PR #105. Propose a rename migration only if this table is touched for an unrelated schema change.
 model GiftCardDocumentation {
-  documentationId  Int      @id @default(autoincrement()) @map("gcd_id") @db.Integer
-  assignmentId     Int      @map("gcd_assignment_id") @db.Integer
-  value            Decimal  @map("gcd_value") @db.Decimal(15, 2)
-  cardTypeId       Int      @map("gcd_card_type_id") @db.Integer
-  cardNumber       String   @map("gcd_card_number") @db.VarChar(100)
-  uploadId         Int      @map("gcd_upload_id") @db.Integer
-  amountNotSpent   Decimal? @map("gcd_amount_not_spent") @db.Decimal(15, 2)
-  createdBy        Int      @map("gcd_created_by") @db.Integer
-  createdAt        DateTime @default(now()) @map("gcd_created_at") @db.Timestamptz(6)
+  documentationId Int      @id @default(autoincrement()) @map("gcd_id") @db.Integer
+  assignmentId    Int      @map("gcd_assignment_id") @db.Integer
+  value           Decimal  @map("gcd_value") @db.Decimal(15, 2)
+  cardTypeId      Int      @map("gcd_card_type_id") @db.Integer
+  cardNumber      String   @map("gcd_card_number") @db.VarChar(100)
+  uploadId        Int      @map("gcd_upload_id") @db.Integer
+  amountNotSpent  Decimal? @map("gcd_amount_not_spent") @db.Decimal(15, 2)
+  createdBy       Int      @map("gcd_created_by") @db.Integer
+  createdAt       DateTime @default(now()) @map("gcd_created_at") @db.Timestamptz(6)
 
   assignment    GiftCardAssignment @relation(fields: [assignmentId], references: [assignmentId], onDelete: Restrict, map: "fk_gcd_gca")
   cardType      GiftCardType       @relation(fields: [cardTypeId], references: [cardTypeId], onDelete: Restrict, map: "fk_gcd_gct")
@@ -2248,53 +2250,53 @@ model GiftCardInventory {
 }
 
 model Laptop {
-  laptopId       Int       @id @default(autoincrement()) @map("lap_id") @db.Integer
-  serialNumber   String    @unique @map("lap_serial_number") @db.VarChar(100)
-  assetNumber    String?   @map("lap_asset_number") @db.VarChar(250)
-  model          String?   @map("lap_model") @db.VarChar(200)
-  brand          String?   @map("lap_brand") @db.VarChar(100)
-  code           String?   @map("lap_code") @db.VarChar(100)
-  ramGb          String?   @map("lap_ram_gb") @db.VarChar(20)
-  storageGb      String?   @map("lap_storage_gb") @db.VarChar(20)
-  region         String?   @map("lap_region") @db.VarChar(250)
-  purchaseDate   DateTime? @map("lap_purchase_date") @db.Date
-  po             String?   @map("lap_po") @db.VarChar(100)
-  usable         Boolean   @default(true) @map("lap_usable")
-  category       String?   @map("lap_category") @db.VarChar(250)
-  site           String?   @map("lap_site") @db.VarChar(250)
-  status         String    @default("Available") @map("lap_status") @db.VarChar(250)
-  comments       String?   @map("lap_comments") @db.Text
-  deviceName     String?   @map("lap_device_name") @db.VarChar(250)
-  osVersion      String?   @map("lap_os_version") @db.VarChar(50)
-  blueprintName  String?   @map("lap_blueprint_name") @db.VarChar(200)
-  tags           String[]  @map("lap_tags")
-  lastCheckIn    DateTime? @map("lap_last_check_in") @db.Timestamptz(6)
-  deleted        Boolean   @default(false) @map("lap_deleted")
-  createdBy      Int       @map("lap_created_by") @db.Integer
-  createdDate    DateTime  @default(now()) @map("lap_created_date") @db.Timestamptz
-  updatedBy      Int?      @map("lap_updated_by") @db.Integer
-  updatedDate    DateTime? @map("lap_updated_date") @db.Timestamptz
+  laptopId      Int       @id @default(autoincrement()) @map("lap_id") @db.Integer
+  serialNumber  String    @unique @map("lap_serial_number") @db.VarChar(100)
+  assetNumber   String?   @map("lap_asset_number") @db.VarChar(250)
+  model         String?   @map("lap_model") @db.VarChar(200)
+  brand         String?   @map("lap_brand") @db.VarChar(100)
+  code          String?   @map("lap_code") @db.VarChar(100)
+  ramGb         String?   @map("lap_ram_gb") @db.VarChar(20)
+  storageGb     String?   @map("lap_storage_gb") @db.VarChar(20)
+  region        String?   @map("lap_region") @db.VarChar(250)
+  purchaseDate  DateTime? @map("lap_purchase_date") @db.Date
+  po            String?   @map("lap_po") @db.VarChar(100)
+  usable        Boolean   @default(true) @map("lap_usable")
+  category      String?   @map("lap_category") @db.VarChar(250)
+  site          String?   @map("lap_site") @db.VarChar(250)
+  status        String    @default("Available") @map("lap_status") @db.VarChar(250)
+  comments      String?   @map("lap_comments") @db.Text
+  deviceName    String?   @map("lap_device_name") @db.VarChar(250)
+  osVersion     String?   @map("lap_os_version") @db.VarChar(50)
+  blueprintName String?   @map("lap_blueprint_name") @db.VarChar(200)
+  tags          String[]  @map("lap_tags")
+  lastCheckIn   DateTime? @map("lap_last_check_in") @db.Timestamptz(6)
+  deleted       Boolean   @default(false) @map("lap_deleted")
+  createdBy     Int       @map("lap_created_by") @db.Integer
+  createdDate   DateTime  @default(now()) @map("lap_created_date") @db.Timestamptz
+  updatedBy     Int?      @map("lap_updated_by") @db.Integer
+  updatedDate   DateTime? @map("lap_updated_date") @db.Timestamptz
 
-  assignments    LaptopAssignment[]
+  assignments LaptopAssignment[]
 
-  createdByUser  User  @relation("LapCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lap_created_by")
-  updatedByUser  User? @relation("LapUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lap_updated_by")
+  createdByUser User  @relation("LapCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict, map: "fk_lap_created_by")
+  updatedByUser User? @relation("LapUpdatedBy", fields: [updatedBy], references: [userId], onDelete: Restrict, map: "fk_lap_updated_by")
 
   @@map("lap_laptops")
   @@schema("ds")
 }
 
 model LaptopAssignment {
-  assignmentId  Int       @id @default(autoincrement()) @map("lpa_id") @db.Integer
-  laptopId      Int       @map("lpa_lap_id") @db.Integer
-  teamMemberId  Int?      @map("lpa_tm_id") @db.Integer
-  startDate     DateTime  @map("lpa_start_date") @db.Date
-  endDate       DateTime? @map("lpa_end_date") @db.Date
-  notes         String?   @map("lpa_notes") @db.VarChar(500)
-  createdBy     Int       @map("lpa_created_by") @db.Integer
-  createdDate   DateTime  @default(now()) @map("lpa_created_date") @db.Timestamptz
-  updatedBy     Int?      @map("lpa_updated_by") @db.Integer
-  updatedDate   DateTime? @map("lpa_updated_date") @db.Timestamptz
+  assignmentId Int       @id @default(autoincrement()) @map("lpa_id") @db.Integer
+  laptopId     Int       @map("lpa_lap_id") @db.Integer
+  teamMemberId Int?      @map("lpa_tm_id") @db.Integer
+  startDate    DateTime  @map("lpa_start_date") @db.Date
+  endDate      DateTime? @map("lpa_end_date") @db.Date
+  notes        String?   @map("lpa_notes") @db.VarChar(500)
+  createdBy    Int       @map("lpa_created_by") @db.Integer
+  createdDate  DateTime  @default(now()) @map("lpa_created_date") @db.Timestamptz
+  updatedBy    Int?      @map("lpa_updated_by") @db.Integer
+  updatedDate  DateTime? @map("lpa_updated_date") @db.Timestamptz
 
   laptop        Laptop      @relation(fields: [laptopId], references: [laptopId], onDelete: Restrict, map: "fk_lpa_lap")
   teamMember    TeamMember? @relation(fields: [teamMemberId], references: [teamMemberId], onDelete: Restrict, map: "fk_lpa_tm")
@@ -2324,16 +2326,16 @@ model SopLibraryItem {
 }
 
 model StoredProcedure {
-  spId            Int       @id @default(autoincrement()) @map("spr_id")
-  spSchema        String    @map("spr_schema") @db.VarChar(50)
-  spName          String    @map("spr_name") @db.VarChar(100)
-  spLabel         String    @map("spr_label") @db.VarChar(200)
-  spDescription   String?   @map("spr_description") @db.VarChar(2000)
-  spActive        Boolean   @default(true) @map("spr_active")
-  spCreatedAt     DateTime  @default(now()) @map("spr_created_at") @db.Timestamptz(6)
-  spCreatedBy     Int       @map("spr_created_by")
-  spUpdatedAt     DateTime? @map("spr_updated_at") @db.Timestamptz(6)
-  spUpdatedBy     Int?      @map("spr_updated_by")
+  spId          Int       @id @default(autoincrement()) @map("spr_id")
+  spSchema      String    @map("spr_schema") @db.VarChar(50)
+  spName        String    @map("spr_name") @db.VarChar(100)
+  spLabel       String    @map("spr_label") @db.VarChar(200)
+  spDescription String?   @map("spr_description") @db.VarChar(2000)
+  spActive      Boolean   @default(true) @map("spr_active")
+  spCreatedAt   DateTime  @default(now()) @map("spr_created_at") @db.Timestamptz(6)
+  spCreatedBy   Int       @map("spr_created_by")
+  spUpdatedAt   DateTime? @map("spr_updated_at") @db.Timestamptz(6)
+  spUpdatedBy   Int?      @map("spr_updated_by")
 
   @@unique([spSchema, spName], map: "uq_spr_schema_name")
   @@index([spActive], map: "idx_spr_active")
@@ -2392,24 +2394,24 @@ model PerformanceCase {
   directorId                 Int?      @map("pmc_director_id")
   hrPartnerId                Int?      @map("pmc_hr_partner_id")
   managerName                String?   @map("pmc_manager_name") @db.VarChar(255)
-  managerEmail                String?   @map("pmc_manager_email") @db.VarChar(255)
-  rcaSignoffBy                Int?      @map("pmc_rca_signoff_by")
-  rcaSignoffDate              DateTime? @map("pmc_rca_signoff_date") @db.Timestamptz(6)
-  closureSignoffBy            Int?      @map("pmc_closure_signoff_by")
-  closureSignoffDate          DateTime? @map("pmc_closure_signoff_date") @db.Timestamptz(6)
-  calibrationRequired         Boolean   @default(false) @map("pmc_calibration_required")
-  calibrationCompletedDate    DateTime? @map("pmc_calibration_completed_date") @db.Date
-  linkedPriorCaseId           Int?      @map("pmc_linked_prior_case_id")
-  clientConfirmedImprovement  Boolean?  @map("pmc_client_confirmed_improvement")
-  clientConfirmedComment      String?   @map("pmc_client_confirmed_comment")
-  metricImprovedVsBaseline    Boolean?  @map("pmc_metric_improved")
-  metricImprovedComment       String?   @map("pmc_metric_improved_comment")
-  noNewEscalationLast2Weeks   Boolean?  @map("pmc_no_new_escalation")
-  noNewEscalationComment      String?   @map("pmc_no_new_escalation_comment")
+  managerEmail               String?   @map("pmc_manager_email") @db.VarChar(255)
+  rcaSignoffBy               Int?      @map("pmc_rca_signoff_by")
+  rcaSignoffDate             DateTime? @map("pmc_rca_signoff_date") @db.Timestamptz(6)
+  closureSignoffBy           Int?      @map("pmc_closure_signoff_by")
+  closureSignoffDate         DateTime? @map("pmc_closure_signoff_date") @db.Timestamptz(6)
+  calibrationRequired        Boolean   @default(false) @map("pmc_calibration_required")
+  calibrationCompletedDate   DateTime? @map("pmc_calibration_completed_date") @db.Date
+  linkedPriorCaseId          Int?      @map("pmc_linked_prior_case_id")
+  clientConfirmedImprovement Boolean?  @map("pmc_client_confirmed_improvement")
+  clientConfirmedComment     String?   @map("pmc_client_confirmed_comment")
+  metricImprovedVsBaseline   Boolean?  @map("pmc_metric_improved")
+  metricImprovedComment      String?   @map("pmc_metric_improved_comment")
+  noNewEscalationLast2Weeks  Boolean?  @map("pmc_no_new_escalation")
+  noNewEscalationComment     String?   @map("pmc_no_new_escalation_comment")
   createdBy                  Int       @map("pmc_created_by")
-  createdDate                 DateTime  @default(now()) @map("pmc_created_at") @db.Timestamptz(6)
+  createdDate                DateTime  @default(now()) @map("pmc_created_at") @db.Timestamptz(6)
   updatedBy                  Int?      @map("pmc_last_updated_by")
-  updatedDate                 DateTime? @map("pmc_last_updated_at") @db.Timestamptz(6)
+  updatedDate                DateTime? @map("pmc_last_updated_at") @db.Timestamptz(6)
 
   phases              PerformanceCasePhase[]
   checkIns            PerformanceCaseCheckIn[]
@@ -2421,16 +2423,16 @@ model PerformanceCase {
 }
 
 model PerformanceCasePhase {
-  phasePkId       Int       @id @default(autoincrement()) @map("pcp_id")
-  caseId          Int       @map("pcp_case_id")
-  phase           String    @map("pcp_phase") @db.VarChar(20)
-  status          String    @default("NOT_STARTED") @map("pcp_status") @db.VarChar(20)
-  startedDate      DateTime? @map("pcp_started_date") @db.Timestamptz(6)
-  completedDate    DateTime? @map("pcp_completed_date") @db.Timestamptz(6)
-  completedBy      Int?      @map("pcp_completed_by")
-  etaDate          DateTime? @map("pcp_eta_date") @db.Date
-  fields          Json      @default("{}") @map("pcp_fields")
-  createdDate      DateTime  @default(now()) @map("pcp_created_at") @db.Timestamptz(6)
+  phasePkId     Int       @id @default(autoincrement()) @map("pcp_id")
+  caseId        Int       @map("pcp_case_id")
+  phase         String    @map("pcp_phase") @db.VarChar(20)
+  status        String    @default("NOT_STARTED") @map("pcp_status") @db.VarChar(20)
+  startedDate   DateTime? @map("pcp_started_date") @db.Timestamptz(6)
+  completedDate DateTime? @map("pcp_completed_date") @db.Timestamptz(6)
+  completedBy   Int?      @map("pcp_completed_by")
+  etaDate       DateTime? @map("pcp_eta_date") @db.Date
+  fields        Json      @default("{}") @map("pcp_fields")
+  createdDate   DateTime  @default(now()) @map("pcp_created_at") @db.Timestamptz(6)
 
   case PerformanceCase @relation(fields: [caseId], references: [caseId])
 
@@ -2442,13 +2444,13 @@ model PerformanceCasePhase {
 model PerformanceCaseCheckIn {
   checkInId               Int      @id @default(autoincrement()) @map("pcc_id")
   caseId                  Int      @map("pcc_case_id")
-  checkInDate              DateTime @map("pcc_checkin_date") @db.Date
+  checkInDate             DateTime @map("pcc_checkin_date") @db.Date
   tmUpdate                String?  @map("pcc_tm_update")
-  managerFeedbackReceived   Boolean  @default(false) @map("pcc_manager_feedback_received")
+  managerFeedbackReceived Boolean  @default(false) @map("pcc_manager_feedback_received")
   status                  String   @map("pcc_status") @db.VarChar(20)
   emailSent               Boolean  @default(false) @map("pcc_email_sent")
   createdBy               Int      @map("pcc_created_by")
-  createdDate              DateTime @default(now()) @map("pcc_created_at") @db.Timestamptz(6)
+  createdDate             DateTime @default(now()) @map("pcc_created_at") @db.Timestamptz(6)
 
   case PerformanceCase @relation(fields: [caseId], references: [caseId])
 
@@ -2457,12 +2459,12 @@ model PerformanceCaseCheckIn {
 }
 
 model PerformanceCasePostClosureCheckin {
-  checkinId    Int       @id @default(autoincrement()) @map("ppc_id")
-  caseId       Int       @map("ppc_case_id")
-  checkpoint   String    @map("ppc_checkpoint") @db.VarChar(10)
-  dueDate      DateTime  @map("ppc_due_date") @db.Date
-  status       String?   @map("ppc_status") @db.VarChar(15)
-  checkedDate   DateTime? @map("ppc_checked_date") @db.Date
+  checkinId   Int       @id @default(autoincrement()) @map("ppc_id")
+  caseId      Int       @map("ppc_case_id")
+  checkpoint  String    @map("ppc_checkpoint") @db.VarChar(10)
+  dueDate     DateTime  @map("ppc_due_date") @db.Date
+  status      String?   @map("ppc_status") @db.VarChar(15)
+  checkedDate DateTime? @map("ppc_checked_date") @db.Date
 
   case PerformanceCase @relation(fields: [caseId], references: [caseId])
 
@@ -2472,12 +2474,12 @@ model PerformanceCasePostClosureCheckin {
 }
 
 model PerformanceCaseDocument {
-  documentId     Int      @id @default(autoincrement()) @map("pfc_id")
-  caseId         Int      @map("pfc_case_id")
-  uploadId       Int      @map("pfc_upload_id")
-  documentLabel   String?  @map("pfc_document_label") @db.VarChar(255)
-  createdBy      Int      @map("pfc_created_by")
-  createdDate     DateTime @default(now()) @map("pfc_created_at") @db.Timestamptz(6)
+  documentId    Int      @id @default(autoincrement()) @map("pfc_id")
+  caseId        Int      @map("pfc_case_id")
+  uploadId      Int      @map("pfc_upload_id")
+  documentLabel String?  @map("pfc_document_label") @db.VarChar(255)
+  createdBy     Int      @map("pfc_created_by")
+  createdDate   DateTime @default(now()) @map("pfc_created_at") @db.Timestamptz(6)
 
   case   PerformanceCase @relation(fields: [caseId], references: [caseId])
   upload Upload          @relation(fields: [uploadId], references: [uploadId], onDelete: Restrict)
@@ -2487,16 +2489,16 @@ model PerformanceCaseDocument {
 }
 
 model WorkdayBoostSync {
-  syncId          Int       @id @default(autoincrement()) @map("wko_id")
-  caseId          Int       @map("wko_case_id")
-  momentType      String    @map("wko_moment_type") @db.VarChar(20)
-  teamMemberWdid   String    @map("wko_team_member_wdid") @db.VarChar(50)
-  payload         Json      @map("wko_payload")
-  syncStatus      String    @default("PENDING") @map("wko_sync_status") @db.VarChar(10)
-  attempts        Int       @default(0) @map("wko_attempts")
-  lastError        String?   @map("wko_last_error")
-  createdDate      DateTime  @default(now()) @map("wko_created_at") @db.Timestamptz(6)
-  syncedDate       DateTime? @map("wko_synced_at") @db.Timestamptz(6)
+  syncId         Int       @id @default(autoincrement()) @map("wko_id")
+  caseId         Int       @map("wko_case_id")
+  momentType     String    @map("wko_moment_type") @db.VarChar(20)
+  teamMemberWdid String    @map("wko_team_member_wdid") @db.VarChar(50)
+  payload        Json      @map("wko_payload")
+  syncStatus     String    @default("PENDING") @map("wko_sync_status") @db.VarChar(10)
+  attempts       Int       @default(0) @map("wko_attempts")
+  lastError      String?   @map("wko_last_error")
+  createdDate    DateTime  @default(now()) @map("wko_created_at") @db.Timestamptz(6)
+  syncedDate     DateTime? @map("wko_synced_at") @db.Timestamptz(6)
 
   @@map("wko_workday_boost_sync")
   @@schema("es")

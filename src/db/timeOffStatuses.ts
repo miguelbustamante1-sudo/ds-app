@@ -37,19 +37,26 @@ export async function getStatusByName(statusName: string): Promise<TimeOffStatus
 /**
  * Create a new status
  */
-export async function createStatus(statusName: string): Promise<TimeOffStatus> {
+export async function createStatus(
+  statusName: string,
+  statusShortName?: string
+): Promise<TimeOffStatus> {
   return await prisma.timeOffStatus.create({
-    data: { statusName },
+    data: { statusName, ...(statusShortName !== undefined && { statusShortName }) },
   });
 }
 
 /**
  * Update a status
  */
-export async function updateStatus(id: number, statusName: string): Promise<TimeOffStatus | null> {
+export async function updateStatus(
+  id: number,
+  statusName: string,
+  statusShortName?: string
+): Promise<TimeOffStatus | null> {
   return await prisma.timeOffStatus.update({
     where: { statusId: id },
-    data: { statusName },
+    data: { statusName, ...(statusShortName !== undefined && { statusShortName }) },
   });
 }
 
