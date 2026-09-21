@@ -18,6 +18,7 @@ import { auditOrchestrator } from '../../services/audit/AuditOrchestrator';
 import { resolveVacationPeriod } from '../../services/timeoff/utils/resolveVacationPeriod';
 import { cancelSplitLeg } from '../../services/timeoff/split/CancelSplitLeg';
 import { validateSplitLegOrdering, syncSplitParentStartDate } from '../../services/timeoff/split/SyncSplitParentStartDate';
+import { relateSplitParentChild } from '../../services/timeoff/split/RelateSplitParentChild';
 import { AppError } from '../../errors/AppError';
 import { getActingAsUsers } from '../../services/users/queries/getActingAsUsers';
 
@@ -491,6 +492,44 @@ router.patch('/:timeOffId/cancel', requirePermission('TimeOffException', 'create
   } catch (err) {
     console.error('[Exception] Error cancelling time-off:', err);
     res.status(500).json({ error: 'Failed to cancel time-off' });
+  }
+});
+
+// POST /exception/:parentId/relate-split — admin action: relate two existing,
+// previously-unlinked records as the two legs of an existing 15-day parent.
+router.post('/:parentId/relate-split', requirePermission('TimeOffException', 'create'), resolveAuthUser, async (req, res: Response) => {
+  try {
+    const parentId = parseIdParam(req.params.parentId);
+    if (parentId === null) {
+      return res.status(400).json({ error: 'Invalid parent time-off id' });
+    }
+
+    const { legAId, legBId } = req.body as { legAId?: number; legBId?: number };
+    if (!legAId || typeof legAId !== 'number') {
+      return res.status(400).json({ error: 'legAId is required' });
+    }
+    if (!legBId || typeof legBId !== 'number') {
+      return res.status(400).json({ error: 'legBId is required' });
+    }
+
+    const { resolvedUserId: userId } = req as ResolvedAuthRequest;
+    const relatedByEmail = (req as ResolvedAuthRequest).user?.email ?? 'unknown';
+
+    const result = await relateSplitParentChild({
+      parentId,
+      legAId,
+      legBId,
+      relatedByUserId: userId,
+      relatedByEmail,
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    console.error('[Exception] Error relating split parent/child:', err);
+    res.status(500).json({ error: 'Failed to relate split parent/child' });
   }
 });
 
