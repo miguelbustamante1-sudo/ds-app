@@ -27,10 +27,9 @@ import { SVVacationSplitMode, type SplitPeriod } from './SVVacationSplitMode';
 import { useToast } from '@/hooks/use-toast';
 import { detectOverlap } from '../utils/overlapDetection';
 import { isElSalvadorVacation } from '../utils/elSalvadorVacationValidation';
-import { computeCurrentPeriod, getNextAnniversaryDate } from '../utils/anniversaryWindow';
+import { computeCurrentPeriod } from '../utils/anniversaryWindow';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
-import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
 import { validateGTPersonalDays, getPersonalDaysUsedInMonth } from '../utils/guatemalaPersonalDaysValidation';
 
 interface TimeOffStatus {
@@ -57,10 +56,9 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
-  workdayBalance: { vacation: number; rawVacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
 }
 
-export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance }: TimeOffRequestFormProps) {
+export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffRequestFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
@@ -245,20 +243,8 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     selectedCategory?.categoryName ?? ''
   );
 
-  // Workday balance validation — for GT vacation, add accrued days (1.25/month since 2025-12-31)
-  const isGTVacation = userCountryIso === 'GT' && selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
   const isVacation = selectedCategory?.categoryName?.toLowerCase().trim() === 'vacation';
   const userMemberStartDate = userHireDate ?? userStartDate;
-  const nextAnniversaryDate = userMemberStartDate ? getNextAnniversaryDate(userMemberStartDate) : null;
-  const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
-  const anniversaryBonus = isVacation && !isGTVacation && startDate && nextAnniversaryDate && startDate >= nextAnniversaryDate ? 15 : 0;
-  const totalVacationAdjustment = gtAccruedDays + anniversaryBonus;
-  const balanceForValidation = workdayBalance && totalVacationAdjustment > 0
-    ? { ...workdayBalance, vacation: workdayBalance.vacation + totalVacationAdjustment }
-    : workdayBalance;
-  const balanceValidation = selectedCategory && effectiveDays > 0
-    ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, balanceForValidation)
-    : { valid: true, errorMessage: null, available: 0 };
 
   const gtPersonalDaysWarning = selectedCategory && effectiveDays > 0 && startDate
     ? validateGTPersonalDays(
@@ -284,7 +270,9 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
   // Max days per request validation
   const exceedsMaxDays = maxDays > 0 && effectiveDays > maxDays;
 
-  // Save button enabled state - block when overlap exists, exceeds attrition date, SV validation fails, or insufficient balance (days-before rule is advisory only — routes to exception authorization on submit)
+  // Save button enabled state - block when overlap exists, exceeds attrition date, or SV validation fails
+  // (days-before rule is advisory only — routes to exception authorization on submit; vacation/personal-day
+  // balance is advisory only — matches the supervisor flow, does not block submission)
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -294,7 +282,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
     !exceedsAttritionDate &&
     !isStartDateWeekend &&
     !isStartDateHoliday &&
-    balanceValidation.valid &&
     !exceedsMaxDays &&
     !gtPersonalDaysWarning?.showLimitWarning &&
     !!comment?.trim() &&
@@ -655,14 +642,6 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess, workdayBalance
             <AlertDescription>
               Time off cannot extend beyond your end date ({format(userEndDate, 'dd-MMM-yyyy')}).
             </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Workday Balance Warning */}
-        {!balanceValidation.valid && balanceValidation.errorMessage && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
           </Alert>
         )}
 

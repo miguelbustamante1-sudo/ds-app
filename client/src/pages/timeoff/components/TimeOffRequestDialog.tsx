@@ -7,13 +7,10 @@ import {
 import type { TimeOffWithDetailsDTO } from '@shared/dto/TimeOff';
 import { TimeOffRequestForm } from './TimeOffRequestForm';
 
-type WorkdayBalance = { vacation: number; rawVacation: number; personalDays: number; personalDaysUsedThisMonth: number } | null;
-
 interface TimeOffRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingTimeOffs: TimeOffWithDetailsDTO[];
-  workdayBalance: WorkdayBalance;
   onSuccess: () => void;
 }
 
@@ -21,7 +18,6 @@ export function TimeOffRequestDialog({
   open,
   onOpenChange,
   existingTimeOffs,
-  workdayBalance,
   onSuccess,
 }: TimeOffRequestDialogProps) {
   const handleSuccess = () => {
@@ -39,7 +35,6 @@ export function TimeOffRequestDialog({
         <TimeOffRequestForm
           existingTimeOffs={existingTimeOffs}
           onSuccess={handleSuccess}
-          workdayBalance={workdayBalance}
         />
       </DialogContent>
     </Dialog>

@@ -17,7 +17,6 @@ import { validateNoOverlap } from './rules/overlapPrevention.rule';
 import { validateNoWeekendStart } from './rules/noWeekendStart.rule';
 import { validateElSalvadorVacation } from './rules/elSalvadorVacation.rule';
 import { validateDaysBefore } from './rules/daysBefore.rule';
-import { validateWorkdayBalance } from './rules/workdayBalance.rule';
 import { validateSwappedHolidayNotInRange, validateReplacementDayNotInRange } from './rules/holidaySwap.rule';
 import { validateNoHolidayStart } from './rules/noHolidayStart.rule';
 import { validateMaxDays } from './rules/maxDays.rule';
@@ -135,15 +134,6 @@ export async function validateTimeOff(
   const replacementDayResult = validateReplacementDayNotInRange(input, context);
   if (!replacementDayResult.valid && replacementDayResult.error) {
     errors.push(replacementDayResult.error);
-  }
-
-  // Rule 9: Workday balance (Vacation / Personal Day only)
-  // Skipped for supervisor requests — supervisors may override balance as an advisory.
-  if (!input.isSupervisorRequest) {
-    const balanceResult = validateWorkdayBalance(context.categoryName, totalDays, context.workdayBalance);
-    if (!balanceResult.valid && balanceResult.error) {
-      errors.push(balanceResult.error);
-    }
   }
 
   return {
