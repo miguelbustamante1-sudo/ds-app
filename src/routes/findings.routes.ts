@@ -49,4 +49,18 @@ router.post('/run', requirePermission('Findings', 'create'), async (req: Authent
   }
 });
 
+router.post('/run-rules', requirePermission('Findings', 'create'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await findingsOrchestrator.runStateRules(req.user!.email);
+    res.status(201).json({ data: result });
+  } catch (err: unknown) {
+    if (err instanceof AppError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    res.status(500).json({ error: message });
+  }
+});
+
 export default router;

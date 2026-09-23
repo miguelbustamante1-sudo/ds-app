@@ -866,12 +866,12 @@ CROSS JOIN (VALUES
 ON CONFLICT DO NOTHING;
 
 -- 20. Watched Entity and Fields for Change Detection Platform
--- Seed the 'project' entity type and its 13 watched fields
+-- Seed the 'project' entity type and its 15 watched fields
 INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at, cde_created_by)
   VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now(), 'system_seed')
   ON CONFLICT (cde_entity_type) DO NOTHING;
 
--- 13 watched fields for project entity type (field_id auto-increments, so just INSERT)
+-- 15 watched fields for project entity type (field_id auto-increments, so just INSERT)
 -- Field paths must match exactly with snp_payload JSON keys in es.snp_entity_snapshot
 INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at, cdf_created_by)
 VALUES
@@ -887,7 +887,11 @@ VALUES
   ('project', 'line_of_business',      'Line of Business',       'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
   ('project', 'practice',              'Practice',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
   ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed')
+  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
+  -- Added 2026-09-23 via Object & Field Manager. Project_Underrun__c is intentionally inactive:
+  -- only the state rules engine (rule 3) evaluates it, the change engine does not.
+  ('project', 'Project_Underrun__c',   'Project Underrun',       'number',  'exact',  NULL, true,  'material', CURRENT_DATE, false, now(), 'system_seed'),
+  ('project', 'pse__Is_Billable__c',   'Project Billable',       'boolean', 'exact',  NULL, true,  'material', CURRENT_DATE, true,  now(), 'system_seed')
 ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
 
 -- 21. Baseline Approved States for Change Detection Platform
@@ -899,12 +903,12 @@ ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
 -- into the snapshot, silently erasing the drift the detection run is meant to find.
 INSERT INTO ds.aps_approved_state (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at)
 VALUES
-  ('project', 'PR-004121', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": "<Multiple From File>", "start_date": "2026-01-01", "project_name": "TELUS CIO (SPACE) Digitization Campus - 2026 (Andre Medeiros)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-004141', '{"sow": "320808 (PO # 7010141648)", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-15", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2025-12-16", "project_name": "Mastercard - Prepaid Management Services SOW 2 Dev and QA - 2026", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "telus_business_unit": null}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-004156', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-01-01", "project_name": "TELUS TCS - SOW 2026 - Smart Home Security - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "José Ruiz Fuentes (10100302)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-005460', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-03-02", "project_name": "TELUS CIO - Shopping Cart-Project - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-005988', '{"sow": null, "region": "All TELUS Digital Solutions", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2027-03-05", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-07-01", "project_name": "TELUS - Personalization and Publishing Products (Dinesh)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-006119', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-09-01", "project_name": "TELUS TCS- Kim-Bernard-Paula-Koodo Digital-2026- TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now())
+  ('project', 'PR-004121', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": "<Multiple From File>", "start_date": "2026-01-01", "project_name": "TELUS CIO (SPACE) Digitization Campus - 2026 (Andre Medeiros)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "25000", "pse__Is_Billable__c": "true", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-004141', '{"sow": "320808 (PO # 7010141648)", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-15", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2025-12-16", "project_name": "Mastercard - Prepaid Management Services SOW 2 Dev and QA - 2026", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "0", "pse__Is_Billable__c": "true", "telus_business_unit": null}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-004156', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-01-01", "project_name": "TELUS TCS - SOW 2026 - Smart Home Security - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "José Ruiz Fuentes (10100302)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "150000", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-005460', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-03-02", "project_name": "TELUS CIO - Shopping Cart-Project - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "80000", "pse__Is_Billable__c": "true", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-005988', '{"sow": null, "region": "All TELUS Digital Solutions", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2027-03-05", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-07-01", "project_name": "TELUS - Personalization and Publishing Products (Dinesh)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "0", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
+  ('project', 'PR-006119', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-09-01", "project_name": "TELUS TCS- Kim-Bernard-Paula-Koodo Digital-2026- TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "42000", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now())
 ON CONFLICT (cde_entity_type, aps_entity_id) DO NOTHING;
 
 -- Findings — Change Detection Platform (added 2026-09-18)
@@ -928,12 +932,118 @@ END $$;
 -- Open-finding dedup guarantee (Prisma schema DSL cannot express partial indexes).
 -- Keyed on the columns, not the fingerprint: the fingerprint embeds new_value, so it
 -- changes when the drifted value changes and cannot enforce one open finding per field.
--- Mirrored from prisma/scripts/replace_fnd_open_dedup_index.sql.
+-- rul_id separates state-rule findings from change findings (always NULL rul_id) so the
+-- two engines never collide on the same field.
+-- Mirrored from prisma/scripts/rekey_fnd_open_dedup_index_by_rule.sql.
 DROP INDEX IF EXISTS ds.uq_fnd_open_fingerprint;
+DROP INDEX IF EXISTS ds.uq_fnd_open_entity_field;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_entity_field
-    ON ds.fnd_findings (cde_entity_type, fnd_entity_id, cdf_field_path)
+    ON ds.fnd_findings (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id)
     NULLS NOT DISTINCT
     WHERE status = 'open';
+
+-- State detection rules (added 2026-09-23)
+-- Must run AFTER section 20: fk_rul_cde references ds.cde_watched_entities.
+-- Explicit rul_id so fnd_findings.rul_id stays stable across fresh setups; the table has no
+-- natural unique key, so the PK is the guard. setval moves the sequence past the seeded ids.
+INSERT INTO ds.rul_detection_rules (rul_id, cde_entity_type, rul_class, rul_type, rul_definition, rul_severity, rul_version, rul_active, rul_created_by)
+VALUES
+  (1, 'project', 'state', 'required_not_null', '{"field": "director"}'::jsonb,                                      'medium', 1, true, 'system_seed'),
+  (2, 'project', 'state', 'required_empty',    '{"field": "telus_business_unit"}'::jsonb,                           'medium', 1, false, 'system_seed'),
+  (3, 'project', 'state', 'range_check',       '{"field": "Project_Underrun__c", "min": 0, "max": 1000000}'::jsonb, 'medium', 1, true, 'system_seed'),
+  (4, 'project', 'state', 'boolean_equals',    '{"field": "pse__Is_Billable__c", "expected": true}'::jsonb,         'medium', 1, true, 'system_seed')
+ON CONFLICT (rul_id) DO NOTHING;
+SELECT setval('ds.rul_detection_rules_rul_id_seq', GREATEST((SELECT MAX(rul_id) FROM ds.rul_detection_rules), 1));
+
+-- ds.fn_run_state_rules() — called by POST /api/findings/run-rules.
+-- Mirrored from prisma/scripts/fn_run_state_rules.sql (taken from pg_get_functiondef).
+-- Its ON CONFLICT target must match uq_fnd_open_entity_field above.
+CREATE OR REPLACE FUNCTION ds.fn_run_state_rules()
+ RETURNS TABLE(entity_id text, field text, rule_type text, current_value text, finding_action text)
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    r RECORD;
+    s RECORD;
+    v_field      text;
+    v_min        numeric;
+    v_max        numeric;
+    v_expected   boolean;
+    v_value      text;
+    v_violated   boolean;
+    v_fingerprint text;
+BEGIN
+    FOR r IN
+        SELECT rul_id, cde_entity_type, rul_type, rul_definition, rul_severity, rul_version
+        FROM ds.rul_detection_rules
+        WHERE rul_class = 'state' AND rul_active = true
+    LOOP
+        v_field := r.rul_definition ->> 'field';
+
+        FOR s IN
+            SELECT snp_entity_id, snp_payload
+            FROM es.snp_entity_snapshot
+            WHERE snp_entity_type = r.cde_entity_type
+        LOOP
+            v_value    := s.snp_payload ->> v_field;
+            v_violated := false;
+
+            IF r.rul_type = 'required_not_null' THEN
+                v_violated := (v_value IS NULL OR v_value = '');
+
+            ELSIF r.rul_type = 'required_empty' THEN
+                v_violated := (v_value IS NOT NULL AND v_value <> '');
+
+            ELSIF r.rul_type = 'range_check' THEN
+                v_min := (r.rul_definition ->> 'min')::numeric;
+                v_max := (r.rul_definition ->> 'max')::numeric;
+                IF v_value IS NOT NULL AND v_value <> '' THEN
+                    v_violated := (v_value::numeric < v_min OR v_value::numeric > v_max);
+                END IF;
+                -- a missing value doesn't trip a range check — nothing to compare.
+                -- required_not_null is the rule that should own "must be filled."
+
+            ELSIF r.rul_type = 'boolean_equals' THEN
+                v_expected := (r.rul_definition ->> 'expected')::boolean;
+                IF v_value IS NOT NULL AND v_value <> '' THEN
+                    v_violated := (v_value::boolean IS DISTINCT FROM v_expected);
+                ELSE
+                    v_violated := true; -- missing on a must-equal check counts as a violation
+                END IF;
+            END IF;
+
+            IF v_violated THEN
+                v_fingerprint := r.cde_entity_type || ':' || s.snp_entity_id || ':rule:' || r.rul_id;
+
+                INSERT INTO ds.fnd_findings
+                    (fnd_fingerprint, cde_entity_type, fnd_entity_id, cdf_field_path,
+                     rul_id, rul_version, change_type, new_value, severity, status)
+                VALUES
+                    (v_fingerprint, r.cde_entity_type, s.snp_entity_id, v_field,
+                     r.rul_id, r.rul_version, NULL, to_jsonb(v_value), r.rul_severity, 'open')
+                ON CONFLICT (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id) WHERE status = 'open'
+                DO UPDATE SET last_seen = now(), occurrence_count = fnd_findings.occurrence_count + 1;
+
+                -- Explicit casts: rul_type is varchar(100) and RETURN QUERY requires exact types.
+                RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding opened/updated'::text;
+            ELSE
+                UPDATE ds.fnd_findings
+                   SET status      = 'self_resolved',
+                       resolved_at = now(),
+                       resolution  = 'auto: rule no longer violated'
+                 WHERE cde_entity_type = r.cde_entity_type
+                   AND fnd_entity_id   = s.snp_entity_id
+                   AND rul_id          = r.rul_id
+                   AND status          = 'open';
+
+                IF FOUND THEN
+                    RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding self-resolved'::text;
+                END IF;
+            END IF;
+        END LOOP;
+    END LOOP;
+END;
+$function$;
 
 -- WatchedFields — Object/Field Manager screen (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)

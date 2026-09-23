@@ -29,7 +29,13 @@ import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { apiGet, apiPost } from '@/lib/api';
-import type { FindingDto, FindingStatusCountDto, RunFindingsResultDto } from '@shared/dto';
+import { describeRule } from '@/lib/detection-rules';
+import type {
+  FindingDto,
+  FindingStatusCountDto,
+  RunFindingsResultDto,
+  RunStateRulesResultDto,
+} from '@shared/dto';
 
 const CHANGE_TYPE_VARIANT: Record<string, 'success' | 'destructive' | 'warning'> = {
   added: 'success',
@@ -41,6 +47,7 @@ const STATUS_VARIANT: Record<string, 'primary' | 'success' | 'secondary'> = {
   open: 'primary',
   self_resolved: 'success',
   superseded: 'secondary',
+  rule_retired: 'secondary',
 };
 
 // Statuses are whatever the data contains, so unknown values still render sensibly.
@@ -52,6 +59,7 @@ export function FindingsPage() {
   const [findings, setFindings] = useState<FindingDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
+  const [isRunningRules, setIsRunningRules] = useState(false);
   const [lastRunSummary, setLastRunSummary] = useState<RunFindingsResultDto | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>('open');
   const [statusCounts, setStatusCounts] = useState<FindingStatusCountDto[]>([]);
@@ -118,6 +126,26 @@ export function FindingsPage() {
     }
   };
 
+  const handleRunRules = async () => {
+    setIsRunningRules(true);
+    try {
+      const result = await apiPost<RunStateRulesResultDto>('/api/findings/run-rules', {});
+      toast({
+        title: 'Success',
+        description: `Rules run completed: ${result.violationsFound} violations found, ${result.findingsResolved} resolved`,
+      });
+      await Promise.all([loadFindings(statusFilter), loadStatuses()]);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: (error instanceof Error && error.message) || 'Failed to run rules',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRunningRules(false);
+    }
+  };
+
   const columns = useMemo<ColumnDef<FindingDto>[]>(
     () => [
       {
@@ -128,16 +156,25 @@ export function FindingsPage() {
         meta: { headerTitle: 'Project ID', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
-        accessorKey: 'fieldDisplayName',
+        id: 'fieldDisplayName',
+        accessorFn: (row) => row.fieldDisplayName ?? row.cdfFieldPath,
         header: ({ column }) => <DataGridColumnHeader column={column} title="Field" />,
-        cell: ({ getValue }) => getValue() || '—',
+        cell: ({ getValue }) => (getValue() as string | null) || '—',
         size: 160,
         meta: { headerTitle: 'Field', skeleton: <Skeleton className="h-4 w-32" /> },
       },
       {
         accessorKey: 'changeType',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Type" />,
-        cell: ({ getValue }) => {
+        cell: ({ row, getValue }) => {
+          // Rule-based findings (fn_run_state_rules) carry a rul_id and no change type.
+          if (row.original.rulId !== null) {
+            return (
+              <Badge variant="info" appearance="light">
+                Rule
+              </Badge>
+            );
+          }
           const value = getValue() as string | null;
           if (!value) return <span className="text-muted-foreground">—</span>;
           return (
@@ -148,6 +185,25 @@ export function FindingsPage() {
         },
         size: 110,
         meta: { headerTitle: 'Type', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        id: 'rule',
+        accessorFn: (row) => (row.rulType ? describeRule(row.rulType, row.rulDefinition) : null),
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Rule" />,
+        cell: ({ row, getValue }) => {
+          const description = getValue() as string | null;
+          if (!description) return <span className="text-muted-foreground">—</span>;
+          return (
+            <div>
+              <div>{description}</div>
+              <div className="text-xs text-muted-foreground">
+                Rule #{row.original.rulId} · {row.original.rulType}
+              </div>
+            </div>
+          );
+        },
+        size: 220,
+        meta: { headerTitle: 'Rule', skeleton: <Skeleton className="h-4 w-40" /> },
       },
       {
         accessorKey: 'oldValue',
@@ -164,9 +220,13 @@ export function FindingsPage() {
       {
         accessorKey: 'newValue',
         header: ({ column }) => <DataGridColumnHeader column={column} title="New Value" />,
-        cell: ({ getValue }) => {
+        cell: ({ row, getValue }) => {
           const value = getValue();
-          if (value === null || value === undefined) return <span className="text-muted-foreground">—</span>;
+          if (value === null || value === undefined || (row.original.rulId !== null && value === '')) {
+            return (
+              <span className="text-muted-foreground">{row.original.rulId !== null ? '(missing)' : '—'}</span>
+            );
+          }
           const str = String(value);
           return <span title={str}>{str.substring(0, 100)}</span>;
         },
@@ -263,7 +323,19 @@ export function FindingsPage() {
         <ToolbarActions>
           <BackToHubButton hubPath="/maintenance-hub" />
           {canCreate('Findings') && (
-            <Button onClick={handleRunFindings} disabled={isRunning}>
+            <Button variant="outline" onClick={handleRunRules} disabled={isRunning || isRunningRules}>
+              {isRunningRules ? (
+                <>
+                  <Loader2 size={16} className="me-1 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                'Run Rules'
+              )}
+            </Button>
+          )}
+          {canCreate('Findings') && (
+            <Button onClick={handleRunFindings} disabled={isRunning || isRunningRules}>
               {isRunning ? (
                 <>
                   <Loader2 size={16} className="me-1 animate-spin" />
