@@ -1,5 +1,11 @@
 import { prisma } from '../../db/prisma';
-import type { WatchedField, FindingDto, OpenFindingRef, FindingStatusCountDto } from './types';
+import type {
+  WatchedField,
+  FindingDto,
+  OpenFindingRef,
+  FindingStatusCountDto,
+  StateRuleViolationDto,
+} from './types';
 
 export async function getActiveWatchedFields(entityType: string): Promise<WatchedField[]> {
   const fields = await prisma.cdfWatchedField.findMany({
@@ -55,9 +61,10 @@ export async function getApprovedStates(entityType: string): Promise<Record<stri
   return map;
 }
 
+/** Change-engine findings only — rule findings (rul_id set) are owned by fn_run_state_rules. */
 export async function getOpenFindingRefs(entityType: string): Promise<OpenFindingRef[]> {
   const findings = await prisma.fndFinding.findMany({
-    where: { entityType, status: 'open' },
+    where: { entityType, status: 'open', ruleId: null },
     select: { findingId: true, entityId: true, fieldPath: true, newValue: true },
   });
 
@@ -90,6 +97,8 @@ export async function getFindings(entityType: string, status?: string): Promise<
       firstSeen: true,
       lastSeen: true,
       occurrenceCount: true,
+      ruleId: true,
+      detectionRule: { select: { ruleType: true, definition: true } },
     },
     orderBy: [{ lastSeen: 'desc' }, { findingId: 'desc' }],
   });
@@ -114,6 +123,9 @@ export async function getFindings(entityType: string, status?: string): Promise<
     lastSeen: f.lastSeen.toISOString(),
     occurrenceCount: f.occurrenceCount,
     fieldDisplayName: f.fieldPath ? fieldMap.get(f.fieldPath) : undefined,
+    rulId: f.ruleId,
+    rulType: f.detectionRule?.ruleType ?? null,
+    rulDefinition: f.detectionRule?.definition ?? null,
   }));
 }
 
@@ -168,4 +180,9 @@ export async function getStatusCounts(entityType: string): Promise<FindingStatus
   });
 
   return rows.map((row) => ({ status: row.status, count: row._count._all }));
+}
+
+/** Evaluates active state rules and upserts violations into ds.fnd_findings inside Postgres. */
+export async function runStateRules(): Promise<StateRuleViolationDto[]> {
+  return prisma.$queryRaw<StateRuleViolationDto[]>`SELECT * FROM ds.fn_run_state_rules()`;
 }

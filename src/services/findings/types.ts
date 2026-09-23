@@ -26,6 +26,9 @@ export interface FindingDto {
   lastSeen: string;
   occurrenceCount: number;
   fieldDisplayName?: string | undefined;
+  rulId: number | null;
+  rulType: string | null;
+  rulDefinition: unknown;
 }
 
 export interface WatchedField {
@@ -76,4 +79,22 @@ export interface ApplyPlanResult {
 export interface FindingStatusCountDto {
   status: string;
   count: number;
+}
+
+/** finding_action values emitted by ds.fn_run_state_rules(). */
+export const STATE_RULE_ACTION_RESOLVED = 'finding self-resolved';
+
+/** One row of ds.fn_run_state_rules() — column names kept as the function returns them. */
+export interface StateRuleViolationDto {
+  entity_id: string;
+  field: string;
+  rule_type: string;
+  current_value: string | null;
+  finding_action: string;
+}
+
+export interface RunStateRulesResultDto {
+  violationsFound: number;
+  findingsResolved: number;
+  details: StateRuleViolationDto[];
 }

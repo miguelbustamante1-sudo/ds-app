@@ -14,6 +14,9 @@ export interface FindingDto {
   lastSeen: string;
   occurrenceCount: number;
   fieldDisplayName?: string;
+  rulId: number | null;
+  rulType: string | null;
+  rulDefinition: unknown;
 }
 
 export interface RunFindingsResultDto {
@@ -31,4 +34,18 @@ export interface RunFindingsResultDto {
 export interface FindingStatusCountDto {
   status: string;
   count: number;
+}
+
+export interface StateRuleViolationDto {
+  entity_id: string;
+  field: string;
+  rule_type: string;
+  current_value: string | null;
+  finding_action: string;
+}
+
+export interface RunStateRulesResultDto {
+  violationsFound: number;
+  findingsResolved: number;
+  details: StateRuleViolationDto[];
 }

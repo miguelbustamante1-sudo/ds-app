@@ -203,6 +203,12 @@ export const maintenanceHubConfig: HubConfig = {
       permission: 'Findings',
     },
     {
+      title: 'Detection Rules',
+      description: 'Edit and turn off the state rules evaluated by Run Rules.',
+      path: '/maintenance/detection-rules',
+      permission: 'Findings',
+    },
+    {
       title: 'Object & Field Manager',
       description: 'Configure which entities and fields change detection watches.',
       path: '/maintenance/watched-fields',
