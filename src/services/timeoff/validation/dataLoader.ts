@@ -8,7 +8,6 @@ import type { TimeOffValidationInput, TimeOffValidationContext } from './types';
 import { DEFAULTS } from './types';
 import type { ElSalvadorVacationContext } from './rules/elSalvadorVacation.rule';
 import type { GuatemalaPersonalDaysContext } from './rules/guatemalaPersonalDays.rule';
-import { getWorkdayBalance } from '../components/GetWorkdayBalance';
 import { computeAnniversaryWindow } from '../utils/anniversaryYear';
 import { calculateTimeOffDaysForTeamMember } from '../dayCalculation';
 
@@ -101,13 +100,10 @@ export async function loadValidationContext(
       })
     : [];
 
-  const [workdayBalance, rawCountryHolidays] = await Promise.all([
-    getWorkdayBalance(input.teamMemberId, input.timeOffId),
-    prisma.holiday.findMany({
-      where: { countryId: effectiveCountryId, holidayIsActive: true },
-      select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true, holidayIsHalfDay: true },
-    }),
-  ]);
+  const rawCountryHolidays = await prisma.holiday.findMany({
+    where: { countryId: effectiveCountryId, holidayIsActive: true },
+    select: { holidayId: true, holidayName: true, holidayDate: true, holidayIsRecurring: true, holidayIsHalfDay: true },
+  });
 
   return {
     teamMember,
@@ -126,7 +122,6 @@ export async function loadValidationContext(
     categoryCountryDaysBefore,
     categoryCountryMaxDays,
     categoryName,
-    workdayBalance,
   };
 }
 

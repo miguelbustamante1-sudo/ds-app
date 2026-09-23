@@ -22,7 +22,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn, parseUTCDateAsLocal, formatUTCDate } from '@/lib/utils';
 import { apiGet, apiPatch, apiPost, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { useMyWorkdayBalance } from '@/hooks/useMyWorkdayBalance';
 import { HolidayProvider } from '../context/HolidayContext';
 import { SVVacationSplitMode, type SplitPeriod } from '../components/SVVacationSplitMode';
 import { SiblingReadOnlyCard } from './SiblingReadOnlyCard';
@@ -30,7 +29,6 @@ import { detectOverlap } from '../utils/overlapDetection';
 import { isElSalvadorVacation } from '../utils/elSalvadorVacationValidation';
 import { validateDaysBefore } from '../utils/daysBefore';
 import { isDateInHolidayList } from '../utils/holidayValidation';
-import { validateWorkdayBalance, computeGTAccruedVacationDays } from '../utils/workdayBalanceValidation';
 import { computeCurrentPeriod } from '../utils/anniversaryWindow';
 import { calculateFixedDurationEndDate, calculateRequestedDays } from '../utils/fixedDurationEndDate';
 import { useHolidayAwareness } from '../hooks/useHolidayAwareness';
@@ -109,8 +107,6 @@ export function EditTimeOffPageInner({
   const [loadingData, setLoadingData] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isSplitMode, setIsSplitMode] = useState(false);
-
-  const { balance } = useMyWorkdayBalance();
 
   const {
     control,
@@ -279,23 +275,8 @@ export function EditTimeOffPageInner({
   const startDatePeriod = userMemberStartDate && startDate
     ? computeCurrentPeriod(userMemberStartDate, startDate)
     : null;
-  const isPersonalDayCategory =
-    categoryNameLower === 'personal day' || categoryNameLower === 'personal days';
-  const oldRequestDays = editingTimeOff?.timeOffDays ?? 0;
-  const isGTVacation = userCountryIso === 'GT' && isVacationCategory;
-  const gtAccruedDays = isGTVacation && startDate ? computeGTAccruedVacationDays(startDate) : 0;
-  const effectiveBalance = balance
-    ? {
-        vacation: balance.vacation + (isVacationCategory ? Number(oldRequestDays) : 0) + gtAccruedDays,
-        personalDays: balance.personalDays + (isPersonalDayCategory ? Number(oldRequestDays) : 0),
-        personalDaysUsedThisMonth: balance.personalDaysUsedThisMonth,
-      }
-    : null;
-  const balanceValidation =
-    selectedCategory && effectiveDays > 0
-      ? validateWorkdayBalance(selectedCategory.categoryName, effectiveDays, effectiveBalance)
-      : { valid: true, errorMessage: null, available: 0 };
 
+  // Vacation/personal-day balance is advisory only — matches the supervisor flow, does not block submission.
   const canSave =
     categoryId !== '' &&
     startDate !== undefined &&
@@ -304,7 +285,6 @@ export function EditTimeOffPageInner({
     !hasOverlap &&
     !exceedsAttritionDate &&
     !isStartDateHoliday &&
-    balanceValidation.valid &&
     (!isHalfOfSplit || !editingTimeOff || hintDays === Number(editingTimeOff.timeOffDays)) &&
     !!comment?.trim() &&
     !submitting;
@@ -626,13 +606,6 @@ export function EditTimeOffPageInner({
                     <AlertDescription>
                       Time off cannot extend beyond your end date ({format(userEndDate, 'dd-MMM-yyyy')}).
                     </AlertDescription>
-                  </Alert>
-                )}
-
-                {!balanceValidation.valid && balanceValidation.errorMessage && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{balanceValidation.errorMessage}</AlertDescription>
                   </Alert>
                 )}
 

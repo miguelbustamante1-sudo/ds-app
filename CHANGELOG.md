@@ -12,6 +12,13 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.7.2] - 2026-09-23
+
+### Fixed
+
+**Time Off**
+- My Time Off (create and edit) no longer hard-blocks a request that exceeds the employee's available vacation or personal-day balance. This now matches the supervisor flow, which has always treated it as advisory only — the request simply submits.
+
 ## [2.7.1] - 2026-09-21
 
 ### Fixed

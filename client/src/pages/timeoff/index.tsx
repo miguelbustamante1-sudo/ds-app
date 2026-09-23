@@ -133,7 +133,6 @@ export function MyTimeOffPage() {
         open={requestDialogOpen}
         onOpenChange={setRequestDialogOpen}
         existingTimeOffs={timeOffs}
-        workdayBalance={balance}
         onSuccess={handleSuccess}
       />
 

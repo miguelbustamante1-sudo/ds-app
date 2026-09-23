@@ -12,7 +12,6 @@ export interface TimeOffValidationInput {
   timeOffEndDate: Date;
   statusId?: number | null;
   timeOffId?: number; // Only for updates (self-exclusion)
-  isSupervisorRequest?: boolean;
 }
 
 /**
@@ -30,7 +29,6 @@ export interface TimeOffValidationContext {
   categoryCountryDaysBefore: number;
   categoryCountryMaxDays: number;
   categoryName: string;
-  workdayBalance: { vacation: number; personalDays: number };
   activeSwaps: Array<{
     holidaySwapId: number;
     holidayName: string;
