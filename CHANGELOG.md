@@ -12,6 +12,18 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.8.0] - 2026-09-23
+
+### Added
+
+**Time Off**
+- My Time Off summary cards (Total Requests, Pending Requests, Vacation Balance, Personal Days Balance) and a "Back to Hub" button linking to the Employee Self-Service hub
+
+### Changed
+
+**Time Off**
+- My Time Off create and edit forms now open inline above the request table instead of in a popup dialog, matching the toggle pattern used elsewhere in the app — the table stays visible while a request is being created or edited
+
 ## [2.7.2] - 2026-09-23
 
 ### Fixed
