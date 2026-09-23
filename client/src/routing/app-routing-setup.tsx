@@ -170,6 +170,11 @@ export function AppRoutingSetup() {
         <Route path="/my-team/pending" element={<PendingRequestsPage />} />
         <Route path="/my-team/:id" element={<TeamMemberProfilePage />} />
         <Route path="/my-time-off" element={<MyTimeOffPage />} />
+        {/* Unreferenced as of 2026-09-23: no client link or server-built notification link
+            targets this route — editing now happens inline on /my-time-off via
+            EditTimeOffPageInner. Confirmed via full-repo grep during
+            documents/superpowers/specs/2026-09-23-my-timeoff-inline-form-design.md.
+            Candidate for removal in a future cleanup pass. */}
         <Route path="/my-time-off/edit/:timeOffId" element={<EditTimeOffPage />} />
         <Route path="/supervisor-time-off" element={<SupervisorTimeOffPage />} />
         <Route path="/supervisor-time-off/edit/:timeOffId" element={<EditSupervisorTimeOffPage />} />

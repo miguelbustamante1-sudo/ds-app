@@ -56,9 +56,10 @@ interface FormData {
 interface TimeOffRequestFormProps {
   existingTimeOffs: TimeOffWithDetailsDTO[] | undefined;
   onSuccess: () => void;
+  onCancel?: () => void;
 }
 
-export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffRequestFormProps) {
+export function TimeOffRequestForm({ existingTimeOffs, onSuccess, onCancel }: TimeOffRequestFormProps) {
   const [categories, setCategories] = useState<CategoryByCountryDTO[]>([]);
   const [cancelledStatusId, setCancelledStatusId] = useState<number | null>(null);
   const [userEndDate, setUserEndDate] = useState<Date | null>(null);
@@ -684,11 +685,23 @@ export function TimeOffRequestForm({ existingTimeOffs, onSuccess }: TimeOffReque
               >
                 Split
               </Button>
+              {onCancel && (
+                <Button type="button" variant="ghost" className="flex-1" disabled={submitting} onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
             </div>
           ) : (
-            <Button type="submit" className="w-full" disabled={!canSave}>
-              {submitting ? 'Saving...' : 'Submit Request'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={!canSave}>
+                {submitting ? 'Saving...' : 'Submit Request'}
+              </Button>
+              {onCancel && (
+                <Button type="button" variant="outline" className="flex-1" disabled={submitting} onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
+            </div>
           )
         )}
       </form>
