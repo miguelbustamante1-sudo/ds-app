@@ -27,7 +27,8 @@ const getHeaders = (): HeadersInit => ({
 
 /**
  * Handle API response and extract error message if needed
- * Dispatches a custom event on 401 for session expiration handling
+ * Dispatches a custom event on 401 for session expiration handling and on
+ * 403 for access-denied handling (see AuthProvider)
  */
 async function handleResponse<T>(response: Response, endpoint: string, unwrap = true): Promise<T> {
   if (!response.ok) {
@@ -35,6 +36,13 @@ async function handleResponse<T>(response: Response, endpoint: string, unwrap = 
     if (response.status === 401) {
       // Dispatch event for auth provider to handle
       window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint } }));
+    }
+
+    // Handle 403 Forbidden - authenticated but not authorized for this
+    // resource. AuthProvider listens for this to show a toast and redirect
+    // to the dashboard, so no page has to handle this itself.
+    if (response.status === 403) {
+      window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: { endpoint } }));
     }
 
     const errorData = await response.json().catch(() => ({ error: 'Request failed' }));

@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { PermissionMap } from '@shared/types/permissions';
 import { useSessionMonitor } from '@/hooks/use-session-monitor';
 import { SessionExpirationModal } from '@/components/layouts/shared/dialogs/session-expiration-modal';
+import { toast } from '@/hooks/use-toast';
 
 const SESSION_EXPIRES_KEY = 'session_expires_at';
 
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [enableDevLogin, setEnableDevLogin] = useState(false);
+  const navigate = useNavigate();
 
   const refresh = async () => {
     setLoading(true);
@@ -127,6 +130,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout();
     }
   }, [isExpired, user, logout]);
+
+  // Handle 403 Forbidden responses (see api.ts) — the user is authenticated
+  // but lacks permission for whatever they tried to do. Bounce them back to
+  // the dashboard with a toast instead of leaving them stuck on a page that
+  // just failed to load its data.
+  useEffect(() => {
+    const handleForbidden = () => {
+      toast({
+        title: 'Access denied',
+        description: "You don't have permission to do that.",
+        variant: 'destructive',
+      });
+      navigate('/');
+    };
+
+    window.addEventListener('auth:forbidden', handleForbidden);
+    return () => window.removeEventListener('auth:forbidden', handleForbidden);
+  }, [navigate]);
 
   const devLogin = async (email: string, password: string) => {
     try {
