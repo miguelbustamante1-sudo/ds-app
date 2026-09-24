@@ -13,6 +13,7 @@ export interface GeneratedTriviaQuestion {
 const REQUESTED_QUESTION_COUNT = 30;
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 100; // 100 * 3s = 5 minutes
+const RAW_RESPONSE_SNIPPET_LENGTH = 300;
 
 function buildPrompt(existingQuestionTexts: string[]): string {
   const avoidList =
@@ -24,13 +25,17 @@ function buildPrompt(existingQuestionTexts: string[]): string {
 
 STRICT GROUNDING RULE: Only produce questions whose answer is explicitly supported by the retrieved knowledge base content. Do not invent, infer, or assume any fact that is not directly stated in the source material. If fewer than ${REQUESTED_QUESTION_COUNT} genuinely grounded questions are possible, return fewer — returning fewer questions is correct and expected; fabricating questions to reach the count is not acceptable.
 
-Output rules (STRICT):
-- Return ONLY a JSON array. No prose, no explanations, no markdown code fences.
-- Each element must be an object with exactly these keys:
-    "question": string,
-    "options": array of exactly 4 distinct strings,
-    "correctOptionIndex": integer from 0 to 3 (0-based index into "options")
-- Exactly one option is correct, identified by "correctOptionIndex".${avoidList}`;
+Format each question EXACTLY like this, as plain text (not JSON), one block per question:
+
+Q: <question text>
+A) <option text>
+B) <option text>
+C) <option text>
+D) <option text>
+CORRECT: <letter of the correct option, A, B, C, or D>
+---
+
+Produce one block per question, each separated by a line containing only ---. Do not add extra commentary, headings, numbering, or citations outside these blocks.${avoidList}`;
 }
 
 export async function generateTriviaBatch(existingQuestionTexts: string[]): Promise<GeneratedTriviaQuestion[]> {
@@ -56,73 +61,84 @@ export async function generateTriviaBatch(existingQuestionTexts: string[]): Prom
   return parseTriviaBatchResponse(answerMessage.text);
 }
 
-function stripCodeFences(text: string): string {
-  const fenced = text.trim();
-  if (!fenced.startsWith('```')) return fenced;
-  return fenced.replace(/^```[a-zA-Z]*\s*/, '').replace(/```$/, '').trim();
+const QUESTION_LINE = /^Q:\s*(.+)$/i;
+const OPTION_LINE = /^([A-D])\)\s*(.+)$/i;
+const CORRECT_LINE = /^CORRECT:\s*([A-D])\s*$/i;
+
+type OptionLetter = 'A' | 'B' | 'C' | 'D';
+
+interface PartialQuestion {
+  questionText: string;
+  options: Partial<Record<OptionLetter, string>>;
 }
 
-interface RawTriviaQuestion {
-  question: string;
-  options: string[];
-  correctOptionIndex: number;
+function truncateForError(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.length > RAW_RESPONSE_SNIPPET_LENGTH
+    ? `${trimmed.slice(0, RAW_RESPONSE_SNIPPET_LENGTH)}…`
+    : trimmed;
 }
 
-function isValidRawQuestion(item: unknown): item is RawTriviaQuestion {
-  if (typeof item !== 'object' || item === null) return false;
-  const q = item as Record<string, unknown>;
-
-  if (typeof q.question !== 'string' || q.question.trim() === '') return false;
-
-  if (
-    !Array.isArray(q.options) ||
-    q.options.length !== 4 ||
-    !q.options.every((o) => typeof o === 'string' && o.trim() !== '')
-  ) {
-    return false;
-  }
-
-  if (
-    typeof q.correctOptionIndex !== 'number' ||
-    !Number.isInteger(q.correctOptionIndex) ||
-    q.correctOptionIndex < 0 ||
-    q.correctOptionIndex > 3
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
+/**
+ * Parses the assistant's plain-text "Q: / A) / B) / C) / D) / CORRECT:"
+ * blocks. Deliberately tolerant of prose, headings, citations, or code
+ * fences appearing before/between/after blocks — the assistant is a
+ * RAG-grounded Copilot, not a structured-output API, and reliably ignoring
+ * noise around each block matters more than rejecting anything imperfect.
+ */
 export function parseTriviaBatchResponse(raw: string): GeneratedTriviaQuestion[] {
-  const cleaned = stripCodeFences(raw).trim();
-  if (!cleaned) {
+  if (!raw.trim()) {
     throw new AppError('Fuel iX returned no trivia content', 502);
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    throw new AppError('Fuel iX returned invalid trivia JSON', 502);
+  const lines = raw.split('\n').map((line) => line.trim());
+  const results: GeneratedTriviaQuestion[] = [];
+  let current: PartialQuestion | null = null;
+
+  for (const line of lines) {
+    const questionMatch = line.match(QUESTION_LINE);
+    if (questionMatch) {
+      // QUESTION_LINE has one mandatory (non-optional) capture group, so a
+      // successful match structurally guarantees group 1 is defined.
+      current = { questionText: questionMatch[1]!.trim(), options: {} };
+      continue;
+    }
+
+    if (!current) continue;
+
+    const optionMatch = line.match(OPTION_LINE);
+    if (optionMatch) {
+      // OPTION_LINE has two mandatory capture groups; same guarantee as above.
+      const letter = optionMatch[1]!.toUpperCase() as OptionLetter;
+      current.options[letter] = optionMatch[2]!.trim();
+      continue;
+    }
+
+    const correctMatch = line.match(CORRECT_LINE);
+    if (correctMatch) {
+      const { A, B, C, D } = current.options;
+      if (current.questionText && A && B && C && D) {
+        // CORRECT_LINE has one mandatory capture group; same guarantee as above.
+        const letter = correctMatch[1]!.toUpperCase() as OptionLetter;
+        results.push({
+          questionText: current.questionText,
+          option1: A,
+          option2: B,
+          option3: C,
+          option4: D,
+          correctOptionIndex: ['A', 'B', 'C', 'D'].indexOf(letter),
+        });
+      }
+      current = null;
+    }
   }
 
-  if (!Array.isArray(parsed)) {
-    throw new AppError('Fuel iX returned invalid trivia JSON', 502);
+  if (results.length === 0) {
+    throw new AppError(
+      `Fuel iX returned no parseable trivia questions. Raw response: ${truncateForError(raw)}`,
+      502,
+    );
   }
 
-  const valid: GeneratedTriviaQuestion[] = parsed.filter(isValidRawQuestion).map((q) => ({
-    questionText: q.question.trim(),
-    option1: q.options[0] as string,
-    option2: q.options[1] as string,
-    option3: q.options[2] as string,
-    option4: q.options[3] as string,
-    correctOptionIndex: q.correctOptionIndex,
-  }));
-
-  if (valid.length === 0) {
-    throw new AppError('Fuel iX returned no valid trivia questions', 502);
-  }
-
-  return valid;
+  return results;
 }
