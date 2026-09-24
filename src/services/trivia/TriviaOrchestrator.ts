@@ -3,6 +3,8 @@ import { AppError } from '../../errors/AppError';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import { generateTriviaBatch } from './components/GenerateTriviaBatch';
 import { dedupeAgainstExisting } from './components/DedupeQuestions';
+import { selectDashboardQuestions } from './components/SelectDashboardQuestions';
+import type { TriviaQuestionDTO } from '@shared/dto';
 
 const REQUESTED_QUESTION_COUNT = 30;
 const EXISTING_QUESTION_SAMPLE_SIZE = 150;
@@ -73,4 +75,14 @@ async function runBatch(batchId: number, createdBy: number, createdByEmail: stri
       data: { status: 'failed', errorMessage: message, completedAt: new Date() },
     });
   }
+}
+
+export async function getDashboardQuestions(teamMemberId: number): Promise<TriviaQuestionDTO[]> {
+  const questions = await selectDashboardQuestions(teamMemberId);
+  return questions.map((q) => ({
+    id: q.id,
+    question: q.questionText,
+    options: [q.option1, q.option2, q.option3, q.option4],
+    correctOptionIndex: q.correctOptionIndex,
+  }));
 }
