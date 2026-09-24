@@ -12,6 +12,19 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.9.0] - 2026-09-24
+
+### Added
+
+**Time Off**
+- Time Off Exception list: "Show Past" and "Show Cancelled" toggle filters, hiding past-dated and Cancelled/Rejected/Split records by default
+- Time Off Exception page: "Back to Hub" button linking to the Time Off hub
+
+### Changed
+
+**Time Off**
+- Time Off Exception list now uses the shared status badge helper and corrected DataGrid record-count/pagination-size conventions
+
 ## [2.8.0] - 2026-09-23
 
 ### Added
