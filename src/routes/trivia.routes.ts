@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
-import { requireRole } from '../middleware/auth';
+import { requireRole, requirePermission } from '../middleware/auth';
 import { AppError } from '../errors/AppError';
 import { recordAnswer } from '../services/trivia/components/RecordAnswer';
 import { pullNewBatch, updateQuestion, deleteQuestion } from '../services/trivia/TriviaOrchestrator';
@@ -12,103 +12,130 @@ const router = Router();
 
 /**
  * POST /api/trivia/batches
- * Admin-only. Starts a new batch pull from the SOP knowledge base. Returns
- * immediately with the new batch's id; generation continues async. 409 if a
- * batch is already pending — enforced at the DB level via a partial unique
- * index, this check is just the fast-path early return.
+ * Admin-only (Trivia:create + admin role). Starts a new batch pull from the
+ * SOP knowledge base. Returns immediately with the new batch's id;
+ * generation continues async. 409 if a batch is already pending — enforced
+ * at the DB level via a partial unique index, this check is just the
+ * fast-path early return.
  */
-router.post('/batches', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!req.user?.dsUserId || !req.user.email) {
-      throw new AppError('Unauthenticated', 401);
+router.post(
+  '/batches',
+  requirePermission('Trivia', 'create'),
+  requireRole('admin'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user?.dsUserId || !req.user.email) {
+        throw new AppError('Unauthenticated', 401);
+      }
+      const result = await pullNewBatch(req.user.dsUserId, req.user.email);
+      res.status(202).json({ data: result });
+    } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      res.status(500).json({ error: 'Internal server error' });
     }
-    const result = await pullNewBatch(req.user.dsUserId, req.user.email);
-    res.status(202).json({ data: result });
-  } catch (err: unknown) {
-    if (err instanceof AppError) {
-      res.status(err.statusCode).json({ error: err.message });
-      return;
-    }
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 /**
  * GET /api/trivia/batches/latest
- * Admin-only. Returns the most recent batch's status for the maintenance
- * page to poll while a pull is pending.
+ * Admin-only (Trivia:read + admin role). Returns the most recent batch's
+ * status for the maintenance page to poll while a pull is pending.
  */
-router.get('/batches/latest', requireRole('admin'), async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    const batch = await getLatestBatch();
-    res.json({ data: batch });
-  } catch {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.get(
+  '/batches/latest',
+  requirePermission('Trivia', 'read'),
+  requireRole('admin'),
+  async (_req: AuthenticatedRequest, res: Response) => {
+    try {
+      const batch = await getLatestBatch();
+      res.json({ data: batch });
+    } catch {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 /**
  * GET /api/trivia/questions
- * Admin-only. Lists all trivia questions (active and inactive) for the CRUD
- * maintenance page.
+ * Admin-only (Trivia:read + admin role). Lists all trivia questions (active
+ * and inactive) for the CRUD maintenance page.
  */
-router.get('/questions', requireRole('admin'), async (_req: AuthenticatedRequest, res: Response) => {
-  try {
-    const questions = await listQuestionsForAdmin();
-    res.json({ data: questions });
-  } catch {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.get(
+  '/questions',
+  requirePermission('Trivia', 'read'),
+  requireRole('admin'),
+  async (_req: AuthenticatedRequest, res: Response) => {
+    try {
+      const questions = await listQuestionsForAdmin();
+      res.json({ data: questions });
+    } catch {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
 
 /**
  * PATCH /api/trivia/questions/:id
- * Admin-only. Currently supports toggling isActive.
+ * Admin-only (Trivia:create + admin role — no 'update' action exists, per
+ * PermissionAction convention). Currently supports toggling isActive.
  */
-router.patch('/questions/:id', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!req.user?.dsUserId || !req.user.email) {
-      throw new AppError('Unauthenticated', 401);
+router.patch(
+  '/questions/:id',
+  requirePermission('Trivia', 'create'),
+  requireRole('admin'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user?.dsUserId || !req.user.email) {
+        throw new AppError('Unauthenticated', 401);
+      }
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) {
+        throw new AppError('Invalid question id', 400);
+      }
+      const body = req.body as UpdateTriviaQuestionDTO;
+      const updated = await updateQuestion(id, body, req.user.dsUserId, req.user.email);
+      res.json({ data: updated });
+    } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      res.status(500).json({ error: 'Internal server error' });
     }
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) {
-      throw new AppError('Invalid question id', 400);
-    }
-    const body = req.body as UpdateTriviaQuestionDTO;
-    const updated = await updateQuestion(id, body, req.user.dsUserId, req.user.email);
-    res.json({ data: updated });
-  } catch (err: unknown) {
-    if (err instanceof AppError) {
-      res.status(err.statusCode).json({ error: err.message });
-      return;
-    }
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 /**
  * DELETE /api/trivia/questions/:id
- * Admin-only.
+ * Admin-only (Trivia:delete + admin role).
  */
-router.delete('/questions/:id', requireRole('admin'), async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!req.user?.email) {
-      throw new AppError('Unauthenticated', 401);
+router.delete(
+  '/questions/:id',
+  requirePermission('Trivia', 'delete'),
+  requireRole('admin'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user?.email) {
+        throw new AppError('Unauthenticated', 401);
+      }
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) {
+        throw new AppError('Invalid question id', 400);
+      }
+      await deleteQuestion(id, req.user.email);
+      res.status(204).send();
+    } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      res.status(500).json({ error: 'Internal server error' });
     }
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) {
-      throw new AppError('Invalid question id', 400);
-    }
-    await deleteQuestion(id, req.user.email);
-    res.status(204).send();
-  } catch (err: unknown) {
-    if (err instanceof AppError) {
-      res.status(err.statusCode).json({ error: err.message });
-      return;
-    }
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 /**
  * POST /api/trivia/answers
