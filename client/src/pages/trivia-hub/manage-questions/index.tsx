@@ -100,7 +100,9 @@ export default function TriviaManageQuestionsPage() {
       {
         accessorKey: 'questionText',
         header: 'Question',
-        cell: ({ row }) => <span className="line-clamp-2 max-w-md">{row.original.questionText}</span>,
+        size: 400,
+        cell: ({ row }) => row.original.questionText,
+        meta: { cellClassName: 'whitespace-normal break-words align-top' },
         filterFn: (row, columnId, filterValue: string) =>
           String(row.getValue(columnId)).toLowerCase().includes(filterValue.toLowerCase()),
       },
