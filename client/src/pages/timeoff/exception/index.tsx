@@ -4,10 +4,12 @@ import type { TimeOffWithDetailsDTO, CreateSupervisorTimeOffDTO, UpdateSuperviso
 import type { ActingAsUserDTO } from '@shared/dto/HolidaySwap';
 import {
   Toolbar,
+  ToolbarActions,
   ToolbarDescription,
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/components/ui/toolbar';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { useToast } from '@/hooks/use-toast';
 import { useExceptionTeamMemberTimeOffs } from '@/hooks/useExceptionTimeOff';
 import { useExceptionTimeOffOperations } from './hooks/useExceptionTimeOffOperations';
@@ -161,6 +163,9 @@ export function TimeOffExceptionPage() {
             Add time off entries without business rule restrictions (no SV/GT rules, no balance or notice period checks)
           </ToolbarDescription>
         </ToolbarHeading>
+        <ToolbarActions>
+          <BackToHubButton hubPath="/time-off-hub" />
+        </ToolbarActions>
       </Toolbar>
 
       <div className="flex flex-wrap items-center gap-4 mt-6">
