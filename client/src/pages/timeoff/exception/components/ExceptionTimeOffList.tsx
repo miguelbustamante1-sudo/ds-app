@@ -23,14 +23,10 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-
-function getStatusVariant(statusName: string): 'success' | 'secondary' | 'destructive' | 'outline' {
-  const s = statusName.toLowerCase();
-  if (s.includes('approved')) return 'success';
-  if (s.includes('tentative') || s.includes('pending')) return 'secondary';
-  if (s.includes('cancelled') || s.includes('rejected')) return 'destructive';
-  return 'outline';
-}
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { getStatusBadgeProps } from '@/lib/badge-utils';
+import { isPastTimeOff, isExcludedStatus, filterVisibleForOptions } from '../utils/exceptionTimeOffFilters';
 
 function canEdit(timeOff: TimeOffWithDetailsDTO): boolean {
   const s = timeOff.statusName.toLowerCase();
@@ -51,19 +47,27 @@ interface ExceptionTimeOffListProps {
 export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelClick }: ExceptionTimeOffListProps) {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([{ id: 'timeOffStartDate', desc: false }]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: 'isPast', value: false },
+    { id: 'isExcludedStatus', value: false },
+  ]);
+
+  const showPast = (columnFilters.find((f) => f.id === 'isPast')?.value as boolean | undefined) ?? false;
+  const showCancelled = (columnFilters.find((f) => f.id === 'isExcludedStatus')?.value as boolean | undefined) ?? false;
 
   const categoryOptions = useMemo(() => {
+    const visible = filterVisibleForOptions(timeOffs, showPast, showCancelled);
     const unique = new Map<string, string>();
-    timeOffs.forEach((t) => unique.set(t.categoryName, t.categoryName));
+    visible.forEach((t) => unique.set(t.categoryName, t.categoryName));
     return Array.from(unique, ([value]) => ({ value, label: value }));
-  }, [timeOffs]);
+  }, [timeOffs, showPast, showCancelled]);
 
   const statusOptions = useMemo(() => {
+    const visible = filterVisibleForOptions(timeOffs, showPast, showCancelled);
     const unique = new Map<string, string>();
-    timeOffs.forEach((t) => unique.set(t.statusName, t.statusName));
+    visible.forEach((t) => unique.set(t.statusName, t.statusName));
     return Array.from(unique, ([value]) => ({ value, label: value }));
-  }, [timeOffs]);
+  }, [timeOffs, showPast, showCancelled]);
 
   const columns = useMemo<ColumnDef<TimeOffWithDetailsDTO>[]>(
     () => [
@@ -98,14 +102,29 @@ export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelC
       {
         accessorKey: 'statusName',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Status" />,
-        cell: ({ row }) => (
-          <Badge variant={getStatusVariant(row.original.statusName)}>
-            {row.original.statusName}
-          </Badge>
-        ),
+        cell: ({ row }) => {
+          const { variant, className } = getStatusBadgeProps(row.original.statusId);
+          return (
+            <Badge variant={variant} className={className}>
+              {row.original.statusName}
+            </Badge>
+          );
+        },
         filterFn: (row, _, filterValues: string[]) => filterValues.includes(row.original.statusName),
         size: 130,
         meta: { headerTitle: 'Status', skeleton: <Skeleton className="h-4 w-16" /> },
+      },
+      {
+        id: 'isPast',
+        accessorFn: (row) => isPastTimeOff(row.timeOffEndDate),
+        filterFn: (row, columnId, filterValue: boolean) =>
+          filterValue === true || row.getValue(columnId) === false,
+      },
+      {
+        id: 'isExcludedStatus',
+        accessorFn: (row) => isExcludedStatus(row.statusId),
+        filterFn: (row, columnId, filterValue: boolean) =>
+          filterValue === true || row.getValue(columnId) === false,
       },
       {
         accessorKey: 'changeLogCount',
@@ -166,10 +185,22 @@ export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelC
     getPaginationRowModel: getPaginationRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
-    initialState: { pagination: { pageSize: 5 } },
+    initialState: {
+      pagination: { pageSize: 10 },
+      columnVisibility: { isPast: false, isExcludedStatus: false },
+    },
   });
 
-  const isFiltered = columnFilters.length > 0;
+  const isFiltered = columnFilters.some(
+    (f) => (f.id === 'categoryName' || f.id === 'statusName') && Array.isArray(f.value) && f.value.length > 0
+  );
+
+  const handleReset = () => {
+    table.getColumn('categoryName')?.setFilterValue(undefined);
+    table.getColumn('statusName')?.setFilterValue(undefined);
+    table.getColumn('isPast')?.setFilterValue(false);
+    table.getColumn('isExcludedStatus')?.setFilterValue(false);
+  };
 
   if (loading) {
     return (
@@ -211,10 +242,30 @@ export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelC
                 options={statusOptions}
               />
             )}
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-past"
+                checked={showPast}
+                onCheckedChange={(checked) => table.getColumn('isPast')?.setFilterValue(checked)}
+              />
+              <Label htmlFor="show-past" className="text-sm text-muted-foreground">
+                Show Past
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-cancelled"
+                checked={showCancelled}
+                onCheckedChange={(checked) => table.getColumn('isExcludedStatus')?.setFilterValue(checked)}
+              />
+              <Label htmlFor="show-cancelled" className="text-sm text-muted-foreground">
+                Show Cancelled
+              </Label>
+            </div>
             {isFiltered && (
               <Button
                 variant="ghost"
-                onClick={() => table.resetColumnFilters()}
+                onClick={handleReset}
                 className="h-8 px-2 lg:px-3"
               >
                 Reset
@@ -226,7 +277,7 @@ export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelC
           <DataGridContainer border={false}>
             <DataGrid
               table={table}
-              recordCount={table.getFilteredRowModel().rows.length}
+              recordCount={timeOffs.length}
               tableLayout={{
                 columnsResizable: true,
                 headerBackground: true,
@@ -236,7 +287,7 @@ export function ExceptionTimeOffList({ timeOffs, loading, onEditClick, onCancelC
               onRowClick={(row) => navigate(`/timeoff-exception-detail/${row.timeOffId}`)}
             >
               <DataGridTable />
-              <DataGridPagination sizes={[5, 10, 25]} />
+              <DataGridPagination sizes={[10, 25, 50]} />
             </DataGrid>
           </DataGridContainer>
         </div>
