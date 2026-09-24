@@ -19,6 +19,15 @@ export async function pullNewBatch(createdBy: number, createdByEmail: string): P
     data: { status: 'pending', requestedQuestionCount: REQUESTED_QUESTION_COUNT, createdBy },
   });
 
+  await auditOrchestrator.log({
+    entityName: 'trb_trivia_batches',
+    entityId: String(batch.id),
+    createdBy: createdByEmail,
+    oldValues: null,
+    newValues: batch as unknown as Record<string, unknown>,
+    comment: `Trivia batch ${batch.id} started`,
+  });
+
   void runBatch(batch.id, createdBy, createdByEmail);
 
   return { batchId: batch.id };
@@ -64,15 +73,35 @@ async function runBatch(batchId: number, createdBy: number, createdByEmail: stri
       });
     }
 
-    await prisma.triviaBatch.update({
+    const beforeCompletion = await prisma.triviaBatch.findUnique({ where: { id: batchId } });
+    const completed = await prisma.triviaBatch.update({
       where: { id: batchId },
       data: { status: 'completed', insertedQuestionCount: deduped.length, completedAt: new Date() },
     });
+
+    await auditOrchestrator.log({
+      entityName: 'trb_trivia_batches',
+      entityId: String(batchId),
+      createdBy: createdByEmail,
+      oldValues: beforeCompletion as unknown as Record<string, unknown>,
+      newValues: completed as unknown as Record<string, unknown>,
+      comment: `Trivia batch ${batchId} completed with ${deduped.length} new question(s)`,
+    });
   } catch (err: unknown) {
     const message = err instanceof AppError ? err.message : 'Trivia batch generation failed unexpectedly';
-    await prisma.triviaBatch.update({
+    const beforeFailure = await prisma.triviaBatch.findUnique({ where: { id: batchId } });
+    const failed = await prisma.triviaBatch.update({
       where: { id: batchId },
       data: { status: 'failed', errorMessage: message, completedAt: new Date() },
+    });
+
+    await auditOrchestrator.log({
+      entityName: 'trb_trivia_batches',
+      entityId: String(batchId),
+      createdBy: createdByEmail,
+      oldValues: beforeFailure as unknown as Record<string, unknown>,
+      newValues: failed as unknown as Record<string, unknown>,
+      comment: `Trivia batch ${batchId} failed: ${message}`,
     });
   }
 }
