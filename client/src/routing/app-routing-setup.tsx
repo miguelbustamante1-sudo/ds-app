@@ -100,6 +100,8 @@ import { GiftCardInventoryPage } from '@/pages/maintenance/gift-cards/inventory'
 import { UdsColorDemoPage } from '@/pages/uds-color-demo';
 import TimeOffHubPage from '@/pages/time-off-hub';
 import TimeOffHubSummaryPage from '@/pages/time-off-hub/summary';
+import TriviaHubPage from '@/pages/trivia-hub';
+import TriviaManageQuestionsPage from '@/pages/trivia-hub/manage-questions';
 import HiringHubPage from '@/pages/hiring-hub';
 import SecurityHubPage from '@/pages/security-hub';
 import MaintenanceHubPage from '@/pages/maintenance-hub';
@@ -299,6 +301,8 @@ export function AppRoutingSetup() {
         {/* Hub Landing Pages */}
         <Route path="/time-off-hub" element={<TimeOffHubPage />} />
         <Route path="/time-off-hub/summary" element={<TimeOffHubSummaryPage />} />
+        <Route path="/trivia-hub" element={<TriviaHubPage />} />
+        <Route path="/trivia-hub/manage-questions" element={<TriviaManageQuestionsPage />} />
         <Route path="/hiring-hub" element={<HiringHubPage />} />
         <Route path="/security-hub" element={<SecurityHubPage />} />
         <Route path="/maintenance-hub" element={<MaintenanceHubPage />} />
