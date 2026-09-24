@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
   type ColumnFiltersState,
+  type ExpandedState,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -9,7 +11,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Loader2, Trash2, X } from 'lucide-react';
 import {
   Toolbar,
   ToolbarActions,
@@ -44,6 +46,7 @@ export default function TriviaManageQuestionsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   const { data: questions = [], isLoading } = useQuery({
     queryKey: QUESTIONS_QUERY_KEY,
@@ -101,8 +104,45 @@ export default function TriviaManageQuestionsPage() {
         accessorKey: 'questionText',
         header: 'Question',
         size: 400,
-        cell: ({ row }) => row.original.questionText,
-        meta: { cellClassName: 'whitespace-normal break-words align-top' },
+        cell: ({ row }) => (
+          <button
+            type="button"
+            onClick={() => row.toggleExpanded()}
+            className="flex w-full items-start gap-2 text-left"
+            aria-expanded={row.getIsExpanded()}
+            aria-label={row.getIsExpanded() ? 'Collapse answers' : 'Show answers'}
+          >
+            {row.getIsExpanded() ? (
+              <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+            <span>{row.original.questionText}</span>
+          </button>
+        ),
+        meta: {
+          cellClassName: 'whitespace-normal break-words align-top',
+          expandedContent: (question: AdminTriviaQuestionDTO) => (
+            <ol className="grid grid-cols-1 gap-2 py-2 ps-6 sm:grid-cols-2">
+              {question.options.map((option, index) => {
+                const isCorrect = index === question.correctOptionIndex;
+                return (
+                  <li
+                    key={index}
+                    className={
+                      isCorrect
+                        ? 'flex items-center gap-2 rounded-lg border border-uds-system-green-500 bg-uds-system-green-100 px-3 py-2 text-sm text-uds-system-green-700'
+                        : 'flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground'
+                    }
+                  >
+                    {isCorrect && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                    <span>{option}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          ),
+        },
         filterFn: (row, columnId, filterValue: string) =>
           String(row.getValue(columnId)).toLowerCase().includes(filterValue.toLowerCase()),
       },
@@ -153,12 +193,14 @@ export default function TriviaManageQuestionsPage() {
   const table = useReactTable({
     data: questions,
     columns,
-    state: { columnFilters },
+    state: { columnFilters, expanded },
     onColumnFiltersChange: setColumnFilters,
+    onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
   });
 
   const isFiltered = columnFilters.length > 0;
