@@ -210,7 +210,7 @@ export default function TriviaManageQuestionsPage() {
         <div className="text-muted-foreground text-sm py-4">Loading...</div>
       ) : (
         <DataGridContainer>
-          <DataGrid table={table} recordCount={questions.length}>
+          <DataGrid table={table} recordCount={questions.length} tableLayout={{ columnsResizable: true }}>
             <DataGridTable />
             <DataGridPagination sizes={[10, 25, 50]} />
           </DataGrid>
