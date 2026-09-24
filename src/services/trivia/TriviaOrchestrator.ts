@@ -4,7 +4,7 @@ import { auditOrchestrator } from '../audit/AuditOrchestrator';
 import { generateTriviaBatch } from './components/GenerateTriviaBatch';
 import { dedupeAgainstExisting } from './components/DedupeQuestions';
 import { selectDashboardQuestions } from './components/SelectDashboardQuestions';
-import type { TriviaQuestionDTO } from '@shared/dto';
+import type { TriviaQuestionDTO, UpdateTriviaQuestionDTO } from '@shared/dto';
 
 const REQUESTED_QUESTION_COUNT = 30;
 const EXISTING_QUESTION_SAMPLE_SIZE = 150;
@@ -85,4 +85,50 @@ export async function getDashboardQuestions(teamMemberId: number): Promise<Trivi
     options: [q.option1, q.option2, q.option3, q.option4],
     correctOptionIndex: q.correctOptionIndex,
   }));
+}
+
+export async function updateQuestion(
+  id: number,
+  input: UpdateTriviaQuestionDTO,
+  _updatedBy: number,
+  updatedByEmail: string,
+) {
+  const existing = await prisma.triviaQuestion.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError('Trivia question not found', 404);
+  }
+
+  const updated = await prisma.triviaQuestion.update({
+    where: { id },
+    data: { ...(input.isActive !== undefined ? { isActive: input.isActive } : {}) },
+  });
+
+  await auditOrchestrator.log({
+    entityName: 'trq_trivia_questions',
+    entityId: String(id),
+    createdBy: updatedByEmail,
+    oldValues: existing as unknown as Record<string, unknown>,
+    newValues: updated as unknown as Record<string, unknown>,
+    comment: `Trivia question ${id} updated`,
+  });
+
+  return updated;
+}
+
+export async function deleteQuestion(id: number, deletedByEmail: string): Promise<void> {
+  const existing = await prisma.triviaQuestion.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError('Trivia question not found', 404);
+  }
+
+  await prisma.triviaQuestion.delete({ where: { id } });
+
+  await auditOrchestrator.log({
+    entityName: 'trq_trivia_questions',
+    entityId: String(id),
+    createdBy: deletedByEmail,
+    oldValues: existing as unknown as Record<string, unknown>,
+    newValues: null,
+    comment: `Trivia question ${id} deleted`,
+  });
 }
