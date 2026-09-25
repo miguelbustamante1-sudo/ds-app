@@ -1049,6 +1049,7 @@ model Shift {
   details            ShiftDetail[]
   projectAssignments ProjectAssignment[]
   teamMembers        TeamMember[]
+  workflowTemplates  WflWorkflowTemplate[]
 
   @@map("sft_shifts")
   @@schema("ds")
@@ -1133,8 +1134,10 @@ model WflWorkflowTemplate {
   updatedBy           String?               @map("updated_by") @db.VarChar(100)
   executionType       WorkflowExecutionType @default(CODE) @map("wfl_execution_type")
   instantiateProcName String?               @map("wfl_instantiate_proc_name")
+  shiftId              Int?                  @map("sft_id")
 
   entityConfig WecWorkflowEntityConfig?        @relation(fields: [wecId], references: [wecId], onDelete: Restrict, map: "wfl_workflow_templates_wec_fk")
+  shift        Shift?                           @relation(fields: [shiftId], references: [shiftId], onDelete: SetNull, map: "wfl_workflow_templates_sft_fk")
   tasks        WtkWorkflowTemplateTask[]
   routes       WtrWorkflowTemplateRoute[]
   dependencies WtdWorkflowTemplateDependency[]
@@ -1162,6 +1165,9 @@ model WtkWorkflowTemplateTask {
   escalationUserId         Int?      @map("wtk_escalation_user_id")
   escalationRoleId         String?   @map("wtk_escalation_role_id") @db.VarChar(50)
   escalationDynamicType    String?   @map("wtk_escalation_dynamic_type") @db.VarChar(50)
+  deadlineAction           String    @default("ESCALATE") @map("wtk_deadline_action") @db.VarChar(30)
+  reductionPercentage      Decimal?  @map("wtk_reduction_percentage") @db.Decimal(5, 2)
+  replacementLimit         Int?      @map("wtk_replacement_limit") @db.Integer
   maxRetryCount            Int       @default(0) @map("wtk_max_retry_count") @db.Integer
   allowReassignment        Boolean   @default(true) @map("wtk_allow_reassignment")
   requireCommentOnReassign Boolean   @default(true) @map("wtk_require_comment_on_reassign")
@@ -1367,6 +1373,12 @@ model WitWorkflowInstanceTask {
   escalationUserId      Int?      @map("wit_escalation_user_id")
   escalationRoleId      String?   @map("wit_escalation_role_id") @db.VarChar(50)
   escalationDynamicType String?   @map("wit_escalation_dynamic_type") @db.VarChar(50)
+  originalTaskId             String?   @map("wit_original_task_id") @db.Uuid
+  previousTaskId             String?   @map("wit_previous_task_id") @db.Uuid
+  attemptNumber              Int       @default(1) @map("wit_attempt_number") @db.Integer
+  remainingReplacements      Int?      @map("wit_remaining_replacements") @db.Integer
+  reductionPercentageApplied Decimal?  @map("wit_reduction_percentage_applied") @db.Decimal(5, 2)
+  missedResolvedAt           DateTime? @map("wit_missed_resolved_at") @db.Timestamptz(6)
   overrideReason        String?   @map("wit_override_reason")
   overriddenAt          DateTime? @map("wit_overridden_at") @db.Timestamptz(6)
   overriddenBy          String?   @map("wit_overridden_by") @db.VarChar(100)
