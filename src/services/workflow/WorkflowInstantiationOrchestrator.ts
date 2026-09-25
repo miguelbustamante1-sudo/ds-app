@@ -228,7 +228,17 @@ export class WorkflowInstantiationOrchestrator {
 
         await tx.witWorkflowInstanceTask.update({
           where: { witId },
-          data: { state: 'ACTIVE', activatedAt: now, dueAt },
+          data: {
+            state: 'ACTIVE',
+            activatedAt: now,
+            dueAt,
+            ...(task.deadlineAction === 'MISSED_AND_RECREATE' && {
+              attemptNumber: 1,
+              originalTaskId: null,
+              previousTaskId: null,
+              remainingReplacements: task.replacementLimit,
+            }),
+          },
         });
 
         activatedTaskIds.push(witId);
