@@ -29,6 +29,13 @@ interface TaskFormData {
   assignedUserId: string;
   assignedRoleId: string;
   dynamicAssignmentType: string;
+  deadlineAction: string;
+  reductionPercentage: string;
+  replacementLimit: string;
+  finalEscalationType: string;
+  escalationUserId: string;
+  escalationRoleId: string;
+  escalationDynamicType: string;
   priority: string;
   slaDurationHours: string;
   maxRetryCount: string;
@@ -72,6 +79,18 @@ const DYNAMIC_ASSIGNMENT_OPTIONS: ComboBoxOption[] = [
   { value: 'FIRST_SUPERVISOR', label: 'First Supervisor' },
 ];
 
+const DEADLINE_ACTION_OPTIONS: ComboBoxOption[] = [
+  { value: 'ESCALATE', label: 'Escalate' },
+  { value: 'MISSED_AND_RECREATE', label: 'Missed and Recreate' },
+];
+
+const FINAL_ESCALATION_TYPE_OPTIONS: ComboBoxOption[] = [
+  { value: 'USER', label: 'User' },
+  { value: 'ROLE', label: 'Role' },
+  { value: 'DYNAMIC', label: 'Dynamic' },
+  { value: 'DYNAMIC_TD_HIERARCHY', label: 'Dynamic (Org Hierarchy)' },
+];
+
 export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: TaskFormDrawerProps) {
   const { toast } = useToast();
   const isEditing = !!task;
@@ -111,6 +130,13 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
       assignedUserId: '',
       assignedRoleId: '',
       dynamicAssignmentType: '',
+      deadlineAction: 'ESCALATE',
+      reductionPercentage: '',
+      replacementLimit: '',
+      finalEscalationType: '',
+      escalationUserId: '',
+      escalationRoleId: '',
+      escalationDynamicType: '',
       priority: 'MEDIUM',
       slaDurationHours: '',
       maxRetryCount: '3',
@@ -133,6 +159,22 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
         assignedUserId: task?.assignedUserId?.toString() ?? '',
         assignedRoleId: task?.assignedRoleId ?? '',
         dynamicAssignmentType: task?.dynamicAssignmentType ?? '',
+        deadlineAction: task?.deadlineAction ?? 'ESCALATE',
+        reductionPercentage:
+          task?.reductionPercentage != null ? (task.reductionPercentage * 100).toString() : '',
+        replacementLimit: task?.replacementLimit?.toString() ?? '',
+        finalEscalationType: task?.escalationUserId
+          ? 'USER'
+          : task?.escalationRoleId
+            ? 'ROLE'
+            : task?.escalationDynamicType && (task.escalationDynamicType === 'MANAGER' || task.escalationDynamicType === 'FIRST_SUPERVISOR')
+              ? 'DYNAMIC'
+              : task?.escalationDynamicType
+                ? 'DYNAMIC_TD_HIERARCHY'
+                : '',
+        escalationUserId: task?.escalationUserId?.toString() ?? '',
+        escalationRoleId: task?.escalationRoleId ?? '',
+        escalationDynamicType: task?.escalationDynamicType ?? '',
         priority: task?.priority ?? 'MEDIUM',
         slaDurationHours: task?.slaDurationHours?.toString() ?? '',
         maxRetryCount: task?.maxRetryCount?.toString() ?? '3',
@@ -146,6 +188,10 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
 
   const watchedAssignmentType = watch('assignmentType');
   const watchedAllowReassignment = watch('allowReassignment');
+  const watchedDeadlineAction = watch('deadlineAction');
+  const watchedFinalEscalationType = watch('finalEscalationType');
+  const watchedReductionPercentage = watch('reductionPercentage');
+  const watchedReplacementLimit = watch('replacementLimit');
 
   const onSubmit = async (data: TaskFormData) => {
     const payload = {
@@ -162,6 +208,25 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
       dynamicAssignmentType: data.assignmentType === 'DYNAMIC' || data.assignmentType === 'DYNAMIC_TD_HIERARCHY'
         ? (data.dynamicAssignmentType || null)
         : null,
+      deadlineAction: data.deadlineAction,
+      reductionPercentage:
+        data.deadlineAction === 'MISSED_AND_RECREATE' && data.reductionPercentage
+          ? parseFloat(data.reductionPercentage) / 100
+          : null,
+      replacementLimit:
+        data.deadlineAction === 'MISSED_AND_RECREATE' && data.replacementLimit
+          ? parseInt(data.replacementLimit, 10)
+          : null,
+      escalationUserId:
+        data.finalEscalationType === 'USER' && data.escalationUserId.trim()
+          ? parseInt(data.escalationUserId, 10)
+          : null,
+      escalationRoleId:
+        data.finalEscalationType === 'ROLE' ? (data.escalationRoleId.trim() || null) : null,
+      escalationDynamicType:
+        data.finalEscalationType === 'DYNAMIC' || data.finalEscalationType === 'DYNAMIC_TD_HIERARCHY'
+          ? (data.escalationDynamicType || null)
+          : null,
       priority: data.priority,
       slaDurationHours: data.slaDurationHours ? parseInt(data.slaDurationHours, 10) : null,
       maxRetryCount: parseInt(data.maxRetryCount, 10) || 3,
@@ -261,6 +326,141 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Deadline Action <span className="text-destructive">*</span>
+              </Label>
+              <ComboBox
+                options={DEADLINE_ACTION_OPTIONS}
+                value={watchedDeadlineAction}
+                onValueChange={(v) => setValue('deadlineAction', v)}
+                placeholder="Select..."
+              />
+            </div>
+          </div>
+
+          {/* Final escalation target — not gated on deadlineAction. escalationUserId/RoleId/
+              DynamicType have no UI today even for existing ESCALATE behavior; this fixes
+              that pre-existing gap as a byproduct of the same field set Missed and Recreate
+              needs for its own final-escalation step. */}
+          <div className="space-y-1.5">
+            <Label>Final Escalation Target</Label>
+            <ComboBox
+              options={FINAL_ESCALATION_TYPE_OPTIONS}
+              value={watchedFinalEscalationType}
+              onValueChange={(v) => setValue('finalEscalationType', v)}
+              placeholder="Select..."
+            />
+          </div>
+
+          {watchedFinalEscalationType === 'USER' && (
+            <div className="space-y-1.5">
+              <Label>Escalation User</Label>
+              <ComboBox
+                options={userOptions}
+                value={watch('escalationUserId')}
+                onValueChange={(v) => setValue('escalationUserId', v)}
+                placeholder="Select user..."
+                searchPlaceholder="Search users..."
+                emptyMessage="No users found."
+              />
+            </div>
+          )}
+
+          {watchedFinalEscalationType === 'ROLE' && (
+            <div className="space-y-1.5">
+              <Label htmlFor="task-escalation-role">Escalation Role ID</Label>
+              <Input id="task-escalation-role" {...register('escalationRoleId')} placeholder="Role ID" />
+            </div>
+          )}
+
+          {watchedFinalEscalationType === 'DYNAMIC' && (
+            <div className="space-y-1.5">
+              <Label>Escalation Dynamic Type</Label>
+              <ComboBox
+                options={DYNAMIC_ASSIGNMENT_OPTIONS}
+                value={watch('escalationDynamicType')}
+                onValueChange={(v) => setValue('escalationDynamicType', v)}
+                placeholder="Select..."
+              />
+            </div>
+          )}
+
+          {watchedFinalEscalationType === 'DYNAMIC_TD_HIERARCHY' && (
+            <div className="space-y-1.5">
+              <Label>Escalation Org Position</Label>
+              <ComboBox
+                options={ORG_HIERARCHY_POSITION_OPTIONS}
+                value={watch('escalationDynamicType')}
+                onValueChange={(v) => setValue('escalationDynamicType', v)}
+                placeholder="Select..."
+              />
+            </div>
+          )}
+
+          {watchedDeadlineAction === 'MISSED_AND_RECREATE' && (
+            <div className="space-y-4 rounded-md border p-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-reduction">
+                    Reduction % <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="task-reduction"
+                    type="number"
+                    min={1}
+                    max={100}
+                    {...register('reductionPercentage', {
+                      required: watchedDeadlineAction === 'MISSED_AND_RECREATE' ? 'Reduction % is required' : false,
+                      min: { value: 1, message: 'Must be greater than 0' },
+                      max: { value: 100, message: 'Must be 100 or less' },
+                    })}
+                    placeholder="50"
+                  />
+                  {errors.reductionPercentage && (
+                    <p className="text-sm text-destructive">{errors.reductionPercentage.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-replacement-limit">
+                    Replacement Limit <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="task-replacement-limit"
+                    type="number"
+                    min={0}
+                    {...register('replacementLimit', {
+                      required: watchedDeadlineAction === 'MISSED_AND_RECREATE' ? 'Replacement limit is required' : false,
+                      min: { value: 0, message: 'Must be 0 or greater' },
+                    })}
+                    placeholder="2"
+                  />
+                  {errors.replacementLimit && (
+                    <p className="text-sm text-destructive">{errors.replacementLimit.message}</p>
+                  )}
+                </div>
+              </div>
+              {watch('slaDurationHours') && watchedReductionPercentage && watchedReplacementLimit && (
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const original = parseInt(watch('slaDurationHours'), 10);
+                    const pct = parseFloat(watchedReductionPercentage) / 100;
+                    const limit = parseInt(watchedReplacementLimit, 10);
+                    if (!original || Number.isNaN(pct) || Number.isNaN(limit)) return null;
+                    const durations: number[] = [];
+                    let current = original;
+                    for (let i = 0; i < limit; i++) {
+                      current = Math.max(Math.ceil(current * (1 - pct)), 1);
+                      durations.push(current);
+                    }
+                    return `Original: ${original}h. Up to ${limit} replacement${limit === 1 ? '' : 's'}: ${durations.join('h, ')}h. If the final replacement is missed, escalates to the configured target.`;
+                  })()}
+                </p>
+              )}
+            </div>
+          )}
 
           {watchedAssignmentType === 'USER' && (
             <div className="space-y-1.5">
