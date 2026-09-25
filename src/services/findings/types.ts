@@ -8,6 +8,11 @@ export interface RunFindingsResultDto {
   entitiesCompared: number;
   fieldsChecked: number;
   observationsRecorded: number;
+  /** Review tasks created / closed by the same click (Findings Review Workflow). */
+  tasksCreated: number;
+  tasksClosed: number;
+  /** Set when task sync failed; the run's own findings are already saved. */
+  taskSyncError: string | null;
 }
 
 export interface FindingDto {
@@ -45,7 +50,7 @@ export interface FindingInsert {
   fingerprint: string;
 }
 
-/** At most one per (entityId, fieldPath) — enforced by uq_fnd_open_entity_field. */
+/** At most one live (open or acknowledged) per (entityId, fieldPath) — enforced by uq_fnd_open_entity_field. */
 export interface OpenFindingRef {
   findingId: number;
   entityId: string;
@@ -83,6 +88,28 @@ export interface FindingStatusCountDto {
 
 /** finding_action values emitted by ds.fn_run_state_rules(). */
 export const STATE_RULE_ACTION_RESOLVED = 'finding self-resolved';
+export const STATE_RULE_ACTION_RESOLVED_CONFIRMED = 'finding resolved-confirmed';
+
+/**
+ * Statuses both engines keep evaluating. 'acknowledged' (reviewer disagreed / marked
+ * resolved) stays live so it recurs instead of being duplicated — the same set is the
+ * predicate of uq_fnd_open_entity_field.
+ */
+export const LIVE_FINDING_STATUSES = ['open', 'acknowledged'];
+
+/** One row of ds.fn_create_finding_tasks(). */
+export interface CreatedFindingTaskRow {
+  fnd_id: number;
+  win_id: string;
+}
+
+/** One row of ds.fn_close_resolved_finding_tasks(). */
+export interface ClosedFindingTaskRow {
+  fnd_id: number;
+  win_id: string;
+  wit_id: string;
+  finding_status: string;
+}
 
 /** One row of ds.fn_run_state_rules() — column names kept as the function returns them. */
 export interface StateRuleViolationDto {
@@ -97,4 +124,9 @@ export interface RunStateRulesResultDto {
   violationsFound: number;
   findingsResolved: number;
   details: StateRuleViolationDto[];
+  /** Review tasks created / closed by the same click (Findings Review Workflow). */
+  tasksCreated: number;
+  tasksClosed: number;
+  /** Set when task sync failed; the run's own findings are already saved. */
+  taskSyncError: string | null;
 }

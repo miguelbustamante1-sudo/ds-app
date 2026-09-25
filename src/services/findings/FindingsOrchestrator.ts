@@ -18,6 +18,7 @@ import { StateRulesRunError } from './errors';
 import { reconcileFindings } from './components/ReconcileFindings';
 import { applyFindingsPlan, type FindingMutation } from './components/ApplyFindingsPlan';
 import { buildObservations, recordObservations } from './components/RecordObservations';
+import { syncFindingTasks } from './components/SyncFindingTasks';
 import type {
   RunFindingsResultDto,
   RunStateRulesResultDto,
@@ -25,12 +26,15 @@ import type {
   FindingStatusCountDto,
   StateRuleViolationDto,
 } from './types';
-import { STATE_RULE_ACTION_RESOLVED } from './types';
+import { STATE_RULE_ACTION_RESOLVED, STATE_RULE_ACTION_RESOLVED_CONFIRMED } from './types';
+
+const STATE_RULE_RESOLVE_ACTIONS = new Set([STATE_RULE_ACTION_RESOLVED, STATE_RULE_ACTION_RESOLVED_CONFIRMED]);
 
 const AUDIT_COMMENTS: Record<FindingMutation['kind'], string> = {
   open: 'Finding opened by change detection run',
   recur: 'Finding recurrence recorded by change detection run',
   self_resolve: 'Finding self-resolved: value reverted to approved baseline',
+  resolve_confirmed: 'Acknowledged finding confirmed fixed: value reverted to approved baseline',
   supersede: 'Finding superseded by a newer value',
 };
 
@@ -117,6 +121,9 @@ export class FindingsOrchestrator {
         comment: `Change detection run completed for ${entityType}`,
       });
 
+      // Same click also creates and closes review tasks (Findings Review Workflow).
+      const taskSync = await syncFindingTasks(triggeredByEmail);
+
       return {
         runId,
         runLogId: runLog.runLogId,
@@ -127,6 +134,7 @@ export class FindingsOrchestrator {
         entitiesCompared,
         fieldsChecked: watchedFields.length,
         observationsRecorded,
+        ...taskSync,
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -153,7 +161,7 @@ export class FindingsOrchestrator {
       throw new StateRulesRunError(err instanceof Error ? err.message : 'Unknown error');
     }
 
-    const findingsResolved = rows.filter((row) => row.finding_action === STATE_RULE_ACTION_RESOLVED).length;
+    const findingsResolved = rows.filter((row) => STATE_RULE_RESOLVE_ACTIONS.has(row.finding_action)).length;
     const violationsFound = rows.length - findingsResolved;
 
     // The upserts and self-resolves happen inside the Postgres function, so this is one batch-level entry per run.
@@ -166,7 +174,9 @@ export class FindingsOrchestrator {
       comment: `${violationsFound} state-rule violations evaluated, ${findingsResolved} findings self-resolved`,
     });
 
-    return { violationsFound, findingsResolved, details: rows };
+    const taskSync = await syncFindingTasks(triggeredByEmail);
+
+    return { violationsFound, findingsResolved, details: rows, ...taskSync };
   }
 
   async getFindings(entityType = 'project', status?: string): Promise<FindingDto[]> {

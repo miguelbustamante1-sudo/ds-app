@@ -1,8 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { DETECTION_RULE_SEVERITIES, DETECTION_RULE_TYPES } from '@shared/dto';
+import { DETECTION_RULE_CONDITION_OPERATORS, DETECTION_RULE_SEVERITIES, DETECTION_RULE_TYPES } from '@shared/dto';
 import type {
   CreateDetectionRuleDto,
+  DetectionRuleConditionOperator,
   DetectionRuleDefinition,
   DetectionRuleDto,
   DetectionRuleSeverity,
@@ -23,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiPost, apiPut } from '@/lib/api';
-import { RULE_TYPE_LABELS } from '@/lib/detection-rules';
+import { CONDITION_OPERATOR_LABELS, RULE_TYPE_LABELS } from '@/lib/detection-rules';
 
 interface DetectionRuleFormData {
   entityType: string;
@@ -32,6 +33,9 @@ interface DetectionRuleFormData {
   min: string;
   max: string;
   expected: 'true' | 'false';
+  whenField: string;
+  whenOperator: DetectionRuleConditionOperator;
+  whenValue: string;
   severity: DetectionRuleSeverity;
 }
 
@@ -48,6 +52,10 @@ const RULE_TYPE_OPTIONS = DETECTION_RULE_TYPES.map((type) => ({
   label: `${RULE_TYPE_LABELS[type]} (${type})`,
 }));
 const SEVERITY_OPTIONS = DETECTION_RULE_SEVERITIES.map((s) => ({ value: s, label: s }));
+const OPERATOR_OPTIONS = DETECTION_RULE_CONDITION_OPERATORS.map((op) => ({
+  value: op,
+  label: CONDITION_OPERATOR_LABELS[op],
+}));
 const EXPECTED_OPTIONS = [
   { value: 'true', label: 'true' },
   { value: 'false', label: 'false' },
@@ -61,6 +69,9 @@ function toFormData(record: DetectionRuleDto | undefined, defaultEntityType: str
     min: record?.definition.min?.toString() ?? '',
     max: record?.definition.max?.toString() ?? '',
     expected: record?.definition.expected === false ? 'false' : 'true',
+    whenField: record?.definition.when?.field ?? '',
+    whenOperator: record?.definition.when?.operator ?? 'equals',
+    whenValue: record?.definition.when?.value ?? '',
     severity: record?.severity ?? 'medium',
   };
 }
@@ -72,6 +83,11 @@ function toDefinition(data: DetectionRuleFormData): DetectionRuleDefinition {
       return { field, min: Number(data.min), max: Number(data.max) };
     case 'boolean_equals':
       return { field, expected: data.expected === 'true' };
+    case 'required_when':
+      return {
+        field,
+        when: { field: data.whenField.trim(), operator: data.whenOperator, value: data.whenValue.trim() },
+      };
     default:
       return { field };
   }
@@ -101,6 +117,8 @@ export function DetectionRuleFormDialog({
   const entityType = watch('entityType');
   const severity = watch('severity');
   const expected = watch('expected');
+  const whenOperator = watch('whenOperator');
+  const isConditional = ruleType === 'required_when';
 
   const entityTypeOptions = useMemo(
     () => entityTypes.map((type) => ({ value: type, label: type })),
@@ -263,6 +281,57 @@ export function DetectionRuleFormDialog({
                   onValueChange={(value) => setValue('expected', value as 'true' | 'false')}
                 />
                 <p className="text-xs text-muted-foreground">A missing value counts as a violation.</p>
+              </div>
+            )}
+
+            {isConditional && (
+              <div className="space-y-4 rounded-lg border border-dashed p-4">
+                <p className="text-sm font-medium">When</p>
+                <div className="space-y-2">
+                  <Label htmlFor="whenField">
+                    Condition Field <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="whenField"
+                    className="font-mono"
+                    placeholder="e.g., project_type"
+                    {...register('whenField', {
+                      validate: (v) => {
+                        if (!isConditional) return true;
+                        if (v.trim() === '') return 'Condition field is required';
+                        return v.trim() !== getValues('field').trim() || 'Must differ from the field above';
+                      },
+                    })}
+                  />
+                  {errors.whenField && <p className="text-sm text-destructive">{errors.whenField.message}</p>}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Operator</Label>
+                    <ComboBox
+                      options={OPERATOR_OPTIONS}
+                      value={whenOperator}
+                      onValueChange={(value) => setValue('whenOperator', value as DetectionRuleConditionOperator)}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="whenValue">
+                      Value <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="whenValue"
+                      placeholder="e.g., Client"
+                      {...register('whenValue', {
+                        validate: (v) => !isConditional || v.trim() !== '' || 'Value is required',
+                      })}
+                    />
+                    {errors.whenValue && <p className="text-sm text-destructive">{errors.whenValue.message}</p>}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Case-sensitive. The rule fires only when this matches and the field above is empty. For
+                  several values, add one rule per value.
+                </p>
               </div>
             )}
 

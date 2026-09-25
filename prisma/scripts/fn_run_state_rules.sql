@@ -20,6 +20,19 @@
 --           'finding self-resolved'. Entities missing from the snapshot are
 --           never resolved (a failed read is not a fix), and findings of
 --           inactive rules are left untouched. Return signature unchanged.
+--           2026-09-23: Findings Review Workflow. 'acknowledged' (reviewer
+--           disagreed / marked resolved) is a live status: violations keep
+--           upserting onto it instead of opening a duplicate, and when it
+--           passes it closes as 'resolved_confirmed' (finding_action
+--           'finding resolved-confirmed') rather than 'self_resolved'. The
+--           ON CONFLICT predicate must match uq_fnd_open_entity_field's
+--           (prisma/scripts/findings_review_workflow.sql).
+--           2026-09-25: required_when — the field must be filled in when another
+--           field matches a condition: {"field": "director", "when": {"field":
+--           "project_type", "operator": "equals"|"contains"|"starts_with",
+--           "value": "Client"}}. Case-sensitive. A missing condition value never
+--           matches. The finding sits on "field", so it self-resolves when the
+--           field is filled in OR the condition stops matching.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION ds.fn_run_state_rules()
@@ -36,6 +49,9 @@ DECLARE
     v_value      text;
     v_violated   boolean;
     v_fingerprint text;
+    v_new_status  text;
+    v_when_value  text;
+    v_when_match  boolean;
 BEGIN
     FOR r IN
         SELECT rul_id, cde_entity_type, rul_type, rul_definition, rul_severity, rul_version
@@ -74,6 +90,17 @@ BEGIN
                 ELSE
                     v_violated := true; -- missing on a must-equal check counts as a violation
                 END IF;
+
+            ELSIF r.rul_type = 'required_when' THEN
+                v_when_value := s.snp_payload ->> (r.rul_definition #>> '{when,field}');
+                v_when_match := CASE r.rul_definition #>> '{when,operator}'
+                    WHEN 'equals'      THEN v_when_value = (r.rul_definition #>> '{when,value}')
+                    WHEN 'contains'    THEN strpos(v_when_value, r.rul_definition #>> '{when,value}') > 0
+                    WHEN 'starts_with' THEN starts_with(v_when_value, r.rul_definition #>> '{when,value}')
+                    ELSE false
+                END;
+                -- NULL condition value → NULL match → not violated.
+                v_violated := coalesce(v_when_match, false) AND (v_value IS NULL OR v_value = '');
             END IF;
 
             IF v_violated THEN
@@ -85,23 +112,27 @@ BEGIN
                 VALUES
                     (v_fingerprint, r.cde_entity_type, s.snp_entity_id, v_field,
                      r.rul_id, r.rul_version, NULL, to_jsonb(v_value), r.rul_severity, 'open')
-                ON CONFLICT (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id) WHERE status = 'open'
+                ON CONFLICT (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id) WHERE status IN ('open', 'acknowledged')
                 DO UPDATE SET last_seen = now(), occurrence_count = fnd_findings.occurrence_count + 1;
 
                 -- Explicit casts: rul_type is varchar(100) and RETURN QUERY requires exact types.
                 RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding opened/updated'::text;
             ELSE
+                -- An acknowledged finding keeps the reviewer's comment in resolution.
                 UPDATE ds.fnd_findings
-                   SET status      = 'self_resolved',
+                   SET status      = CASE WHEN status = 'acknowledged' THEN 'resolved_confirmed' ELSE 'self_resolved' END,
                        resolved_at = now(),
-                       resolution  = 'auto: rule no longer violated'
+                       resolution  = CASE WHEN status = 'acknowledged' THEN resolution ELSE 'auto: rule no longer violated' END
                  WHERE cde_entity_type = r.cde_entity_type
                    AND fnd_entity_id   = s.snp_entity_id
+                   AND cdf_field_path  = v_field
                    AND rul_id          = r.rul_id
-                   AND status          = 'open';
+                   AND status IN ('open', 'acknowledged')
+                RETURNING status INTO v_new_status;
 
                 IF FOUND THEN
-                    RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding self-resolved'::text;
+                    RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value,
+                        CASE WHEN v_new_status = 'resolved_confirmed' THEN 'finding resolved-confirmed' ELSE 'finding self-resolved' END;
                 END IF;
             END IF;
         END LOOP;

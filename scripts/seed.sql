@@ -835,8 +835,10 @@ WITH new_template AS (
         pte_separator, pte_truncate_before_import, pte_error_handling_strategy,
         pte_duplicates_handling_strategy, pte_target_table, pte_created_by, pte_created_at
     )
+    -- Aggregate in a subquery: at top level it returns a row even when WHERE filters
+    -- everything out, which made every re-seed fail here (silently — setup uses || true).
     SELECT
-        COALESCE(MAX(pte_id), 0) + 1,
+        m.next_id,
         'Entity Snapshot (Land Test)',
         'Change-detection platform Land-stage table. jsonb payload column — source files must be RFC-4180-quoted on the payload field (JSON is quote-dense; required even with Tab separator, confirmed 2026-09-18). snp_id (identity PK) left unmapped, append-only through this template.',
         true,
@@ -848,7 +850,7 @@ WITH new_template AS (
         'es.snp_entity_snapshot',
         'milton.ayala2@telusdigital.com',
         now()
-    FROM di.pte_persistence_templates
+    FROM (SELECT COALESCE(MAX(pte_id), 0) + 1 AS next_id FROM di.pte_persistence_templates) m
     WHERE NOT EXISTS (SELECT 1 FROM di.pte_persistence_templates WHERE pte_target_table = 'es.snp_entity_snapshot')
     RETURNING pte_id
 )
@@ -865,51 +867,10 @@ CROSS JOIN (VALUES
 ) AS v(ptc_index, ptc_name, ptc_type, ptc_length, ptc_allow_null, ptc_comment, ptc_csv_column_name, ptc_csv_column_index)
 ON CONFLICT DO NOTHING;
 
--- 20. Watched Entity and Fields for Change Detection Platform
--- Seed the 'project' entity type and its 15 watched fields
-INSERT INTO ds.cde_watched_entities (cde_entity_type, cde_label, cde_owner_email, cde_completeness_pct, cde_active, cde_seeded_at, cde_created_by)
-  VALUES ('project', 'Salesforce Project', 'milton.ayala2@telusdigital.com', 100, true, now(), 'system_seed')
-  ON CONFLICT (cde_entity_type) DO NOTHING;
-
--- 15 watched fields for project entity type (field_id auto-increments, so just INSERT)
--- Field paths must match exactly with snp_payload JSON keys in es.snp_entity_snapshot
-INSERT INTO ds.cdf_watched_fields (cde_entity_type, cdf_field_path, cdf_display_name, cdf_data_type, cdf_comparison_mode, cdf_tolerance, cdf_null_equals_empty, cdf_significance, cdf_effective_from, cdf_active, cdf_created_at, cdf_created_by)
-VALUES
-  ('project', 'project_name',          'Project Name',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'project_type',          'Project Type',           'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'start_date',            'Start Date',             'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'end_date',              'End Date',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'project_manager',       'Project Manager',        'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'director',              'Director',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'sow',                   'SOW',                    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'wbs_code',              'WBS Code',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'region',                'Region',                 'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'line_of_business',      'Line of Business',       'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'practice',              'Practice',               'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'contract_type',         'Contract Type',          'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  ('project', 'telus_business_unit',   'TELUS Business Unit',    'text',    'exact',  NULL, false, 'material', CURRENT_DATE, true, now(), 'system_seed'),
-  -- Added 2026-09-23 via Object & Field Manager. Project_Underrun__c is intentionally inactive:
-  -- only the state rules engine (rule 3) evaluates it, the change engine does not.
-  ('project', 'Project_Underrun__c',   'Project Underrun',       'number',  'exact',  NULL, true,  'material', CURRENT_DATE, false, now(), 'system_seed'),
-  ('project', 'pse__Is_Billable__c',   'Project Billable',       'boolean', 'exact',  NULL, true,  'material', CURRENT_DATE, true,  now(), 'system_seed')
-ON CONFLICT (cde_entity_type, cdf_field_path) DO NOTHING;
-
--- 21. Baseline Approved States for Change Detection Platform
--- Must run AFTER section 20: fk_aps_cde references ds.cde_watched_entities.
--- Literal baselines, deliberately NOT derived from es.snp_entity_snapshot. That table is
--- empty on a fresh setup (it is populated by TSV upload, never by this seed), so the old
--- SELECT-based version inserted zero rows after a `down -v`. DO NOTHING is also load
--- bearing: DO UPDATE would overwrite an approved baseline with whatever has since drifted
--- into the snapshot, silently erasing the drift the detection run is meant to find.
-INSERT INTO ds.aps_approved_state (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at)
-VALUES
-  ('project', 'PR-004121', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": "<Multiple From File>", "start_date": "2026-01-01", "project_name": "TELUS CIO (SPACE) Digitization Campus - 2026 (Andre Medeiros)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "25000", "pse__Is_Billable__c": "true", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-004141', '{"sow": "320808 (PO # 7010141648)", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-15", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2025-12-16", "project_name": "Mastercard - Prepaid Management Services SOW 2 Dev and QA - 2026", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "0", "pse__Is_Billable__c": "true", "telus_business_unit": null}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-004156', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-01-01", "project_name": "TELUS TCS - SOW 2026 - Smart Home Security - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "José Ruiz Fuentes (10100302)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "150000", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-005460', '{"sow": "2560", "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-03-02", "project_name": "TELUS CIO - Shopping Cart-Project - TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "80000", "pse__Is_Billable__c": "true", "telus_business_unit": "CIO"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-005988', '{"sow": null, "region": "All TELUS Digital Solutions", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2027-03-05", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-07-01", "project_name": "TELUS - Personalization and Publishing Products (Dinesh)", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Kevin Fino Herrera (10017904)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "0", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now()),
-  ('project', 'PR-006119', '{"sow": null, "region": "Central America", "director": "Arturo Marenco Rodriguez (10016568)", "end_date": "2026-12-31", "practice": "System Engineering & Support", "wbs_code": null, "start_date": "2026-09-01", "project_name": "TELUS TCS- Kim-Bernard-Paula-Koodo Digital-2026- TICA", "project_type": "Client", "contract_type": "T & M Date", "project_manager": "Luis Hernandez Campos (10018554)", "line_of_business": "Enterprise Technology", "Project_Underrun__c": "42000", "pse__Is_Billable__c": "true", "telus_business_unit": "TCS"}'::jsonb, 'system_seed', now())
-ON CONFLICT (cde_entity_type, aps_entity_id) DO NOTHING;
+-- 20–21. Watched entities, watched fields and approved-state baselines are NOT seeded
+-- (removed 2026-09-25) — change detection starts blank, as in production. Configure the
+-- entity and fields in Object & Field Manager, then load a baseline; see
+-- docs/technical/change-detection-production-deployment.md.
 
 -- Findings — Change Detection Platform (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)
@@ -934,26 +895,17 @@ END $$;
 -- changes when the drifted value changes and cannot enforce one open finding per field.
 -- rul_id separates state-rule findings from change findings (always NULL rul_id) so the
 -- two engines never collide on the same field.
--- Mirrored from prisma/scripts/rekey_fnd_open_dedup_index_by_rule.sql.
+-- 'acknowledged' is live too (Findings Review Workflow), so it recurs instead of duplicating.
+-- Mirrored from prisma/scripts/findings_review_workflow.sql.
 DROP INDEX IF EXISTS ds.uq_fnd_open_fingerprint;
 DROP INDEX IF EXISTS ds.uq_fnd_open_entity_field;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fnd_open_entity_field
     ON ds.fnd_findings (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id)
     NULLS NOT DISTINCT
-    WHERE status = 'open';
+    WHERE status IN ('open', 'acknowledged');
 
--- State detection rules (added 2026-09-23)
--- Must run AFTER section 20: fk_rul_cde references ds.cde_watched_entities.
--- Explicit rul_id so fnd_findings.rul_id stays stable across fresh setups; the table has no
--- natural unique key, so the PK is the guard. setval moves the sequence past the seeded ids.
-INSERT INTO ds.rul_detection_rules (rul_id, cde_entity_type, rul_class, rul_type, rul_definition, rul_severity, rul_version, rul_active, rul_created_by)
-VALUES
-  (1, 'project', 'state', 'required_not_null', '{"field": "director"}'::jsonb,                                      'medium', 1, true, 'system_seed'),
-  (2, 'project', 'state', 'required_empty',    '{"field": "telus_business_unit"}'::jsonb,                           'medium', 1, false, 'system_seed'),
-  (3, 'project', 'state', 'range_check',       '{"field": "Project_Underrun__c", "min": 0, "max": 1000000}'::jsonb, 'medium', 1, true, 'system_seed'),
-  (4, 'project', 'state', 'boolean_equals',    '{"field": "pse__Is_Billable__c", "expected": true}'::jsonb,         'medium', 1, true, 'system_seed')
-ON CONFLICT (rul_id) DO NOTHING;
-SELECT setval('ds.rul_detection_rules_rul_id_seq', GREATEST((SELECT MAX(rul_id) FROM ds.rul_detection_rules), 1));
+-- State detection rules are NOT seeded (removed 2026-09-25) — create them on the
+-- Detection Rules screen.
 
 -- ds.fn_run_state_rules() — called by POST /api/findings/run-rules.
 -- Mirrored from prisma/scripts/fn_run_state_rules.sql (taken from pg_get_functiondef).
@@ -972,6 +924,9 @@ DECLARE
     v_value      text;
     v_violated   boolean;
     v_fingerprint text;
+    v_new_status  text;
+    v_when_value  text;
+    v_when_match  boolean;
 BEGIN
     FOR r IN
         SELECT rul_id, cde_entity_type, rul_type, rul_definition, rul_severity, rul_version
@@ -1010,6 +965,17 @@ BEGIN
                 ELSE
                     v_violated := true; -- missing on a must-equal check counts as a violation
                 END IF;
+
+            ELSIF r.rul_type = 'required_when' THEN
+                v_when_value := s.snp_payload ->> (r.rul_definition #>> '{when,field}');
+                v_when_match := CASE r.rul_definition #>> '{when,operator}'
+                    WHEN 'equals'      THEN v_when_value = (r.rul_definition #>> '{when,value}')
+                    WHEN 'contains'    THEN strpos(v_when_value, r.rul_definition #>> '{when,value}') > 0
+                    WHEN 'starts_with' THEN starts_with(v_when_value, r.rul_definition #>> '{when,value}')
+                    ELSE false
+                END;
+                -- NULL condition value → NULL match → not violated.
+                v_violated := coalesce(v_when_match, false) AND (v_value IS NULL OR v_value = '');
             END IF;
 
             IF v_violated THEN
@@ -1021,29 +987,790 @@ BEGIN
                 VALUES
                     (v_fingerprint, r.cde_entity_type, s.snp_entity_id, v_field,
                      r.rul_id, r.rul_version, NULL, to_jsonb(v_value), r.rul_severity, 'open')
-                ON CONFLICT (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id) WHERE status = 'open'
+                ON CONFLICT (cde_entity_type, fnd_entity_id, cdf_field_path, rul_id) WHERE status IN ('open', 'acknowledged')
                 DO UPDATE SET last_seen = now(), occurrence_count = fnd_findings.occurrence_count + 1;
 
                 -- Explicit casts: rul_type is varchar(100) and RETURN QUERY requires exact types.
                 RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding opened/updated'::text;
             ELSE
+                -- An acknowledged finding keeps the reviewer's comment in resolution.
                 UPDATE ds.fnd_findings
-                   SET status      = 'self_resolved',
+                   SET status      = CASE WHEN status = 'acknowledged' THEN 'resolved_confirmed' ELSE 'self_resolved' END,
                        resolved_at = now(),
-                       resolution  = 'auto: rule no longer violated'
+                       resolution  = CASE WHEN status = 'acknowledged' THEN resolution ELSE 'auto: rule no longer violated' END
                  WHERE cde_entity_type = r.cde_entity_type
                    AND fnd_entity_id   = s.snp_entity_id
+                   AND cdf_field_path  = v_field
                    AND rul_id          = r.rul_id
-                   AND status          = 'open';
+                   AND status IN ('open', 'acknowledged')
+                RETURNING status INTO v_new_status;
 
                 IF FOUND THEN
-                    RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value, 'finding self-resolved'::text;
+                    RETURN QUERY SELECT s.snp_entity_id::text, v_field, r.rul_type::text, v_value,
+                        CASE WHEN v_new_status = 'resolved_confirmed' THEN 'finding resolved-confirmed' ELSE 'finding self-resolved' END;
                 END IF;
             END IF;
         END LOOP;
     END LOOP;
 END;
 $function$;
+
+-- Workflow engine primitives — LOCAL COPY ONLY (added 2026-09-25). Production already has
+-- these; they belong to the workflow engine's owners and are never part of a feature
+-- deployment. Mirrored verbatim from prisma/scripts/workflow_engine_primitives.sql (captured
+-- from production) so a local rebuild can run the review workflow end to end.
+CREATE OR REPLACE FUNCTION com.sp_notify_user(p_user_id integer, p_item_type text, p_payload jsonb, p_category_name text DEFAULT NULL::text, p_action_type text DEFAULT 'actionable'::text, p_created_by text DEFAULT NULL::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_ntf_id integer;
+  v_cat_id integer;
+BEGIN
+  IF p_category_name IS NOT NULL THEN
+    SELECT cat_id INTO v_cat_id FROM com.cat_categories WHERE cat_name = p_category_name;
+  END IF;
+
+  INSERT INTO com.ntf_notifications (cat_id, ntf_item_type, ntf_payload, ntf_created_by)
+  VALUES (v_cat_id, p_item_type, p_payload, p_created_by)
+  RETURNING ntf_id INTO v_ntf_id;
+
+  INSERT INTO com.rec_recipients (ntf_id, usr_id, rec_action_type)
+  VALUES (v_ntf_id, p_user_id, p_action_type);
+
+  RETURN v_ntf_id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION ds.sp_engine_complete_instance_if_done(p_win_id uuid, p_wit_id uuid, p_route_found boolean, p_performed_by text, p_performed_by_user_id text)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_remaining        integer;
+  v_state            text;
+  v_retry_count      integer;
+  v_max_retry_count  integer;
+  v_instance_failed  boolean;
+BEGIN
+  SELECT count(*) INTO v_remaining
+  FROM ds.wit_workflow_instance_tasks
+  WHERE win_id = p_win_id AND wit_state IN ('ACTIVE', 'PENDING');
+
+  IF v_remaining > 0 THEN
+    RETURN;
+  END IF;
+
+  SELECT wit_state, wit_retry_count, wit_max_retry_count
+  INTO v_state, v_retry_count, v_max_retry_count
+  FROM ds.wit_workflow_instance_tasks
+  WHERE wit_id = p_wit_id;
+
+  v_instance_failed := (v_state = 'FAILED' AND NOT p_route_found AND v_retry_count >= v_max_retry_count);
+
+  UPDATE ds.win_workflow_instances
+  SET win_status      = CASE WHEN v_instance_failed THEN 'FAILED' ELSE 'COMPLETED' END,
+      win_completed_at = now(),
+      win_completed_by = p_performed_by
+  WHERE win_id = p_win_id;
+
+  INSERT INTO ds.wal_workflow_audit_log (
+    wal_id, win_id, wal_event_type, wal_event_timestamp, wal_performed_by, wal_new_state
+  ) VALUES (
+    gen_random_uuid(), p_win_id,
+    CASE WHEN v_instance_failed THEN 'INSTANCE_FAILED' ELSE 'INSTANCE_COMPLETED' END,
+    now(), p_performed_by,
+    CASE WHEN v_instance_failed THEN 'FAILED' ELSE 'COMPLETED' END
+  );
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION ds.sp_engine_create_instance(p_wfl_id uuid, p_business_reference_type text, p_business_reference_id text, p_owner_user_id integer, p_started_by text, p_created_by text, p_context jsonb)
+ RETURNS uuid
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_win_id         uuid;
+  v_wfl_code       varchar(30);
+  v_wfl_version_no integer;
+BEGIN
+  SELECT wfl_code, wfl_version_no INTO v_wfl_code, v_wfl_version_no
+  FROM ds.wfl_workflow_templates
+  WHERE wfl_id = p_wfl_id AND wfl_status = 'PUBLISHED';
+
+  IF v_wfl_code IS NULL THEN
+    RAISE EXCEPTION 'sp_engine_create_instance: template % is not PUBLISHED', p_wfl_id;
+  END IF;
+
+  INSERT INTO ds.win_workflow_instances (
+    win_id, wfl_id, win_workflow_code, win_template_version_no, win_name,
+    win_status, win_started_at, win_started_by, win_owner_user_id,
+    win_business_reference_type, win_business_reference_id, win_context_json,
+    created_at, created_by
+  ) VALUES (
+    gen_random_uuid(), p_wfl_id, v_wfl_code, v_wfl_version_no,
+    format('%s instance', v_wfl_code),
+    'ACTIVE', now(), p_started_by, p_owner_user_id,
+    p_business_reference_type, p_business_reference_id, p_context,
+    now(), p_created_by
+  )
+  RETURNING win_id INTO v_win_id;
+
+  IF p_context IS NOT NULL THEN
+    INSERT INTO ds.wic_workflow_instance_context (
+      wic_id, win_id, wic_key, wic_value_text, created_at, created_by
+    )
+    SELECT gen_random_uuid(), v_win_id, elem->>'key', elem->>'value', now(), p_created_by
+    FROM jsonb_array_elements(p_context) elem;
+  END IF;
+
+  INSERT INTO ds.wal_workflow_audit_log (
+    wal_id, win_id, wal_event_type, wal_event_timestamp, wal_performed_by, wal_new_state
+  ) VALUES (
+    gen_random_uuid(), v_win_id, 'INSTANCE_STARTED', now(), p_started_by, 'ACTIVE'
+  );
+
+  RETURN v_win_id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION ds.sp_engine_insert_task(p_win_id uuid, p_wtk_code character varying, p_assignee_user_id integer, p_performed_by text, p_created_by text)
+ RETURNS TABLE(activated_wit_id uuid, activated_user_id integer)
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_wit_id uuid;
+  v_wtk    RECORD;
+BEGIN
+  SELECT wtk.* INTO v_wtk
+  FROM ds.wtk_workflow_template_tasks wtk
+  JOIN ds.win_workflow_instances win ON win.wfl_id = wtk.wfl_id
+  WHERE win.win_id = p_win_id AND wtk.wtk_code = p_wtk_code AND wtk.wtk_is_active = true;
+
+  IF v_wtk IS NULL THEN
+    RAISE EXCEPTION 'sp_engine_insert_task: no active task with code % on this template', p_wtk_code;
+  END IF;
+
+  INSERT INTO ds.wit_workflow_instance_tasks (
+    wit_id, win_id, wtk_id, wit_code, wit_name, wit_description, wit_sequence_no,
+    wit_task_type, wit_assignment_type, wit_resolved_user_id, wit_priority, wit_state,
+    wit_activated_at, wit_due_at, wit_max_retry_count, wit_sla_duration_hours,
+    wit_escalation_user_id, wit_escalation_role_id, wit_escalation_dynamic_type,
+    created_at, created_by
+  ) VALUES (
+    gen_random_uuid(), p_win_id, v_wtk.wtk_id, v_wtk.wtk_code, v_wtk.wtk_name, v_wtk.wtk_description,
+    v_wtk.wtk_sequence_no, v_wtk.wtk_task_type, v_wtk.wtk_assignment_type, p_assignee_user_id,
+    v_wtk.wtk_priority, 'ACTIVE', now(),
+    CASE WHEN v_wtk.wtk_sla_duration_hours IS NOT NULL
+         THEN now() + (v_wtk.wtk_sla_duration_hours || ' hours')::interval
+         ELSE NULL END,
+    v_wtk.wtk_max_retry_count, v_wtk.wtk_sla_duration_hours,
+    v_wtk.wtk_escalation_user_id, v_wtk.wtk_escalation_role_id, v_wtk.wtk_escalation_dynamic_type,
+    now(), p_created_by
+  )
+  RETURNING wit_id INTO v_wit_id;
+
+  -- Copy notification config — without this, wnt rows never exist for a
+  -- DATABASE-created task and notifyWorkflowEvent has nothing to find.
+  INSERT INTO ds.wnt_workflow_instance_notifications (
+    wnt_id, wit_id, wnt_event_type, wnt_recipient_type, wnt_recipient_user_id,
+    wnt_recipient_role_id, wnt_recipient_dynamic_type, wnt_message_template,
+    wnt_email_template, wnt_slack_template, created_at, created_by
+  )
+  SELECT
+    gen_random_uuid(), v_wit_id, wtn.wtn_event_type, wtn.wtn_recipient_type, wtn.wtn_recipient_user_id,
+    wtn.wtn_recipient_role_id, wtn.wtn_recipient_dynamic_type, wtn.wtn_message_template,
+    wtn.wtn_email_template, wtn.wtn_slack_template, now(), p_created_by
+  FROM ds.wtn_workflow_template_notifications wtn
+  WHERE wtn.wtk_id = v_wtk.wtk_id AND wtn.wtn_is_active = true;
+
+  INSERT INTO ds.wal_workflow_audit_log (
+    wal_id, win_id, wit_id, wal_event_type, wal_event_timestamp, wal_performed_by, wal_new_state
+  ) VALUES (
+    gen_random_uuid(), p_win_id, v_wit_id, 'TASK_ACTIVATED', now(), p_performed_by, 'ACTIVE'
+  );
+
+  RETURN QUERY SELECT v_wit_id, p_assignee_user_id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION ds.sp_resolve_first_supervisor(p_owner_user_id integer)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  v_tms_id     integer;
+  v_sup_tms_id integer;
+  v_sup_usr_id integer;
+BEGIN
+  SELECT tms_id INTO v_tms_id FROM ds.tbl_users WHERE usr_id = p_owner_user_id;
+  IF v_tms_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT sup_id INTO v_sup_tms_id
+  FROM ds.tbl_tms_x_supervisor
+  WHERE tms_id = v_tms_id
+    AND txs_stadat <= CURRENT_DATE
+    AND (txs_enddat IS NULL OR txs_enddat >= CURRENT_DATE)
+  ORDER BY txs_stadat DESC
+  LIMIT 1;
+
+  IF v_sup_tms_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT usr_id INTO v_sup_usr_id FROM ds.tbl_users WHERE tms_id = v_sup_tms_id LIMIT 1;
+  RETURN v_sup_usr_id;
+END;
+$function$
+;
+
+-- Findings Review Workflow procedures (added 2026-09-23).
+-- Mirrored from prisma/scripts/findings_review_workflow.sql. They depend on the workflow
+-- engine primitives (prisma/scripts/workflow_engine_primitives.sql, NOT seeded — owned by the
+-- engine team) and on the two templates (scripts/create-finding-review-templates.py). Until
+-- both exist, sp_start_finding_review_workflow finds no published template and returns
+-- quietly, so the Run buttons simply create no tasks.
+-- ── 1b. Who reviews a finding ──────────────────────────────────────────────
+-- Project findings go to the project's manager: the Workday ID in parentheses
+-- at the end of project_manager ("Kevin Fino Herrera (10017904)") → an ACTIVE
+-- team member (ds.tbl_team_members.wdid, same active rule as
+-- getAllActiveTeamMembers) → their app user (ds.tbl_users.tms_id). The engine
+-- keys inbox and completion rights on ds.tbl_users.usr_id, so that is what is
+-- returned. The snapshot's current value wins; the approved baseline is used
+-- if the snapshot has none.
+--
+-- Anything that doesn't resolve (no id, no active team member, no app user, or
+-- a non-project entity) falls back to Milton Ayala — looked up by email so the
+-- same code works everywhere (usr_id 311 in production, 1 locally), with 311
+-- as the last resort.
+CREATE OR REPLACE FUNCTION ds.fn_resolve_finding_assignee(p_entity_type text, p_entity_id text)
+RETURNS integer
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  v_fallback_email  text    := 'milton.ayala2@telusinternational.com';
+  v_fallback_usr_id integer := 311;
+  v_pm              text;
+  v_wdid            text;
+  v_usr_id          integer;
+BEGIN
+  IF p_entity_type = 'project' THEN
+    SELECT nullif(s.snp_payload ->> 'project_manager', '') INTO v_pm
+    FROM es.snp_entity_snapshot s
+    WHERE s.snp_entity_type = p_entity_type AND s.snp_entity_id = p_entity_id;
+
+    IF v_pm IS NULL THEN
+      SELECT nullif(a.aps_payload ->> 'project_manager', '') INTO v_pm
+      FROM ds.aps_approved_state a
+      WHERE a.cde_entity_type = p_entity_type AND a.aps_entity_id = p_entity_id;
+    END IF;
+
+    v_wdid := substring(v_pm FROM '\(([0-9]+)\)\s*$');
+
+    IF v_wdid IS NOT NULL THEN
+      SELECT u.usr_id INTO v_usr_id
+      FROM ds.tbl_team_members t
+      JOIN ds.tbl_users u ON u.tms_id = t.tms_id
+      WHERE t.wdid = v_wdid
+        AND t.tms_stadat <= CURRENT_DATE
+        AND (t.tms_enddat IS NULL OR t.tms_enddat >= CURRENT_DATE)
+      ORDER BY t.tms_stadat DESC, u.usr_id
+      LIMIT 1;
+    END IF;
+  END IF;
+
+  IF v_usr_id IS NOT NULL THEN
+    RETURN v_usr_id;
+  END IF;
+
+  SELECT u.usr_id INTO v_usr_id
+  FROM ds.tbl_users u
+  WHERE lower(u.usr_email) = v_fallback_email
+  ORDER BY u.usr_id
+  LIMIT 1;
+
+  RETURN coalesce(v_usr_id, v_fallback_usr_id);
+END;
+$$;
+
+
+-- ── 2. Initiator (wfl_instantiate_proc_name on both templates) ──────────────
+-- Called per finding by fn_create_finding_tasks. Assigns the project manager
+-- (ds.fn_resolve_finding_assignee). Never raises: one bad finding
+-- must not stop the rest of the batch, and a workflow problem must never touch
+-- the finding itself (the EXCEPTION block rolls back only this call's writes).
+CREATE OR REPLACE FUNCTION ds.sp_start_finding_review_workflow(p_fnd_id integer)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_f                ds.fnd_findings%ROWTYPE;
+  v_rule             record;
+  v_wfl_code         text;
+  v_wtk_code         text;
+  v_task_name        text;
+  v_wfl_id           uuid;
+  v_win_id           uuid;
+  v_field_label      text;
+  v_expected         text;
+  v_context          jsonb;
+  v_changed_fields   jsonb;
+  v_when_field       text;
+  v_when_label       text;
+  v_assignee_user_id integer;  -- the project manager, see ds.fn_resolve_finding_assignee
+  v_by               text := 'system:sp_start_finding_review_workflow';
+BEGIN
+  SELECT * INTO v_f FROM ds.fnd_findings WHERE fnd_id = p_fnd_id FOR UPDATE;
+
+  -- win_id is the idempotency key: a finding with a task is never touched again.
+  IF NOT FOUND OR v_f.win_id IS NOT NULL OR v_f.status NOT IN ('open', 'acknowledged') THEN
+    RETURN;
+  END IF;
+
+  IF v_f.rul_id IS NULL THEN
+    v_wfl_code  := 'FINDING_CHANGE_REVIEW';
+    v_wtk_code  := 'REVIEW_CHANGE';
+    v_task_name := 'Review Change';
+  ELSE
+    v_wfl_code  := 'FINDING_RULE_REVIEW';
+    v_wtk_code  := 'REVIEW_RULE_FLAG';
+    v_task_name := 'Review Rule Flag';
+    SELECT rul_type, rul_definition INTO v_rule FROM ds.rul_detection_rules WHERE rul_id = v_f.rul_id;
+  END IF;
+
+  SELECT wfl_id INTO v_wfl_id
+  FROM ds.wfl_workflow_templates
+  WHERE wfl_code = v_wfl_code AND wfl_status = 'PUBLISHED'
+  ORDER BY wfl_version_no DESC
+  LIMIT 1;
+
+  IF v_wfl_id IS NULL THEN
+    RETURN;  -- no published template yet: degrade gracefully, the finding stays task-less
+  END IF;
+
+  v_assignee_user_id := ds.fn_resolve_finding_assignee(v_f.cde_entity_type, v_f.fnd_entity_id);
+
+  SELECT cdf_display_name INTO v_field_label
+  FROM ds.cdf_watched_fields
+  WHERE cde_entity_type = v_f.cde_entity_type AND cdf_field_path = v_f.cdf_field_path;
+  v_field_label := coalesce(v_field_label, v_f.cdf_field_path, '(whole record)');
+
+  v_context := jsonb_build_array(
+    jsonb_build_object('key', 'findingId',  'value', p_fnd_id::text),
+    jsonb_build_object('key', 'entityType', 'value', v_f.cde_entity_type),
+    jsonb_build_object('key', 'entityId',   'value', v_f.fnd_entity_id),
+    jsonb_build_object('key', 'fieldPath',  'value', v_f.cdf_field_path),
+    jsonb_build_object('key', 'severity',   'value', v_f.severity),
+    jsonb_build_object('key', 'assigneeUserId', 'value', v_assignee_user_id::text),
+    jsonb_build_object('key', 'oldValue',   'value', v_f.old_value #>> '{}'),
+    jsonb_build_object('key', 'newValue',   'value', v_f.new_value #>> '{}')
+  );
+
+  IF v_f.rul_id IS NULL THEN
+    v_context := v_context || jsonb_build_array(jsonb_build_object('key', 'changeType', 'value', v_f.change_type));
+    v_changed_fields := jsonb_build_array(jsonb_build_object(
+      'field', v_field_label, 'oldValue', v_f.old_value, 'newValue', v_f.new_value));
+  ELSE
+    v_expected := CASE v_rule.rul_type
+      WHEN 'required_not_null' THEN 'must be filled in'
+      WHEN 'required_empty'    THEN 'must be empty'
+      WHEN 'range_check'       THEN format('must be between %s and %s',
+                                           v_rule.rul_definition ->> 'min', v_rule.rul_definition ->> 'max')
+      WHEN 'boolean_equals'    THEN format('must be %s', v_rule.rul_definition ->> 'expected')
+      WHEN 'required_when'     THEN format('must be filled in when %s %s "%s"',
+                                           v_rule.rul_definition #>> '{when,field}',
+                                           CASE v_rule.rul_definition #>> '{when,operator}'
+                                             WHEN 'equals' THEN 'is'
+                                             WHEN 'starts_with' THEN 'starts with'
+                                             ELSE v_rule.rul_definition #>> '{when,operator}' END,
+                                           v_rule.rul_definition #>> '{when,value}')
+      ELSE v_rule.rul_type
+    END;
+    v_context := v_context || jsonb_build_array(
+      jsonb_build_object('key', 'ruleId',         'value', v_f.rul_id::text),
+      jsonb_build_object('key', 'ruleType',       'value', v_rule.rul_type),
+      jsonb_build_object('key', 'ruleDefinition', 'value', v_rule.rul_definition::text));
+    -- The task drawer only renders changedFields; for a rule flag, "old" is what
+    -- the rule expects and "new" is the value the snapshot actually holds.
+    v_changed_fields := jsonb_build_array(jsonb_build_object(
+      'field',    format('%s (rule #%s)', v_field_label, v_f.rul_id),
+      'oldValue', 'Expected: ' || v_expected,
+      'newValue', coalesce(v_f.new_value, '"(missing)"'::jsonb)));
+
+    -- A conditional rule also shows the condition field's current value, so the
+    -- reviewer can see why it fired.
+    IF v_rule.rul_type = 'required_when' THEN
+      v_when_field := v_rule.rul_definition #>> '{when,field}';
+      SELECT cdf_display_name INTO v_when_label
+      FROM ds.cdf_watched_fields
+      WHERE cde_entity_type = v_f.cde_entity_type AND cdf_field_path = v_when_field;
+
+      v_changed_fields := v_changed_fields || jsonb_build_array(jsonb_build_object(
+        'field',    format('%s (condition)', coalesce(v_when_label, v_when_field)),
+        'oldValue', 'Rule applies when this matches',
+        'newValue', (SELECT s.snp_payload -> v_when_field FROM es.snp_entity_snapshot s
+                      WHERE s.snp_entity_type = v_f.cde_entity_type AND s.snp_entity_id = v_f.fnd_entity_id)));
+    END IF;
+  END IF;
+
+  v_win_id := ds.sp_engine_create_instance(
+    p_wfl_id                  := v_wfl_id,
+    p_business_reference_type := 'Finding',
+    p_business_reference_id   := p_fnd_id::text,
+    p_owner_user_id           := NULL,  -- no acting user: the run is system-driven
+    p_started_by              := v_by,
+    p_created_by              := 'system',
+    p_context                 := v_context
+  );
+
+  INSERT INTO ds.wic_workflow_instance_context (wic_id, win_id, wic_key, wic_value_json, created_at, created_by)
+  VALUES (gen_random_uuid(), v_win_id, 'changedFields', v_changed_fields, now(), 'system');
+
+  PERFORM ds.sp_engine_insert_task(
+    p_win_id           := v_win_id,
+    p_wtk_code         := v_wtk_code,
+    p_assignee_user_id := v_assignee_user_id,
+    p_performed_by     := v_by,
+    p_created_by       := 'system'
+  );
+
+  UPDATE ds.fnd_findings SET win_id = v_win_id WHERE fnd_id = p_fnd_id;
+
+  PERFORM com.sp_notify_user(
+    p_user_id       := v_assignee_user_id,
+    p_item_type     := 'workflow-task',
+    p_payload       := jsonb_build_object(
+      'description', CASE WHEN v_f.rul_id IS NULL
+        THEN format('%s %s: %s changed and needs review.', initcap(v_f.cde_entity_type), v_f.fnd_entity_id, v_field_label)
+        ELSE format('%s %s: %s %s.', initcap(v_f.cde_entity_type), v_f.fnd_entity_id, v_field_label, v_expected)
+      END,
+      'taskName', v_task_name,
+      'link', '/my-tasks?tab=workflow',
+      'isActionable', true
+    ),
+    p_category_name := 'Inbox',
+    p_created_by    := 'system'
+  );
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'sp_start_finding_review_workflow failed for fnd_id=%: %', p_fnd_id, SQLERRM;
+END;
+$$;
+
+
+-- ── 3. Outcome procedure (wto_outcome_proc_name on every outcome) ───────────
+-- Called by TaskCompletionOrchestrator inside the reviewer's completion
+-- transaction. By then the engine has already moved the task out of ACTIVE —
+-- that happens for every outcome — so "keep the work open" means inserting a
+-- follow-up task, not skipping completion.
+--
+-- The engine audits only the first returned row, so Agree (which writes both
+-- the finding and the baseline) audits the baseline change; the finding's own
+-- transition is recorded on the row (resolved_by/resolved_at) and in the WAL.
+CREATE OR REPLACE FUNCTION ds.sp_handle_finding_outcome(
+  p_win_id                text,
+  p_wit_id                text,
+  p_outcome_code          text,
+  p_business_reference_id text,
+  p_performed_by          text,
+  p_performed_by_user_id  text,
+  p_params                jsonb
+)
+RETURNS TABLE (
+  activated_wit_id  uuid,
+  activated_user_id integer,
+  entity_name       text,
+  entity_id         text,
+  old_values        jsonb,
+  new_values        jsonb,
+  comment           text
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_fnd_id           integer := p_business_reference_id::integer;
+  v_f                ds.fnd_findings%ROWTYPE;
+  v_reviewer_comment text;
+  v_aps_before       ds.aps_approved_state%ROWTYPE;
+  v_aps_after        ds.aps_approved_state%ROWTYPE;
+  v_value            jsonb;
+  v_follow_up_code   text;
+  v_act_wit_id       uuid;
+  v_act_user_id      integer;
+  v_entity_name      text;
+  v_entity_id        text;
+  v_old              jsonb;
+  v_new              jsonb;
+  v_comment          text;
+  v_assignee_user_id integer;
+  v_complete         boolean := true;
+BEGIN
+  SELECT * INTO v_f FROM ds.fnd_findings WHERE fnd_id = v_fnd_id FOR UPDATE;
+
+  -- A follow-up stays with whoever had the review task (the PM); resolve afresh
+  -- only if that is somehow missing.
+  SELECT t.wit_resolved_user_id INTO v_assignee_user_id
+  FROM ds.wit_workflow_instance_tasks t WHERE t.wit_id = p_wit_id::uuid;
+  v_assignee_user_id := coalesce(v_assignee_user_id,
+                                 ds.fn_resolve_finding_assignee(v_f.cde_entity_type, v_f.fnd_entity_id));
+
+  -- TaskCompletionOrchestrator always passes p_params = '{}', but it has already
+  -- written the reviewer's comment onto the task row in this same transaction.
+  SELECT nullif(btrim(t.wit_result_comment), '') INTO v_reviewer_comment
+  FROM ds.wit_workflow_instance_tasks t WHERE t.wit_id = p_wit_id::uuid;
+  v_reviewer_comment := coalesce(nullif(btrim(p_params ->> 'comment'), ''), v_reviewer_comment);
+
+  IF v_f.fnd_id IS NOT NULL AND v_f.status IN ('open', 'acknowledged') THEN
+
+    IF p_outcome_code = 'AGREE' AND v_f.rul_id IS NULL THEN
+      IF v_f.cdf_field_path IS NULL THEN
+        -- Raising leaves the task ACTIVE (the whole completion rolls back).
+        RAISE EXCEPTION 'Finding % has no field path; agree to it by updating the baseline directly', v_fnd_id;
+      END IF;
+
+      -- A 'deleted' change has a NULL new_value; jsonb_set(…, NULL) would null the
+      -- whole payload, so a removed value becomes JSON null in the baseline.
+      v_value := coalesce(v_f.new_value, 'null'::jsonb);
+
+      SELECT * INTO v_aps_before FROM ds.aps_approved_state
+      WHERE cde_entity_type = v_f.cde_entity_type AND aps_entity_id = v_f.fnd_entity_id
+      FOR UPDATE;
+
+      INSERT INTO ds.aps_approved_state AS a
+        (cde_entity_type, aps_entity_id, aps_payload, aps_approved_by, aps_approved_at, fnd_source_finding)
+      VALUES
+        (v_f.cde_entity_type, v_f.fnd_entity_id, jsonb_build_object(v_f.cdf_field_path, v_value),
+         p_performed_by, now(), v_f.fnd_id)
+      ON CONFLICT (cde_entity_type, aps_entity_id) DO UPDATE
+        SET aps_payload        = jsonb_set(a.aps_payload, ARRAY[v_f.cdf_field_path], v_value, true),
+            aps_approved_by    = EXCLUDED.aps_approved_by,
+            aps_approved_at    = EXCLUDED.aps_approved_at,
+            fnd_source_finding = EXCLUDED.fnd_source_finding
+      RETURNING a.* INTO v_aps_after;
+
+      UPDATE ds.fnd_findings
+         SET status      = 'approved',
+             resolved_by = p_performed_by,
+             resolved_at = now(),
+             resolution  = coalesce(v_reviewer_comment, 'Agreed: new value approved as the baseline')
+       WHERE fnd_id = v_fnd_id;
+
+      v_entity_name := 'aps_approved_state';
+      v_entity_id   := v_f.cde_entity_type || ':' || v_f.fnd_entity_id;
+      v_old         := CASE WHEN v_aps_before.aps_entity_id IS NULL THEN NULL ELSE to_jsonb(v_aps_before) END;
+      v_new         := to_jsonb(v_aps_after);
+      v_comment     := format('Finding #%s agreed: baseline %s.%s advanced, finding approved',
+                              v_fnd_id, v_f.fnd_entity_id, v_f.cdf_field_path);
+
+    ELSIF p_outcome_code IN ('DISAGREE', 'MARK_RESOLVED') THEN
+      UPDATE ds.fnd_findings
+         SET status     = 'acknowledged',
+             resolution = coalesce(v_reviewer_comment, resolution)
+       WHERE fnd_id = v_fnd_id;
+
+      -- The engine already took the review task out of ACTIVE; this keeps the
+      -- work in the inbox until a later run proves the fix (fn_close_resolved_finding_tasks).
+      v_follow_up_code := CASE WHEN v_f.rul_id IS NULL THEN 'AWAIT_CHANGE_FIX' ELSE 'AWAIT_RULE_FIX' END;
+
+      SELECT t.activated_wit_id, t.activated_user_id
+        INTO v_act_wit_id, v_act_user_id
+        FROM ds.sp_engine_insert_task(
+          p_win_id           := p_win_id::uuid,
+          p_wtk_code         := v_follow_up_code,
+          p_assignee_user_id := v_assignee_user_id,
+          p_performed_by     := p_performed_by,
+          p_created_by       := p_performed_by
+        ) AS t;
+
+      v_complete    := false;  -- the follow-up keeps the instance open
+      v_entity_name := 'fnd_findings';
+      v_entity_id   := v_fnd_id::text;
+      v_old         := jsonb_build_object('fnd_id', v_fnd_id, 'status', v_f.status, 'resolution', v_f.resolution);
+      v_new         := jsonb_build_object('fnd_id', v_fnd_id, 'status', 'acknowledged',
+                                          'resolution', coalesce(v_reviewer_comment, v_f.resolution));
+      v_comment     := format('Finding #%s %s by reviewer — awaiting a snapshot that shows the fix',
+                              v_fnd_id, CASE p_outcome_code WHEN 'DISAGREE' THEN 'disagreed' ELSE 'marked resolved' END);
+
+    ELSIF p_outcome_code = 'DISMISS' THEN
+      UPDATE ds.fnd_findings
+         SET status      = 'dismissed',
+             resolved_by = p_performed_by,
+             resolved_at = now(),
+             resolution  = coalesce(v_reviewer_comment, 'Dismissed by reviewer without a fix')
+       WHERE fnd_id = v_fnd_id;
+
+      v_entity_name := 'fnd_findings';
+      v_entity_id   := v_fnd_id::text;
+      v_old         := jsonb_build_object('fnd_id', v_fnd_id, 'status', v_f.status);
+      v_new         := jsonb_build_object('fnd_id', v_fnd_id, 'status', 'dismissed');
+      v_comment     := format('Finding #%s dismissed by reviewer', v_fnd_id);
+    END IF;
+    -- Any other code: no mutation, no audit row (the engine's safe fall-through rule).
+  END IF;
+  -- A finding already closed some other way (fixed, superseded, retired) is left
+  -- as-is; the reviewer's action just finishes the task.
+
+  IF v_complete THEN
+    PERFORM ds.sp_engine_complete_instance_if_done(
+      p_win_id               := p_win_id::uuid,
+      p_wit_id               := p_wit_id::uuid,
+      p_route_found          := false,
+      p_performed_by         := p_performed_by,
+      p_performed_by_user_id := p_performed_by_user_id
+    );
+  END IF;
+
+  RETURN QUERY SELECT v_act_wit_id, v_act_user_id, v_entity_name, v_entity_id, v_old, v_new, v_comment;
+END;
+$$;
+
+
+-- ── 4a. Create one task per live finding that has none ──────────────────────
+-- Returns the findings that got a task, so the caller can count and audit them.
+CREATE OR REPLACE FUNCTION ds.fn_create_finding_tasks()
+RETURNS TABLE (fnd_id integer, win_id uuid)
+LANGUAGE plpgsql
+AS $$
+#variable_conflict use_column
+DECLARE
+  r     record;
+  v_win uuid;
+BEGIN
+  FOR r IN
+    SELECT f.fnd_id FROM ds.fnd_findings f
+     WHERE f.status IN ('open', 'acknowledged') AND f.win_id IS NULL
+     ORDER BY f.fnd_id
+  LOOP
+    PERFORM ds.sp_start_finding_review_workflow(r.fnd_id);
+
+    SELECT f.win_id INTO v_win FROM ds.fnd_findings f WHERE f.fnd_id = r.fnd_id;
+    IF v_win IS NOT NULL THEN
+      fnd_id := r.fnd_id;
+      win_id := v_win;
+      RETURN NEXT;
+    END IF;
+  END LOOP;
+END;
+$$;
+
+
+-- ── 4b. Close the open task of every finding that no longer needs review ────
+-- The engine has no primitive to complete a task without a human outcome, and
+-- sp_engine_complete_instance_if_done returns early while any task is ACTIVE.
+-- So this does the two writes TaskCompletionOrchestrator does for a completed
+-- task (Step 6: task row, Step 10: TASK_COMPLETED WAL entry) and then hands off
+-- to the engine primitive for instance completion. wit_outcome_code records why
+-- (SELF_RESOLVED, RESOLVED_CONFIRMED, SUPERSEDED, RULE_RETIRED, APPROVED).
+-- 'approved' is a safety net only: Agree already completes its own task.
+CREATE OR REPLACE FUNCTION ds.fn_close_resolved_finding_tasks()
+RETURNS TABLE (fnd_id integer, win_id uuid, wit_id uuid, finding_status text)
+LANGUAGE plpgsql
+AS $$
+#variable_conflict use_column
+DECLARE
+  r    record;
+  v_by text := 'system:fn_close_resolved_finding_tasks';
+BEGIN
+  FOR r IN
+    SELECT f.fnd_id, f.win_id, f.status, t.wit_id, t.wit_state
+      FROM ds.fnd_findings f
+      JOIN ds.wit_workflow_instance_tasks t
+        ON t.win_id = f.win_id AND t.wit_state IN ('ACTIVE', 'PENDING')
+     WHERE f.win_id IS NOT NULL
+       AND f.status IN ('self_resolved', 'resolved_confirmed', 'superseded', 'rule_retired', 'approved')
+     ORDER BY f.fnd_id
+  LOOP
+    UPDATE ds.wit_workflow_instance_tasks t
+       SET wit_state          = 'SUCCESS',
+           wit_completed_at   = now(),
+           wit_completed_by   = v_by,
+           wit_outcome_code   = upper(r.status),
+           wit_result_comment = format('Closed automatically: finding %s', replace(r.status, '_', ' ')),
+           updated_at         = now(),
+           updated_by         = v_by
+     WHERE t.wit_id = r.wit_id;
+
+    INSERT INTO ds.wal_workflow_audit_log (
+      wal_id, win_id, wit_id, wal_event_type, wal_event_timestamp, wal_performed_by, wal_old_state, wal_new_state
+    ) VALUES (
+      gen_random_uuid(), r.win_id, r.wit_id, 'TASK_COMPLETED', now(), v_by, r.wit_state, 'SUCCESS'
+    );
+
+    PERFORM ds.sp_engine_complete_instance_if_done(
+      p_win_id               := r.win_id,
+      p_wit_id               := r.wit_id,
+      p_route_found          := false,
+      p_performed_by         := v_by,
+      p_performed_by_user_id := NULL
+    );
+
+    fnd_id         := r.fnd_id;
+    win_id         := r.win_id;
+    wit_id         := r.wit_id;
+    finding_status := r.status;
+    RETURN NEXT;
+  END LOOP;
+END;
+$$;
+
+-- Findings Review Workflow templates (added 2026-09-25) — the only change-detection data
+-- the seed still inserts. Mirrored from prisma/scripts/findings_review_templates.sql.
+DO $do$
+BEGIN
+  -- Finding Review — Change: skipped if a PUBLISHED version already exists (e.g. authored in the admin UI).
+  IF NOT EXISTS (SELECT 1 FROM ds.wfl_workflow_templates WHERE wfl_code = 'FINDING_CHANGE_REVIEW' AND wfl_status = 'PUBLISHED') THEN
+    INSERT INTO ds.wfl_workflow_templates
+    SELECT (jsonb_populate_record(NULL::ds.wfl_workflow_templates, $json${"wec_id": null, "wfl_id": "80d5f66a-3291-4ccc-9759-99594416ebc5", "wfl_code": "FINDING_CHANGE_REVIEW", "wfl_name": "Finding Review — Change", "created_at": "2026-09-23T22:57:30.202+00:00", "created_by": "1", "updated_at": "2026-09-23T22:57:30.415+00:00", "updated_by": "1", "wfl_status": "PUBLISHED", "wfl_is_active": true, "wfl_version_no": 1, "wfl_description": "Review a watched field that drifted from its approved baseline.", "wfl_effective_to": null, "wfl_effective_from": "2026-09-23T22:57:30.415+00:00", "wfl_execution_type": "DATABASE", "wfl_instantiate_proc_name": "sp_start_finding_review_workflow"}$json$::jsonb
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy', 'updated_at', NULL,
+                                  'updated_by', NULL, 'wfl_effective_from', now()))).*
+    ON CONFLICT (wfl_id) DO NOTHING;
+
+    INSERT INTO ds.wtk_workflow_template_tasks
+    SELECT (jsonb_populate_record(NULL::ds.wtk_workflow_template_tasks, e
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy', 'updated_at', NULL, 'updated_by', NULL))).*
+    FROM jsonb_array_elements($json$[{"wfl_id": "80d5f66a-3291-4ccc-9759-99594416ebc5", "wtk_id": "5ebc5a51-0b20-4f96-ac8c-accea20f4db6", "wtk_code": "REVIEW_CHANGE", "wtk_name": "Review Change", "created_at": "2026-09-23T22:57:30.276+00:00", "created_by": "1", "updated_at": null, "updated_by": null, "wtk_priority": "MEDIUM", "wtk_is_active": true, "wtk_task_type": "MANUAL", "wtk_allow_fail": true, "wtk_description": "A watched field changed from its approved baseline. Agree to accept the new value as the baseline, or Disagree to keep the baseline and wait for the source system to be corrected.", "wtk_sequence_no": 1, "wtk_assignment_type": "CONTEXT", "wtk_max_retry_count": 0, "wtk_assigned_role_id": null, "wtk_assigned_user_id": null, "wtk_is_starting_task": true, "wtk_allow_reassignment": true, "wtk_escalation_role_id": null, "wtk_escalation_user_id": null, "wtk_sla_duration_hours": null, "wtk_dynamic_assignment_type": null, "wtk_escalation_dynamic_type": null, "wtk_require_comment_on_reassign": true}, {"wfl_id": "80d5f66a-3291-4ccc-9759-99594416ebc5", "wtk_id": "e99d6e3e-ab71-49f6-8c7b-f1b69733dbdd", "wtk_code": "AWAIT_CHANGE_FIX", "wtk_name": "Awaiting Fix", "created_at": "2026-09-23T22:57:30.381+00:00", "created_by": "1", "updated_at": null, "updated_by": null, "wtk_priority": "MEDIUM", "wtk_is_active": true, "wtk_task_type": "MANUAL", "wtk_allow_fail": true, "wtk_description": "You disagreed with this change. Closes automatically once a snapshot shows the approved value again. Agree if you change your mind and accept the new value.", "wtk_sequence_no": 2, "wtk_assignment_type": "CONTEXT", "wtk_max_retry_count": 0, "wtk_assigned_role_id": null, "wtk_assigned_user_id": null, "wtk_is_starting_task": false, "wtk_allow_reassignment": true, "wtk_escalation_role_id": null, "wtk_escalation_user_id": null, "wtk_sla_duration_hours": null, "wtk_dynamic_assignment_type": null, "wtk_escalation_dynamic_type": null, "wtk_require_comment_on_reassign": true}]$json$::jsonb) e
+    ON CONFLICT (wtk_id) DO NOTHING;
+
+    INSERT INTO ds.wto_workflow_template_task_outcomes
+    SELECT (jsonb_populate_record(NULL::ds.wto_workflow_template_task_outcomes, e
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy'))).*
+    FROM jsonb_array_elements($json$[{"wtk_id": "5ebc5a51-0b20-4f96-ac8c-accea20f4db6", "wto_id": "fe203b12-ff5f-4fea-9334-86e5ac1e78a5", "wto_code": "AGREE", "wto_label": "Agree", "created_at": "2026-09-23T22:57:30.325+00:00", "created_by": "1", "wto_description": "Accept the new value; the approved baseline advances.", "wto_is_terminal": true, "wto_execution_type": "DATABASE", "wto_outcome_proc_name": "sp_handle_finding_outcome", "wto_triggers_outcome_action": true}, {"wtk_id": "5ebc5a51-0b20-4f96-ac8c-accea20f4db6", "wto_id": "533dcf52-5f8c-4fd0-b415-de22f69a2654", "wto_code": "DISAGREE", "wto_label": "Disagree", "created_at": "2026-09-23T22:57:30.362+00:00", "created_by": "1", "wto_description": "Keep the baseline; the finding stays tracked until a snapshot shows it fixed.", "wto_is_terminal": false, "wto_execution_type": "DATABASE", "wto_outcome_proc_name": "sp_handle_finding_outcome", "wto_triggers_outcome_action": true}, {"wtk_id": "e99d6e3e-ab71-49f6-8c7b-f1b69733dbdd", "wto_id": "48261bfd-24b3-4537-8a1d-e01d1970f000", "wto_code": "AGREE", "wto_label": "Agree (accept new value)", "created_at": "2026-09-23T22:57:30.395+00:00", "created_by": "1", "wto_description": "Accept the new value after all; the approved baseline advances.", "wto_is_terminal": true, "wto_execution_type": "DATABASE", "wto_outcome_proc_name": "sp_handle_finding_outcome", "wto_triggers_outcome_action": true}]$json$::jsonb) e
+    ON CONFLICT (wto_id) DO NOTHING;
+  END IF;
+END
+$do$;
+
+DO $do$
+BEGIN
+  -- Finding Review — Rule: skipped if a PUBLISHED version already exists (e.g. authored in the admin UI).
+  IF NOT EXISTS (SELECT 1 FROM ds.wfl_workflow_templates WHERE wfl_code = 'FINDING_RULE_REVIEW' AND wfl_status = 'PUBLISHED') THEN
+    INSERT INTO ds.wfl_workflow_templates
+    SELECT (jsonb_populate_record(NULL::ds.wfl_workflow_templates, $json${"wec_id": null, "wfl_id": "c40061cc-ba39-4e8a-9516-b1c23136f43d", "wfl_code": "FINDING_RULE_REVIEW", "wfl_name": "Finding Review — Rule", "created_at": "2026-09-23T22:57:30.437+00:00", "created_by": "1", "updated_at": "2026-09-23T22:57:30.499+00:00", "updated_by": "1", "wfl_status": "PUBLISHED", "wfl_is_active": true, "wfl_version_no": 1, "wfl_description": "Review a value that violates a state detection rule.", "wfl_effective_to": null, "wfl_effective_from": "2026-09-23T22:57:30.499+00:00", "wfl_execution_type": "DATABASE", "wfl_instantiate_proc_name": "sp_start_finding_review_workflow"}$json$::jsonb
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy', 'updated_at', NULL,
+                                  'updated_by', NULL, 'wfl_effective_from', now()))).*
+    ON CONFLICT (wfl_id) DO NOTHING;
+
+    INSERT INTO ds.wtk_workflow_template_tasks
+    SELECT (jsonb_populate_record(NULL::ds.wtk_workflow_template_tasks, e
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy', 'updated_at', NULL, 'updated_by', NULL))).*
+    FROM jsonb_array_elements($json$[{"wfl_id": "c40061cc-ba39-4e8a-9516-b1c23136f43d", "wtk_id": "33e6e813-368c-49c4-868c-f8584dfa503e", "wtk_code": "REVIEW_RULE_FLAG", "wtk_name": "Review Rule Flag", "created_at": "2026-09-23T22:57:30.446+00:00", "created_by": "1", "updated_at": null, "updated_by": null, "wtk_priority": "MEDIUM", "wtk_is_active": true, "wtk_task_type": "MANUAL", "wtk_allow_fail": true, "wtk_description": "A value violates a detection rule. Fix it in the source system, then Mark as Resolved; the flag closes once a snapshot confirms the fix.", "wtk_sequence_no": 1, "wtk_assignment_type": "CONTEXT", "wtk_max_retry_count": 0, "wtk_assigned_role_id": null, "wtk_assigned_user_id": null, "wtk_is_starting_task": true, "wtk_allow_reassignment": true, "wtk_escalation_role_id": null, "wtk_escalation_user_id": null, "wtk_sla_duration_hours": null, "wtk_dynamic_assignment_type": null, "wtk_escalation_dynamic_type": null, "wtk_require_comment_on_reassign": true}, {"wfl_id": "c40061cc-ba39-4e8a-9516-b1c23136f43d", "wtk_id": "deee4b0c-34bb-45ec-a124-1c5a62c64b1c", "wtk_code": "AWAIT_RULE_FIX", "wtk_name": "Awaiting Confirmation", "created_at": "2026-09-23T22:57:30.469+00:00", "created_by": "1", "updated_at": null, "updated_by": null, "wtk_priority": "MEDIUM", "wtk_is_active": true, "wtk_task_type": "MANUAL", "wtk_allow_fail": true, "wtk_description": "Marked as resolved. Closes automatically once a snapshot shows the rule passing. Dismiss to close the flag without a fix.", "wtk_sequence_no": 2, "wtk_assignment_type": "CONTEXT", "wtk_max_retry_count": 0, "wtk_assigned_role_id": null, "wtk_assigned_user_id": null, "wtk_is_starting_task": false, "wtk_allow_reassignment": true, "wtk_escalation_role_id": null, "wtk_escalation_user_id": null, "wtk_sla_duration_hours": null, "wtk_dynamic_assignment_type": null, "wtk_escalation_dynamic_type": null, "wtk_require_comment_on_reassign": true}]$json$::jsonb) e
+    ON CONFLICT (wtk_id) DO NOTHING;
+
+    INSERT INTO ds.wto_workflow_template_task_outcomes
+    SELECT (jsonb_populate_record(NULL::ds.wto_workflow_template_task_outcomes, e
+            || jsonb_build_object('created_at', now(), 'created_by', 'system:deploy'))).*
+    FROM jsonb_array_elements($json$[{"wtk_id": "33e6e813-368c-49c4-868c-f8584dfa503e", "wto_id": "202292f5-d5ed-48ca-b10c-43526c421421", "wto_code": "MARK_RESOLVED", "wto_label": "Mark as Resolved", "created_at": "2026-09-23T22:57:30.46+00:00", "created_by": "1", "wto_description": "The source is being fixed; wait for a snapshot to confirm it.", "wto_is_terminal": false, "wto_execution_type": "DATABASE", "wto_outcome_proc_name": "sp_handle_finding_outcome", "wto_triggers_outcome_action": true}, {"wtk_id": "deee4b0c-34bb-45ec-a124-1c5a62c64b1c", "wto_id": "7b820435-fd67-40e1-8bb2-67c7b73b9509", "wto_code": "DISMISS", "wto_label": "Dismiss", "created_at": "2026-09-23T22:57:30.486+00:00", "created_by": "1", "wto_description": "Close the flag without waiting for a fix.", "wto_is_terminal": true, "wto_execution_type": "DATABASE", "wto_outcome_proc_name": "sp_handle_finding_outcome", "wto_triggers_outcome_action": true}]$json$::jsonb) e
+    ON CONFLICT (wto_id) DO NOTHING;
+  END IF;
+END
+$do$;
+
 
 -- WatchedFields — Object/Field Manager screen (added 2026-09-18)
 INSERT INTO sec.opt_options (opt_id, opt_description, opt_created_by, opt_created_at)

@@ -43,16 +43,25 @@ const CHANGE_TYPE_VARIANT: Record<string, 'success' | 'destructive' | 'warning'>
   modified: 'warning',
 };
 
-const STATUS_VARIANT: Record<string, 'primary' | 'success' | 'secondary'> = {
+const STATUS_VARIANT: Record<string, 'primary' | 'success' | 'secondary' | 'warning'> = {
   open: 'primary',
+  acknowledged: 'warning',
+  approved: 'success',
   self_resolved: 'success',
+  resolved_confirmed: 'success',
   superseded: 'secondary',
   rule_retired: 'secondary',
+  dismissed: 'secondary',
 };
 
 // Statuses are whatever the data contains, so unknown values still render sensibly.
 function humanize(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Both runs also create and close review tasks in the same request.
+function taskSummary(result: { tasksCreated: number; tasksClosed: number }) {
+  return `${result.tasksCreated} review tasks created, ${result.tasksClosed} closed`;
 }
 
 export function FindingsPage() {
@@ -105,6 +114,16 @@ export function FindingsPage() {
     loadStatuses();
   }, []);
 
+  // The run itself succeeded; only the review-task step did not.
+  const warnTaskSync = (taskSyncError: string | null) => {
+    if (!taskSyncError) return;
+    toast({
+      title: 'Review tasks not updated',
+      description: taskSyncError,
+      variant: 'destructive',
+    });
+  };
+
   const handleRunFindings = async () => {
     setIsRunning(true);
     try {
@@ -112,8 +131,9 @@ export function FindingsPage() {
       setLastRunSummary(result);
       toast({
         title: 'Success',
-        description: 'Findings run completed',
+        description: `Findings run completed: ${taskSummary(result)}`,
       });
+      warnTaskSync(result.taskSyncError);
       await Promise.all([loadFindings(statusFilter), loadStatuses()]);
     } catch (error: any) {
       toast({
@@ -132,8 +152,9 @@ export function FindingsPage() {
       const result = await apiPost<RunStateRulesResultDto>('/api/findings/run-rules', {});
       toast({
         title: 'Success',
-        description: `Rules run completed: ${result.violationsFound} violations found, ${result.findingsResolved} resolved`,
+        description: `Rules run completed: ${result.violationsFound} violations found, ${result.findingsResolved} resolved; ${taskSummary(result)}`,
       });
+      warnTaskSync(result.taskSyncError);
       await Promise.all([loadFindings(statusFilter), loadStatuses()]);
     } catch (error) {
       toast({

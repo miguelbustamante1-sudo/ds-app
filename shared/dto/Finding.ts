@@ -29,6 +29,11 @@ export interface RunFindingsResultDto {
   entitiesCompared: number;
   fieldsChecked: number;
   observationsRecorded: number;
+  /** Review tasks created / closed by the same click (Findings Review Workflow). */
+  tasksCreated: number;
+  tasksClosed: number;
+  /** Set when task sync failed; the run's own findings are already saved. */
+  taskSyncError: string | null;
 }
 
 export interface FindingStatusCountDto {
@@ -48,4 +53,9 @@ export interface RunStateRulesResultDto {
   violationsFound: number;
   findingsResolved: number;
   details: StateRuleViolationDto[];
+  /** Review tasks created / closed by the same click (Findings Review Workflow). */
+  tasksCreated: number;
+  tasksClosed: number;
+  /** Set when task sync failed; the run's own findings are already saved. */
+  taskSyncError: string | null;
 }

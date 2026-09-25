@@ -4,18 +4,34 @@ export const DETECTION_RULE_TYPES = [
   'required_empty',
   'range_check',
   'boolean_equals',
+  'required_when',
 ] as const;
 export type DetectionRuleType = (typeof DETECTION_RULE_TYPES)[number];
+
+/** How required_when compares the condition field. All case-sensitive. */
+export const DETECTION_RULE_CONDITION_OPERATORS = ['equals', 'contains', 'starts_with'] as const;
+export type DetectionRuleConditionOperator = (typeof DETECTION_RULE_CONDITION_OPERATORS)[number];
+
+/** required_when: the rule applies only when another field matches this. */
+export interface DetectionRuleCondition {
+  field: string;
+  operator: DetectionRuleConditionOperator;
+  value: string;
+}
 
 export const DETECTION_RULE_SEVERITIES = ['low', 'medium', 'high'] as const;
 export type DetectionRuleSeverity = (typeof DETECTION_RULE_SEVERITIES)[number];
 
-/** Shape of rul_definition. min/max apply to range_check only; expected to boolean_equals only. */
+/**
+ * Shape of rul_definition. min/max apply to range_check only, expected to boolean_equals
+ * only, when to required_when only.
+ */
 export interface DetectionRuleDefinition {
   field: string;
   min?: number;
   max?: number;
   expected?: boolean;
+  when?: DetectionRuleCondition;
 }
 
 export interface DetectionRuleDto {

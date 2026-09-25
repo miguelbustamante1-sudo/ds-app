@@ -3,10 +3,12 @@ import { prisma } from '../../../db/prisma';
 import type { ApplyPlanResult, FindingInsert, ReconcileAction } from '../types';
 
 const RESOLUTION_SELF_RESOLVED = 'auto: value reverted to approved baseline';
+const STATUS_ACKNOWLEDGED = 'acknowledged';
 const RESOLUTION_SUPERSEDED = 'auto: superseded by newer value';
 
 export interface FindingMutation {
-  kind: ReconcileAction['kind'];
+  /** resolve_confirmed: a self-resolve of a finding the reviewer had already acknowledged. */
+  kind: ReconcileAction['kind'] | 'resolve_confirmed';
   findingId: number;
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
@@ -64,17 +66,18 @@ export async function applyFindingsPlan(
         switch (action.kind) {
           case 'self_resolve': {
             const before = await snapshotRow(tx, action.findingId);
+            // An acknowledged finding (reviewer disagreed) that reverts is a confirmed fix,
+            // and keeps the reviewer's comment in resolution.
+            const confirmed = before?.status === STATUS_ACKNOWLEDGED;
             const after = await tx.fndFinding.update({
               where: { findingId: action.findingId },
-              data: {
-                status: 'self_resolved',
-                resolvedAt: new Date(),
-                resolution: RESOLUTION_SELF_RESOLVED,
-              },
+              data: confirmed
+                ? { status: 'resolved_confirmed', resolvedAt: new Date() }
+                : { status: 'self_resolved', resolvedAt: new Date(), resolution: RESOLUTION_SELF_RESOLVED },
             });
             result.resolved++;
             mutations.push({
-              kind: 'self_resolve',
+              kind: confirmed ? 'resolve_confirmed' : 'self_resolve',
               findingId: action.findingId,
               before,
               after: serialize(after as unknown as Record<string, unknown>),

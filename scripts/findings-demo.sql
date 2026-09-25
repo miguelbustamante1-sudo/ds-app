@@ -5,6 +5,12 @@
 -- Starting point: es.snp_entity_snapshot == ds.aps_approved_state for all 6
 -- projects, no findings, rules 1, 3, 4 active (rule 2 turned off).
 --
+-- NOTE (2026-09-25): the seed no longer inserts the watched entity, fields, rules or
+-- baselines. To use this demo, first configure them (Object & Field Manager, Detection
+-- Rules), upload a snapshot containing PR-004121, PR-004141, PR-004156, PR-005460,
+-- PR-005988 and PR-006119, and load the baseline with
+-- prisma/scripts/production/2026-09-25_change_detection/04_load_baseline_from_snapshot.sql.
+--
 -- Each scenario is DRIFT → click → REVERT → click. Revert queries copy the
 -- value back from the approved state, so they restore it exactly.
 -- Run one scenario at a time, or several drifts together. Scenarios are

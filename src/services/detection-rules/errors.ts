@@ -15,8 +15,11 @@ export class DetectionRuleValidationError extends AppError {
 }
 
 export class DuplicateDetectionRuleError extends AppError {
-  constructor(entityType: string, ruleType: string, field: string) {
-    super(`An active ${ruleType} rule already exists for ${entityType}.${field}`, 409);
+  constructor(entityType: string, ruleType: string, field: string, condition?: string) {
+    super(
+      `An active ${ruleType} rule already exists for ${entityType}.${field}${condition ? ` with condition ${condition}` : ''}`,
+      409,
+    );
     this.name = 'DuplicateDetectionRuleError';
   }
 }

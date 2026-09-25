@@ -235,3 +235,23 @@ Known nit: `StateRuleViolationDto` keeps the function's snake_case column names,
   - the approved-state JSON now includes the two new fields, regenerated from the live DB;
   - both fields are added as watched fields (`Project_Underrun__c` inactive, `pse__Is_Billable__c` active);
   - rule 2 is seeded inactive.
+
+---
+
+## 10. Adding a new rule type
+
+**Rule types are not stored in a table.** `ds.rul_detection_rules` holds instances (type + settings + field), and `rul_type` is a plain `varchar` with no foreign key or CHECK constraint. The five types (`required_not_null`, `required_empty`, `range_check`, `boolean_equals`, `required_when`) are hardcoded in several files. Adding a new type requires code changes; changing the SQL function alone does not make it appear on the Detection Rules screen or let you save it.
+
+| File | Change |
+|---|---|
+| **1. `prisma/scripts/fn_run_state_rules.sql`** | Add an `ELSIF r.rul_type = '<new_type>'` branch that reads settings from `r.rul_definition` and sets `v_violated` (true if violated). Mirror the same code verbatim into `scripts/seed.sql` (the seed holds a copy). Hand both scripts to the DB team. |
+| **2. `shared/dto/DetectionRule.ts`** | Add the type to `DETECTION_RULE_TYPES`, and add any new setting field to `DetectionRuleDefinition` (e.g. `values?: string[]`). This lets the screen's Rule dropdown show it and the server accept it. |
+| **3. `src/services/detection-rules/components/NormalizeRuleDefinition.ts`** | Add a `case` in `normalizeRuleDefinition` that validates and keeps only that type's settings (reject anything the SQL casts would fail on). Update `sameDefinition` if the new setting counts as a logic change (drives version bumps). Add tests in `NormalizeRuleDefinition.test.ts`. Without this, saving a rule of the new type is rejected. |
+| **4. `client/src/lib/detection-rules.ts` and `client/src/pages/maintenance/detection-rules/form.tsx`** | Add a label in `RULE_TYPE_LABELS` and a case in `describeRule` (plain-English text shown on Detection Rules and Findings screens). Add form inputs for the new settings (shown only when that type is selected) and map them in the function that builds `definition`. |
+| **5. `prisma/scripts/findings_review_workflow.sql`** (optional) | Add the type to the `CASE` in `ds.sp_start_finding_review_workflow` that builds the "Expected: …" text shown in the review task drawer (mirror into `scripts/seed.sql`). If skipped, it falls back to the raw type name. This file exists only on the `findings-review-workflow` branch. |
+
+**Worked example:** `allowed_values` type (value must be one of ["CIO", "TCS", …]). Definition: `{"field": "…", "values": ["CIO", "TCS"]}`. SQL: `v_violated := v_value IS NOT NULL AND NOT (v_value = ANY(ARRAY(SELECT jsonb_array_elements_text(r.rul_definition -> 'values'))))` — missing value does not violate (add `required_not_null` if needed). DTOs: add `values?: string[]` to `DetectionRuleDefinition`. Normalizer: validate that `values` is a non-empty array of strings. Form: add multi-select input shown when type is `allowed_values`.
+
+**Real example — `required_when` (added 2026-09-25, `findings-review-workflow` branch):** "a field must be filled in when another field matches". Definition: `{"field": "director", "when": {"field": "project_type", "operator": "equals" | "contains" | "starts_with", "value": "Client"}}`. Matching is case-sensitive, and a missing condition value never matches. The finding sits on `field`, so it self-resolves when the field is filled in **or** the condition stops matching. For several values, add one rule per value: the duplicate check treats the condition as part of a `required_when` rule's identity (identical conditions are rejected; other types still allow one active rule per type and field). The review task drawer also shows the condition field's current value.
+
+**Known gap:** The function has no fallback for an unknown `rul_type` — a row with a typo'd type never fires and its open findings self-resolve on the next run. The screen only allows known types, but rows inserted directly in SQL are unprotected. Possible fixes (not implemented): a CHECK constraint on `rul_type`, or an `ELSE RAISE EXCEPTION` in the function.

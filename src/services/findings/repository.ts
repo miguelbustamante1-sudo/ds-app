@@ -1,10 +1,13 @@
 import { prisma } from '../../db/prisma';
+import { LIVE_FINDING_STATUSES } from './types';
 import type {
   WatchedField,
   FindingDto,
   OpenFindingRef,
   FindingStatusCountDto,
   StateRuleViolationDto,
+  CreatedFindingTaskRow,
+  ClosedFindingTaskRow,
 } from './types';
 
 export async function getActiveWatchedFields(entityType: string): Promise<WatchedField[]> {
@@ -61,10 +64,13 @@ export async function getApprovedStates(entityType: string): Promise<Record<stri
   return map;
 }
 
-/** Change-engine findings only — rule findings (rul_id set) are owned by fn_run_state_rules. */
+/**
+ * Live change-engine findings — open or acknowledged. Rule findings (rul_id set) are owned
+ * by fn_run_state_rules.
+ */
 export async function getOpenFindingRefs(entityType: string): Promise<OpenFindingRef[]> {
   const findings = await prisma.fndFinding.findMany({
-    where: { entityType, status: 'open', ruleId: null },
+    where: { entityType, status: { in: LIVE_FINDING_STATUSES }, ruleId: null },
     select: { findingId: true, entityId: true, fieldPath: true, newValue: true },
   });
 
@@ -185,4 +191,14 @@ export async function getStatusCounts(entityType: string): Promise<FindingStatus
 /** Evaluates active state rules and upserts violations into ds.fnd_findings inside Postgres. */
 export async function runStateRules(): Promise<StateRuleViolationDto[]> {
   return prisma.$queryRaw<StateRuleViolationDto[]>`SELECT * FROM ds.fn_run_state_rules()`;
+}
+
+/** Starts a review workflow for every live finding without one (win_id IS NULL). */
+export async function createFindingTasks(): Promise<CreatedFindingTaskRow[]> {
+  return prisma.$queryRaw<CreatedFindingTaskRow[]>`SELECT * FROM ds.fn_create_finding_tasks()`;
+}
+
+/** Closes the open task of every finding that was fixed, superseded, retired or approved. */
+export async function closeResolvedFindingTasks(): Promise<ClosedFindingTaskRow[]> {
+  return prisma.$queryRaw<ClosedFindingTaskRow[]>`SELECT * FROM ds.fn_close_resolved_finding_tasks()`;
 }

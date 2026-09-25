@@ -1,14 +1,17 @@
 import type {
   CreateDetectionRuleDto,
+  DetectionRuleDefinition,
   DetectionRuleDto,
+  DetectionRuleType,
   SetDetectionRuleActiveResultDto,
   UpdateDetectionRuleDto,
 } from '@shared/dto';
 import { auditOrchestrator } from '../audit/AuditOrchestrator';
+import { closeFindingTasks } from '../findings/components/SyncFindingTasks';
 import {
   createRule,
   entityTypeExists,
-  findActiveRuleOnField,
+  findActiveRulesOnField,
   getRule,
   listActiveEntityTypes,
   listRules,
@@ -40,6 +43,28 @@ function describe(rule: DetectionRuleDto): string {
   return `${rule.ruleType} on ${rule.entityType}.${rule.definition.field}`;
 }
 
+/**
+ * One active rule per type and field — except required_when, where the condition is part of
+ * the identity: "director required when type is A" and "… when type is B" are separate rules.
+ */
+async function assertNoDuplicate(
+  entityType: string,
+  ruleType: DetectionRuleType,
+  definition: DetectionRuleDefinition,
+  excludeRuleId?: number,
+): Promise<void> {
+  const others = (await findActiveRulesOnField(entityType, ruleType, definition.field)).filter(
+    (rule) => rule.ruleId !== excludeRuleId,
+  );
+  const clash = others.find((rule) => ruleType !== 'required_when' || sameDefinition(rule.definition, definition));
+  if (clash) {
+    const condition = definition.when
+      ? `${definition.when.field} ${definition.when.operator} "${definition.when.value}"`
+      : undefined;
+    throw new DuplicateDetectionRuleError(entityType, ruleType, definition.field, condition);
+  }
+}
+
 export class DetectionRulesOrchestrator {
   async getRules(): Promise<DetectionRuleDto[]> {
     return listRules();
@@ -60,9 +85,7 @@ export class DetectionRulesOrchestrator {
     const severity = assertSeverity(payload.severity);
     const definition = normalizeRuleDefinition(ruleType, payload.definition);
 
-    if (await findActiveRuleOnField(entityType, ruleType, definition.field)) {
-      throw new DuplicateDetectionRuleError(entityType, ruleType, definition.field);
-    }
+    await assertNoDuplicate(entityType, ruleType, definition);
 
     const created = await createRule({ entityType, ruleType, definition, severity }, actor);
 
@@ -96,6 +119,10 @@ export class DetectionRulesOrchestrator {
     // Findings record the rul_version that raised them, so any change to what the rule checks bumps it.
     const logicChanged = ruleType !== existing.ruleType || !sameDefinition(definition, existing.definition);
     const version = logicChanged ? existing.version + 1 : existing.version;
+
+    if (logicChanged && existing.active) {
+      await assertNoDuplicate(existing.entityType, ruleType, definition, ruleId);
+    }
 
     const updated = await updateRule(ruleId, { ruleType, definition, severity, version });
 
@@ -135,6 +162,16 @@ export class DetectionRulesOrchestrator {
         newValues: finding.after,
         comment: `Finding retired: detection rule ${ruleId} deactivated`,
       });
+    }
+
+    // Retired findings' review tasks leave the inbox now rather than on the next run.
+    // The retire itself is committed, so a workflow problem is logged, not thrown.
+    if (retired.length > 0) {
+      try {
+        await closeFindingTasks(actor);
+      } catch (err) {
+        console.error(`[detection-rules] closing review tasks after retiring rule ${ruleId} failed:`, err);
+      }
     }
 
     return { rule, findingsRetired: retired.length };

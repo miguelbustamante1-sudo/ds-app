@@ -41,6 +41,49 @@ describe('normalizeRuleDefinition', () => {
   });
 });
 
+describe('normalizeRuleDefinition — required_when', () => {
+  const when = { field: 'project_type', operator: 'equals' as const, value: 'Client' };
+
+  it('keeps field + trimmed condition and drops unrelated settings', () => {
+    expect(
+      normalizeRuleDefinition('required_when', {
+        field: 'director',
+        min: 1,
+        when: { field: ' project_type ', operator: 'starts_with', value: ' TELUS ' },
+      }),
+    ).toEqual({ field: 'director', when: { field: 'project_type', operator: 'starts_with', value: 'TELUS' } });
+  });
+
+  it('keeps the value case as entered (matching is case-sensitive)', () => {
+    expect(normalizeRuleDefinition('required_when', { field: 'director', when: { ...when, value: 'cLiEnT' } }).when?.value).toBe(
+      'cLiEnT',
+    );
+  });
+
+  it('requires a condition field, value and known operator', () => {
+    expect(() => normalizeRuleDefinition('required_when', { field: 'director' })).toThrow('Condition field is required');
+    expect(() => normalizeRuleDefinition('required_when', { field: 'director', when: { ...when, value: ' ' } })).toThrow(
+      'Condition value is required',
+    );
+    expect(() =>
+      normalizeRuleDefinition('required_when', { field: 'director', when: { ...when, operator: 'regex' as never } }),
+    ).toThrow('Invalid condition operator');
+  });
+
+  it('rejects a condition on the field itself (it could never fire)', () => {
+    expect(() => normalizeRuleDefinition('required_when', { field: 'director', when: { ...when, field: 'director' } })).toThrow(
+      'must be different',
+    );
+  });
+
+  it('sameDefinition compares the condition', () => {
+    const a = { field: 'director', when };
+    expect(sameDefinition(a, { field: 'director', when: { ...when } })).toBe(true);
+    expect(sameDefinition(a, { field: 'director', when: { ...when, value: 'Internal' } })).toBe(false);
+    expect(sameDefinition(a, { field: 'director', when: { ...when, operator: 'contains' } })).toBe(false);
+  });
+});
+
 describe('assertRuleType', () => {
   it('rejects types the rules function cannot evaluate', () => {
     expect(() => assertRuleType('regex_match')).toThrow(DetectionRuleValidationError);

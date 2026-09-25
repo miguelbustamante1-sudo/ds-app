@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma';
+import { LIVE_FINDING_STATUSES } from '../findings/types';
 import type { Prisma } from '@prisma/client';
 import type {
   DetectionRuleDefinition,
@@ -38,7 +39,7 @@ function serialize(row: object): Record<string, unknown> {
 }
 
 async function countOpenFindings(ruleId: number): Promise<number> {
-  return prisma.fndFinding.count({ where: { ruleId, status: 'open' } });
+  return prisma.fndFinding.count({ where: { ruleId, status: { in: LIVE_FINDING_STATUSES } } });
 }
 
 export async function listRules(): Promise<DetectionRuleDto[]> {
@@ -46,7 +47,7 @@ export async function listRules(): Promise<DetectionRuleDto[]> {
     prisma.rulDetectionRule.findMany({ where: { ruleClass: STATE_RULE_CLASS }, orderBy: { ruleId: 'asc' } }),
     prisma.fndFinding.groupBy({
       by: ['ruleId'],
-      where: { status: 'open', ruleId: { not: null } },
+      where: { status: { in: LIVE_FINDING_STATUSES }, ruleId: { not: null } },
       _count: { _all: true },
     }),
   ]);
@@ -60,12 +61,12 @@ export async function getRule(ruleId: number): Promise<DetectionRuleDto | null> 
   return row ? toRuleDto(row, await countOpenFindings(ruleId)) : null;
 }
 
-export async function findActiveRuleOnField(
+export async function findActiveRulesOnField(
   entityType: string,
   ruleType: DetectionRuleType,
   field: string,
-): Promise<DetectionRuleDto | null> {
-  const row = await prisma.rulDetectionRule.findFirst({
+): Promise<DetectionRuleDto[]> {
+  const rows = await prisma.rulDetectionRule.findMany({
     where: {
       entityType,
       ruleClass: STATE_RULE_CLASS,
@@ -74,7 +75,7 @@ export async function findActiveRuleOnField(
       definition: { path: ['field'], equals: field },
     },
   });
-  return row ? toRuleDto(row, 0) : null;
+  return rows.map((row) => toRuleDto(row, 0));
 }
 
 export async function listActiveEntityTypes(): Promise<string[]> {
@@ -151,11 +152,15 @@ export async function setRuleActive(
   return prisma.$transaction(async (tx) => {
     const row = await tx.rulDetectionRule.update({ where: { ruleId }, data: { active } });
     if (active) {
-      const openFindingCount = await tx.fndFinding.count({ where: { ruleId, status: 'open' } });
+      const openFindingCount = await tx.fndFinding.count({
+        where: { ruleId, status: { in: LIVE_FINDING_STATUSES } },
+      });
       return { rule: toRuleDto(row, openFindingCount), retired: [] };
     }
 
-    const openFindings = await tx.fndFinding.findMany({ where: { ruleId, status: 'open' } });
+    const openFindings = await tx.fndFinding.findMany({
+      where: { ruleId, status: { in: LIVE_FINDING_STATUSES } },
+    });
     const retired: RetiredFinding[] = [];
     const resolvedAt = new Date();
 

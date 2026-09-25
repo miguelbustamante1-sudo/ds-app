@@ -1,5 +1,11 @@
-import { DETECTION_RULE_SEVERITIES, DETECTION_RULE_TYPES } from '@shared/dto';
-import type { DetectionRuleDefinition, DetectionRuleSeverity, DetectionRuleType } from '@shared/dto';
+import { DETECTION_RULE_CONDITION_OPERATORS, DETECTION_RULE_SEVERITIES, DETECTION_RULE_TYPES } from '@shared/dto';
+import type {
+  DetectionRuleCondition,
+  DetectionRuleConditionOperator,
+  DetectionRuleDefinition,
+  DetectionRuleSeverity,
+  DetectionRuleType,
+} from '@shared/dto';
 import { DetectionRuleValidationError } from '../errors';
 
 export function assertRuleType(value: unknown): DetectionRuleType {
@@ -58,9 +64,41 @@ export function normalizeRuleDefinition(
       }
       return { field, expected: definition.expected };
     }
+
+    case 'required_when':
+      return { field, when: normalizeCondition(field, definition?.when) };
   }
 }
 
+function normalizeCondition(field: string, when: Partial<DetectionRuleCondition> | undefined): DetectionRuleCondition {
+  const conditionField = typeof when?.field === 'string' ? when.field.trim() : '';
+  if (!conditionField) throw new DetectionRuleValidationError('Condition field is required');
+  if (conditionField === field) {
+    // A field that matches a condition is already filled in, so the rule could never fire.
+    throw new DetectionRuleValidationError('Condition field must be different from the field that must be filled in');
+  }
+
+  if (!(DETECTION_RULE_CONDITION_OPERATORS as readonly unknown[]).includes(when?.operator)) {
+    throw new DetectionRuleValidationError(
+      `Invalid condition operator "${String(when?.operator)}". Allowed: ${DETECTION_RULE_CONDITION_OPERATORS.join(', ')}`,
+    );
+  }
+
+  // Case-sensitive, so only surrounding whitespace is trimmed.
+  const value = typeof when?.value === 'string' ? when.value.trim() : '';
+  if (!value) throw new DetectionRuleValidationError('Condition value is required');
+
+  return { field: conditionField, operator: when!.operator as DetectionRuleConditionOperator, value };
+}
+
 export function sameDefinition(a: DetectionRuleDefinition, b: DetectionRuleDefinition): boolean {
-  return a.field === b.field && a.min === b.min && a.max === b.max && a.expected === b.expected;
+  return (
+    a.field === b.field &&
+    a.min === b.min &&
+    a.max === b.max &&
+    a.expected === b.expected &&
+    a.when?.field === b.when?.field &&
+    a.when?.operator === b.when?.operator &&
+    a.when?.value === b.when?.value
+  );
 }
