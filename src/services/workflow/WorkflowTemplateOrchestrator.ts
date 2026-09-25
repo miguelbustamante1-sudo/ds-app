@@ -8,6 +8,7 @@ import { validateRoutingExpressions } from './components/ValidateRoutingExpressi
 import { validateTaskRoutes } from './components/ValidateTaskRoutes';
 import { validateTaskDependencies } from './components/ValidateTaskDependencies';
 import { validateExecutionType } from './components/ValidateExecutionType';
+import { validateDeadlineAction } from './components/ValidateDeadlineAction';
 import {
   WorkflowNotFoundError,
   WorkflowNotDraftError,
@@ -339,6 +340,7 @@ export class WorkflowTemplateOrchestrator {
 
     await validateRoutingExpressions(wflId);
     await validateExecutionType(wflId);
+    await validateDeadlineAction(wflId);
 
     const now = new Date();
 

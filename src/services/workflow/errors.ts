@@ -181,3 +181,24 @@ export class AdminJumpAssigneeRequiredError extends AppError {
     this.name = 'AdminJumpAssigneeRequiredError';
   }
 }
+
+export class WorkflowDeadlineActionReductionPercentageError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowDeadlineActionReductionPercentageError';
+  }
+}
+
+export class WorkflowDeadlineActionReplacementLimitError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowDeadlineActionReplacementLimitError';
+  }
+}
+
+export class WorkflowDeadlineActionEscalationTargetError extends AppError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = 'WorkflowDeadlineActionEscalationTargetError';
+  }
+}
