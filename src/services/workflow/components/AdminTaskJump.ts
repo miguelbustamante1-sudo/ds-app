@@ -33,7 +33,14 @@ export async function adminTaskJump(input: AdminTaskJumpInput): Promise<AdminTas
     }
 
     // 2. Load target task and confirm it belongs to this instance and is PENDING
-    const targetTask = await tx.witWorkflowInstanceTask.findUnique({ where: { witId: targetWitId } });
+    const targetTask = await tx.witWorkflowInstanceTask.findUnique({
+      where: { witId: targetWitId },
+      include: {
+        templateTask: {
+          select: { template: { select: { shift: { include: { details: true } } } } },
+        },
+      },
+    });
     if (!targetTask || targetTask.winId !== winId || targetTask.state !== 'PENDING') {
       throw new AdminJumpTargetError();
     }
@@ -107,7 +114,7 @@ export async function adminTaskJump(input: AdminTaskJumpInput): Promise<AdminTas
     }
 
     // 5. Activate target task
-    const dueAt = calculateDueDate(now, targetTask.slaDurationHours ?? null);
+    const dueAt = calculateDueDate(now, targetTask.slaDurationHours ?? null, targetTask.templateTask?.template.shift ?? null);
 
     await tx.witWorkflowInstanceTask.update({
       where: { witId: targetWitId },

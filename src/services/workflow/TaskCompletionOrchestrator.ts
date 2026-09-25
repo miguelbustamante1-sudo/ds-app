@@ -393,10 +393,21 @@ class TaskCompletionOrchestrator {
               assignedUserId: true,
               assignedRoleId: true,
               dynamicAssignmentType: true,
+              templateTask: {
+                select: {
+                  template: {
+                    select: { shift: { include: { details: true } } },
+                  },
+                },
+              },
             },
           });
 
-          const nextDueAt = calculateDueDate(now, nextTask?.slaDurationHours ?? null);
+          const nextDueAt = calculateDueDate(
+            now,
+            nextTask?.slaDurationHours ?? null,
+            nextTask?.templateTask?.template.shift ?? null,
+          );
 
           await tx.witWorkflowInstanceTask.update({
             where: { witId: nextWitId },

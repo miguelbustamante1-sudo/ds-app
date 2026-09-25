@@ -48,6 +48,7 @@ export class WorkflowInstantiationOrchestrator {
           routes: true,
           dependencies: true,
           entityConfig: { include: { entityFields: true } },
+          shift: { include: { details: true } },
         },
       });
 
@@ -223,7 +224,7 @@ export class WorkflowInstantiationOrchestrator {
         const witId = taskMap.get(task.wtkId);
         if (!witId) continue;
 
-        const dueAt = calculateDueDate(now, task.slaDurationHours ?? null);
+        const dueAt = calculateDueDate(now, task.slaDurationHours ?? null, template.shift ?? null);
 
         await tx.witWorkflowInstanceTask.update({
           where: { witId },

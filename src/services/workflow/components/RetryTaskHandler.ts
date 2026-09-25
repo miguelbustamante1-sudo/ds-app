@@ -11,6 +11,11 @@ export async function retryTask(
 ): Promise<WitWorkflowInstanceTask> {
   const task = await tx.witWorkflowInstanceTask.findUnique({
     where: { witId },
+    include: {
+      templateTask: {
+        select: { template: { select: { shift: { include: { details: true } } } } },
+      },
+    },
   });
 
   if (!task || task.state !== 'FAILED') {
@@ -22,7 +27,7 @@ export async function retryTask(
   }
 
   const now = new Date();
-  const dueAt = calculateDueDate(now, task.slaDurationHours ?? null);
+  const dueAt = calculateDueDate(now, task.slaDurationHours ?? null, task.templateTask?.template.shift ?? null);
 
   const updated = await tx.witWorkflowInstanceTask.update({
     where: { witId },
