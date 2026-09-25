@@ -12,6 +12,22 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.11.0] - 2026-09-25
+
+### Added
+
+**Workflow Engine**
+- "Missed and Recreate" deadline action: a workflow task can be configured to resolve an overdue attempt as Missed and automatically create a shorter-duration replacement, up to a configured limit, before escalating
+- Admin config UI for deadline action, reduction percentage, replacement limit, and final escalation target on the workflow task form
+- Attempt lineage shown on the admin Instance Detail page (Attempt column, Missed state badge, Previous Attempt link) and a new read-only Task Detail page for assignees to review earlier attempts
+- Publish-time validation for Missed-and-Recreate configuration
+
+### Fixed
+
+**Workflow Engine**
+- Due-date calculation (`CalculateDueDate`) is now business-hours-aware engine-wide, using the configured shift (or a Mon-Fri 08:00-17:00 fallback) instead of pure calendar-time math
+- Task escalation now checks that the target user is still active before assigning them the escalation
+
 ## [2.10.0] - 2026-09-24
 
 ### Added
