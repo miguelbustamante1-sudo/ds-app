@@ -36,6 +36,7 @@ export * from './User';
 export * from './WorkdayInfo';
 export * from './FunctionalArea';
 export * from './FlagTypeAction';
+export * from './Finding';
 
 // Communication DTOs
 export * from './Notification';
@@ -132,3 +133,8 @@ export * from './PerformanceCase';
 
 // Audit History DTOs
 export * from './AuditHistory';
+// Change Detection — Watched Entities & Fields DTOs
+export * from './WatchedField';
+
+// Change Detection — State Detection Rules DTOs
+export * from './DetectionRule';

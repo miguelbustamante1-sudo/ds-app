@@ -97,6 +97,9 @@ import { storedProcedureOrchestrator } from '../services/storedProcedures/Stored
 import fieldglassSowsRouter from './fieldglassSow.routes';
 import externalBonusIntakeRouter from './externalBonusIntake.routes';
 import performanceCasesRouter from '../services/performance-cases/routes/cases';
+import findingsRouter from './findings.routes';
+import watchedFieldsRouter from './watchedFields.routes';
+import detectionRulesRouter from './detectionRules.routes';
 
 export default function registerRoutes() {
   const router = Router();
@@ -198,6 +201,9 @@ export default function registerRoutes() {
   router.use('/fieldglass-sows', fieldglassSowsRouter);
   router.use('/bonuses/external', externalBonusIntakeRouter);
   router.use('/performance-cases', performanceCasesRouter);
+  router.use('/findings', findingsRouter);
+  router.use('/watched-fields', watchedFieldsRouter);
+  router.use('/detection-rules', detectionRulesRouter);
 
   return router;
 }
