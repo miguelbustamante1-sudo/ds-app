@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,6 +105,7 @@ export function TaskExecutionDrawer({
   isClaimedByMe,
 }: TaskExecutionDrawerProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [task, setTask] = useState<WitInstanceTask | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
 
@@ -368,6 +369,44 @@ export function TaskExecutionDrawer({
             {task.description && (
               <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
                 {task.description}
+              </div>
+            )}
+
+            {/* Missed-and-Recreate lineage — only shown for a task that is itself a
+                replacement (attemptNumber > 1) or one that could still produce one
+                (remainingReplacements != null). Ordinary ESCALATE-mode tasks never
+                set remainingReplacements, so this renders nothing for them. Links to
+                the read-only TaskDetailPage rather than trying to re-open this
+                drawer in place — a different winId/witId pair with the drawer's own
+                action buttons hidden would need its own extra prop, whereas a
+                dedicated view-only page keeps this drawer's contract unchanged. */}
+            {(task.attemptNumber > 1 || task.remainingReplacements != null) && (
+              <div className="rounded-md border px-4 py-3 text-sm space-y-1">
+                <p>
+                  This is{' '}
+                  {task.attemptNumber <= 1 ? 'the original attempt' : `Replacement ${task.attemptNumber - 1}`}
+                  {task.remainingReplacements != null && task.remainingReplacements >= 0 && (
+                    <> of up to {task.attemptNumber - 1 + task.remainingReplacements}</>
+                  )}
+                  .
+                </p>
+                {task.previousTaskId && winId && (
+                  <button
+                    type="button"
+                    className="text-primary underline text-xs"
+                    onClick={() => {
+                      onOpenChange(false);
+                      navigate(`/my-tasks/${winId}/${task.previousTaskId}`);
+                    }}
+                  >
+                    View previous attempt
+                  </button>
+                )}
+                {task.remainingReplacements === 0 && (
+                  <p className="text-muted-foreground text-xs">
+                    0 replacements remaining — missing this deadline will escalate.
+                  </p>
+                )}
               </div>
             )}
 

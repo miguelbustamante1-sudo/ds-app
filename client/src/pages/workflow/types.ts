@@ -39,6 +39,11 @@ export interface WitInstanceTask {
   retryCount: number;
   maxRetryCount: number;
   slaDurationHours: number | null;
+  originalTaskId: string | null;
+  previousTaskId: string | null;
+  attemptNumber: number;
+  remainingReplacements: number | null;
+  missedResolvedAt: string | null;
   inputs?: WiiInstanceInput[];
   outcomes?: WtoTaskOutcome[];
   entityUrl: string | null;
