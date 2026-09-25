@@ -90,6 +90,7 @@ import { TemplateFormPage } from '@/pages/admin/workflow/TemplateFormPage';
 import { InstanceListPage } from '@/pages/admin/workflow/InstanceListPage';
 import { InstanceDetailPage } from '@/pages/admin/workflow/InstanceDetailPage';
 import { TaskInboxPage } from '@/pages/workflow/TaskInboxPage';
+import { TaskDetailPage } from '@/pages/workflow/TaskDetailPage';
 import { WorkflowInstancePage } from '@/pages/workflow/WorkflowInstancePage';
 import { GiftCardPoolsPage } from '@/pages/maintenance/gift-cards/pools';
 import { GiftCardReasonsPage } from '@/pages/maintenance/gift-cards/reasons';
@@ -303,6 +304,7 @@ export function AppRoutingSetup() {
         <Route path="/admin/stored-procedures" element={<AdminStoredProceduresPage />} />
         {/* Workflow Inbox / Execution */}
         <Route path="/my-tasks" element={<TaskInboxPage />} />
+        <Route path="/my-tasks/:winId/:witId" element={<TaskDetailPage />} />
         <Route path="/workflow/instances/:winId" element={<WorkflowInstancePage />} />
         {/* Hub Landing Pages */}
         <Route path="/time-off-hub" element={<TimeOffHubPage />} />
