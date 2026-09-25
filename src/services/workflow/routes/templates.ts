@@ -193,6 +193,9 @@ router.post(
           escalationUserId?: number;
           escalationRoleId?: string;
           escalationDynamicType?: string;
+          deadlineAction?: string;
+          reductionPercentage?: number | null;
+          replacementLimit?: number | null;
           maxRetryCount?: number;
           allowReassignment?: boolean;
           requireCommentOnReassign?: boolean;
@@ -232,6 +235,9 @@ router.patch(
           escalationUserId?: number;
           escalationRoleId?: string;
           escalationDynamicType?: string;
+          deadlineAction?: string;
+          reductionPercentage?: number | null;
+          replacementLimit?: number | null;
           maxRetryCount?: number;
           allowReassignment?: boolean;
           requireCommentOnReassign?: boolean;
