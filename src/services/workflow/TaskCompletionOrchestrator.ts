@@ -395,6 +395,8 @@ class TaskCompletionOrchestrator {
               dynamicAssignmentType: true,
               templateTask: {
                 select: {
+                  deadlineAction: true,
+                  replacementLimit: true,
                   template: {
                     select: { shift: { include: { details: true } } },
                   },
@@ -415,6 +417,12 @@ class TaskCompletionOrchestrator {
               state: 'ACTIVE',
               activatedAt: now,
               dueAt: nextDueAt,
+              ...(nextTask?.templateTask?.deadlineAction === 'MISSED_AND_RECREATE' && {
+                attemptNumber: 1,
+                originalTaskId: null,
+                previousTaskId: null,
+                remainingReplacements: nextTask.templateTask.replacementLimit,
+              }),
             },
           });
 
