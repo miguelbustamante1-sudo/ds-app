@@ -52,6 +52,7 @@ function taskStateBadge(state: string) {
   if (state === 'FAILED') return <Badge variant="destructive" appearance="light">Failed</Badge>;
   if (state === 'OVERRIDDEN') return <Badge variant="warning" appearance="light">Overridden</Badge>;
   if (state === 'VOIDED') return <Badge variant="outline">Voided</Badge>;
+  if (state === 'MISSED') return <Badge variant="warning" appearance="light">Missed</Badge>;
   return <Badge variant="outline">{state}</Badge>;
 }
 
@@ -102,6 +103,16 @@ export function InstanceDetailPage() {
     [instance],
   );
 
+  const sortedTasks = useMemo(
+    () =>
+      [...(instance?.tasks ?? [])].sort((a, b) => {
+        const seqDiff = (a.sequenceNo ?? 0) - (b.sequenceNo ?? 0);
+        if (seqDiff !== 0) return seqDiff;
+        return a.attemptNumber - b.attemptNumber;
+      }),
+    [instance],
+  );
+
   const taskColumns = useMemo<ColumnDef<WitAdminTask>[]>(
     () => [
       {
@@ -123,6 +134,16 @@ export function InstanceDetailPage() {
         cell: ({ row }) => taskStateBadge(row.original.state),
         size: 120,
         meta: { headerTitle: 'State', skeleton: <Skeleton className="h-5 w-20" /> },
+      },
+      {
+        accessorKey: 'attemptNumber',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Attempt" />,
+        cell: ({ row }) => {
+          const n = row.original.attemptNumber;
+          return n <= 1 ? 'Original' : `Replacement ${n - 1}`;
+        },
+        size: 130,
+        meta: { headerTitle: 'Attempt', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         accessorKey: 'assignmentType',
@@ -166,8 +187,33 @@ export function InstanceDetailPage() {
         size: 140,
         meta: { headerTitle: 'Overridden By', skeleton: <Skeleton className="h-4 w-28" /> },
       },
+      {
+        accessorKey: 'previousTaskId',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Previous Attempt" />,
+        cell: ({ row }) =>
+          row.original.previousTaskId ? (
+            <button
+              type="button"
+              className="font-mono text-xs text-primary underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                const previous = sortedTasks.find((t) => t.witId === row.original.previousTaskId);
+                if (previous) {
+                  setSelectedTask(previous);
+                  setTaskSheetOpen(true);
+                }
+              }}
+            >
+              {row.original.previousTaskId.slice(0, 8)}
+            </button>
+          ) : (
+            '—'
+          ),
+        size: 140,
+        meta: { headerTitle: 'Previous Attempt', skeleton: <Skeleton className="h-4 w-24" /> },
+      },
     ],
-    [],
+    [sortedTasks],
   );
 
   const auditColumns = useMemo<ColumnDef<WalAuditEntry>[]>(
@@ -245,7 +291,7 @@ export function InstanceDetailPage() {
   );
 
   const taskTable = useReactTable({
-    data: instance?.tasks ?? [],
+    data: sortedTasks,
     columns: taskColumns,
     state: { sorting: taskSorting },
     onSortingChange: setTaskSorting,
@@ -505,6 +551,18 @@ export function InstanceDetailPage() {
                 <div>
                   <dt className="text-muted-foreground">SLA Duration (hrs)</dt>
                   <dd>{selectedTask.slaDurationHours ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Attempt</dt>
+                  <dd>
+                    {selectedTask.attemptNumber <= 1
+                      ? 'Original'
+                      : `Replacement ${selectedTask.attemptNumber - 1}`}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Remaining Replacements</dt>
+                  <dd>{selectedTask.remainingReplacements ?? '—'}</dd>
                 </div>
               </dl>
               {selectedTask.description && (
