@@ -45,3 +45,15 @@ Use:
 - creating a record: `create`
 - updating a record: `create`
 - deleting a record: `delete`
+
+---
+
+## Frontend 403 Handling (Access Denied)
+
+Every backend 403 (authenticated but not authorized — see `Governance/13_ERROR_HANDLING.md`) must produce the same user-facing behavior everywhere in the app: **a toast plus a redirect to the dashboard.** No page should be left showing a broken/half-loaded state, and no page should implement its own 403 handling.
+
+**Where it's implemented:**
+- `client/src/lib/api.ts` — `handleResponse` dispatches a `window` event, `auth:forbidden`, whenever any `apiGet`/`apiPost`/`apiPut`/`apiPatch`/`apiDelete` call receives a 403. This mirrors the existing `auth:unauthorized` (401) event.
+- `client/src/auth/auth-provider.tsx` — `AuthProvider` listens for `auth:forbidden` (it already sits inside `BrowserRouter`, so it has router + toast access) and, on receipt: shows a `destructive` toast ("Access denied" / "You don't have permission to do that.") via `toast` from `@/hooks/use-toast`, then `navigate('/')` (the dashboard route).
+
+**Rule:** Do not add a page-level 403 branch (custom error UI, inline "not allowed" message, manual redirect) for a route already covered by `api.ts`. The global handler covers every `api*` call automatically. Only add page-specific handling if a flow genuinely needs different UX than "toast + dashboard redirect" — and if so, stop and confirm with the user first, since this is meant to be a single consistent behavior app-wide.

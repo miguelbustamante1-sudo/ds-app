@@ -58,6 +58,7 @@ import workflowTasksRouter from '../services/workflow/routes/tasks';
 import workflowAdminRouter from '../services/workflow/routes/admin';
 import workflowUsersRouter from '../services/workflow/routes/users';
 import dashboardRouter from './dashboard.routes';
+import triviaRouter from './trivia.routes';
 import timeOffHubRouter from './timeOffHub.routes';
 import emailTestRouter from './email-test.routes';
 import emailStatisticsRouter from './email-statistics.routes';
@@ -164,6 +165,7 @@ export default function registerRoutes() {
   router.use('/workflow', workflowAdminRouter);
   router.use('/workflow/users', workflowUsersRouter);
   router.use('/dashboard', dashboardRouter);
+  router.use('/trivia', triviaRouter);
   router.use('/time-off-hub', timeOffHubRouter);
   router.use('/email-test', emailTestRouter);
   router.use('/email-statistics', emailStatisticsRouter);

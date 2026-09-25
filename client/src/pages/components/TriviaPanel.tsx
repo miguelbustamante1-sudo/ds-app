@@ -22,13 +22,18 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { apiGet } from "@/lib/api";
-import type { TriviaQuestionDTO } from "@shared/dto";
+import { useMutation } from "@tanstack/react-query";
+import { apiGet, apiPost } from "@/lib/api";
+import type { TriviaQuestionDTO, SubmitTriviaAnswerDTO, TriviaAnswerResultDTO } from "@shared/dto";
 
 const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 function fetchTrivia(): Promise<TriviaQuestionDTO[]> {
   return apiGet<TriviaQuestionDTO[]>("/api/dashboard/trivia");
+}
+
+function submitAnswer(payload: SubmitTriviaAnswerDTO): Promise<TriviaAnswerResultDTO> {
+  return apiPost<TriviaAnswerResultDTO, SubmitTriviaAnswerDTO>("/api/trivia/answers", payload);
 }
 
 export function TriviaPanel() {
@@ -55,9 +60,16 @@ export function TriviaPanel() {
   const progressPct =
     questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
 
+  const submitAnswerMutation = useMutation({ mutationFn: submitAnswer });
+
   const handleSelect = (questionIndex: number, optionIndex: number) => {
     if (answers[questionIndex] !== undefined) return; // lock
     setAnswers((prev) => ({ ...prev, [questionIndex]: optionIndex }));
+
+    const question = questions[questionIndex];
+    if (question) {
+      submitAnswerMutation.mutate({ questionId: question.id, selectedOptionIndex: optionIndex });
+    }
   };
 
   const handleReset = () => setAnswers({});

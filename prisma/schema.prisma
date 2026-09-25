@@ -2503,3 +2503,52 @@ model WorkdayBoostSync {
   @@map("wko_workday_boost_sync")
   @@schema("es")
 }
+
+model TriviaBatch {
+  id                     Int       @id @default(autoincrement()) @map("trb_id") @db.Integer
+  status                 String    @map("trb_status") @db.Text
+  requestedQuestionCount Int       @map("trb_requested_count") @db.Integer
+  insertedQuestionCount  Int?      @map("trb_inserted_count") @db.Integer
+  errorMessage           String?   @map("trb_error_message") @db.Text
+  startedAt              DateTime  @default(now()) @map("trb_started_date")
+  completedAt            DateTime? @map("trb_completed_date")
+  createdBy              Int       @map("trb_created_by") @db.Integer
+
+  @@map("trb_trivia_batches")
+  @@schema("ds")
+}
+
+model TriviaQuestion {
+  id                 Int      @id @default(autoincrement()) @map("trq_id") @db.Integer
+  batchId            Int      @map("trq_trb_id") @db.Integer
+  questionText       String   @map("trq_question_text") @db.Text
+  questionHash       String   @unique @map("trq_question_hash") @db.Text
+  option1            String   @map("trq_option_1") @db.Text
+  option2            String   @map("trq_option_2") @db.Text
+  option3            String   @map("trq_option_3") @db.Text
+  option4            String   @map("trq_option_4") @db.Text
+  correctOptionIndex Int      @map("trq_correct_option_index") @db.SmallInt
+  isActive           Boolean  @default(true) @map("trq_is_active")
+  createdBy          Int      @map("trq_created_by") @db.Integer
+  createdAt          DateTime @default(now()) @map("trq_created_date")
+
+  @@index([batchId], map: "idx_trq_trivia_questions_trb")
+  @@index([isActive], map: "idx_trq_trivia_questions_active")
+  @@map("trq_trivia_questions")
+  @@schema("ds")
+}
+
+model TriviaAnswer {
+  id                  Int      @id @default(autoincrement()) @map("tra_id") @db.Integer
+  questionId          Int      @map("tra_trq_id") @db.Integer
+  teamMemberId        Int      @map("tra_tms_id") @db.Integer
+  selectedOptionIndex Int      @map("tra_selected_option_index") @db.SmallInt
+  isCorrect           Boolean  @map("tra_is_correct")
+  answerCount         Int      @default(1) @map("tra_answer_count") @db.Integer
+  lastAnsweredAt      DateTime @default(now()) @map("tra_last_answered_date")
+
+  @@unique([questionId, teamMemberId], map: "tra_question_tms_unique")
+  @@index([teamMemberId], map: "idx_tra_trivia_answers_tms")
+  @@map("tra_trivia_answers")
+  @@schema("ds")
+}

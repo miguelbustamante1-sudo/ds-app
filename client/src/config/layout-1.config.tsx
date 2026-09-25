@@ -124,6 +124,15 @@ export const MENU_SIDEBAR: MenuConfig = [
     ],
   },
   {
+    title: 'Trivia',
+    icon: FileQuestion,
+    path: '/trivia-hub',
+    role: 'admin',
+    children: [
+      { title: 'Manage Trivia Questions', path: '/trivia-hub/manage-questions', role: 'admin' },
+    ],
+  },
+  {
     title: 'Top Performers',
     icon: Star,
     path: '/top-performers-hub',

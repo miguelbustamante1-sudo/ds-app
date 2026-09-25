@@ -12,6 +12,15 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.10.0] - 2026-09-24
+
+### Added
+
+**Trivia**
+- Persisted Team Leader Trivia question bank: admins pull batches of up to 30 questions from the SOP knowledge base, deduplicated at the database level
+- Trivia Hub with a "Manage Trivia Questions" admin page — pull new batches, toggle questions active/inactive, delete questions
+- Dashboard trivia widget now serves 5 random questions from the persisted pool (7-day per-user cooldown with backfill) instead of calling the AI live, and records each user's answer history
+
 ## [2.9.0] - 2026-09-24
 
 ### Added

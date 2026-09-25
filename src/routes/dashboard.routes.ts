@@ -3,7 +3,7 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import { requirePermission } from '../middleware/auth';
 import { getDashboardTasks } from '../services/dashboard/getDashboardTasks';
 import { getDashboardImportantDates } from '../services/dashboard/getDashboardImportantDates';
-import { getDashboardTrivia } from '../services/dashboard/getDashboardTrivia';
+import { getDashboardQuestions } from '../services/trivia/TriviaOrchestrator';
 import { getSupervisorFlags } from '../services/dashboard/getSupervisorFlags';
 import { AppError } from '../errors/AppError';
 
@@ -57,14 +57,19 @@ router.get(
 
 /**
  * GET /api/dashboard/trivia
- * Returns trivia questions generated from the TL manual via Fuel iX, cached
- * in memory for up to 12 hours. Authenticated-only (relies on the global
- * authMiddleware); no per-resource permission — trivia carries no sensitive
- * data, unlike the team-scoped panels.
+ * Returns up to 5 random active trivia questions from the persisted pool
+ * (ds.trq_trivia_questions), excluding ones this user answered in the last
+ * 7 days. Authenticated-only; no per-resource permission — trivia carries
+ * no sensitive data, unlike the team-scoped panels.
  */
-router.get('/trivia', async (_req: AuthenticatedRequest, res: Response) => {
+router.get('/trivia', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const questions = await getDashboardTrivia();
+    const teamMemberId = req.user?.teamMemberId;
+    if (!teamMemberId) {
+      res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
+      return;
+    }
+    const questions = await getDashboardQuestions(teamMemberId);
     res.json({ data: questions });
   } catch (err: unknown) {
     if (err instanceof AppError) {
