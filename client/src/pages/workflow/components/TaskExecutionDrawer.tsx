@@ -18,7 +18,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { apiGet, apiPost } from '@/lib/api';
-import { formatUTCDateTime } from '@/lib/utils';
+import { formatUTCDate, formatUTCDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { WitInstanceTask, WiiInstanceInput, ChangedFieldDiff } from '../types';
 
@@ -438,6 +438,31 @@ export function TaskExecutionDrawer({
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* Days-before notice violation detail — only rendered when the
+                exception-authorization instantiation wrote 'daysBeforeRequiredDays'
+                into context (the TimeOff days-before exception flow). Unrecognized
+                for any instance that didn't, which is the common case — nothing
+                renders.
+
+                Note: numeric context values are backed by a Postgres/Prisma
+                Decimal column (wic_value_number), which serializes to a
+                STRING over JSON — never assume `typeof === 'number'` here,
+                check for presence instead. Verified live: the API returns
+                "daysBeforeRequiredDays":"7" (string), not 7. */}
+            {task.context?.daysBeforeRequiredDays != null && (
+              <div className="rounded-md border px-4 py-3 text-sm space-y-1">
+                <h3 className="text-sm font-medium">Notice Period Exception</h3>
+                <p className="text-muted-foreground">
+                  {String(task.context.daysBeforeCategoryName ?? 'This category')} requires{' '}
+                  {task.context.daysBeforeRequiredDays} days notice; only{' '}
+                  {String(task.context.daysBeforeDaysUntilStart)} days were given at submission.
+                  {typeof task.context.daysBeforeEarliestValidDate === 'string' && (
+                    <> Earliest valid start date was {formatUTCDate(task.context.daysBeforeEarliestValidDate)}.</>
+                  )}
+                </p>
               </div>
             )}
 

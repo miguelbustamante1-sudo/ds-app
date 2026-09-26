@@ -7,6 +7,8 @@ export interface InstantiateExceptionAuthorizationWorkflowInput {
   /** Becomes the workflow's ownerUserId, so DYNAMIC/FIRST_SUPERVISOR assignment resolves to this user's own supervisor. */
   requestedByUserId: number;
   requestedByEmail: string;
+  /** Optional workflow-instance context entries (e.g. days-before violation detail from buildDaysBeforeContextJson) — surfaced generically in the task drawer via task.context. This component doesn't interpret them, only forwards them. */
+  contextJson?: Array<{ key: string; value: string | number | boolean }>;
 }
 
 /**
@@ -35,6 +37,7 @@ export async function instantiateExceptionAuthorizationWorkflow(
     ownerUserId: input.requestedByUserId,
     startedBy: input.requestedByEmail,
     createdBy: String(input.requestedByUserId),
+    contextJson: input.contextJson,
   });
 
   return true;

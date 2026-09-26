@@ -12,7 +12,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { X } from 'lucide-react';
-import { Toolbar, ToolbarHeading, ToolbarPageTitle, ToolbarDescription } from '@/components/ui/toolbar';
+import { Toolbar, ToolbarActions, ToolbarHeading, ToolbarPageTitle, ToolbarDescription } from '@/components/ui/toolbar';
+import { BackToHubButton } from '@/components/BackToHubButton';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,9 @@ export default function TimeOffHubSummaryPage() {
             Drill into your team's upcoming time off, holiday swaps, and this week's activity.
           </ToolbarDescription>
         </ToolbarHeading>
+        <ToolbarActions>
+          <BackToHubButton hubPath="/time-off-hub" />
+        </ToolbarActions>
       </Toolbar>
 
       <Card className="mt-4">

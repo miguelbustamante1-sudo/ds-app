@@ -22,8 +22,8 @@ import { List, X } from 'lucide-react';
 import { formatUTCDate } from '@/lib/utils';
 import type { HolidaySwapDTO } from '@shared/dto/HolidaySwap';
 
-const NON_EDITABLE_STATUSES = ['Taken', 'Cancelled', 'Rejected'];
-const NON_CANCELLABLE_STATUSES = ['Taken', 'Cancelled', 'Rejected'];
+const NON_EDITABLE_STATUSES = ['Taken', 'Cancelled', 'Rejected', 'InAuth'];
+const NON_CANCELLABLE_STATUSES = ['Taken', 'Cancelled', 'Rejected', 'InAuth'];
 
 const STATUS_OPTIONS = [
   { label: 'Tentative', value: 'Tentative' },

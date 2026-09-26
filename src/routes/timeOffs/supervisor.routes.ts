@@ -9,6 +9,7 @@ import {
 import { requirePermission } from '../../middleware/auth';
 import { validateTimeOff, DEFAULTS } from '../../services/timeoff/validation';
 import { isOnlyDaysBeforeNoticeFailure } from '../../services/timeoff/validation/isOnlyDaysBeforeNoticeFailure';
+import { buildDaysBeforeContextJson } from '../../services/timeoff/validation/buildDaysBeforeContextJson';
 import {
   getTeamMembersBySupervisor,
   getTeamTimeOffByMonth,
@@ -262,6 +263,7 @@ router.post('/request', requirePermission('TimeOffs', 'create'), resolveAuthUser
           vacationPeriod: exceptionVacationPeriod,
           requestedByUserId: userId,
           requestedByEmail,
+          contextJson: buildDaysBeforeContextJson(validationResult.errors),
         });
 
         return res.status(201).json(exceptionCreated);
@@ -540,6 +542,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffId: createdA.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationA.errors),
       });
     }
     if (legBIsException) {
@@ -547,6 +550,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffId: createdB.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationB.errors),
       });
     }
 
@@ -984,6 +988,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
           totalDays: exceptionTotalDays,
           requestedByUserId: userId,
           requestedByEmail,
+          contextJson: buildDaysBeforeContextJson(validationResult.errors),
         });
 
         return res.json(exceptionUpdated);
@@ -1294,6 +1299,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
         timeOffId: createdA.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationA.errors),
       });
     }
     if (legBIsException) {
@@ -1301,6 +1307,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
         timeOffId: createdB.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationB.errors),
       });
     }
 

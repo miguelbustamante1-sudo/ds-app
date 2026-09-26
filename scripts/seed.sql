@@ -17,6 +17,7 @@ INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (3, 'Taken')       ON C
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (4, 'Cancelled')   ON CONFLICT (sta_id) DO NOTHING;
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (5, 'Rejected')    ON CONFLICT (sta_id) DO NOTHING;
 INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (6, 'Split')       ON CONFLICT (sta_id) DO NOTHING;
+INSERT INTO ds.tbl_to_statuses (sta_id, sta_name) VALUES (7, 'InAuth')      ON CONFLICT (sta_id) DO NOTHING;
 
 -- 2. Regions
 INSERT INTO ds.reg_regions (reg_id, reg_name) VALUES (1, 'Central America') ON CONFLICT (reg_id) DO NOTHING;

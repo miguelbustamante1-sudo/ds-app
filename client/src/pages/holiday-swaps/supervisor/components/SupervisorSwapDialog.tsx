@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ComboBox } from '@/components/ui/combobox';
 import { apiGet } from '@/lib/api';
 import { formatUTCDate, parseUTCDateAsLocal } from '@/lib/utils';
@@ -41,7 +42,8 @@ export function SupervisorSwapDialog({
 }: SupervisorSwapDialogProps) {
   const isEditing = editingSwap !== null;
 
-  const [holidays, setHolidays] = useState<HolidayDTO[]>([]);
+  const [allHolidays, setAllHolidays] = useState<HolidayDTO[]>([]);
+  const [showPastHolidays, setShowPastHolidays] = useState(false);
 
   const {
     register,
@@ -56,7 +58,8 @@ export function SupervisorSwapDialog({
 
   const watchedHolidayId = watch('holidayId');
 
-  // Load holidays for the team member's country
+  // Load holidays for the team member's country — the full active list (past
+  // and future); which ones are actually offered is decided by showPastHolidays below.
   useEffect(() => {
     if (!open) return;
     const url = teamMember.countryId
@@ -64,17 +67,26 @@ export function SupervisorSwapDialog({
       : '/api/holidays';
     apiGet<HolidayDTO[]>(url)
       .then((data) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const future = data.filter((h) => {
-          if (!h.holidayIsActive) return false;
-          const d = parseUTCDateAsLocal(String(h.holidayDate));
-          return d > today;
-        });
-        setHolidays(future);
+        setAllHolidays(data.filter((h) => h.holidayIsActive));
       })
-      .catch(() => setHolidays([]));
+      .catch(() => setAllHolidays([]));
   }, [open, teamMember.countryId]);
+
+  // Reset the toggle each time the dialog opens, so it never carries over
+  // checked from a previous swap.
+  useEffect(() => {
+    if (open) setShowPastHolidays(false);
+  }, [open]);
+
+  // Past holidays are hidden by default (matches the normal swap-creation
+  // rule); checking "Show past holidays" reveals them so a supervisor can
+  // create/correct a swap for one — the HOLIDAY_NOT_IN_FUTURE exception
+  // workflow now handles authorization for that instead of hard-blocking it.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const holidays = showPastHolidays
+    ? allHolidays
+    : allHolidays.filter((h) => parseUTCDateAsLocal(String(h.holidayDate)) > today);
 
   // Pre-populate form in edit mode
   useEffect(() => {
@@ -130,6 +142,22 @@ export function SupervisorSwapDialog({
 
         <form onSubmit={onSubmit}>
           <div className="space-y-4 py-4">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="showPastHolidays"
+                checked={showPastHolidays}
+                onCheckedChange={(checked) => setShowPastHolidays(checked === true)}
+              />
+              <div className="grid gap-0.5 leading-none">
+                <label htmlFor="showPastHolidays" className="text-sm cursor-pointer select-none">
+                  Show past holidays
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Selecting a past holiday requires BSA exception authorization before the swap becomes active.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="holidayId">
                 Holiday <span className="text-destructive">*</span>

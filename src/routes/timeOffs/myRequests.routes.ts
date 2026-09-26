@@ -9,6 +9,7 @@ import {
 import { requirePermission } from '../../middleware/auth';
 import { validateTimeOff, DEFAULTS } from '../../services/timeoff/validation';
 import { isOnlyDaysBeforeNoticeFailure } from '../../services/timeoff/validation/isOnlyDaysBeforeNoticeFailure';
+import { buildDaysBeforeContextJson } from '../../services/timeoff/validation/buildDaysBeforeContextJson';
 import { createTimeOffChangeLog, getTimeOffChangeLog, fetchRawTimeOffRow } from '../../services/timeoff/changelog';
 import { calculateTimeOffDaysForTeamMember } from '../../services/timeoff/dayCalculation';
 import { getStatusByName } from '../../db/timeOffStatuses';
@@ -705,6 +706,7 @@ router.patch('/:timeOffId', requirePermission('TimeOffs', 'create'), resolveAuth
           totalDays: exceptionTotalDays,
           requestedByUserId: userId,
           requestedByEmail,
+          contextJson: buildDaysBeforeContextJson(validationResult.errors),
         });
 
         return res.json(exceptionUpdated);
@@ -992,6 +994,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffId: createdA.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationA.errors),
       });
     }
     if (legBIsException) {
@@ -999,6 +1002,7 @@ router.post('/split', requirePermission('TimeOffs', 'create'), resolveAuthUser, 
         timeOffId: createdB.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationB.errors),
       });
     }
 
@@ -1254,6 +1258,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
         timeOffId: createdA.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationA.errors),
       });
     }
     if (legBIsException) {
@@ -1261,6 +1266,7 @@ router.post('/:timeOffId/convert-to-split', requirePermission('TimeOffs', 'creat
         timeOffId: createdB.timeOffId,
         requestedByUserId: userId,
         requestedByEmail,
+        contextJson: buildDaysBeforeContextJson(validationB.errors),
       });
     }
 
@@ -1359,6 +1365,7 @@ router.post('/', requirePermission('TimeOffs', 'create'), resolveAuthUser, async
           vacationPeriod,
           requestedByUserId: userId,
           requestedByEmail,
+          contextJson: buildDaysBeforeContextJson(validationResult.errors),
         });
 
         return res.status(201).json(created);
