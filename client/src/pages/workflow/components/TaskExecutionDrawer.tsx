@@ -445,8 +445,14 @@ export function TaskExecutionDrawer({
                 exception-authorization instantiation wrote 'daysBeforeRequiredDays'
                 into context (the TimeOff days-before exception flow). Unrecognized
                 for any instance that didn't, which is the common case — nothing
-                renders. */}
-            {typeof task.context?.daysBeforeRequiredDays === 'number' && (
+                renders.
+
+                Note: numeric context values are backed by a Postgres/Prisma
+                Decimal column (wic_value_number), which serializes to a
+                STRING over JSON — never assume `typeof === 'number'` here,
+                check for presence instead. Verified live: the API returns
+                "daysBeforeRequiredDays":"7" (string), not 7. */}
+            {task.context?.daysBeforeRequiredDays != null && (
               <div className="rounded-md border px-4 py-3 text-sm space-y-1">
                 <h3 className="text-sm font-medium">Notice Period Exception</h3>
                 <p className="text-muted-foreground">
