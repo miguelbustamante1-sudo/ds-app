@@ -277,7 +277,8 @@ export class HolidaySwapOrchestrator {
     supervisorTeamMemberId: number,
     targetTeamMemberId: number,
     input: CreateHolidaySwapDTO,
-    createdBy: string
+    createdBy: string,
+    requestedByUserId: number
   ): Promise<HolidaySwapDTO> {
     // 1. Verify supervisor relationship
     const isSupervisor = await verifySupervisorRelationship(supervisorTeamMemberId, targetTeamMemberId);
@@ -286,7 +287,7 @@ export class HolidaySwapOrchestrator {
     }
 
     // 2. Delegate to the same creation logic
-    return this.createSwap(targetTeamMemberId, input, createdBy);
+    return this.createSwap(targetTeamMemberId, input, createdBy, requestedByUserId);
   }
 
   /** Supervisor views TM's swaps (GET /api/holiday-swaps/team/:teamMemberId) */

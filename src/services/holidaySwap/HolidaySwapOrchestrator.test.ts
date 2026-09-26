@@ -112,3 +112,26 @@ describe('HolidaySwapOrchestrator.createSwap — exception gate', () => {
     ).rejects.toThrow('This holiday does not belong to your country.');
   });
 });
+
+describe('HolidaySwapOrchestrator.createSwapForMember', () => {
+  it('passes the supervisor requestedByUserId through to createSwap', async () => {
+    const orchestrator = new HolidaySwapOrchestrator();
+    const createSwapSpy = vi.spyOn(orchestrator, 'createSwap').mockResolvedValue({} as never);
+    vi.spyOn(await import('../timeoff/supervisor/queries'), 'verifySupervisorRelationship').mockResolvedValue(true);
+
+    await orchestrator.createSwapForMember(
+      1,
+      10,
+      { holidayId: 3, replacementDate: '2026-06-01' },
+      'supervisor@example.com',
+      88,
+    );
+
+    expect(createSwapSpy).toHaveBeenCalledWith(
+      10,
+      { holidayId: 3, replacementDate: '2026-06-01' },
+      'supervisor@example.com',
+      88,
+    );
+  });
+});
