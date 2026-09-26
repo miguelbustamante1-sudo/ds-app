@@ -228,7 +228,7 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
           ? (data.escalationDynamicType || null)
           : null,
       priority: data.priority,
-      slaDurationHours: data.slaDurationHours ? parseInt(data.slaDurationHours, 10) : null,
+      slaDurationHours: data.slaDurationHours ? parseFloat(data.slaDurationHours) : null,
       maxRetryCount: parseInt(data.maxRetryCount, 10) || 3,
       allowReassignment: data.allowReassignment,
       requireCommentOnReassign: data.requireCommentOnReassign,
@@ -445,7 +445,7 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
               {watch('slaDurationHours') && watchedReductionPercentage && watchedReplacementLimit && (
                 <p className="text-xs text-muted-foreground">
                   {(() => {
-                    const original = parseInt(watch('slaDurationHours'), 10);
+                    const original = parseFloat(watch('slaDurationHours'));
                     const pct = parseFloat(watchedReductionPercentage) / 100;
                     const limit = parseInt(watchedReplacementLimit, 10);
                     if (!original || Number.isNaN(pct) || Number.isNaN(limit)) return null;
@@ -518,7 +518,7 @@ export function TaskFormDrawer({ open, onOpenChange, wflId, task, onSuccess }: T
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="task-sla">SLA Duration (hours)</Label>
-              <Input id="task-sla" type="number" {...register('slaDurationHours')} placeholder="24" />
+              <Input id="task-sla" type="number" step="0.25" {...register('slaDurationHours')} placeholder="24" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="task-retry">Max Retry Count</Label>

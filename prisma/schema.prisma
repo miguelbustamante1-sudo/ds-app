@@ -1161,7 +1161,7 @@ model WtkWorkflowTemplateTask {
   assignedRoleId           String?   @map("wtk_assigned_role_id") @db.VarChar(50)
   dynamicAssignmentType    String?   @map("wtk_dynamic_assignment_type") @db.VarChar(50)
   priority                 String    @map("wtk_priority") @db.VarChar(20)
-  slaDurationHours         Int?      @map("wtk_sla_duration_hours") @db.Integer
+  slaDurationHours         Float?    @map("wtk_sla_duration_hours") @db.DoublePrecision
   escalationUserId         Int?      @map("wtk_escalation_user_id")
   escalationRoleId         String?   @map("wtk_escalation_role_id") @db.VarChar(50)
   escalationDynamicType    String?   @map("wtk_escalation_dynamic_type") @db.VarChar(50)
@@ -1368,7 +1368,7 @@ model WitWorkflowInstanceTask {
   resultComment         String?   @map("wit_result_comment")
   retryCount            Int       @default(0) @map("wit_retry_count") @db.Integer
   maxRetryCount         Int       @default(0) @map("wit_max_retry_count") @db.Integer
-  slaDurationHours      Int?      @map("wit_sla_duration_hours") @db.Integer
+  slaDurationHours      Float?    @map("wit_sla_duration_hours") @db.DoublePrecision
   escalatedAt           DateTime? @map("wit_escalated_at") @db.Timestamptz(6)
   escalationUserId      Int?      @map("wit_escalation_user_id")
   escalationRoleId      String?   @map("wit_escalation_role_id") @db.VarChar(50)
