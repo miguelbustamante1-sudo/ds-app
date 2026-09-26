@@ -12,6 +12,21 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.12.0] - 2026-09-26
+
+### Added
+
+**Workflow Engine**
+- Shift selection on the workflow template form, so business-hours due-date calculation can use a configured shift instead of the default fallback
+- Fractional SLA durations on workflow tasks (e.g. `0.5h` = 30 minutes)
+- Task Inbox now defaults to the Workflow Tasks tab and shows the attempt number on each task in the list
+
+### Fixed
+
+**Workflow Engine**
+- Business-hours due-date calculation now anchors to the America/Guatemala timezone
+- Due/activated/completed timestamps on workflow tasks now show time-of-day, not just the date
+
 ## [2.11.0] - 2026-09-25
 
 ### Added
