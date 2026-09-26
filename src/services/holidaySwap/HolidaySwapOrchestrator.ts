@@ -9,9 +9,13 @@ import type {
   UpdateHolidaySwapDTO,
   ActiveSwapSummaryDTO,
 } from '@shared/dto/HolidaySwap';
+import { AppError } from '../../errors/AppError';
 import { loadStatusIds } from './components/LoadStatusIds';
 import { validateSwapEligibility } from './components/ValidateSwapEligibility';
+import { validateSwapEligibilityException } from './components/ValidateSwapEligibilityException';
 import { validateReplacementDay } from './components/ValidateReplacementDay';
+import { startSwapExceptionAuthorization } from './components/StartSwapExceptionAuthorization';
+import { startSwapExceptionAuthorizationOnEdit } from './components/StartSwapExceptionAuthorizationOnEdit';
 import { validateCancellation } from './components/ValidateCancellation';
 import { notifySwapSubmitted } from './components/NotifySwapSubmitted';
 import { notifySwapReviewed } from './components/NotifySwapReviewed';
@@ -65,7 +69,8 @@ export class HolidaySwapOrchestrator {
   async createSwap(
     teamMemberId: number,
     input: CreateHolidaySwapDTO,
-    createdBy: string
+    createdBy: string,
+    requestedByUserId: number
   ): Promise<HolidaySwapDTO> {
     // 1. Load TM record
     const teamMember = await prisma.teamMember.findUnique({
@@ -85,7 +90,10 @@ export class HolidaySwapOrchestrator {
     // 3. Load status IDs
     const statusIds = await loadStatusIds();
 
-    // 4. Validate eligibility
+    // 4. Validate eligibility. HOLIDAY_NOT_IN_FUTURE is exception-eligible: if it's
+    // the *only* failure (confirmed by re-checking with the BSA-bypass validator,
+    // which already skips that one check), route to exception authorization
+    // instead of blocking outright.
     const eligibility = await validateSwapEligibility({
       teamMemberId,
       countryId: teamMember.countryId,
@@ -96,11 +104,29 @@ export class HolidaySwapOrchestrator {
       },
       submissionDate: new Date(),
     });
+
+    let isExceptionCase = false;
     if (!eligibility.valid) {
-      throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+      if (eligibility.errorCode === 'HOLIDAY_NOT_IN_FUTURE') {
+        const exceptionEligibility = await validateSwapEligibilityException({
+          teamMemberId,
+          countryId: teamMember.countryId,
+          holiday: {
+            holidayId: holiday.holidayId,
+            countryId: holiday.countryId,
+            holidayDate: holiday.holidayDate,
+          },
+        });
+        if (!exceptionEligibility.valid) {
+          throw new AppError(exceptionEligibility.errorMessage ?? 'Swap eligibility check failed.', 400);
+        }
+        isExceptionCase = true;
+      } else {
+        throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+      }
     }
 
-    // 5. Validate replacement day
+    // 5. Validate replacement day — always enforced in full, exception or not.
     const replacementDate = new Date(input.replacementDate);
     const replacement = await validateReplacementDay({
       teamMemberId,
@@ -110,6 +136,19 @@ export class HolidaySwapOrchestrator {
     });
     if (!replacement.valid) {
       throw new Error(replacement.errorMessage ?? 'Replacement day validation failed.');
+    }
+
+    if (isExceptionCase) {
+      const { created } = await startSwapExceptionAuthorization({
+        teamMemberId,
+        holidayId: holiday.holidayId,
+        originalDate: holiday.holidayDate,
+        replacementDate,
+        createdBy,
+        requestedByUserId,
+        reasonComment: 'the original holiday date has already passed',
+      });
+      return toDTO(created, holiday.holidayName, created.status.statusName);
     }
 
     // 6. Insert
