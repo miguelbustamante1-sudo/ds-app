@@ -77,10 +77,17 @@ router.post(
         res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
         return;
       }
+      if (!req.user?.dsUserId) {
+        throw new AppError('Unauthenticated', 401);
+      }
       const input: CreateHolidaySwapDTO = req.body;
-      const swap = await holidaySwapOrchestrator.createSwap(teamMemberId, input, createdBy);
+      const swap = await holidaySwapOrchestrator.createSwap(teamMemberId, input, createdBy, req.user.dsUserId);
       res.status(201).json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       res.status(400).json({ error: message });
     }
@@ -130,6 +137,9 @@ router.post(
         res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
         return;
       }
+      if (!req.user?.dsUserId) {
+        throw new AppError('Unauthenticated', 401);
+      }
       const targetTeamMemberId = parseInt(req.params.teamMemberId ?? '', 10);
       if (isNaN(targetTeamMemberId)) {
         res.status(400).json({ error: 'Invalid team member ID.' });
@@ -140,10 +150,15 @@ router.post(
         supervisorTeamMemberId,
         targetTeamMemberId,
         input,
-        createdBy
+        createdBy,
+        req.user.dsUserId
       );
       res.status(201).json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 400;
       res.status(status).json({ error: message });
@@ -221,6 +236,9 @@ router.patch(
         res.status(400).json({ error: 'Team member ID not found on authenticated user.' });
         return;
       }
+      if (!req.user?.dsUserId) {
+        throw new AppError('Unauthenticated', 401);
+      }
       const swapId = parseInt(req.params.id ?? '', 10);
       if (isNaN(swapId)) {
         res.status(400).json({ error: 'Invalid swap ID.' });
@@ -231,10 +249,15 @@ router.patch(
         swapId,
         supervisorTeamMemberId,
         input,
-        updatedBy
+        updatedBy,
+        req.user.dsUserId
       );
       res.json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 400;
       res.status(status).json({ error: message });
