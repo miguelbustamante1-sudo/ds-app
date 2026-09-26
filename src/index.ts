@@ -26,6 +26,7 @@ import { processPendingWorkflowNotifications } from './services/workflow/compone
 import { registerOutcomeHandler } from './services/workflow/components/WorkflowOutcomeRegistry';
 import { registerDestroyHandler } from './services/workflow/components/WorkflowDestroyRegistry';
 import { handleExceptionAuthorizationOutcome } from './services/timeoff/components/HandleExceptionAuthorizationOutcome';
+import { handleSwapExceptionAuthorizationOutcome } from './services/holidaySwap/components/HandleSwapExceptionAuthorizationOutcome';
 import { handleTimeOffWorkflowDestroyed } from './services/timeoff/components/HandleTimeOffWorkflowDestroyed';
 import { registerBusinessReferenceLink } from './services/workflow/components/BusinessReferenceLinkRegistry';
 import { getTimeOffTaskSummary } from './services/timeoff/components/GetTimeOffTaskSummary';
@@ -142,6 +143,7 @@ setInterval(syncAllConnections, 6 * 60 * 60 * 1000);
 // Workflow outcome handlers: lets a domain react when a task on one of its own
 // entities is completed, without the workflow engine knowing about that domain.
 registerOutcomeHandler('TimeOff', handleExceptionAuthorizationOutcome);
+registerOutcomeHandler('HolidaySwap', handleSwapExceptionAuthorizationOutcome);
 // Workflow destroy handlers: lets a domain react when an instance of one of its
 // own entities is admin-destroyed, without the workflow engine knowing about that domain.
 registerDestroyHandler('TimeOff', handleTimeOffWorkflowDestroyed);
