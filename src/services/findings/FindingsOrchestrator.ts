@@ -39,7 +39,7 @@ const AUDIT_COMMENTS: Record<FindingMutation['kind'], string> = {
 };
 
 export class FindingsOrchestrator {
-  async runFindings(triggeredByEmail: string, entityType = 'project'): Promise<RunFindingsResultDto> {
+  async runFindings(triggeredByEmail: string, entityType: string): Promise<RunFindingsResultDto> {
     const runId = randomUUID();
 
     const [expectedRowCount, actualRowCount] = await Promise.all([
@@ -179,11 +179,11 @@ export class FindingsOrchestrator {
     return { violationsFound, findingsResolved, details: rows, ...taskSync };
   }
 
-  async getFindings(entityType = 'project', status?: string): Promise<FindingDto[]> {
+  async getFindings(entityType: string, status?: string): Promise<FindingDto[]> {
     return repositoryGetFindings(entityType, status);
   }
 
-  async getStatusCounts(entityType = 'project'): Promise<FindingStatusCountDto[]> {
+  async getStatusCounts(entityType: string): Promise<FindingStatusCountDto[]> {
     return repositoryGetStatusCounts(entityType);
   }
 }
