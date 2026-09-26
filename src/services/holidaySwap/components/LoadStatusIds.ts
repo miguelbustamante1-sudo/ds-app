@@ -6,6 +6,8 @@ export interface SwapStatusIds {
   rejected: number;
   cancelled: number;
   taken: number;
+  /** Awaiting exception authorization — same shared status as the time-off "InAuth" flow. */
+  pendingAuth: number;
 }
 
 const STATUS_NAME_MAP: Record<keyof SwapStatusIds, string> = {
@@ -14,6 +16,7 @@ const STATUS_NAME_MAP: Record<keyof SwapStatusIds, string> = {
   rejected: 'Rejected',
   cancelled: 'Cancelled',
   taken: 'Taken',
+  pendingAuth: 'InAuth',
 };
 
 export async function loadStatusIds(): Promise<SwapStatusIds> {
@@ -38,5 +41,6 @@ export async function loadStatusIds(): Promise<SwapStatusIds> {
     rejected: resolve('rejected'),
     cancelled: resolve('cancelled'),
     taken: resolve('taken'),
+    pendingAuth: resolve('pendingAuth'),
   };
 }
