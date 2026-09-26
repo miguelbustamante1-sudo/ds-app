@@ -39,6 +39,10 @@ router.get(
       const swaps = await getActiveSwapsForTM(teamMemberId);
       res.json(swaps);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       res.status(500).json({ error: message });
     }
@@ -59,6 +63,10 @@ router.get(
       const swaps = await holidaySwapOrchestrator.getMySwaps(teamMemberId);
       res.json(swaps);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       res.status(500).json({ error: message });
     }
@@ -115,6 +123,10 @@ router.patch(
       const swap = await holidaySwapOrchestrator.cancelSwap(swapId, teamMemberId, updatedBy, input);
       res.json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       res.status(400).json({ error: message });
     }
@@ -188,6 +200,10 @@ router.get(
       );
       res.json(swaps);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 500;
       res.status(status).json({ error: message });
@@ -217,6 +233,10 @@ router.get(
       );
       res.json(swaps);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 500;
       res.status(status).json({ error: message });
@@ -291,6 +311,10 @@ router.patch(
       );
       res.json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 400;
       res.status(status).json({ error: message });
@@ -402,6 +426,10 @@ router.patch(
       );
       res.json(swap);
     } catch (err: unknown) {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Internal server error';
       const status = message.includes('Access denied') ? 403 : 400;
       res.status(status).json({ error: message });
