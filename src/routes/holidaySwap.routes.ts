@@ -194,9 +194,11 @@ router.get(
         res.status(400).json({ error: 'Invalid team member ID.' });
         return;
       }
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
       const swaps = await holidaySwapOrchestrator.getTeamMemberSwaps(
         supervisorTeamMemberId,
-        targetTeamMemberId
+        targetTeamMemberId,
+        viewAll
       );
       res.json(swaps);
     } catch (err: unknown) {
@@ -227,9 +229,11 @@ router.get(
         res.status(400).json({ error: 'Invalid team member ID.' });
         return;
       }
+      const viewAll = req.user?.permissions?.TLTeam?.read === true;
       const swaps = await holidaySwapOrchestrator.getActiveTeamMemberSwaps(
         supervisorTeamMemberId,
-        targetTeamMemberId
+        targetTeamMemberId,
+        viewAll
       );
       res.json(swaps);
     } catch (err: unknown) {
