@@ -129,10 +129,25 @@ export function FindingsPage() {
     try {
       const result = await apiPost<RunFindingsResultDto>('/api/findings/run', {});
       setLastRunSummary(result);
-      toast({
-        title: 'Success',
-        description: `Findings run completed: ${taskSummary(result)}`,
-      });
+      const failed = result.entities.filter((e) => e.status === 'failed');
+      if (result.entities.length === 0) {
+        toast({
+          title: 'Nothing to run',
+          description: 'No watched entities are active. Activate one in the Object & Field Manager.',
+          variant: 'destructive',
+        });
+      } else if (failed.length > 0) {
+        toast({
+          title: `Findings run failed for ${failed.map((e) => e.entityType).join(', ')}`,
+          description: `${result.entities.length - failed.length} of ${result.entities.length} entities completed; ${taskSummary(result)}`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Success',
+          description: `Findings run completed for ${result.entities.length} ${result.entities.length === 1 ? 'entity' : 'entities'}: ${taskSummary(result)}`,
+        });
+      }
       warnTaskSync(result.taskSyncError);
       await Promise.all([loadFindings(statusFilter), loadStatuses()]);
     } catch (error: any) {
@@ -170,11 +185,18 @@ export function FindingsPage() {
   const columns = useMemo<ColumnDef<FindingDto>[]>(
     () => [
       {
+        accessorKey: 'cdeEntityType',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Entity" />,
+        cell: ({ getValue }) => getValue() || '—',
+        size: 130,
+        meta: { headerTitle: 'Entity', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
         accessorKey: 'fndEntityId',
-        header: ({ column }) => <DataGridColumnHeader column={column} title="Project ID" />,
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Record ID" />,
         cell: ({ getValue }) => getValue() || '—',
         size: 120,
-        meta: { headerTitle: 'Project ID', skeleton: <Skeleton className="h-4 w-20" /> },
+        meta: { headerTitle: 'Record ID', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         id: 'fieldDisplayName',
@@ -302,12 +324,14 @@ export function FindingsPage() {
     [],
   );
 
+  // Counts arrive per (entity type, status); the chips show the total per status.
   const filterOptions = useMemo(() => {
-    const options = [...statusCounts];
-    if (statusFilter && !options.some((o) => o.status === statusFilter)) {
-      options.push({ status: statusFilter, count: 0 });
-    }
-    return options;
+    const totals = new Map<string, number>();
+    statusCounts.forEach((row) => totals.set(row.status, (totals.get(row.status) ?? 0) + row.count));
+    if (statusFilter && !totals.has(statusFilter)) totals.set(statusFilter, 0);
+    return Array.from(totals, ([status, count]) => ({ status, count })).sort((a, b) =>
+      a.status.localeCompare(b.status),
+    );
   }, [statusCounts, statusFilter]);
 
   const table = useReactTable({
@@ -338,7 +362,7 @@ export function FindingsPage() {
         <ToolbarHeading>
           <ToolbarPageTitle>Findings</ToolbarPageTitle>
           <ToolbarDescription>
-            Monitor changes detected in watched fields across projects.
+            Monitor changes detected in watched fields across every active watched entity.
           </ToolbarDescription>
         </ToolbarHeading>
         <ToolbarActions>
@@ -374,23 +398,42 @@ export function FindingsPage() {
         <Card className="mt-6">
           <CardContent>
             <CardTitle className="mb-4">Last Run Summary</CardTitle>
-            <div className="grid grid-cols-4 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Findings Created</div>
-                <div className="text-2xl font-bold">{lastRunSummary.findingsCreated}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Findings Updated</div>
-                <div className="text-2xl font-bold">{lastRunSummary.findingsUpdated}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Entities Compared</div>
-                <div className="text-2xl font-bold">{lastRunSummary.entitiesCompared}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Fields Checked</div>
-                <div className="text-2xl font-bold">{lastRunSummary.fieldsChecked}</div>
-              </div>
+            {lastRunSummary.entities.length === 0 && (
+              <div className="text-sm text-muted-foreground">No active watched entities were run.</div>
+            )}
+            <div className="flex flex-col gap-6">
+              {lastRunSummary.entities.map((entity) => (
+                <div key={entity.entityType}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="font-medium">{entity.entityType}</span>
+                    <Badge variant={entity.status === 'failed' ? 'destructive' : 'success'} appearance="light">
+                      {humanize(entity.status)}
+                    </Badge>
+                  </div>
+                  {entity.status === 'failed' ? (
+                    <div className="text-sm text-destructive">{entity.error}</div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Findings Created</div>
+                        <div className="text-2xl font-bold">{entity.findingsCreated}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Findings Updated</div>
+                        <div className="text-2xl font-bold">{entity.findingsUpdated}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Records Compared</div>
+                        <div className="text-2xl font-bold">{entity.entitiesCompared}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Fields Checked</div>
+                        <div className="text-2xl font-bold">{entity.fieldsChecked}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

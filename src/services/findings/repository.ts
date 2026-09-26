@@ -82,10 +82,10 @@ export async function getOpenFindingRefs(entityType: string): Promise<OpenFindin
   }));
 }
 
-export async function getFindings(entityType: string, status?: string): Promise<FindingDto[]> {
+export async function getFindings(entityTypes: string[], status?: string): Promise<FindingDto[]> {
   const findings = await prisma.fndFinding.findMany({
     where: {
-      entityType,
+      entityType: { in: entityTypes },
       ...(status ? { status } : {}),
     },
     select: {
@@ -109,9 +109,13 @@ export async function getFindings(entityType: string, status?: string): Promise<
     orderBy: [{ lastSeen: 'desc' }, { findingId: 'desc' }],
   });
 
-  // Fetch watched fields for display names
-  const watchedFields = await getActiveWatchedFields(entityType);
-  const fieldMap = new Map(watchedFields.map((f) => [f.fieldPath, f.displayName]));
+  // Keyed by entity type too: the same field path can mean different fields on different objects.
+  const watchedFields = await prisma.cdfWatchedField.findMany({
+    where: { entityType: { in: entityTypes }, active: true },
+    select: { entityType: true, fieldPath: true, displayName: true },
+  });
+  const fieldKey = (entityType: string, fieldPath: string) => `${entityType}\u0000${fieldPath}`;
+  const fieldMap = new Map(watchedFields.map((f) => [fieldKey(f.entityType, f.fieldPath), f.displayName]));
 
   return findings.map((f) => ({
     fndId: f.findingId,
@@ -128,7 +132,7 @@ export async function getFindings(entityType: string, status?: string): Promise<
     firstSeen: f.firstSeen.toISOString(),
     lastSeen: f.lastSeen.toISOString(),
     occurrenceCount: f.occurrenceCount,
-    fieldDisplayName: f.fieldPath ? fieldMap.get(f.fieldPath) : undefined,
+    fieldDisplayName: f.fieldPath ? fieldMap.get(fieldKey(f.entityType, f.fieldPath)) : undefined,
     rulId: f.ruleId,
     rulType: f.detectionRule?.ruleType ?? null,
     rulDefinition: f.detectionRule?.definition ?? null,
@@ -177,15 +181,15 @@ export async function failRunLog(runLogId: number, message: string) {
 }
 
 /** Statuses actually present in the data, so new ones surface as filters without a code change. */
-export async function getStatusCounts(entityType: string): Promise<FindingStatusCountDto[]> {
+export async function getStatusCounts(entityTypes: string[]): Promise<FindingStatusCountDto[]> {
   const rows = await prisma.fndFinding.groupBy({
-    by: ['status'],
-    where: { entityType },
+    by: ['entityType', 'status'],
+    where: { entityType: { in: entityTypes } },
     _count: { _all: true },
-    orderBy: { status: 'asc' },
+    orderBy: [{ entityType: 'asc' }, { status: 'asc' }],
   });
 
-  return rows.map((row) => ({ status: row.status, count: row._count._all }));
+  return rows.map((row) => ({ entityType: row.entityType, status: row.status, count: row._count._all }));
 }
 
 /** Evaluates active state rules and upserts violations into ds.fnd_findings inside Postgres. */

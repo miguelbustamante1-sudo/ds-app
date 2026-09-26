@@ -7,9 +7,14 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/statuses', requirePermission('Findings', 'read'), async (_req: AuthenticatedRequest, res: Response) => {
+function optionalQueryString(raw: unknown): string | undefined {
+  return typeof raw === 'string' && raw !== '' ? raw : undefined;
+}
+
+// Optional ?entityType= narrows to one entity type; without it, every active entity type.
+router.get('/statuses', requirePermission('Findings', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    res.json({ data: await findingsOrchestrator.getStatusCounts('project') });
+    res.json({ data: await findingsOrchestrator.getStatusCounts(optionalQueryString(req.query.entityType)) });
   } catch (err: unknown) {
     if (err instanceof AppError) {
       res.status(err.statusCode).json({ error: err.message });
@@ -22,9 +27,9 @@ router.get('/statuses', requirePermission('Findings', 'read'), async (_req: Auth
 
 router.get('/', requirePermission('Findings', 'read'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const raw = req.query.status;
-    const status = typeof raw === 'string' && raw !== '' ? raw : undefined;
-    res.json({ data: await findingsOrchestrator.getFindings('project', status) });
+    const entityType = optionalQueryString(req.query.entityType);
+    const status = optionalQueryString(req.query.status);
+    res.json({ data: await findingsOrchestrator.getFindings({ entityType, status }) });
   } catch (err: unknown) {
     if (err instanceof AppError) {
       res.status(err.statusCode).json({ error: err.message });
