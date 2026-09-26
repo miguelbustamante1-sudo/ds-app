@@ -3,11 +3,11 @@
 -- Safe to run anywhere: SELECTs only.
 -- Read-only: how each project's review tasks would be assigned.
 WITH pm AS (
-  SELECT s.snp_entity_id                                                       AS project_id,
-         s.snp_payload ->> 'project_manager'                                   AS project_manager,
-         substring(s.snp_payload ->> 'project_manager' FROM '\(([0-9]+)\)\s*$') AS wdid
+  SELECT s.snp_entity_type                                                     AS entity_type,
+         s.snp_entity_id                                                       AS project_id,
+         s.snp_payload ->> 'pse__Project_Manager__r.Name'                      AS project_manager,
+         substring(s.snp_payload ->> 'pse__Project_Manager__r.Name' FROM '\(([0-9]+)\)\s*$') AS wdid
     FROM es.snp_entity_snapshot s
-   WHERE s.snp_entity_type = 'project'
 ),
 tm AS (
   SELECT pm.project_id, t.tms_id, t.tms_names || ' ' || t.tms_surnames AS team_member,
@@ -16,7 +16,8 @@ tm AS (
     FROM pm
     JOIN ds.tbl_team_members t ON t.wdid = pm.wdid
 )
-SELECT pm.project_id,
+SELECT pm.entity_type,
+       pm.project_id,
        pm.project_manager,
        pm.wdid,
        (SELECT count(*) FROM tm WHERE tm.project_id = pm.project_id)             AS team_member_rows,
@@ -31,7 +32,7 @@ SELECT pm.project_id,
                 WHERE lower(au.email) = lower(u.usr_email)
                   AND coalesce(o.opt_description, p.per_resource) = 'Workflow'
                   AND p.per_write)                                               AS pm_can_complete_tasks,
-       CASE WHEN pm.wdid IS NULL      THEN 'fallback: no (id) in project_manager'
+       CASE WHEN pm.wdid IS NULL      THEN 'fallback: no (id) in pse__Project_Manager__r.Name'
             WHEN a.tms_id IS NULL     THEN 'fallback: no team member with that WDID'
             WHEN NOT a.is_active      THEN 'fallback: team member not active'
             WHEN u.usr_id IS NULL     THEN 'fallback: team member has no app user'

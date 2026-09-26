@@ -102,7 +102,7 @@ Task inbox and completion are keyed on the person's app user (`ds.tbl_users.usr_
 
 ## 7. Who gets each review task
 
-The project's `project_manager` value's trailing "(WDID)" — e.g. "(10017904)" — is extracted. That WDID is matched to an ACTIVE team member (`ds.tbl_team_members.wdid`; active = start date ≤ today and end date empty or ≥ today) and their app user is used. Otherwise the task falls back to Milton Ayala (looked up by email `milton.ayala2@telusinternational.com`; usr_id 311 in production; 311 is also the hard-coded last resort).
+For every entity type, the payload key `pse__Project_Manager__r.Name`'s trailing "(WDID)" — e.g. "(10017904)" — is extracted. That WDID is matched to an ACTIVE team member (`ds.tbl_team_members.wdid`; active = start date ≤ today and end date empty or ≥ today) and their app user is used. Otherwise the task falls back to Milton Ayala (looked up by email `milton.ayala2@telusinternational.com`; usr_id 311 in production; 311 is also the hard-coded last resort).
 
 The task is assigned when created; follow-up tasks stay with the same person.
 

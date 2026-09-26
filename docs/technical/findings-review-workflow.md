@@ -27,11 +27,13 @@ Both run responses now include `tasksCreated`, `tasksClosed` and `taskSyncError`
 ### 1a. Who gets the task (added 2026-09-25)
 
 `ds.fn_resolve_finding_assignee(entity_type, entity_id)` decides who gets each task:
-1. Read `project_manager` from the project's snapshot (falling back to the approved baseline), e.g. `"Kevin Fino Herrera (10017904)"`, and take the Workday ID in the trailing parentheses.
+1. Read the payload key `pse__Project_Manager__r.Name` from the record's snapshot (falling back to the approved baseline), e.g. `"Kevin Fino Herrera (10017904)"`, and take the Workday ID in the trailing parentheses. This runs for every entity type; there is no entity-type check.
 2. Match it to an **active** `ds.tbl_team_members.wdid`. Active uses the app's own rule: `tms_stadat <= today`, and `tms_enddat` null or `>= today`.
 3. Take that team member's app user, `ds.tbl_users.usr_id`. The engine keys both the inbox and completion rights on this id (`dsUserId`), so the PM sees the task and can complete it.
 
-If any step fails (no id in parentheses, no active team member, no app user, or a non-project finding), the task goes to Milton Ayala instead. The fallback is looked up by email (`milton.ayala2@telusinternational.com`), so the same code works in every environment: it resolves to `usr_id 311` in production and 1 locally, with 311 hard-coded as the last resort.
+If any step fails (key missing from the payload, no id in parentheses, no active team member, or no app user), the task goes to Milton Ayala instead. The fallback is looked up by email (`milton.ayala2@telusinternational.com`), so the same code works in every environment: it resolves to `usr_id 311` in production and 1 locally, with 311 hard-coded as the last resort.
+
+> **Convention for every watched entity:** the reviewer's field must arrive in the payload under the literal top-level key `pse__Project_Manager__r.Name`, in the `"Name (WDID)"` shape. A new entity (e.g. Assignments) must register its PM-equivalent field under exactly this key in `ds.cdf_watched_fields` and the snapshot. Any other key silently sends every task to the fallback user. This happened twice with the old `'project'` / `'project_manager'` naming.
 
 - **When it's decided:** when the task is created, from the snapshot at that moment. A PM who changes later doesn't take over tasks that already exist.
 - **Follow-up tasks** (Awaiting Fix / Awaiting Confirmation) stay with whoever had the review task.
@@ -112,7 +114,8 @@ They were captured from prod with `pg_get_functiondef()` into `prisma/scripts/wo
 
 - **PM assignment** (rolled back):
   - a stand-in PM with Kevin Fino Herrera's WDID received his projects' tasks and notifications, and kept the Mark as Resolved follow-up;
-  - an unknown WDID, an ended team member and a non-project entity each fell back to usr 1 locally.
+  - an unknown WDID and an ended team member each fell back to usr 1 locally.
+  - 2026-09-25 re-test after dropping the `'project'` gate and switching to `pse__Project_Manager__r.Name`: snapshot key, baseline-only, empty snapshot value falling back to the baseline, and a non-project entity type all resolved to the PM. The old `project_manager` key, a nested `{"pse__Project_Manager__r": {"Name": …}}` object, a value with no `(id)`, an ended team member, an unknown record, and the `02_verify` probe all fell back to usr 1.
 
 ## 6. Open items
 

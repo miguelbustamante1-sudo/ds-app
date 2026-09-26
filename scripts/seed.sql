@@ -1237,18 +1237,23 @@ $function$
 -- both exist, sp_start_finding_review_workflow finds no published template and returns
 -- quietly, so the Run buttons simply create no tasks.
 -- ── 1b. Who reviews a finding ──────────────────────────────────────────────
--- Project findings go to the project's manager: the Workday ID in parentheses
--- at the end of project_manager ("Kevin Fino Herrera (10017904)") → an ACTIVE
+-- A finding goes to its record's project manager, for every entity type: the
+-- Workday ID in parentheses at the end of the payload key
+-- 'pse__Project_Manager__r.Name' ("Kevin Fino Herrera (10017904)") → an ACTIVE
 -- team member (ds.tbl_team_members.wdid, same active rule as
 -- getAllActiveTeamMembers) → their app user (ds.tbl_users.tms_id). The engine
 -- keys inbox and completion rights on ds.tbl_users.usr_id, so that is what is
 -- returned. The snapshot's current value wins; the approved baseline is used
 -- if the snapshot has none.
 --
--- Anything that doesn't resolve (no id, no active team member, no app user, or
--- a non-project entity) falls back to Milton Ayala — looked up by email so the
--- same code works everywhere (usr_id 311 in production, 1 locally), with 311
--- as the last resort.
+-- The key is a literal top-level payload key (same flat lookup the findings
+-- engine uses for cdf_field_path). Every entity must carry its PM under exactly
+-- 'pse__Project_Manager__r.Name'; an entity without it always gets the fallback.
+--
+-- Anything that doesn't resolve (key missing, no id, no active team member, or
+-- no app user) falls back to Milton Ayala — looked up by email so the same code
+-- works everywhere (usr_id 311 in production, 1 locally), with 311 as the last
+-- resort.
 CREATE OR REPLACE FUNCTION ds.fn_resolve_finding_assignee(p_entity_type text, p_entity_id text)
 RETURNS integer
 LANGUAGE plpgsql
@@ -1261,29 +1266,27 @@ DECLARE
   v_wdid            text;
   v_usr_id          integer;
 BEGIN
-  IF p_entity_type = 'project' THEN
-    SELECT nullif(s.snp_payload ->> 'project_manager', '') INTO v_pm
-    FROM es.snp_entity_snapshot s
-    WHERE s.snp_entity_type = p_entity_type AND s.snp_entity_id = p_entity_id;
+  SELECT nullif(s.snp_payload ->> 'pse__Project_Manager__r.Name', '') INTO v_pm
+  FROM es.snp_entity_snapshot s
+  WHERE s.snp_entity_type = p_entity_type AND s.snp_entity_id = p_entity_id;
 
-    IF v_pm IS NULL THEN
-      SELECT nullif(a.aps_payload ->> 'project_manager', '') INTO v_pm
-      FROM ds.aps_approved_state a
-      WHERE a.cde_entity_type = p_entity_type AND a.aps_entity_id = p_entity_id;
-    END IF;
+  IF v_pm IS NULL THEN
+    SELECT nullif(a.aps_payload ->> 'pse__Project_Manager__r.Name', '') INTO v_pm
+    FROM ds.aps_approved_state a
+    WHERE a.cde_entity_type = p_entity_type AND a.aps_entity_id = p_entity_id;
+  END IF;
 
-    v_wdid := substring(v_pm FROM '\(([0-9]+)\)\s*$');
+  v_wdid := substring(v_pm FROM '\(([0-9]+)\)\s*$');
 
-    IF v_wdid IS NOT NULL THEN
-      SELECT u.usr_id INTO v_usr_id
-      FROM ds.tbl_team_members t
-      JOIN ds.tbl_users u ON u.tms_id = t.tms_id
-      WHERE t.wdid = v_wdid
-        AND t.tms_stadat <= CURRENT_DATE
-        AND (t.tms_enddat IS NULL OR t.tms_enddat >= CURRENT_DATE)
-      ORDER BY t.tms_stadat DESC, u.usr_id
-      LIMIT 1;
-    END IF;
+  IF v_wdid IS NOT NULL THEN
+    SELECT u.usr_id INTO v_usr_id
+    FROM ds.tbl_team_members t
+    JOIN ds.tbl_users u ON u.tms_id = t.tms_id
+    WHERE t.wdid = v_wdid
+      AND t.tms_stadat <= CURRENT_DATE
+      AND (t.tms_enddat IS NULL OR t.tms_enddat >= CURRENT_DATE)
+    ORDER BY t.tms_stadat DESC, u.usr_id
+    LIMIT 1;
   END IF;
 
   IF v_usr_id IS NOT NULL THEN
