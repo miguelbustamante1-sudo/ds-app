@@ -242,6 +242,16 @@ export function WorkflowTasksTab() {
         meta: { headerTitle: 'SLA Status', skeleton: <Skeleton className="h-5 w-20" /> },
       },
       {
+        accessorKey: 'attemptNumber',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Attempt" />,
+        cell: ({ row }) => {
+          const n = row.original.attemptNumber;
+          return n <= 1 ? 'Original' : `Replacement ${n - 1}`;
+        },
+        size: 130,
+        meta: { headerTitle: 'Attempt', skeleton: <Skeleton className="h-4 w-20" /> },
+      },
+      {
         accessorKey: 'state',
         header: ({ column }) => <DataGridColumnHeader column={column} title="State" />,
         cell: ({ row }) => stateBadge(row.original.state),

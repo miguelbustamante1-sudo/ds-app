@@ -8,6 +8,7 @@ export interface TaskInboxItem {
   state: string;
   outcomeCode: string | null;
   isOverdue: boolean;
+  attemptNumber: number;
   assignmentType: string;
   isClaimed: boolean;
   isClaimedByMe: boolean;
