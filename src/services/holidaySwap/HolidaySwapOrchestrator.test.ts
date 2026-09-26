@@ -12,7 +12,7 @@ vi.mock('../../db/prisma', () => ({
   prisma: {
     teamMember: { findUnique: vi.fn() },
     holiday: { findUnique: vi.fn() },
-    holidaySwap: { create: vi.fn() },
+    holidaySwap: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -133,5 +133,74 @@ describe('HolidaySwapOrchestrator.createSwapForMember', () => {
       'supervisor@example.com',
       88,
     );
+  });
+});
+
+import * as startExceptionOnEditModule from './components/StartSwapExceptionAuthorizationOnEdit';
+
+describe('HolidaySwapOrchestrator.updateSwapForMember — exception gate', () => {
+  const existingSwap = {
+    holidaySwapId: 200,
+    teamMemberId: 10,
+    holidayId: 9,
+    statusId: 1,
+    originalDate: new Date('2025-12-25'),
+    replacementDate: new Date('2026-08-01'),
+    active: true,
+    createdBy: 'employee@example.com',
+    holiday: { holidayName: 'Old Holiday' },
+    status: { statusName: 'Tentative' },
+  };
+
+  it('routes to exception authorization on edit when the new holiday only fails HOLIDAY_NOT_IN_FUTURE', async () => {
+    (prisma.holidaySwap.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(existingSwap);
+    (prisma.teamMember.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(teamMember);
+    (prisma.holiday.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(holiday);
+    vi.spyOn(loadStatusIdsModule, 'loadStatusIds').mockResolvedValue({
+      pending: 1, approved: 2, rejected: 5, cancelled: 4, taken: 3, pendingAuth: 7,
+    });
+    vi.spyOn(await import('../timeoff/supervisor/queries'), 'verifySupervisorRelationship').mockResolvedValue(true);
+    vi.spyOn(eligibilityModule, 'validateSwapEligibility').mockResolvedValue({
+      valid: false, errorCode: 'HOLIDAY_NOT_IN_FUTURE', errorMessage: 'The selected holiday must be a future date.',
+    });
+    vi.spyOn(eligibilityExceptionModule, 'validateSwapEligibilityException').mockResolvedValue({ valid: true });
+    vi.spyOn(replacementModule, 'validateReplacementDay').mockResolvedValue({ valid: true });
+    const startEditSpy = vi.spyOn(startExceptionOnEditModule, 'startSwapExceptionAuthorizationOnEdit').mockResolvedValue({
+      updated: { ...existingSwap, statusId: 7, active: false, status: { statusName: 'InAuth' } } as never,
+      workflowStarted: true,
+    });
+
+    const orchestrator = new HolidaySwapOrchestrator();
+    const result = await orchestrator.updateSwapForMember(
+      200,
+      1,
+      { holidayId: 3, replacementDate: '2026-06-01' },
+      'supervisor@example.com',
+      99,
+    );
+
+    expect(startEditSpy).toHaveBeenCalledWith(expect.objectContaining({
+      holidaySwapId: 200,
+      holidayId: 3,
+      updatedBy: 'supervisor@example.com',
+      requestedByUserId: 99,
+      reasonComment: 'the original holiday date has already passed',
+    }));
+    expect(result.statusName).toBe('InAuth');
+  });
+
+  it('blocks editing a swap that is already InAuth', async () => {
+    (prisma.holidaySwap.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...existingSwap, statusId: 7, status: { statusName: 'InAuth' },
+    });
+    vi.spyOn(loadStatusIdsModule, 'loadStatusIds').mockResolvedValue({
+      pending: 1, approved: 2, rejected: 5, cancelled: 4, taken: 3, pendingAuth: 7,
+    });
+
+    const orchestrator = new HolidaySwapOrchestrator();
+
+    await expect(
+      orchestrator.updateSwapForMember(200, 1, { holidayId: 3, replacementDate: '2026-06-01' }, 'supervisor@example.com', 99),
+    ).rejects.toThrow('A swap with status "InAuth" cannot be edited.');
   });
 });

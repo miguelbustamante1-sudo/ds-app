@@ -116,6 +116,7 @@ export class HolidaySwapOrchestrator {
             countryId: holiday.countryId,
             holidayDate: holiday.holidayDate,
           },
+          submissionDate: new Date(),
         });
         if (!exceptionEligibility.valid) {
           throw new AppError(exceptionEligibility.errorMessage ?? 'Swap eligibility check failed.', 400);
@@ -396,7 +397,8 @@ export class HolidaySwapOrchestrator {
     swapId: number,
     supervisorTeamMemberId: number,
     input: UpdateHolidaySwapDTO,
-    updatedBy: string
+    updatedBy: string,
+    requestedByUserId: number
   ): Promise<HolidaySwapDTO> {
     const statusIds = await loadStatusIds();
 
@@ -407,8 +409,9 @@ export class HolidaySwapOrchestrator {
     });
     if (!swap) throw new Error('Holiday swap not found.');
 
-    // 2. Block if status is Taken, Cancelled, or Rejected
-    const nonEditableStatuses = [statusIds.taken, statusIds.cancelled, statusIds.rejected];
+    // 2. Block if status is Taken, Cancelled, Rejected, or already InAuth
+    // (an exception-authorization workflow is already pending on it).
+    const nonEditableStatuses = [statusIds.taken, statusIds.cancelled, statusIds.rejected, statusIds.pendingAuth];
     if (nonEditableStatuses.includes(swap.statusId)) {
       throw new Error(`A swap with status "${swap.status.statusName}" cannot be edited.`);
     }
@@ -433,7 +436,9 @@ export class HolidaySwapOrchestrator {
     });
     if (!teamMember?.countryId) throw new Error('Team member country not found.');
 
-    // 6. Validate eligibility for the new holiday (skip if same holiday)
+    // 6. Validate eligibility for the new holiday (skip if same holiday). Same
+    // HOLIDAY_NOT_IN_FUTURE exception gate as createSwap.
+    let isExceptionCase = false;
     if (input.holidayId !== swap.holidayId) {
       const eligibility = await validateSwapEligibility({
         teamMemberId: swap.teamMemberId,
@@ -446,11 +451,31 @@ export class HolidaySwapOrchestrator {
         submissionDate: new Date(),
       });
       if (!eligibility.valid) {
-        throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+        if (eligibility.errorCode === 'HOLIDAY_NOT_IN_FUTURE') {
+          const exceptionEligibility = await validateSwapEligibilityException(
+            {
+              teamMemberId: swap.teamMemberId,
+              countryId: teamMember.countryId,
+              holiday: {
+                holidayId: holiday.holidayId,
+                countryId: holiday.countryId,
+                holidayDate: holiday.holidayDate,
+              },
+              submissionDate: new Date(),
+            },
+            swapId,
+          );
+          if (!exceptionEligibility.valid) {
+            throw new AppError(exceptionEligibility.errorMessage ?? 'Swap eligibility check failed.', 400);
+          }
+          isExceptionCase = true;
+        } else {
+          throw new Error(eligibility.errorMessage ?? 'Swap eligibility check failed.');
+        }
       }
     }
 
-    // 7. Validate replacement day
+    // 7. Validate replacement day — always enforced in full, exception or not.
     const replacementDate = new Date(input.replacementDate);
     const replacement = await validateReplacementDay({
       teamMemberId: swap.teamMemberId,
@@ -465,6 +490,20 @@ export class HolidaySwapOrchestrator {
 
     // 8. Snapshot before
     const before = { ...swap };
+
+    if (isExceptionCase) {
+      const { updated } = await startSwapExceptionAuthorizationOnEdit({
+        holidaySwapId: swapId,
+        before: before as unknown as Record<string, unknown>,
+        holidayId: holiday.holidayId,
+        originalDate: holiday.holidayDate,
+        replacementDate,
+        updatedBy,
+        requestedByUserId,
+        reasonComment: 'the original holiday date has already passed',
+      });
+      return toDTO(updated, holiday.holidayName, updated.status.statusName);
+    }
 
     // 9. Update — reset to Tentative if was Acknowledged so it needs re-approval
     const updated = await prisma.holidaySwap.update({
