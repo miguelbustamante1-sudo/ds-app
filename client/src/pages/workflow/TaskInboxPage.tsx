@@ -23,17 +23,18 @@ export function TaskInboxPage() {
   }
 
   // A notification link (e.g. from a workflow task assignment) can request a
-  // specific tab via ?tab=workflow — falls back to the existing default order
-  // when absent or the requested tab isn't one this user can see.
+  // specific tab via ?tab=standalone — falls back to Workflow Tasks by
+  // default when absent or the requested tab isn't one this user can see,
+  // landing on Standalone Tasks only if the user can't read Workflow at all.
   const requestedTab = searchParams.get('tab');
   const defaultTab =
-    requestedTab === 'workflow' && canRead('Workflow')
-      ? 'workflow'
-      : requestedTab === 'standalone' && canRead('StandaloneTask')
-        ? 'standalone'
-        : canRead('StandaloneTask')
-          ? 'standalone'
-          : 'workflow';
+    requestedTab === 'standalone' && canRead('StandaloneTask')
+      ? 'standalone'
+      : requestedTab === 'workflow' && canRead('Workflow')
+        ? 'workflow'
+        : canRead('Workflow')
+          ? 'workflow'
+          : 'standalone';
 
   return (
     <div className="container">
@@ -46,22 +47,22 @@ export function TaskInboxPage() {
 
       <Tabs defaultValue={defaultTab} className="mt-6">
         <TabsList>
-          {canRead('StandaloneTask') && (
-            <TabsTrigger value="standalone">Standalone Tasks</TabsTrigger>
-          )}
           {canRead('Workflow') && (
             <TabsTrigger value="workflow">Workflow Tasks</TabsTrigger>
           )}
+          {canRead('StandaloneTask') && (
+            <TabsTrigger value="standalone">Standalone Tasks</TabsTrigger>
+          )}
         </TabsList>
 
-        {canRead('StandaloneTask') && (
-          <TabsContent value="standalone">
-            <StandaloneTasksTab />
-          </TabsContent>
-        )}
         {canRead('Workflow') && (
           <TabsContent value="workflow">
             <WorkflowTasksTab />
+          </TabsContent>
+        )}
+        {canRead('StandaloneTask') && (
+          <TabsContent value="standalone">
+            <StandaloneTasksTab />
           </TabsContent>
         )}
       </Tabs>

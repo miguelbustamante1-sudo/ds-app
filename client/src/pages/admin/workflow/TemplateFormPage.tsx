@@ -21,6 +21,7 @@ import type { ComboBoxOption } from '@/components/ui/combobox';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import type { ShiftDTO } from '@shared/dto/Shift';
 import { TaskPanel } from './components/TaskPanel';
 import { RoutePanel } from './components/RoutePanel';
 import { DependencyPanel } from './components/DependencyPanel';
@@ -35,6 +36,7 @@ interface TemplateFormData {
   effectiveTo: string;
   executionType: string;
   instantiateProcName: string;
+  shiftId: string;
 }
 
 const EXECUTION_TYPE_OPTIONS: ComboBoxOption[] = [
@@ -52,6 +54,17 @@ export function TemplateFormPage() {
 
   const [template, setTemplate] = useState<WflWorkflowTemplate | null>(null);
   const [loading, setLoading] = useState(false);
+  const [shiftOptions, setShiftOptions] = useState<ComboBoxOption[]>([]);
+
+  useEffect(() => {
+    apiGet<ShiftDTO[]>('/api/shift')
+      .then((shifts) => {
+        setShiftOptions(shifts.map((s) => ({ value: s.shiftId.toString(), label: s.description })));
+      })
+      .catch(() => {
+        // silently ignore — the ComboBox will just show no options
+      });
+  }, []);
 
   const {
     register,
@@ -70,10 +83,12 @@ export function TemplateFormPage() {
       effectiveTo: '',
       executionType: 'CODE',
       instantiateProcName: '',
+      shiftId: '',
     },
   });
 
   const watchedExecutionType = watch('executionType');
+  const watchedShiftId = watch('shiftId');
 
   const loadTemplate = async () => {
     if (!wflId) return;
@@ -94,6 +109,7 @@ export function TemplateFormPage() {
           : '',
         executionType: data.executionType,
         instantiateProcName: data.instantiateProcName ?? '',
+        shiftId: data.shiftId?.toString() ?? '',
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load template';
@@ -119,6 +135,7 @@ export function TemplateFormPage() {
       effectiveTo: data.effectiveTo || null,
       executionType: data.executionType,
       instantiateProcName: data.executionType === 'DATABASE' ? (data.instantiateProcName.trim() || null) : null,
+      shiftId: data.shiftId ? parseInt(data.shiftId, 10) : null,
     };
 
     try {
@@ -343,6 +360,23 @@ export function TemplateFormPage() {
                     and none may have dependencies — enforced at publish time.
                   </p>
                 )}
+
+                <div className="space-y-1.5">
+                  <Label>Shift</Label>
+                  <ComboBox
+                    options={shiftOptions}
+                    value={watchedShiftId}
+                    onValueChange={(v) => setValue('shiftId', v)}
+                    placeholder="Select a shift (optional)..."
+                    searchPlaceholder="Search shifts..."
+                    emptyMessage="No shifts found."
+                    disabled={isPublished}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Governs business-hours-aware due-date calculation for every step in this
+                    template. Leave unset to fall back to Mon-Fri 08:00-17:00.
+                  </p>
+                </div>
 
                 {/* wecId: TODO — entity config endpoint not yet available */}
               </form>

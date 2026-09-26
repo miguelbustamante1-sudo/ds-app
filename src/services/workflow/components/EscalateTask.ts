@@ -27,7 +27,18 @@ export async function escalateTask(tx: Prisma.TransactionClient, witId: string):
   let recipientIds: string[] = [];
 
   if (task.escalationUserId !== null) {
-    recipientIds = [task.escalationUserId.toString()];
+    // tbl_users has no boolean active/enabled column — "active" is whether
+    // usr_enddat is null or in the future, same definition getUsersByRoleName
+    // already uses. A departed employee must never receive a live escalation.
+    const escalationUser = await tx.user.findFirst({
+      where: {
+        userId: task.escalationUserId,
+        OR: [{ userEndDate: null }, { userEndDate: { gt: now } }],
+      },
+    });
+    if (escalationUser) {
+      recipientIds = [escalationUser.userId.toString()];
+    }
   } else if (task.escalationRoleId !== null) {
     // escalationRoleId holds a role NAME after the retype. Resolve it to its members.
     // Previously this pushed the raw column value straight through; NotificationDispatcher
@@ -45,6 +56,17 @@ export async function escalateTask(tx: Prisma.TransactionClient, witId: string):
         recipientIds = [supervisorUserId.toString()];
       }
     }
+  }
+
+  if (recipientIds.length === 0) {
+    await tx.walWorkflowAuditLog.create({
+      data: {
+        winId: task.winId,
+        witId,
+        eventType: 'NO_RESPONSIBLE_FOUND',
+        performedBy: 'system',
+      },
+    });
   }
 
   await notifyWorkflowEvent({ witId, eventType: 'ON_ESCALATION', recipientUserIds: recipientIds });

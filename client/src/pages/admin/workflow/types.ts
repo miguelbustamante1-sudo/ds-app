@@ -11,6 +11,7 @@ export interface WflWorkflowTemplate {
   wecId: string | null;
   executionType: string;
   instantiateProcName: string | null;
+  shiftId: number | null;
   tasks?: WtkWorkflowTemplateTask[];
   routes?: WtrWorkflowTemplateRoute[];
   dependencies?: WtdWorkflowTemplateDependency[];
@@ -33,6 +34,9 @@ export interface WtkWorkflowTemplateTask {
   escalationUserId: number | null;
   escalationRoleId: string | null;
   escalationDynamicType: string | null;
+  deadlineAction: string;
+  reductionPercentage: number | null;
+  replacementLimit: number | null;
   maxRetryCount: number;
   allowReassignment: boolean;
   requireCommentOnReassign: boolean;
@@ -157,6 +161,11 @@ export interface WitAdminTask {
   overriddenBy: string | null;
   voidedAt: string | null;
   voidedBy: string | null;
+  originalTaskId: string | null;
+  previousTaskId: string | null;
+  attemptNumber: number;
+  remainingReplacements: number | null;
+  missedResolvedAt: string | null;
 }
 
 export interface WalAuditEntry {

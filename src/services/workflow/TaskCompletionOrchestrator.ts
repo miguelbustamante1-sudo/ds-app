@@ -393,10 +393,23 @@ class TaskCompletionOrchestrator {
               assignedUserId: true,
               assignedRoleId: true,
               dynamicAssignmentType: true,
+              templateTask: {
+                select: {
+                  deadlineAction: true,
+                  replacementLimit: true,
+                  template: {
+                    select: { shift: { include: { details: true } } },
+                  },
+                },
+              },
             },
           });
 
-          const nextDueAt = calculateDueDate(now, nextTask?.slaDurationHours ?? null);
+          const nextDueAt = calculateDueDate(
+            now,
+            nextTask?.slaDurationHours ?? null,
+            nextTask?.templateTask?.template.shift ?? null,
+          );
 
           await tx.witWorkflowInstanceTask.update({
             where: { witId: nextWitId },
@@ -404,6 +417,12 @@ class TaskCompletionOrchestrator {
               state: 'ACTIVE',
               activatedAt: now,
               dueAt: nextDueAt,
+              ...(nextTask?.templateTask?.deadlineAction === 'MISSED_AND_RECREATE' && {
+                attemptNumber: 1,
+                originalTaskId: null,
+                previousTaskId: null,
+                remainingReplacements: nextTask.templateTask.replacementLimit,
+              }),
             },
           });
 

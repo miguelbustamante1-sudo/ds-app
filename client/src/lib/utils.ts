@@ -42,6 +42,23 @@ export function formatUTCDate(dateInput: string | Date, formatStr: string = 'dd-
 }
 
 /**
+ * Formats a genuine timestamp (not a date-only value) for display, in the
+ * viewer's local timezone. Unlike formatUTCDate/parseUTCDateAsLocal — which
+ * deliberately zero out the time to avoid shifting a date-only value across
+ * a timezone boundary — this preserves the actual time-of-day, since the
+ * hour/minute of a real timestamp (e.g. a workflow task's dueAt) is itself
+ * meaningful and must not be dropped.
+ *
+ * @param dateInput - UTC ISO datetime string or Date object
+ * @param formatStr - date-fns format string (default: 'dd-MMM-yyyy HH:mm')
+ * @returns Formatted date-time string
+ */
+export function formatUTCDateTime(dateInput: string | Date, formatStr: string = 'dd-MMM-yyyy HH:mm'): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  return format(date, formatStr);
+}
+
+/**
  * Returns the preferred display name for a team member.
  *
  * Currently returns the formal full name (names + surnames). When the DB team

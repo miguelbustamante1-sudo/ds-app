@@ -1,21 +1,29 @@
 import { prisma } from '../../../db/prisma';
 import { auditOrchestrator } from '../../audit/AuditOrchestrator';
 import { escalateTask } from './EscalateTask';
+import { processMissedTask } from '../MissedTaskOrchestrator';
 
 export async function processSlaBreaches(): Promise<void> {
   const now = new Date();
 
-  let breachedTasks: Array<{ witId: string }>;
+  let breachedTasks: Array<{ witId: string; deadlineAction: string }>;
 
   try {
-    breachedTasks = await prisma.witWorkflowInstanceTask.findMany({
+    const rows = await prisma.witWorkflowInstanceTask.findMany({
       where: {
         state: 'ACTIVE',
         dueAt: { not: null, lt: now },
         escalatedAt: null,
       },
-      select: { witId: true },
+      select: {
+        witId: true,
+        templateTask: { select: { deadlineAction: true } },
+      },
     });
+    breachedTasks = rows.map((row) => ({
+      witId: row.witId,
+      deadlineAction: row.templateTask?.deadlineAction ?? 'ESCALATE',
+    }));
   } catch (err: unknown) {
     console.error('SlaBreachScanner: failed to query breached tasks', err);
     return;
@@ -23,6 +31,11 @@ export async function processSlaBreaches(): Promise<void> {
 
   for (const task of breachedTasks) {
     try {
+      if (task.deadlineAction === 'MISSED_AND_RECREATE') {
+        await processMissedTask(task.witId);
+        continue;
+      }
+
       await prisma.$transaction(async (tx) => {
         await escalateTask(tx, task.witId);
       });
@@ -35,7 +48,7 @@ export async function processSlaBreaches(): Promise<void> {
         comment: 'Task escalated by SLA breach scanner',
       });
     } catch (err: unknown) {
-      console.error('SlaBreachScanner: failed to escalate task', task.witId, err);
+      console.error('SlaBreachScanner: failed to process breached task', task.witId, err);
     }
   }
 }

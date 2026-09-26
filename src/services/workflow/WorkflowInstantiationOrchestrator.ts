@@ -48,6 +48,7 @@ export class WorkflowInstantiationOrchestrator {
           routes: true,
           dependencies: true,
           entityConfig: { include: { entityFields: true } },
+          shift: { include: { details: true } },
         },
       });
 
@@ -223,11 +224,21 @@ export class WorkflowInstantiationOrchestrator {
         const witId = taskMap.get(task.wtkId);
         if (!witId) continue;
 
-        const dueAt = calculateDueDate(now, task.slaDurationHours ?? null);
+        const dueAt = calculateDueDate(now, task.slaDurationHours ?? null, template.shift ?? null);
 
         await tx.witWorkflowInstanceTask.update({
           where: { witId },
-          data: { state: 'ACTIVE', activatedAt: now, dueAt },
+          data: {
+            state: 'ACTIVE',
+            activatedAt: now,
+            dueAt,
+            ...(task.deadlineAction === 'MISSED_AND_RECREATE' && {
+              attemptNumber: 1,
+              originalTaskId: null,
+              previousTaskId: null,
+              remainingReplacements: task.replacementLimit,
+            }),
+          },
         });
 
         activatedTaskIds.push(witId);

@@ -8,6 +8,7 @@ import { validateRoutingExpressions } from './components/ValidateRoutingExpressi
 import { validateTaskRoutes } from './components/ValidateTaskRoutes';
 import { validateTaskDependencies } from './components/ValidateTaskDependencies';
 import { validateExecutionType } from './components/ValidateExecutionType';
+import { validateDeadlineAction } from './components/ValidateDeadlineAction';
 import {
   WorkflowNotFoundError,
   WorkflowNotDraftError,
@@ -32,6 +33,7 @@ interface CreateTemplateInput {
   effectiveTo?: Date | string | null;
   executionType?: 'CODE' | 'DATABASE';
   instantiateProcName?: string | null;
+  shiftId?: number | null;
 }
 
 interface UpdateTemplateInput {
@@ -43,6 +45,7 @@ interface UpdateTemplateInput {
   effectiveTo?: Date | string | null;
   executionType?: 'CODE' | 'DATABASE';
   instantiateProcName?: string | null;
+  shiftId?: number | null;
 }
 
 /**
@@ -77,6 +80,9 @@ interface AddTaskInput {
   escalationUserId?: number;
   escalationRoleId?: string;
   escalationDynamicType?: string;
+  deadlineAction?: string;
+  reductionPercentage?: number | null;
+  replacementLimit?: number | null;
   maxRetryCount?: number;
   allowReassignment?: boolean;
   requireCommentOnReassign?: boolean;
@@ -99,6 +105,9 @@ interface UpdateTaskInput {
   escalationUserId?: number;
   escalationRoleId?: string;
   escalationDynamicType?: string;
+  deadlineAction?: string;
+  reductionPercentage?: number | null;
+  replacementLimit?: number | null;
   maxRetryCount?: number;
   allowReassignment?: boolean;
   requireCommentOnReassign?: boolean;
@@ -251,6 +260,7 @@ export class WorkflowTemplateOrchestrator {
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
         ...(data.executionType !== undefined && { executionType: data.executionType }),
         ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
+        ...(data.shiftId !== undefined && { shiftId: data.shiftId }),
       },
     });
 
@@ -310,6 +320,7 @@ export class WorkflowTemplateOrchestrator {
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
         ...(data.executionType !== undefined && { executionType: data.executionType }),
         ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
+        ...(data.shiftId !== undefined && { shiftId: data.shiftId }),
       },
     });
 
@@ -339,6 +350,7 @@ export class WorkflowTemplateOrchestrator {
 
     await validateRoutingExpressions(wflId);
     await validateExecutionType(wflId);
+    await validateDeadlineAction(wflId);
 
     const now = new Date();
 
@@ -452,6 +464,9 @@ export class WorkflowTemplateOrchestrator {
         ...(data.escalationUserId !== undefined && { escalationUserId: data.escalationUserId }),
         ...(data.escalationRoleId !== undefined && { escalationRoleId: data.escalationRoleId }),
         ...(data.escalationDynamicType !== undefined && { escalationDynamicType: data.escalationDynamicType }),
+        ...(data.deadlineAction !== undefined && { deadlineAction: data.deadlineAction }),
+        ...(data.reductionPercentage !== undefined && { reductionPercentage: data.reductionPercentage }),
+        ...(data.replacementLimit !== undefined && { replacementLimit: data.replacementLimit }),
         ...(data.maxRetryCount !== undefined && { maxRetryCount: data.maxRetryCount }),
         ...(data.allowReassignment !== undefined && { allowReassignment: data.allowReassignment }),
         ...(data.requireCommentOnReassign !== undefined && { requireCommentOnReassign: data.requireCommentOnReassign }),
@@ -505,6 +520,9 @@ export class WorkflowTemplateOrchestrator {
         ...(data.escalationUserId !== undefined && { escalationUserId: data.escalationUserId }),
         ...(data.escalationRoleId !== undefined && { escalationRoleId: data.escalationRoleId }),
         ...(data.escalationDynamicType !== undefined && { escalationDynamicType: data.escalationDynamicType }),
+        ...(data.deadlineAction !== undefined && { deadlineAction: data.deadlineAction }),
+        ...(data.reductionPercentage !== undefined && { reductionPercentage: data.reductionPercentage }),
+        ...(data.replacementLimit !== undefined && { replacementLimit: data.replacementLimit }),
         ...(data.maxRetryCount !== undefined && { maxRetryCount: data.maxRetryCount }),
         ...(data.allowReassignment !== undefined && { allowReassignment: data.allowReassignment }),
         ...(data.requireCommentOnReassign !== undefined && { requireCommentOnReassign: data.requireCommentOnReassign }),

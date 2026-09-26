@@ -23,7 +23,7 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Link } from 'react-router';
 import { AlertCircle, Clock, ListChecks, X } from 'lucide-react';
 import { apiGet, apiPost } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import type { TaskInboxItem } from './types';
@@ -227,7 +227,7 @@ export function WorkflowTasksTab() {
         accessorKey: 'dueAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Due Date" />,
         cell: ({ row }) =>
-          row.original.dueAt ? formatUTCDate(row.original.dueAt) : '—',
+          row.original.dueAt ? formatUTCDateTime(row.original.dueAt) : '—',
         size: 130,
         meta: { headerTitle: 'Due Date', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -240,6 +240,16 @@ export function WorkflowTasksTab() {
           filterValues.includes(slaStatusValue(row.original)),
         size: 120,
         meta: { headerTitle: 'SLA Status', skeleton: <Skeleton className="h-5 w-20" /> },
+      },
+      {
+        accessorKey: 'attemptNumber',
+        header: ({ column }) => <DataGridColumnHeader column={column} title="Attempt" />,
+        cell: ({ row }) => {
+          const n = row.original.attemptNumber;
+          return n <= 1 ? 'Original' : `Replacement ${n - 1}`;
+        },
+        size: 130,
+        meta: { headerTitle: 'Attempt', skeleton: <Skeleton className="h-4 w-20" /> },
       },
       {
         accessorKey: 'state',
