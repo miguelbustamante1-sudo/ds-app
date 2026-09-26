@@ -171,7 +171,7 @@ export function SupervisorHolidaySwapsPage() {
                 {selectedTeamMember.workdayId}
               </span>
             </span>
-            <Button onClick={() => setCreateDialogOpen(true)} size="sm" variant="outline">
+            <Button onClick={() => setCreateDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-1" />
               New Swap
             </Button>
