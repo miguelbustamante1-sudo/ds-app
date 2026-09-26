@@ -15,6 +15,8 @@ export interface StartExceptionAuthorizationInput {
   /** The requesting employee's own usr_id — becomes both timeOffCreatedBy and the workflow's ownerUserId, so DYNAMIC/FIRST_SUPERVISOR assignment resolves to their supervisor. */
   requestedByUserId: number;
   requestedByEmail: string;
+  /** Optional workflow-instance context entries (e.g. days-before violation detail) forwarded as-is to the workflow instantiation — see InstantiateExceptionAuthorizationWorkflowInput.contextJson. */
+  contextJson?: Array<{ key: string; value: string | number | boolean }>;
 }
 
 export interface StartExceptionAuthorizationResult {
@@ -68,6 +70,7 @@ export async function startExceptionAuthorization(
     timeOffId: created.timeOffId,
     requestedByUserId: input.requestedByUserId,
     requestedByEmail: input.requestedByEmail,
+    ...(input.contextJson ? { contextJson: input.contextJson } : {}),
   });
 
   return { created, workflowStarted };

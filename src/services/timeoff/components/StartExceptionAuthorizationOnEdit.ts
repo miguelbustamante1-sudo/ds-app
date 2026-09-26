@@ -15,6 +15,8 @@ export interface StartExceptionAuthorizationOnEditInput {
   /** The acting user's own usr_id — becomes both timeOffLastUpdatedBy and the workflow's ownerUserId, so DYNAMIC/FIRST_SUPERVISOR assignment resolves to the acting user's own supervisor (the employee's for self-edit, the supervisor's supervisor for a supervisor edit). */
   requestedByUserId: number;
   requestedByEmail: string;
+  /** Optional workflow-instance context entries (e.g. days-before violation detail) forwarded as-is to the workflow instantiation — see InstantiateExceptionAuthorizationWorkflowInput.contextJson. */
+  contextJson?: Array<{ key: string; value: string | number | boolean }>;
 }
 
 export interface StartExceptionAuthorizationOnEditResult {
@@ -70,6 +72,7 @@ export async function startExceptionAuthorizationOnEdit(
     timeOffId: input.timeOffId,
     requestedByUserId: input.requestedByUserId,
     requestedByEmail: input.requestedByEmail,
+    ...(input.contextJson ? { contextJson: input.contextJson } : {}),
   });
 
   return { updated, workflowStarted };
