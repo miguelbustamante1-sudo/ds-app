@@ -12,6 +12,24 @@ This project uses a three-part version number: **MAJOR.FEATURE.PATCH**
 
 Each release below corresponds to a merge from the `main` development branch into the `current` production branch.
 
+## [2.13.0] - 2026-09-26
+
+### Added
+
+**Change Detection & Findings**
+- New change-detection platform: watched entities/fields are snapshotted from Salesforce and diffed against an approved baseline to surface findings
+- Detection Rules maintenance screen — define per-(entity type, rule type, field) rules, with a duplicate-rule guard and active/inactive toggling
+- Object & Field Manager maintenance screen for configuring watched entities and fields
+- Findings page — reconciles findings per field with self-resolve (finding clears itself when the underlying value reverts) and supersede (a newer finding replaces a stale one) logic, and syncs review tasks
+- Run Findings action, scoped per watched entity type, with per-entity success/failure reporting so one failing entity doesn't block the rest
+- Production deployment + seed scripts for the new schema objects (watched entities/fields, detection rules, findings, approved-state baselines)
+
+### Fixed
+
+**Change Detection & Findings**
+- `runFindings`/`getFindings`/`getStatusCounts` now loop over every active watched entity type instead of a single hardcoded one
+- Finding-assignee resolution (`fn_resolve_finding_assignee`) now works for every entity type via `pse__Project_Manager__r.Name`, not just `project`
+
 ## [2.12.0] - 2026-09-26
 
 ### Added
