@@ -2554,6 +2554,9 @@ model TriviaAnswer {
   @@unique([questionId, teamMemberId], map: "tra_question_tms_unique")
   @@index([teamMemberId], map: "idx_tra_trivia_answers_tms")
   @@map("tra_trivia_answers")
+  @@schema("ds")
+}
+
 /// Salesforce Entity Snapshot — landing table for change-detection platform
 model SnpEntitySnapshot {
   snapshotId Int      @id @default(autoincrement()) @map("snp_id") @db.Integer

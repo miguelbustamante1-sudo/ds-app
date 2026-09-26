@@ -39,7 +39,7 @@ SELECT item, ok, detail FROM (
                   WHERE x.opt_description = o.name AND r.rol_name = 'admin' AND p.per_read AND p.per_write), ''
     FROM (VALUES ('Findings'), ('WatchedFields')) o(name)
   UNION ALL
-  -- Read-only function call: a non-project entity always resolves to the fallback reviewer.
+  -- Read-only function call: an entity with no snapshot or baseline always resolves to the fallback reviewer.
   SELECT 7, 'fallback reviewer resolves to 311', ds.fn_resolve_finding_assignee('verify', 'verify') = 311,
          'resolved usr_id ' || ds.fn_resolve_finding_assignee('verify', 'verify')
   UNION ALL

@@ -19,9 +19,12 @@ export interface FindingDto {
   rulDefinition: unknown;
 }
 
-export interface RunFindingsResultDto {
-  runId: string;
-  runLogId: number;
+/** One active watched entity type's pass within a Run Findings click (one rnl_run_log row). */
+export interface EntityFindingsRunDto {
+  entityType: string;
+  status: 'completed' | 'failed';
+  /** Null only when the run log itself could not be started. */
+  runLogId: number | null;
   findingsCreated: number;
   findingsUpdated: number;
   findingsResolved: number;
@@ -29,6 +32,13 @@ export interface RunFindingsResultDto {
   entitiesCompared: number;
   fieldsChecked: number;
   observationsRecorded: number;
+  error: string | null;
+}
+
+export interface RunFindingsResultDto {
+  runId: string;
+  /** One entry per active entity type, in entity-type order; empty when none are active. */
+  entities: EntityFindingsRunDto[];
   /** Review tasks created / closed by the same click (Findings Review Workflow). */
   tasksCreated: number;
   tasksClosed: number;
@@ -37,6 +47,7 @@ export interface RunFindingsResultDto {
 }
 
 export interface FindingStatusCountDto {
+  entityType: string;
   status: string;
   count: number;
 }
