@@ -13,7 +13,7 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackToHubButton } from '@/components/BackToHubButton';
 import { apiGet } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { WitInstanceTask } from './types';
 
@@ -85,11 +85,11 @@ export function TaskDetailPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Due At</dt>
-                  <dd>{task.dueAt ? formatUTCDate(task.dueAt) : '—'}</dd>
+                  <dd>{task.dueAt ? formatUTCDateTime(task.dueAt) : '—'}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Completed At</dt>
-                  <dd>{task.completedAt ? formatUTCDate(task.completedAt) : '—'}</dd>
+                  <dd>{task.completedAt ? formatUTCDateTime(task.completedAt) : '—'}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Outcome</dt>
@@ -97,7 +97,7 @@ export function TaskDetailPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Missed Resolved At</dt>
-                  <dd>{task.missedResolvedAt ? formatUTCDate(task.missedResolvedAt) : '—'}</dd>
+                  <dd>{task.missedResolvedAt ? formatUTCDateTime(task.missedResolvedAt) : '—'}</dd>
                 </div>
               </dl>
               {task.description && (

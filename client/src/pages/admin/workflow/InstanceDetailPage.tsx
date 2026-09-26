@@ -28,7 +28,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { apiGet } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { AdminJumpModal } from './components/AdminJumpModal';
@@ -161,7 +161,7 @@ export function InstanceDetailPage() {
       {
         accessorKey: 'dueAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Due At" />,
-        cell: ({ row }) => (row.original.dueAt ? formatUTCDate(row.original.dueAt) : '—'),
+        cell: ({ row }) => (row.original.dueAt ? formatUTCDateTime(row.original.dueAt) : '—'),
         size: 120,
         meta: { headerTitle: 'Due At', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -169,7 +169,7 @@ export function InstanceDetailPage() {
         accessorKey: 'completedAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Completed At" />,
         cell: ({ row }) =>
-          row.original.completedAt ? formatUTCDate(row.original.completedAt) : '—',
+          row.original.completedAt ? formatUTCDateTime(row.original.completedAt) : '—',
         size: 130,
         meta: { headerTitle: 'Completed At', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -221,7 +221,7 @@ export function InstanceDetailPage() {
       {
         accessorKey: 'eventTimestamp',
         header: 'Timestamp',
-        cell: ({ row }) => formatUTCDate(row.original.eventTimestamp),
+        cell: ({ row }) => formatUTCDateTime(row.original.eventTimestamp),
         size: 130,
         meta: { headerTitle: 'Timestamp', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -375,7 +375,7 @@ export function InstanceDetailPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Started At</dt>
-                  <dd>{formatUTCDate(instance.startedAt)}</dd>
+                  <dd>{formatUTCDateTime(instance.startedAt)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Started By</dt>
@@ -508,18 +508,18 @@ export function InstanceDetailPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Due At</dt>
-                  <dd>{selectedTask.dueAt ? formatUTCDate(selectedTask.dueAt) : '—'}</dd>
+                  <dd>{selectedTask.dueAt ? formatUTCDateTime(selectedTask.dueAt) : '—'}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Activated At</dt>
                   <dd>
-                    {selectedTask.activatedAt ? formatUTCDate(selectedTask.activatedAt) : '—'}
+                    {selectedTask.activatedAt ? formatUTCDateTime(selectedTask.activatedAt) : '—'}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Completed At</dt>
                   <dd>
-                    {selectedTask.completedAt ? formatUTCDate(selectedTask.completedAt) : '—'}
+                    {selectedTask.completedAt ? formatUTCDateTime(selectedTask.completedAt) : '—'}
                   </dd>
                 </div>
                 <div>

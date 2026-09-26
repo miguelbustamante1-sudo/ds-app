@@ -30,7 +30,7 @@ import { DataGridColumnHeader } from '@/components/ui/data-grid-column-header';
 import { DataGridColumnFilter } from '@/components/ui/data-grid-column-filter';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { apiGet } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import type { WitInstanceTask } from './types';
@@ -169,7 +169,7 @@ export function WorkflowInstancePage() {
         accessorKey: 'dueAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Due Date" />,
         cell: ({ row }) =>
-          row.original.dueAt ? formatUTCDate(row.original.dueAt) : '—',
+          row.original.dueAt ? formatUTCDateTime(row.original.dueAt) : '—',
         size: 130,
         meta: { headerTitle: 'Due Date', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -177,7 +177,7 @@ export function WorkflowInstancePage() {
         accessorKey: 'completedAt',
         header: ({ column }) => <DataGridColumnHeader column={column} title="Completed At" />,
         cell: ({ row }) =>
-          row.original.completedAt ? formatUTCDate(row.original.completedAt) : '—',
+          row.original.completedAt ? formatUTCDateTime(row.original.completedAt) : '—',
         size: 140,
         meta: { headerTitle: 'Completed At', skeleton: <Skeleton className="h-4 w-24" /> },
       },
@@ -251,7 +251,7 @@ export function WorkflowInstancePage() {
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Started At</dt>
-                    <dd>{instance.startedAt ? formatUTCDate(instance.startedAt) : '—'}</dd>
+                    <dd>{instance.startedAt ? formatUTCDateTime(instance.startedAt) : '—'}</dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Started By</dt>

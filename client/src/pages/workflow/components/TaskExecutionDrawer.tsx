@@ -18,7 +18,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { apiGet, apiPost } from '@/lib/api';
-import { formatUTCDate } from '@/lib/utils';
+import { formatUTCDateTime } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { WitInstanceTask, WiiInstanceInput, ChangedFieldDiff } from '../types';
 
@@ -360,7 +360,7 @@ export function TaskExecutionDrawer({
               )}
               {task.dueAt && (
                 <p className="text-sm text-muted-foreground">
-                  Due: {formatUTCDate(task.dueAt)}
+                  Due: {formatUTCDateTime(task.dueAt)}
                 </p>
               )}
             </div>
