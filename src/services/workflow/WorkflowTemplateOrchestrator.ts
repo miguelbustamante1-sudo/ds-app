@@ -33,6 +33,7 @@ interface CreateTemplateInput {
   effectiveTo?: Date | string | null;
   executionType?: 'CODE' | 'DATABASE';
   instantiateProcName?: string | null;
+  shiftId?: number | null;
 }
 
 interface UpdateTemplateInput {
@@ -44,6 +45,7 @@ interface UpdateTemplateInput {
   effectiveTo?: Date | string | null;
   executionType?: 'CODE' | 'DATABASE';
   instantiateProcName?: string | null;
+  shiftId?: number | null;
 }
 
 /**
@@ -258,6 +260,7 @@ export class WorkflowTemplateOrchestrator {
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
         ...(data.executionType !== undefined && { executionType: data.executionType }),
         ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
+        ...(data.shiftId !== undefined && { shiftId: data.shiftId }),
       },
     });
 
@@ -317,6 +320,7 @@ export class WorkflowTemplateOrchestrator {
         ...(data.effectiveTo !== undefined && { effectiveTo: toDateOrNull(data.effectiveTo) }),
         ...(data.executionType !== undefined && { executionType: data.executionType }),
         ...(data.instantiateProcName !== undefined && { instantiateProcName: data.instantiateProcName }),
+        ...(data.shiftId !== undefined && { shiftId: data.shiftId }),
       },
     });
 

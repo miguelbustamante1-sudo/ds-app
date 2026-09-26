@@ -47,6 +47,7 @@ router.post(
           effectiveTo?: Date;
           executionType?: 'CODE' | 'DATABASE';
           instantiateProcName?: string | null;
+          shiftId?: number | null;
         },
         userId(req),
         userEmail(req),
@@ -105,6 +106,7 @@ router.patch(
           effectiveTo?: Date;
           executionType?: 'CODE' | 'DATABASE';
           instantiateProcName?: string | null;
+          shiftId?: number | null;
         },
         userId(req),
         userEmail(req),

@@ -11,6 +11,7 @@ export interface WflWorkflowTemplate {
   wecId: string | null;
   executionType: string;
   instantiateProcName: string | null;
+  shiftId: number | null;
   tasks?: WtkWorkflowTemplateTask[];
   routes?: WtrWorkflowTemplateRoute[];
   dependencies?: WtdWorkflowTemplateDependency[];
