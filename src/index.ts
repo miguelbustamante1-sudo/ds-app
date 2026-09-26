@@ -32,6 +32,8 @@ import { registerBusinessReferenceLink } from './services/workflow/components/Bu
 import { getTimeOffTaskSummary } from './services/timeoff/components/GetTimeOffTaskSummary';
 import { registerBusinessReferenceSubject } from './services/workflow/components/BusinessReferenceSubjectRegistry';
 import { getTimeOffSubjectTeamMember } from './services/timeoff/components/GetTimeOffSubjectTeamMember';
+import { getSwapTaskSummary } from './services/holidaySwap/components/GetSwapTaskSummary';
+import { getSwapSubjectTeamMember } from './services/holidaySwap/components/GetSwapSubjectTeamMember';
 import { scanEtaBreaches } from './services/performance-cases/components/ScanEtaBreaches';
 import { processPostClosureCheckins } from './services/performance-cases/components/ProcessPostClosureCheckins';
 import { remindStaleTls } from './services/performance-cases/components/RemindStaleTls';
@@ -149,6 +151,8 @@ registerOutcomeHandler('HolidaySwap', handleSwapExceptionAuthorizationOutcome);
 registerDestroyHandler('TimeOff', handleTimeOffWorkflowDestroyed);
 registerBusinessReferenceLink('TimeOff', getTimeOffTaskSummary);
 registerBusinessReferenceSubject('TimeOff', getTimeOffSubjectTeamMember);
+registerBusinessReferenceLink('HolidaySwap', getSwapTaskSummary);
+registerBusinessReferenceSubject('HolidaySwap', getSwapSubjectTeamMember);
 
 // Performance case ETA breach scan: flags overdue in-progress phases, increments the team
 // leader's strike count, and notifies the OM. Runs once on startup and then every 15 minutes
