@@ -204,3 +204,34 @@ describe('HolidaySwapOrchestrator.updateSwapForMember — exception gate', () =>
     ).rejects.toThrow('A swap with status "InAuth" cannot be edited.');
   });
 });
+
+import * as getSwapsForSupervisorModule from '../teamMember/queries/getSwapsForSupervisor';
+
+describe('HolidaySwapOrchestrator — TLTeam viewAll bypass', () => {
+  it('getTeamMemberSwaps passes viewAll through to getSwapsForSupervisor', async () => {
+    const spy = vi.spyOn(getSwapsForSupervisorModule, 'getSwapsForSupervisor').mockResolvedValue([]);
+    const orchestrator = new HolidaySwapOrchestrator();
+
+    await orchestrator.getTeamMemberSwaps(1, 10, true);
+
+    expect(spy).toHaveBeenCalledWith(1, 10, true);
+  });
+
+  it('getTeamMemberSwaps defaults viewAll to false when omitted', async () => {
+    const spy = vi.spyOn(getSwapsForSupervisorModule, 'getSwapsForSupervisor').mockResolvedValue([]);
+    const orchestrator = new HolidaySwapOrchestrator();
+
+    await orchestrator.getTeamMemberSwaps(1, 10);
+
+    expect(spy).toHaveBeenCalledWith(1, 10, false);
+  });
+
+  it('getActiveTeamMemberSwaps passes viewAll through to getSwapsForSupervisor', async () => {
+    const spy = vi.spyOn(getSwapsForSupervisorModule, 'getSwapsForSupervisor').mockResolvedValue([]);
+    const orchestrator = new HolidaySwapOrchestrator();
+
+    await orchestrator.getActiveTeamMemberSwaps(1, 10, true);
+
+    expect(spy).toHaveBeenCalledWith(1, 10, true);
+  });
+});

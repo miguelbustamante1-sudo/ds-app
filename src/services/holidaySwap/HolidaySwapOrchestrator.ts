@@ -291,12 +291,18 @@ export class HolidaySwapOrchestrator {
     return this.createSwap(targetTeamMemberId, input, createdBy, requestedByUserId);
   }
 
-  /** Supervisor views TM's swaps (GET /api/holiday-swaps/team/:teamMemberId) */
+  /**
+   * Supervisor views TM's swaps (GET /api/holiday-swaps/team/:teamMemberId).
+   * `viewAll` bypasses the reporting-hierarchy check for callers with the
+   * TLTeam admin permission (e.g. a BSA viewing swaps for the time-off
+   * exception page for a team member they don't directly supervise).
+   */
   async getTeamMemberSwaps(
     supervisorTeamMemberId: number,
-    targetTeamMemberId: number
+    targetTeamMemberId: number,
+    viewAll = false
   ): Promise<HolidaySwapDTO[]> {
-    return getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId);
+    return getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId, viewAll);
   }
 
   /**
@@ -304,13 +310,15 @@ export class HolidaySwapOrchestrator {
    * (GET /api/holiday-swaps/team/:teamMemberId/active-swaps).
    * Mirrors getActiveSwapsForTM's semantics, but access-checked for a supervisor
    * viewing a team member other than themself, via the same reporting-hierarchy
-   * wrapper getTeamMemberSwaps already uses.
+   * wrapper getTeamMemberSwaps already uses. `viewAll` bypasses that check for
+   * TLTeam-permissioned admin callers — see getTeamMemberSwaps.
    */
   async getActiveTeamMemberSwaps(
     supervisorTeamMemberId: number,
-    targetTeamMemberId: number
+    targetTeamMemberId: number,
+    viewAll = false
   ): Promise<ActiveSwapSummaryDTO[]> {
-    const swaps = await getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId);
+    const swaps = await getSwapsForSupervisor(supervisorTeamMemberId, targetTeamMemberId, viewAll);
     return swaps
       .filter((s) => s.statusName === 'Acknowledged' && s.active)
       .map((s) => ({
